@@ -12840,6 +12840,8 @@ body {
 
 .stocks-table-wrap {
   border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+  max-height: 620px;
+  overflow: auto;
 }
 
 .stocks-rail {

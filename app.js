@@ -15,6 +15,8 @@ const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260610-expand1";
 const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260610-expand1";
 const WATCHLIST_STORAGE_KEY = "meigu_strategy_watchlist_v1";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "meigu_strategy_sidebar_collapsed_v1";
+const GLOBAL_SEARCH_LIMIT = 12;
+const STOCK_LIBRARY_DISPLAY_LIMIT = 200;
 
 const state = {
   activeBoard: "ytd",
@@ -1072,7 +1074,7 @@ const globalSearchResults = (query) => {
     })
     .filter(Boolean)
     .sort((a, b) => a.score - b.score || a.symbol.localeCompare(b.symbol))
-    .slice(0, 8);
+    .slice(0, GLOBAL_SEARCH_LIMIT);
   const pages = globalPageSearchItems()
     .filter((item) => item.searchText.includes(clean))
     .slice(0, 4);
@@ -1278,13 +1280,9 @@ const renderStocksPage = () => {
   if (!state.searchUniverse && !state.loading.searchUniverse) {
     loadGlobalSearchUniverse().then(renderStocksPage);
   }
-  if (!state.searchUniverse) {
-    body.innerHTML = `<tr><td colspan="7">正在加载股票库。</td></tr>`;
-    return;
-  }
   const allRows = stockLibraryRows();
   renderStocksSectorOptions(allRows);
-  const rows = filteredStockLibraryRows().slice(0, 80);
+  const rows = filteredStockLibraryRows().slice(0, STOCK_LIBRARY_DISPLAY_LIMIT);
   const label = state.stocksQuery
     ? `搜索：${state.stocksQuery}`
     : state.stocksPresetFilter === "liquid"

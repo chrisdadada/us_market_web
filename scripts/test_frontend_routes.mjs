@@ -133,6 +133,29 @@ async function assertRoute(page, expected) {
   return state;
 }
 
+async function assertExpandedStockSearch(page, serverUrl) {
+  await page.route("**/data/site-data-index.json*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "{}",
+    });
+  });
+  await page.goto(`${serverUrl}#stocks`, { waitUntil: "networkidle" });
+  await page.waitForSelector('.page-view.is-active[data-view="stocks"]');
+  await page.waitForFunction(() => document.querySelectorAll("#stocksTableBody tr").length >= 200);
+  const stockRows = await page.locator("#stocksTableBody tr").count();
+  assert(stockRows >= 200, `stocks library rendered ${stockRows} rows, expected at least 200`);
+
+  await page.locator("#globalSearchInput").fill("WATT");
+  await page.waitForSelector('[data-global-search-result][data-result-type="stock"][data-symbol="WATT"]');
+  await page.locator('[data-global-search-result][data-result-type="stock"][data-symbol="WATT"]').first().click();
+  await page.waitForSelector('.page-view.is-active[data-view="stock"]');
+  const state = await collectRouteState(page);
+  assert(state.activeView === "stock", `global search opened ${state.activeView}, expected stock`);
+  assert(state.activeViewText.includes("WATT"), "global search stock page is missing WATT");
+}
+
 async function run() {
   const server = await startStaticServer();
   const browser = await launchBrowser();
@@ -181,12 +204,14 @@ async function run() {
         `flows:${sectionCase.section} active tab is ${state.activeMarketSection}, expected ${sectionCase.section}`,
       );
     }
+
+    await assertExpandedStockSearch(page, server.url);
   } finally {
     await browser.close();
     await server.close();
   }
 
-  console.log(`Frontend route regression passed (${routeCases.length + marketSectionCases.length + flowsToMarketSectionCases.length} checks).`);
+  console.log(`Frontend route regression passed (${routeCases.length + marketSectionCases.length + flowsToMarketSectionCases.length + 2} checks).`);
 }
 
 run().catch((error) => {
