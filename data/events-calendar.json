@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-06-09T00:00:00+08:00",
+  "asOf": "2026-06-09",
+  "source": "manual seed + official macro calendars",
+  "events": [
+    {
+      "date": "2026-06-10",
+      "time": "08:30 ET",
+      "title": "美国 CPI，2026 年 5 月",
+      "type": "macro",
+      "impact": "high",
+      "sourceName": "BLS",
+      "relatedModules": ["市场", "风险", "估值"],
+      "relatedAssets": ["SPY", "QQQ"],
+      "summary": "通胀数据会影响利率预期、成长股估值和风险偏好。"
+    },
+    {
+      "date": "2026-06-16",
+      "time": "至 06-17",
+      "title": "FOMC 议息会议",
+      "type": "macro",
+      "impact": "high",
+      "sourceName": "Federal Reserve",
+      "relatedModules": ["市场", "风险"],
+      "relatedAssets": ["SPY", "QQQ", "TLT"],
+      "summary": "关注利率路径、声明措辞和长端利率压力。"
+    },
+    {
+      "date": "2026-07-02",
+      "time": "08:30 ET",
+      "title": "Employment Situation / 非农就业",
+      "type": "macro",
+      "impact": "high",
+      "sourceName": "BLS",
+      "relatedModules": ["市场", "风险"],
+      "relatedAssets": ["SPY", "QQQ", "IWM"],
+      "summary": "就业数据会影响降息预期、小盘风险偏好和美元利率交易。"
+    },
+    {
+      "date": "2026-07-14",
+      "time": "08:30 ET",
+      "title": "美国 CPI，2026 年 6 月",
+      "type": "macro",
+      "impact": "high",
+      "sourceName": "BLS",
+      "relatedModules": ["市场", "风险", "估值"],
+      "relatedAssets": ["SPY", "QQQ"],
+      "summary": "下一轮通胀确认，会影响估值扩张和成长股风险预算。"
+    },
+    {
+      "date": "待确认",
+      "time": "",
+      "title": "重点科技公司财报日期",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "vendor pending",
+      "relatedModules": ["财报", "股票库", "机会"],
+      "relatedAssets": ["NVDA", "MSFT", "AAPL", "AMZN"],
+      "summary": "财报日期需要接入可靠 vendor 后确认；当前只作为待办入口。"
+    },
+    {
+      "date": "人工录入",
+      "time": "",
+      "title": "本周人工财经日志",
+      "type": "manual",
+      "impact": "medium",
+      "sourceName": "manual",
+      "relatedModules": ["事件中心", "股票库"],
+      "relatedAssets": [],
+      "summary": "支持后续通过 CSV 或后台表单上传行业会议、政策变化和重点新闻。"
+    }
+  ],
+  "impactRules": [
+    {
+      "trigger": "CPI 高于预期",
+      "effect": "利率/通胀压力上调，估值模块提示成长股追高风险。",
+      "modules": ["风险", "估值"],
+      "state": "risk_up"
+    },
+    {
+      "trigger": "FOMC 偏鹰",
+      "effect": "市场温度中的宏观项降权，观察池优先级向现金流稳定公司倾斜。",
+      "modules": ["市场", "风险", "股票库"],
+      "state": "watch"
+    },
+    {
+      "trigger": "财报指引上修",
+      "effect": "进入机会模块；若价格承接良好，股票详情从观察转为确认。",
+      "modules": ["机会", "财报", "股票库"],
+      "state": "opportunity"
+    },
+    {
+      "trigger": "人工高影响事件",
+      "effect": "由管理员标注影响等级和关联股票，进入今日总览的本周重点。",
+      "modules": ["今日总览", "事件中心"],
+      "state": "manual"
+    }
+  ]
+}

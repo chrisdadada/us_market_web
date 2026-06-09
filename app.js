@@ -7,6 +7,7 @@ const EARNINGS_QUALITY_URL = "./data/earnings-quality.json?v=20260609-product1";
 const MARKET_TEMPERATURE_URL = "./data/market-temperature.json?v=20260609-product1";
 const MACRO_SERIES_URL = "./data/macro-series.json?v=20260609-product1";
 const EVENT_OPPORTUNITIES_URL = "./data/event-opportunities.json?v=20260609-product1";
+const EVENTS_CALENDAR_URL = "./data/events-calendar.json?v=20260609-product1";
 const VALIDATION_CENTER_URL = "./data/validation-center.json?v=20260609-product1";
 const INDEX_VALUATION_URL = "./data/index-valuation.json?v=20260609-product1";
 const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260609-product1";
@@ -33,6 +34,7 @@ const state = {
   valuationMetric: "pe",
   valuationRange: "3m",
   eventOpportunities: null,
+  eventsCalendar: null,
   validationCenter: null,
   loading: {},
   qualityBoard: "quality",
@@ -148,6 +150,10 @@ const lazyDatasets = {
     url: EVENT_OPPORTUNITIES_URL,
     render: (payload) => renderEventOpportunities(payload),
   },
+  eventsCalendar: {
+    url: EVENTS_CALENDAR_URL,
+    render: (payload) => renderEventsCalendar(payload),
+  },
   validationCenter: {
     url: VALIDATION_CENTER_URL,
     render: (payload) => renderValidationCenter(payload),
@@ -181,7 +187,7 @@ const ensurePageData = (page) => {
   if (page === "valuation") jobs.push(loadLazyDataset("indexValuation"));
   if (page === "options") jobs.push(loadLazyDataset("optionsFlow"));
   if (page === "earnings") jobs.push(loadLazyDataset("earningsQuality"));
-  if (page === "events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
+  if (page === "events") jobs.push(loadLazyDataset("eventsCalendar"), loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
   if (page === "stock") jobs.push(loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
   if (page === "stocks") jobs.push(loadGlobalSearchUniverse().then(() => renderStocksPage()));
@@ -635,7 +641,7 @@ const loadAdminUsers = async () => {
   renderAdminUsers();
 };
 
-const eventTypeLabel = (type) => {
+const calendarEventTypeLabel = (type) => {
   if (type === "review") return "定时复盘";
   if (type === "switch" || type === "direction_change") return "方向切换";
   return "即时信号";
@@ -3016,10 +3022,10 @@ const pageModules = [
   },
   {
     id: "events",
-    kicker: "研究线索",
-    title: "预期改善观察",
-    nav: "观察",
-    summary: "优先展示经过历史样本检验后更适合研究的预期改善线索。",
+    kicker: "事件中心",
+    title: "事件中心",
+    nav: "事件",
+    summary: "统一查看财经日历、人工日志和事件驱动的股票线索。",
     status: "数据驱动",
   },
   {
@@ -3280,11 +3286,21 @@ const renderDashboardVisualBoard = () => {
   const maxStrength = Math.max(...strengthMix.map((item) => item[1]), 1);
   const eventBoards = state.eventOpportunities?.boards || {};
   const eventRows = Object.values(eventBoards).flatMap((item) => item.rows || []);
+  const calendarEvents = state.eventsCalendar?.events || [];
   const eventTypes = Object.values(eventBoards)
     .map((item) => [item.title || "事件", item.rows?.length || 0])
     .filter((item) => item[1])
     .slice(0, 4);
-  const maxEvent = Math.max(...eventTypes.map((item) => item[1]), 1);
+  const calendarTypes = calendarEvents.length
+    ? [
+        ["宏观日历", calendarEvents.filter((item) => item.type === "macro").length],
+        ["财报日历", calendarEvents.filter((item) => item.type === "earnings").length],
+        ["人工日志", calendarEvents.filter((item) => item.type === "manual").length],
+      ].filter((item) => item[1])
+    : [];
+  const eventDisplayTypes = calendarTypes.length ? calendarTypes : eventTypes;
+  const eventTotal = calendarEvents.length || eventRows.length;
+  const maxEvent = Math.max(...eventDisplayTypes.map((item) => item[1]), 1);
 
   board.innerHTML = `
     <article class="dashboard-snapshot-card dashboard-temperature-card">
@@ -3337,10 +3353,10 @@ const renderDashboardVisualBoard = () => {
     <article class="dashboard-snapshot-card">
       <div class="dashboard-snapshot-head">
         <span>事件密度</span>
-        <strong>${eventRows.length ? `${eventRows.length}条` : "--"}</strong>
+        <strong>${eventTotal ? `${eventTotal}条` : "--"}</strong>
       </div>
       <div class="dashboard-event-bars">
-        ${eventTypes.length ? eventTypes.map(([label, value]) => `
+        ${eventDisplayTypes.length ? eventDisplayTypes.map(([label, value]) => `
           <div>
             <span>${escapeHtml(label)}</span>
             <i style="--level:${Math.max(8, (value / maxEvent) * 100).toFixed(1)}%"></i>
@@ -6559,6 +6575,79 @@ const getEventBoard = () => {
   return state.eventOpportunities?.boards?.[state.eventBoard] || { ...fallback, rows: [] };
 };
 
+const eventImpactLabel = (impact) => {
+  if (impact === "high") return "高";
+  if (impact === "medium") return "中";
+  if (impact === "low") return "低";
+  return "待确认";
+};
+
+const eventTypeLabel = (type) => {
+  if (type === "macro") return "宏观";
+  if (type === "earnings") return "财报";
+  if (type === "manual") return "人工";
+  if (type === "policy") return "政策";
+  return type || "事件";
+};
+
+const renderEventsCalendar = (payload) => {
+  state.eventsCalendar = payload || state.eventsCalendar;
+  const data = state.eventsCalendar || {};
+  const events = Array.isArray(data.events) ? data.events : [];
+  const rules = Array.isArray(data.impactRules) ? data.impactRules : [];
+  const body = document.querySelector("#calendarEventBody");
+  const impactList = document.querySelector("#calendarImpactList");
+  setText("#eventsAsOf", formatDisplayDate(data.asOf || data.generatedAt || state.eventOpportunities?.asOf));
+  const highEvents = events.filter((item) => item.impact === "high");
+  const first = highEvents[0] || events[0];
+  setText("#calendarHeroTitle", first ? `${first.title}` : "等待财经日历");
+  setText(
+    "#calendarHeroLead",
+    first
+      ? `${first.summary || "先看事件会影响哪些模块。"}`
+      : "宏观、财报和人工事件会在这里按影响等级和关联模块统一展示。",
+  );
+  setText("#calendarMacroStatus", events.some((item) => item.type === "macro") ? "已同步" : "待同步");
+  setText("#calendarEarningsStatus", events.some((item) => item.type === "earnings") ? "待确认" : "待接入");
+  setText("#calendarManualStatus", events.some((item) => item.type === "manual") ? "可录入" : "待配置");
+  if (body) {
+    body.innerHTML = events.length
+      ? events.map((item) => {
+        const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
+        const related = [...(item.relatedModules || []), ...(item.relatedAssets || [])].slice(0, 5).join(" / ");
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(item.date || "--")}</strong>
+              <span>${escapeHtml(item.time || "")}</span>
+            </td>
+            <td>
+              <strong>${escapeHtml(item.title || "--")}</strong>
+              <p>${escapeHtml(item.summary || "")}</p>
+            </td>
+            <td>${escapeHtml(calendarEventTypeLabel(item.type))}<br><span>${escapeHtml(item.sourceName || "")}</span></td>
+            <td>${escapeHtml(related || "--")}</td>
+            <td><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
+          </tr>
+        `;
+      }).join("")
+      : '<tr><td colspan="5">财经日历暂无数据。</td></tr>';
+  }
+  if (impactList) {
+    impactList.innerHTML = rules.length
+      ? rules.map((rule) => `
+        <article>
+          <strong>${escapeHtml(rule.trigger || "--")}</strong>
+          <p>${escapeHtml(rule.effect || "")}</p>
+          <span>${escapeHtml((rule.modules || []).join(" / ") || "事件中心")}</span>
+        </article>
+      `).join("")
+      : "<p>暂无影响映射。</p>";
+  }
+  renderDashboardVisualBoard();
+  renderDataStatus();
+};
+
 const getEventRows = () => {
   const rows = getEventBoard().rows;
   const query = normalizeStockSymbol(state.eventQuery || "");
@@ -7024,6 +7113,7 @@ const renderEventOpportunities = (payload) => {
   const first = rows[0];
   const stats = Array.isArray(payload?.forwardStats) ? payload.forwardStats : [];
   setText("#eventsAsOf", formatDisplayDate(payload?.asOf));
+  renderEventsCalendar(state.eventsCalendar);
   setText("#eventTotalCount", rows.length ? `${rows.length}只` : "--");
   setText("#eventTopSymbol", first ? normalizeStockSymbol(first.ticker || first.symbol) : "--");
   setText("#eventTopReason", first ? eventReasonForUser(first) : "有数据后显示当前更需要进一步研究的线索。");
