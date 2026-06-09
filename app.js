@@ -684,6 +684,13 @@ const directionLabel = (direction, fallback) => {
   return direction || "--";
 };
 
+const signalPolarity = (signal) => {
+  if (!signal) return { label: "暂无趋势信号", className: "is-neutral", note: "当前没有接入该标的的趋势方向。" };
+  if (signal.direction === "long") return { label: "多头", className: "is-long", note: "当前趋势信号偏上行，重点看顺向表现是否延续。" };
+  if (signal.direction === "short") return { label: "空头", className: "is-short", note: "当前趋势信号偏下行，重点看反弹是否失效。" };
+  return { label: "中性", className: "is-neutral", note: "当前趋势方向不明确，先等待下一次信号更新。" };
+};
+
 const signalEventsForSymbol = (symbol) =>
   (state.signals?.feed || []).filter((item) => item.symbol === symbol);
 
@@ -1485,10 +1492,6 @@ const stockMetric = (label, value, className = "") => `
     <span>${escapeHtml(label)}</span>
     <strong>${escapeHtml(value == null || value === "" ? "--" : value)}</strong>
   </article>
-`;
-
-const stockDataBadge = (label, active) => `
-  <span class="${active ? "is-ready" : "is-muted"}">${escapeHtml(label)}${active ? "已接入" : "待补充"}</span>
 `;
 
 const stockSignedClass = (value) => {
@@ -2378,7 +2381,6 @@ const renderStockHub = (symbol) => {
   const research = stockResearchSummary({ target, market, strength, quality, eventRow, signal });
   const evidence = research.evidence;
   const dataSources = stockDataSources({ market, day, week, month, volume, strength, quality, eventRow, signal });
-  const visibleDataSources = dataSources.filter(([label, active]) => active || label !== "信号");
   const sourceCount = stockSourceCount(dataSources);
   const priority = stockReviewPriority({ target, market, day, week, month, volume, strength, quality, eventRow, signal });
   const verdict = stockResearchVerdict({ market, strength, quality, eventRow, signal });
@@ -2394,6 +2396,7 @@ const renderStockHub = (symbol) => {
     state.strength?.asOf,
   ].filter(Boolean).map(formatDisplayDate);
   const dataAsOf = dataDates.length ? dataDates.sort().at(-1) : "--";
+  const signalSide = signalPolarity(signal);
   const priceMeta = signal
     ? `数据日期 ${escapeHtml(dataAsOf)} · 趋势信号表现 ${escapeHtml(signalPerformance)} · 依据 ${escapeHtml(`${sourceCount}项`)}`
     : `数据日期 ${escapeHtml(dataAsOf)} · 依据 ${escapeHtml(`${sourceCount}项`)}`;
@@ -2403,11 +2406,12 @@ const renderStockHub = (symbol) => {
         <div class="stock-card-head">
           <div>
             <span>趋势信号</span>
-            <strong>${escapeHtml(directionLabel(signal.direction, signal.directionText))}</strong>
+            <strong><i class="signal-side-pill ${escapeHtml(signalSide.className)}">${escapeHtml(signalSide.label)}</i>${escapeHtml(directionLabel(signal.direction, signal.directionText))}</strong>
           </div>
-          <em>基础</em>
+          <em>${escapeHtml(signal.intervalLabel || signal.interval || "基础")}</em>
         </div>
         <div class="stock-metric-grid">
+          ${stockMetric("当前多空", signalSide.label, signalSide.className)}
           ${stockMetric("周期", signal.intervalLabel || signal.interval || "--")}
           ${stockMetric("触发价", signal.price || "--")}
           ${stockMetric("现价", signal.livePrice || "--")}
@@ -2415,10 +2419,27 @@ const renderStockHub = (symbol) => {
           ${stockMetric("最佳表现", signal.maxFavorablePct || "--", stockSignedClass(signal.maxFavorablePct))}
           ${stockMetric("反向波动", signal.maxAdversePct || "--", "is-negative")}
         </div>
-        <p class="stock-card-note">已跟踪 ${escapeHtml(signal.signalAge || "--")}，首发时间 ${escapeHtml(signal.firstSignalAt || "--")}。</p>
+        <p class="stock-card-note">${escapeHtml(signalSide.note)} 已跟踪 ${escapeHtml(signal.signalAge || "--")}，首发时间 ${escapeHtml(signal.firstSignalAt || "--")}。</p>
       </article>
     `
-    : "";
+    : `
+      <article class="stock-hub-card desk-panel">
+        <div class="stock-card-head">
+          <div>
+            <span>趋势信号</span>
+            <strong><i class="signal-side-pill is-neutral">无信号</i>暂无趋势方向</strong>
+          </div>
+          <em>待接入</em>
+        </div>
+        <div class="stock-metric-grid">
+          ${stockMetric("当前多空", "无信号", "is-neutral")}
+          ${stockMetric("周期", "--")}
+          ${stockMetric("触发价", "--")}
+          ${stockMetric("当前表现", "--")}
+        </div>
+        <p class="stock-card-note">该标的暂未进入趋势信号状态表，先以行情、成交额、板块和事件数据为主。</p>
+      </article>
+    `;
   const signalHistoryCard = events.length
     ? `
       <article class="stock-hub-card stock-hub-card-wide desk-panel" data-lockable-module="stock-hub-signal-history">
@@ -2458,7 +2479,7 @@ const renderStockHub = (symbol) => {
         </div>
         <div class="stock-badge-row">
           <span>${escapeHtml(profile.sector)}</span>
-          ${visibleDataSources.map(([label, active]) => stockDataBadge(label, active)).join("")}
+          <span class="signal-status-chip ${escapeHtml(signalSide.className)}">${escapeHtml(signalSide.label)}</span>
           ${watchlistActionButton(target, "股票详情")}
         </div>
       </div>

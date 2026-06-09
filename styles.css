@@ -13469,6 +13469,42 @@ body {
   color: var(--blue);
 }
 
+.signal-side-pill {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  margin-right: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 8px;
+  color: #aebcd0;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+  vertical-align: 2px;
+}
+
+.signal-side-pill.is-long,
+.signal-status-chip.is-long {
+  border-color: rgba(61, 220, 151, 0.3);
+  background: rgba(61, 220, 151, 0.12);
+  color: #72e2ae;
+}
+
+.signal-side-pill.is-short,
+.signal-status-chip.is-short {
+  border-color: rgba(255, 91, 110, 0.3);
+  background: rgba(255, 91, 110, 0.12);
+  color: #ff8a99;
+}
+
+.signal-side-pill.is-neutral,
+.signal-status-chip.is-neutral {
+  border-color: rgba(146, 166, 197, 0.22);
+  background: rgba(146, 166, 197, 0.1);
+  color: #9fb0c5;
+}
+
 .stock-research-workspace .stock-core-row,
 .stock-research-workspace .stock-market-strip,
 .stock-research-workspace .stock-evidence-grid {
