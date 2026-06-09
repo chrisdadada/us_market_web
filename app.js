@@ -3551,6 +3551,10 @@ const getPageFromHash = () => {
     state.selectedStockSymbol = normalizeStockSymbol(symbol ? decodeURIComponent(symbol) : state.selectedStockSymbol);
     return "stock";
   }
+  if (page === "events") {
+    if (symbol && eventBoardFallbacks[symbol]) state.eventBoard = symbol;
+    return "events";
+  }
   return pageMeta[page] ? page : "dashboard";
 };
 
@@ -7115,6 +7119,24 @@ const getEventBoard = () => {
   return state.eventOpportunities?.boards?.[state.eventBoard] || { ...fallback, rows: [] };
 };
 
+const syncEventPageChrome = () => {
+  const board = eventBoardFallbacks[state.eventBoard];
+  const isBoardRoute = window.location.hash.startsWith(`#events/${state.eventBoard}`);
+  setText("#eventsEyebrow", isBoardRoute ? "事件中心 / 研究线索" : "事件中心");
+  setText("#eventsPageTitle", isBoardRoute && board ? board.title.replace(/观察$/, "") : "财经日历与研究线索");
+  setText(
+    "#eventsPageSubtitle",
+    isBoardRoute && board
+      ? `${board.subtitle} 上方财经日历仍用于判断事件背景和影响链路。`
+      : "先看未来事件会影响什么，再把宏观、财报、人工日志和股票线索统一到同一条复盘链路里。",
+  );
+  document.querySelectorAll(".event-tab").forEach((item) => {
+    const active = item.dataset.eventBoard === state.eventBoard;
+    item.classList.toggle("is-active", active);
+    item.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+};
+
 const eventImpactLabel = (impact) => {
   if (impact === "high") return "高";
   if (impact === "medium") return "中";
@@ -7423,8 +7445,14 @@ const renderExpectationEvidence = () => {
   setText(
     "#expectationHeroTitle",
     rows.length
-      ? `当前先看：${eventBoardFallbacks[state.eventBoard]?.title || "观察线索"}里的 ${rows.length} 只候选`
-      : "当前先看：等待更清晰的确认信号",
+      ? `研究线索：${eventBoardFallbacks[state.eventBoard]?.title || "观察线索"} · ${rows.length} 只候选`
+      : "研究线索：等待更清晰的确认信号",
+  );
+  setText(
+    "#expectationHeroLead",
+    rows.length
+      ? "财经日历是事件中心第一层；这里把事件落到可复盘股票，先看理由，再看价格、成交和市场环境是否确认。"
+      : "财经日历是事件中心第一层；股票线索作为第二层研究入口，等待数据生成后再进入复盘。",
   );
 };
 
@@ -7528,6 +7556,7 @@ const renderEventDetail = (row) => {
 };
 
 const renderEventTable = () => {
+  syncEventPageChrome();
   renderExpectationEvidence();
   const board = getEventBoard();
   const rows = getEventRows();
@@ -7538,7 +7567,10 @@ const renderEventTable = () => {
   if (!body || !summary) return;
 
   setText("#eventBoardTitle", board.title || eventBoardFallbacks[state.eventBoard]?.title || "--");
-  setText("#eventBoardSubtitle", board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "--");
+  setText(
+    "#eventBoardSubtitle",
+    board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是财经日历下面的研究线索二级区。",
+  );
   setText("#eventActiveTitle", board.title || "--");
   setText("#eventActiveSubtitle", board.subtitle || "等待数据加载。");
   const [decisionValue, decisionNote] = eventDecisionCopy(rows);
@@ -8005,6 +8037,13 @@ const bindEvents = () => {
     if (pageLink) {
       event.preventDefault();
       if (pageLink.dataset.disabled === "true" || pageLink.getAttribute("aria-disabled") === "true") return;
+      if (pageLink.dataset.eventBoardLink) {
+        state.eventBoard = pageLink.dataset.eventBoardLink;
+        showPage("events", { hash: `#events/${state.eventBoard}` });
+        const target = document.querySelector(".page-view.is-active .event-layout");
+        if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
+        return;
+      }
       showPage(pageLink.dataset.pageLink);
       return;
     }
@@ -8522,6 +8561,9 @@ const bindEvents = () => {
   document.querySelectorAll(".event-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       state.eventBoard = tab.dataset.eventBoard;
+      if (window.location.hash.startsWith("#events")) {
+        window.history.pushState(null, "", `#events/${state.eventBoard}`);
+      }
       document.querySelectorAll(".event-tab").forEach((item) => {
         item.classList.toggle("is-active", item === tab);
         item.setAttribute("aria-pressed", item === tab ? "true" : "false");

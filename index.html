@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
-    <link rel="icon" href="./assets/dongbimao-logo.jpg" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-expand1" />
+    <link rel="icon" href="./assets/dongbimao-logo.png" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-polish2" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="app-sidebar" aria-label="主导航">
         <a class="brand" href="/" aria-label="懂币猫首页">
-          <span class="brand-mark"><img src="./assets/dongbimao-logo.jpg" alt="" /></span>
+          <span class="brand-mark"><img src="./assets/dongbimao-logo.png" alt="" /></span>
           <span>
             <strong>懂币猫</strong>
             <small>美股研究终端</small>
@@ -189,7 +189,7 @@
               <span>04 · 看理由</span>
               <strong id="dashboardFocusEvent">研究线索加载中</strong>
               <p id="dashboardFocusEventNote">用财报、预期改善和机构观点解释为什么需要继续跟踪。</p>
-              <button type="button" data-page-link="events">看预期改善</button>
+              <button type="button" data-page-link="events">看事件中心</button>
             </article>
           </section>
 
@@ -267,9 +267,9 @@
               <div class="card-head desk-panel-header">
                 <div>
                   <span>今日观察</span>
-                  <h2>预期改善观察</h2>
+                  <h2>研究线索观察</h2>
                 </div>
-                <button type="button" data-page-link="events">打开榜单</button>
+                <button type="button" data-page-link="events">打开事件中心</button>
               </div>
               <div class="event-mini">
                 <div>
@@ -1401,9 +1401,9 @@
         <section class="page-view workspace-page evidence-workspace" data-view="events">
           <div class="page-heading workspace-header">
             <div>
-              <p class="eyebrow">事件中心</p>
-              <h1>财经日历与研究线索</h1>
-              <p class="subtitle">先看未来事件会影响什么，再把宏观、财报、人工日志和股票线索统一到同一条复盘链路里。</p>
+              <p class="eyebrow" id="eventsEyebrow">事件中心</p>
+              <h1 id="eventsPageTitle">财经日历与研究线索</h1>
+              <p class="subtitle" id="eventsPageSubtitle">先看未来事件会影响什么，再把宏观、财报、人工日志和股票线索统一到同一条复盘链路里。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1467,11 +1467,11 @@
             </aside>
           </div>
 
-          <section class="event-research-hero desk-panel">
+          <section class="event-research-hero desk-panel" aria-label="研究线索">
             <div class="event-research-copy">
-              <span>当前观察</span>
-              <h2 id="expectationHeroTitle">当前先看：预期改善 + 股价已确认的股票</h2>
-              <p id="expectationHeroLead">先看公司预期有没有变好，再看价格、成交和市场环境是否配合。这里帮助你把线索翻译成可复盘的观察清单。</p>
+              <span>研究线索</span>
+              <h2 id="expectationHeroTitle">线索池：预期改善、财报超预期、机构观点与空头压力</h2>
+              <p id="expectationHeroLead">财经日历是事件中心第一层；股票线索是第二层研究入口，用来解释哪些公司值得加入后续复盘。</p>
               <div class="event-evidence-grid">
                 <article><span>当前候选</span><strong id="expectationCandidateCount">--</strong><p id="expectationCandidateNote">按当前筛选显示</p></article>
                 <article><span>历史样本</span><strong id="expectationSampleCount">--</strong><p id="expectationSampleRange">--</p></article>
@@ -1480,7 +1480,7 @@
               </div>
             </div>
             <aside class="event-temperature-card">
-              <span>市场温度计</span>
+              <span>辅助环境</span>
               <strong id="expectationTemperatureScore">--</strong>
               <p id="expectationTemperatureLabel">等待数据</p>
               <em id="expectationTemperatureAction">市场环境只用于辅助判断观察频率。</em>
@@ -1536,7 +1536,11 @@
           <div class="event-layout workspace-main">
             <section class="event-main-panel desk-panel">
               <div class="panel-head desk-panel-header">
-                <div class="board-tabs segmented-tabs" aria-label="事件榜单切换">
+                <div>
+                  <span>研究线索</span>
+                  <strong>把财经日历落到可复盘股票</strong>
+                </div>
+                <div class="board-tabs segmented-tabs" aria-label="研究线索榜单切换">
                   <button class="board-tab event-tab is-active" type="button" data-event-board="guidance_up">预期改善</button>
                   <button class="board-tab event-tab" type="button" data-event-board="earnings_beat">财报超预期</button>
                   <button class="board-tab event-tab" type="button" data-event-board="analyst_positive">机构观点变化</button>
@@ -1547,7 +1551,7 @@
 
               <div class="event-board-copy">
                 <strong id="eventBoardTitle">--</strong>
-                <span id="eventBoardSubtitle">数据生成后会显示这张榜单的筛选口径。</span>
+                <span id="eventBoardSubtitle">这里是财经日历下面的研究线索二级区，不代表事件中心只看预期改善。</span>
               </div>
 
               <div class="event-toolbar filter-bar" aria-label="观察线索筛选">
@@ -2701,6 +2705,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-expand1"></script>
+    <script src="./app.js?v=20260610-polish2"></script>
   </body>
 </html>

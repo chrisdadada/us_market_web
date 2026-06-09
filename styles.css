@@ -14574,7 +14574,44 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 .page-view[data-view="risk"] :where(.macro-monitor-board, .macro-pressure-panel, .macro-series-panel, .macro-stock-panel, .model-card, .temperature-reminder) {
+  border-color: var(--line);
+  background: rgba(12, 19, 32, 0.86);
+  color: var(--ink);
   box-shadow: none;
+}
+
+.page-view[data-view="risk"] :where(.macro-composite-card, .macro-factor-board, .macro-asset-board, .macro-stock-grid > article, .signal-card, .rule-timeline div, .risk-scoreboard, .risk-scoreboard div) {
+  border-color: var(--line);
+  background: rgba(7, 12, 21, 0.54);
+  color: var(--ink);
+}
+
+.page-view[data-view="risk"] :where(.macro-monitor-head, .macro-composite-copy, .macro-asset-board, .risk-scoreboard div) {
+  border-color: var(--line);
+}
+
+.page-view[data-view="risk"] :where(.macro-monitor-head h2, .macro-composite-copy strong, .macro-factor-board b, .macro-asset-list b, .macro-stock-head strong, .macro-pressure-grid strong, .signal-card strong, .rule-timeline strong, .risk-scoreboard strong, .temperature-reminder h2) {
+  color: var(--ink);
+}
+
+.page-view[data-view="risk"] :where(.macro-monitor-head p, .macro-stock-head p, .macro-stock-list p, .macro-pressure-grid p, .signal-card p, .rule-timeline p, .risk-scoreboard p, .temperature-reminder p) {
+  color: #8190a6;
+}
+
+.page-view[data-view="risk"] :where(.macro-factor-bars div, .macro-asset-list div, .macro-stock-list button) {
+  border-color: var(--line);
+  background: rgba(4, 9, 18, 0.5);
+  color: var(--ink);
+}
+
+.page-view[data-view="risk"] .macro-pressure-spark {
+  border-color: rgba(128, 151, 183, 0.18);
+  background: rgba(4, 9, 18, 0.48);
+}
+
+.page-view[data-view="risk"] .macro-pressure-spark span {
+  background: rgba(12, 19, 32, 0.86);
+  color: #9aabc2;
 }
 
 .page-view[data-view="risk"] .macro-composite-chart,
@@ -14718,5 +14755,137 @@ section.market-workspace .market-overview-grid > .market-chart-card {
     max-height: 760px;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Final scoped overrides for this polish pass. Keep these at EOF. */
+body .evidence-workspace .event-research-hero {
+  grid-template-columns: minmax(0, 1fr) 190px;
+  margin-top: 14px;
+  margin-bottom: 12px;
+  border-color: rgba(128, 151, 183, 0.18);
+  background: rgba(8, 13, 23, 0.72);
+}
+
+body .evidence-workspace .event-research-copy {
+  padding: 14px 16px;
+}
+
+body .evidence-workspace .event-research-copy > span {
+  color: #8fb2d7;
+}
+
+body .evidence-workspace .event-research-hero h2 {
+  color: #dce7f5;
+  font-size: 15px;
+  font-weight: 560;
+}
+
+body .evidence-workspace .event-research-hero p {
+  max-width: 880px;
+  color: #7f8da2;
+}
+
+body .evidence-workspace .event-evidence-grid strong {
+  color: #d8e3f2;
+  font-size: 17px;
+}
+
+body .evidence-workspace .event-temperature-card strong {
+  color: var(--amber);
+  font-size: 24px;
+}
+
+body .evidence-workspace .event-temperature-card p {
+  color: #dce7f5;
+  font-size: 14px;
+  font-weight: 560;
+}
+
+body .page-view[data-view="risk"] {
+  border-color: var(--line);
+  background: transparent;
+}
+
+body .page-view[data-view="risk"] :where(
+  .temperature-hero,
+  .macro-monitor-board,
+  .macro-composite-card,
+  .macro-factor-board,
+  .macro-asset-board,
+  .risk-scoreboard,
+  .macro-pressure-panel,
+  .macro-series-panel,
+  .macro-stock-panel,
+  .model-card,
+  .temperature-reminder
+) {
+  border-color: var(--line);
+  background: rgba(12, 19, 32, 0.86);
+}
+
+body .page-view[data-view="risk"] .macro-composite-card,
+body .page-view[data-view="risk"] .macro-factor-board,
+body .page-view[data-view="risk"] .macro-asset-board,
+body .page-view[data-view="risk"] .macro-series-card,
+body .page-view[data-view="risk"] .macro-series-visual {
+  border-color: var(--line);
+  background: rgba(12, 19, 32, 0.86);
+}
+
+body .page-view[data-view="risk"] :where(.macro-monitor-head, .macro-composite-copy, .macro-factor-board, .macro-asset-board) {
+  background: transparent;
+}
+
+body .page-view[data-view="risk"] .macro-composite-chart {
+  background: rgba(7, 12, 21, 0.58);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-plot {
+  fill: rgba(8, 13, 23, 0.92);
+  stroke: rgba(128, 151, 183, 0.24);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-gridline line {
+  stroke: rgba(128, 151, 183, 0.18);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-gridline text,
+body .page-view[data-view="risk"] .macro-monitor-x {
+  fill: #8fa0b8;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-area {
+  fill: rgba(53, 167, 255, 0.13);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-line {
+  stroke: #79bdf5;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-dot {
+  fill: #35a7ff;
+  stroke: #0b1220;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-guide {
+  stroke: rgba(147, 161, 181, 0.5);
+}
+
+body .page-view[data-view="risk"] .macro-asset-list div,
+body .page-view[data-view="risk"] .macro-pressure-grid article,
+body .page-view[data-view="risk"] .signal-card,
+body .page-view[data-view="risk"] .rule-timeline div {
+  border-color: rgba(128, 151, 183, 0.18);
+  background: rgba(7, 12, 21, 0.52);
+}
+
+@media (max-width: 760px) {
+  body .evidence-workspace .event-research-hero {
+    grid-template-columns: 1fr;
+  }
+
+  body .evidence-workspace .event-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
