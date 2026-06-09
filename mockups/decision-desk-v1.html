@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美股今日判断台 · Mockup</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --page: #0b0f17;
+        --panel: #101722;
+        --panel-2: #0f1520;
+        --panel-3: #141d2b;
+        --line: #222d3e;
+        --line-soft: rgba(255, 255, 255, 0.06);
+        --text: #f4f7fb;
+        --muted: #8f9bad;
+        --soft: #c8d1df;
+        --blue: #5f8cff;
+        --blue-soft: rgba(95, 140, 255, 0.14);
+        --green: #58c78a;
+        --red: #ff6b72;
+        --amber: #f0bd62;
+        --shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(90deg, #090d14 0 260px, transparent 260px),
+          radial-gradient(circle at 64% -10%, rgba(72, 104, 170, 0.18), transparent 34%),
+          var(--page);
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        border-right: 1px solid var(--line);
+        padding: 26px 22px;
+      }
+
+      .brand {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 34px;
+        letter-spacing: 0.18em;
+      }
+
+      .brand strong {
+        font-size: 17px;
+        line-height: 1;
+      }
+
+      .brand span {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0;
+      }
+
+      .search {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #111823;
+        color: #697589;
+        padding: 0 12px;
+        margin-bottom: 12px;
+      }
+
+      .theme-toggle {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #111823;
+        color: var(--soft);
+        padding: 0 12px;
+        margin-bottom: 28px;
+      }
+
+      .nav-group {
+        margin-bottom: 26px;
+      }
+
+      .nav-group > span {
+        display: block;
+        margin-bottom: 9px;
+        color: #667286;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .nav-item {
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 7px;
+        color: #b7c2d2;
+        padding: 0 2px;
+        font-weight: 760;
+      }
+
+      .nav-item.is-active {
+        color: #fff;
+      }
+
+      .nav-item em {
+        color: #566175;
+        font-style: normal;
+      }
+
+      .clock {
+        position: absolute;
+        bottom: 24px;
+        left: 22px;
+        color: #6f7b8e;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+      }
+
+      .main {
+        min-width: 0;
+        padding: 58px 40px 42px;
+      }
+
+      .topline {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 0 auto 20px;
+        max-width: 1180px;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+      }
+
+      .qa-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        border: 1px solid rgba(88, 199, 138, 0.36);
+        border-radius: 999px;
+        background: rgba(88, 199, 138, 0.08);
+        color: #8ce0b0;
+        padding: 0 12px;
+        letter-spacing: 0.12em;
+      }
+
+      .hero-grid {
+        max-width: 1180px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(360px, 0.75fr);
+        border: 1px solid var(--line);
+        border-top: 2px solid var(--blue);
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(20, 29, 43, 0.96), rgba(12, 17, 26, 0.98));
+        box-shadow: var(--shadow);
+        margin: 0 auto 16px;
+        overflow: hidden;
+      }
+
+      .hero-main {
+        min-height: 480px;
+        border-right: 1px solid var(--line);
+        padding: 34px 36px 30px;
+      }
+
+      .status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+
+      .pill {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--soft);
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 780;
+      }
+
+      .pill.is-primary {
+        border-color: rgba(95, 140, 255, 0.38);
+        background: var(--blue-soft);
+        color: #9cb6ff;
+      }
+
+      h1 {
+        max-width: 720px;
+        margin: 0;
+        color: #fff;
+        font-size: 44px;
+        line-height: 1.22;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 760px;
+        margin: 26px 0 0;
+        color: #a8b3c4;
+        font-size: 16px;
+        line-height: 1.9;
+      }
+
+      .ticker-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .ticker-strip span {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line-soft);
+        border-radius: 999px;
+        background: #101722;
+        color: #b7c2d2;
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .decision-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 30px;
+      }
+
+      .decision-actions button {
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #121b28;
+        color: #dbe4f1;
+        padding: 0 14px;
+        font-weight: 820;
+      }
+
+      .decision-actions button:first-child {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: #fff;
+      }
+
+      .priority {
+        padding: 30px 24px;
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .panel-head strong {
+        color: #fff;
+        font-size: 18px;
+      }
+
+      .panel-head span {
+        color: #637084;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        font-weight: 900;
+      }
+
+      .priority-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .priority-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.025);
+        padding: 16px;
+      }
+
+      .priority-card header {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .priority-card strong {
+        font-size: 15px;
+      }
+
+      .priority-card em {
+        font-style: normal;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .priority-card p {
+        margin: 8px 0 0;
+        color: #8d99aa;
+        font-size: 13px;
+      }
+
+      .priority-card small {
+        display: block;
+        margin-top: 8px;
+        color: #687589;
+      }
+
+      .high { color: var(--red); }
+      .medium { color: var(--amber); }
+      .low { color: var(--green); }
+
+      .evidence-grid {
+        max-width: 1180px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 0 auto 16px;
+      }
+
+      .evidence-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+        padding: 16px;
+      }
+
+      .evidence-card span {
+        display: block;
+        color: #778397;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .evidence-card strong {
+        display: block;
+        margin-top: 8px;
+        color: #fff;
+        font-size: 21px;
+      }
+
+      .evidence-card p {
+        margin: 8px 0 0;
+        color: #8f9bad;
+        font-size: 13px;
+      }
+
+      .lower-grid {
+        max-width: 1180px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+        gap: 12px;
+        margin: 0 auto;
+      }
+
+      .analysis-panel,
+      .terminal-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+        padding: 20px;
+      }
+
+      .analysis-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .analysis-item {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1fr) 70px;
+        gap: 12px;
+        border-top: 1px solid var(--line-soft);
+        padding-top: 13px;
+      }
+
+      .analysis-item b {
+        color: #fff;
+      }
+
+      .analysis-item p {
+        margin: 0;
+        color: #94a0b2;
+      }
+
+      .analysis-item em {
+        color: #778397;
+        font-style: normal;
+        text-align: right;
+      }
+
+      .terminal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .terminal-grid a {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #111923;
+        color: #d7e0ec;
+        padding: 12px;
+        text-decoration: none;
+      }
+
+      .terminal-grid strong,
+      .terminal-grid span {
+        display: block;
+      }
+
+      .terminal-grid span {
+        margin-top: 4px;
+        color: #758195;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <strong>US STOCK DESK</strong>
+          <span>美股研究与复盘平台</span>
+        </div>
+        <div class="search">搜索全站 <span>⌕</span></div>
+        <div class="theme-toggle">Light / Dark <span>☾</span></div>
+        <nav>
+          <div class="nav-group">
+            <span>核心入口</span>
+            <div class="nav-item is-active">今日判断</div>
+            <div class="nav-item">市场仪表盘</div>
+            <div class="nav-item">观察池</div>
+            <div class="nav-item">每日复盘</div>
+            <div class="nav-item">研究库</div>
+          </div>
+          <div class="nav-group">
+            <span>证据层</span>
+            <div class="nav-item">期权流向 <em>›</em></div>
+            <div class="nav-item">全市场强弱 <em>›</em></div>
+            <div class="nav-item">财报观察 <em>›</em></div>
+            <div class="nav-item">涨跌幅榜 <em>›</em></div>
+            <div class="nav-item">趋势信号 <em>›</em></div>
+          </div>
+          <div class="nav-group">
+            <span>市场环境</span>
+            <div class="nav-item">市场温度</div>
+            <div class="nav-item">指数估值</div>
+            <div class="nav-item">利率与美元</div>
+          </div>
+        </nav>
+        <div class="clock">EST 04:06 · QA OK</div>
+      </aside>
+
+      <main class="main">
+        <div class="topline">
+          <div>2026-06-09 / 今日判断台</div>
+          <div>
+            核心资产截至 2026-06-08 收盘 · 日线非实时 · AI 02:12 UTC
+            <span class="qa-pill">DATA QA OK</span>
+          </div>
+        </div>
+
+        <section class="hero-grid">
+          <article class="hero-main">
+            <div class="status-row">
+              <span class="pill is-primary">当前主线</span>
+              <span class="pill">中性偏强 · confidence medium</span>
+              <span class="pill">风险未解除</span>
+            </div>
+            <h1>AI 与半导体继续领涨，但利率上行压制估值，先看 QQQ 能否获得期权与价格确认。</h1>
+            <p class="lead">
+              截至 06-08 收盘，科技股反弹由 AI 事件与半导体强弱驱动；但 10Y 利率仍在高位，市场不是全面进攻。
+              期权流向偏向 QQQ，下一步只看价格是否继续确认，而不是追所有高热度标的。
+            </p>
+            <div class="ticker-strip">
+              <span>QQQ</span><span>NVDA</span><span>AMD</span><span>SPY</span><span>TLT</span><span>VIX</span><span>DXY</span>
+            </div>
+            <div class="decision-actions">
+              <button>看期权流向</button>
+              <button>看强弱证据</button>
+              <button>加入今日观察池</button>
+            </div>
+          </article>
+
+          <aside class="priority">
+            <div class="panel-head">
+              <strong>今天只看这 3 件事</strong>
+              <span>PRIORITY</span>
+            </div>
+            <div class="priority-list">
+              <article class="priority-card">
+                <header><strong>QQQ 期权流向</strong><em class="high">high</em></header>
+                <p>偏多权利金放大，Call/Put 活跃度领先 ETF 池。</p>
+                <small>验证：价格是否站上昨日高点</small>
+              </article>
+              <article class="priority-card">
+                <header><strong>半导体强弱</strong><em class="medium">medium</em></header>
+                <p>NVDA / AMD / AVGO 相对强度仍高，但拥挤度升温。</p>
+                <small>验证：回踩时是否缩量</small>
+              </article>
+              <article class="priority-card">
+                <header><strong>10Y 利率</strong><em class="medium">medium</em></header>
+                <p>利率维持高位，压制高估值扩散。</p>
+                <small>失效：10Y 明显回落</small>
+              </article>
+            </div>
+          </aside>
+        </section>
+
+        <section class="evidence-grid">
+          <article class="evidence-card">
+            <span>市场温度</span>
+            <strong>中性偏强</strong>
+            <p>趋势改善，但波动和利率仍需观察。</p>
+          </article>
+          <article class="evidence-card">
+            <span>期权流向</span>
+            <strong>QQQ 偏多</strong>
+            <p>6 日 ETF 样本中 QQQ 权利金领先。</p>
+          </article>
+          <article class="evidence-card">
+            <span>强弱结构</span>
+            <strong>科技领先</strong>
+            <p>半导体与软件强于大盘。</p>
+          </article>
+          <article class="evidence-card">
+            <span>证伪条件</span>
+            <strong>VIX > 20</strong>
+            <p>若波动率回升，降低高热度线索。</p>
+          </article>
+        </section>
+
+        <section class="lower-grid">
+          <article class="analysis-panel">
+            <div class="panel-head">
+              <strong>证据链</strong>
+              <span>FACT / EVIDENCE / ACTION</span>
+            </div>
+            <div class="analysis-list">
+              <div class="analysis-item">
+                <b>事实</b>
+                <p>QQQ 与半导体继续领先，当前上涨更像主线集中，而不是全市场扩散。</p>
+                <em>medium</em>
+              </div>
+              <div class="analysis-item">
+                <b>证据</b>
+                <p>期权权利金偏向 QQQ，强弱榜中科技权重靠前，但利率仍压制估值扩张。</p>
+                <em>high</em>
+              </div>
+              <div class="analysis-item">
+                <b>交易含义</b>
+                <p>优先观察确认后的强势股，不追低质量小盘异动；等待价格与流向共振。</p>
+                <em>action</em>
+              </div>
+              <div class="analysis-item">
+                <b>失效条件</b>
+                <p>QQQ 跌回关键均线、VIX 上穿 20 或 10Y 再次快速上行。</p>
+                <em>risk</em>
+              </div>
+            </div>
+          </article>
+
+          <article class="terminal-panel">
+            <div class="panel-head">
+              <strong>继续深入</strong>
+              <span>TOPIC TERMINALS</span>
+            </div>
+            <div class="terminal-grid">
+              <a href="#"><strong>期权流向</strong><span>Call / Put / 权利金</span></a>
+              <a href="#"><strong>强弱榜</strong><span>相对强度 / 行业</span></a>
+              <a href="#"><strong>观察池</strong><span>确认 / 回踩 / 降级</span></a>
+              <a href="#"><strong>财报观察</strong><span>预期变化 / 价格确认</span></a>
+              <a href="#"><strong>市场温度</strong><span>利率 / 波动 / 信用</span></a>
+              <a href="#"><strong>每日复盘</strong><span>判断是否失效</span></a>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

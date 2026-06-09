@@ -1,0 +1,184 @@
+{
+  "generatedAt": "2026-06-09T09:26:21.121116+00:00",
+  "asOf": "2026-06-08",
+  "marketRegime": {
+    "label": "偏强但谨慎",
+    "riskBudget": "69%",
+    "action": "只加强者",
+    "summary": "趋势仍有延续，新增观察集中在相对强势标的。"
+  },
+  "risk": {
+    "signals": [
+      {
+        "term": "SPY",
+        "bucket": "positive",
+        "label": "趋势线之上",
+        "note": "价格站上中长期趋势线，风险偏好仍可接受。",
+        "tooltip": "跟踪标普500指数的ETF，常用来代表美股大盘。"
+      },
+      {
+        "term": "QQQ",
+        "bucket": "positive",
+        "label": "强于 SPY",
+        "note": "科技股相对大盘更强，适合提高关注度。",
+        "tooltip": "跟踪纳斯达克100指数的ETF，科技股占比较高。"
+      },
+      {
+        "term": "IWM",
+        "bucket": "positive",
+        "label": "趋势线之上",
+        "note": "价格站上中长期趋势线，风险偏好仍可接受。",
+        "tooltip": "跟踪罗素2000小盘股指数的ETF，常用来看小盘股风险偏好。"
+      },
+      {
+        "term": "VIX",
+        "bucket": "neutral",
+        "label": "21.5",
+        "note": "波动率需要跟踪，高热度线索要降级。",
+        "tooltip": "也叫恐慌指数，数值越高，通常代表市场预期波动越大。",
+        "asOf": "2026-06-05"
+      },
+      {
+        "term": "10Y",
+        "bucket": "watch",
+        "label": "4.55%",
+        "note": "利率压力偏高，高估值股票要谨慎。",
+        "tooltip": "美国10年期国债收益率，利率上行通常会压制高估值成长股。",
+        "asOf": "2026-06-05"
+      },
+      {
+        "term": "HY Spread",
+        "bucket": "positive",
+        "label": "2.76%",
+        "note": "信用市场稳定，暂不触发防守。",
+        "tooltip": "高收益债信用利差，利差扩大通常代表信用风险上升。",
+        "asOf": "2026-06-05"
+      }
+    ],
+    "rules": [
+      {
+        "done": true,
+        "title": "SPY / QQQ 趋势确认",
+        "note": "两者均在趋势线上方，市场基础状态较稳。"
+      },
+      {
+        "done": true,
+        "title": "QQQ 相对强弱确认",
+        "note": "QQQ 强于 SPY 时，科技权重可高于市场基准。"
+      },
+      {
+        "done": false,
+        "title": "VIX 与利率压力监控",
+        "note": "波动率或利率走高时，新增线索需要降低优先级。"
+      },
+      {
+        "done": true,
+        "title": "信用利差触发防守",
+        "note": "信用快速恶化时，进入 ETF 防守或现金模式。"
+      }
+    ]
+  },
+  "mag7": {
+    "leader": {
+      "symbol": "GOOGL",
+      "name": "谷歌",
+      "score": 95,
+      "status": "强趋势",
+      "monthReturn": "-5.2%",
+      "quarterReturn": "+19.9%",
+      "relativeQQQ": "+2.6%"
+    },
+    "rows": [
+      {
+        "symbol": "GOOGL",
+        "name": "谷歌",
+        "score": 95,
+        "status": "强趋势",
+        "monthReturn": "-5.2%",
+        "quarterReturn": "+19.9%",
+        "relativeQQQ": "+2.6%"
+      },
+      {
+        "symbol": "AAPL",
+        "name": "苹果",
+        "score": 85,
+        "status": "强趋势",
+        "monthReturn": "+8.9%",
+        "quarterReturn": "+14.9%",
+        "relativeQQQ": "-2.4%"
+      },
+      {
+        "symbol": "NVDA",
+        "name": "英伟达",
+        "score": 83,
+        "status": "强趋势",
+        "monthReturn": "+5.1%",
+        "quarterReturn": "+14.1%",
+        "relativeQQQ": "-3.2%"
+      },
+      {
+        "symbol": "AMZN",
+        "name": "亚马逊",
+        "score": 67,
+        "status": "中性偏强",
+        "monthReturn": "-9.9%",
+        "quarterReturn": "+13.1%",
+        "relativeQQQ": "-4.1%"
+      },
+      {
+        "symbol": "MSFT",
+        "name": "微软",
+        "score": 49,
+        "status": "等待确认",
+        "monthReturn": "-0.5%",
+        "quarterReturn": "+1.7%",
+        "relativeQQQ": "-15.6%"
+      },
+      {
+        "symbol": "TSLA",
+        "name": "特斯拉",
+        "score": 48,
+        "status": "等待确认",
+        "monthReturn": "+4.2%",
+        "quarterReturn": "+0.7%",
+        "relativeQQQ": "-16.5%"
+      },
+      {
+        "symbol": "META",
+        "name": "Meta",
+        "score": 18,
+        "status": "高波动",
+        "monthReturn": "-4.1%",
+        "quarterReturn": "-12.3%",
+        "relativeQQQ": "-29.6%"
+      }
+    ],
+    "allocation": [
+      {
+        "label": "重点观察",
+        "symbols": "GOOGL / AAPL / NVDA",
+        "weight": "高"
+      },
+      {
+        "label": "趋势观察",
+        "symbols": "AMZN / MSFT",
+        "weight": "中"
+      },
+      {
+        "label": "低频跟踪",
+        "symbols": "TSLA / META",
+        "weight": "低"
+      }
+    ]
+  },
+  "strategy": {
+    "month": "+3.1%",
+    "lastMonth": "+6.5%",
+    "quarter": "+17.1%",
+    "halfYear": "+13.8%",
+    "oneYear": "+953.0%",
+    "benchmarkOneYear": "+576.4%",
+    "maxDrawdown": "-60.8%",
+    "position": "69%"
+  }
+}

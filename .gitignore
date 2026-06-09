@@ -1,0 +1,30 @@
+.DS_Store
+.local/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+market-data-lab/.env
+
+# Runtime/cache output
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+dist/
+build/
+
+# Local archives and generated bundles
+*.tar.gz
+*.tgz
+*.zip
+
+# Large/local data products
+market-data-lab/data/
+data/raw/
+data/processed/
+
+# Design and QA screenshots are useful locally but noisy in git.
+screenshots/

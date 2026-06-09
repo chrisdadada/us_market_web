@@ -1,0 +1,3 @@
+phase,underlyings,start,end,dte,dte_tolerance,pause_seconds,priority
+core_etf,"SPY,QQQ,IWM",2026-01-02,2026-05-12,"7,14,30,45",3,13,1
+liquid_single_names,"AAPL,TSLA,NVDA,MSFT,AMZN,META,AMD",2026-01-02,2026-05-12,"7,14,30,45",3,13,2

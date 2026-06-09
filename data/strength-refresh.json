@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-06-09T09:25:44.857778+00:00",
+  "asOf": "2026-06-08",
+  "ok": true,
+  "scannerOutput": "data/strength-scanner.json",
+  "reviewOutput": "data/strength-review.json",
+  "snapshotDir": "data/strength-snapshots",
+  "summary": "已刷新 2641 只股票，并更新历史验证。"
+}

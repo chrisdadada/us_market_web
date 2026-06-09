@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美股策略库 · 低噪数据终端</title>
+    <style>
+      :root {
+        --page: #eef2f6;
+        --panel: #ffffff;
+        --ink: #182231;
+        --muted: #6d7886;
+        --line: #d7e0ea;
+        --nav: #151b24;
+        --blue: #266c9d;
+        --green: #127a58;
+        --red: #b43b36;
+        --amber: #a36b15;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: 52px 1fr;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #101722;
+        background: var(--nav);
+        color: #fff;
+        padding: 0 20px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .brand strong { font-size: 16px; }
+      .tabs { display: flex; gap: 2px; }
+      .tabs button {
+        height: 32px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #aeb8c5;
+        padding: 0 12px;
+        font-weight: 780;
+      }
+
+      .tabs button.active {
+        background: #263241;
+        color: #fff;
+      }
+
+      .status {
+        display: flex;
+        gap: 10px;
+        color: #c9d4df;
+        font-size: 12px;
+      }
+
+      main {
+        padding: 18px;
+      }
+
+      .grid {
+        max-width: 1360px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr) 340px;
+        gap: 12px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      .panel-head {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding: 0 14px;
+      }
+
+      .panel-head strong {
+        font-size: 14px;
+      }
+
+      .panel-head span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .decision {
+        padding: 18px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        border-radius: 999px;
+        background: #e8f3ec;
+        color: var(--green);
+        padding: 0 9px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      h1 {
+        margin: 14px 0 10px;
+        font-size: 25px;
+        line-height: 1.28;
+        letter-spacing: 0;
+      }
+
+      .decision p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .rules {
+        display: grid;
+        gap: 8px;
+        padding: 14px 18px 18px;
+      }
+
+      .rule {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 11px;
+        background: #fbfcfe;
+      }
+
+      .rule strong { display: block; font-size: 13px; }
+      .rule span { display: block; margin-top: 4px; color: var(--muted); line-height: 1.45; }
+
+      .center {
+        display: grid;
+        gap: 12px;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 14px;
+      }
+
+      .metric span {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-weight: 820;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 26px;
+      }
+
+      .metric b {
+        display: block;
+        margin-top: 4px;
+        color: var(--green);
+        font-size: 12px;
+      }
+
+      .chart {
+        height: 270px;
+        padding: 16px;
+        background:
+          linear-gradient(#fff, #fff),
+          repeating-linear-gradient(0deg, transparent, transparent 44px, #e7edf4 45px);
+        position: relative;
+      }
+
+      svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .chain {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .chain-card {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+
+      .chain-card strong { display: block; }
+      .chain-card span { color: var(--muted); line-height: 1.5; display: block; margin-top: 5px; }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        height: 39px;
+        border-bottom: 1px solid var(--line);
+        padding: 0 12px;
+        text-align: left;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      td:last-child,
+      th:last-child { text-align: right; }
+
+      .pos { color: var(--green); font-weight: 900; }
+      .neg { color: var(--red); font-weight: 900; }
+
+      @media (max-width: 1100px) {
+        .grid { grid-template-columns: 1fr; }
+        .metrics, .chain { grid-template-columns: 1fr 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="brand">
+          <strong>美股策略库</strong>
+          <div class="tabs">
+            <button class="active">判断台</button>
+            <button>市场</button>
+            <button>期权</button>
+            <button>股票池</button>
+            <button>财报</button>
+          </div>
+        </div>
+        <div class="status"><span>数据：2026-05-26</span><span>QA OK</span><span>自动刷新 08:30</span></div>
+      </header>
+      <main>
+        <div class="grid">
+          <section class="panel">
+            <div class="panel-head"><strong>今日结论</strong><span>机器生成</span></div>
+            <div class="decision">
+              <div class="badge">偏强 · 等确认</div>
+              <h1>科技趋势仍是主线，但仓位不应由情绪推动。</h1>
+              <p>QQQ 期权流向和市场温度支持继续观察强势股，但半导体扩散与利率压力还没有给出足够确认。</p>
+            </div>
+            <div class="panel-head"><strong>触发条件</strong><span>盘中盯盘</span></div>
+            <div class="rules">
+              <div class="rule"><strong>加仓条件</strong><span>QQQ Call 活动继续放大，且强势股数量扩散到 60% 以上。</span></div>
+              <div class="rule"><strong>降风险条件</strong><span>利率压力升温，同时 QQQ Put premium 明显抬升。</span></div>
+              <div class="rule"><strong>无效条件</strong><span>科技权重股涨幅回落，市场温度跌回 50 以下。</span></div>
+            </div>
+          </section>
+
+          <div class="center">
+            <div class="metrics">
+              <div class="metric"><span>市场温度 <em>0-100</em></span><strong>64</strong><b>偏强</b></div>
+              <div class="metric"><span>期权焦点 <em>1D</em></span><strong>QQQ</strong><b>$16.7M Call</b></div>
+              <div class="metric"><span>强弱扩散 <em>板块</em></span><strong>52%</strong><b style="color:var(--amber)">一般</b></div>
+              <div class="metric"><span>风险压力 <em>宏观</em></span><strong>中</strong><b style="color:var(--amber)">观察</b></div>
+            </div>
+            <section class="panel">
+              <div class="panel-head"><strong>市场温度与期权确认</strong><span>6 个交易日</span></div>
+              <div class="chart">
+                <svg viewBox="0 0 720 240" preserveAspectRatio="none">
+                  <polyline points="0,154 80,138 160,126 240,118 320,106 400,102 480,94 560,86 640,82 720,76" fill="none" stroke="#127a58" stroke-width="4" />
+                  <polyline points="0,178 80,162 160,170 240,151 320,146 400,132 480,128 560,118 640,124 720,108" fill="none" stroke="#266c9d" stroke-width="4" />
+                  <polyline points="0,186 80,190 160,188 240,194 320,190 400,198 480,194 560,200 640,196 720,202" fill="none" stroke="#b43b36" stroke-width="3" />
+                </svg>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><strong>证据链</strong><span>从数据到动作</span></div>
+              <div class="chain">
+                <div class="chain-card"><strong>1. 温度</strong><span>市场偏强，但还没有进入过热区。</span></div>
+                <div class="chain-card"><strong>2. 期权</strong><span>QQQ Call 活跃，是当前最强确认项。</span></div>
+                <div class="chain-card"><strong>3. 动作</strong><span>持有强势股，等待扩散后再增加风险。</span></div>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head"><strong>观察池</strong><span>优先级排序</span></div>
+            <table>
+              <thead><tr><th>股票</th><th>信号</th><th>变化</th></tr></thead>
+              <tbody>
+                <tr><td>NVDA</td><td>趋势延续</td><td class="pos">+2.8%</td></tr>
+                <tr><td>QQQ</td><td>期权确认</td><td class="pos">+0.9%</td></tr>
+                <tr><td>AMD</td><td>补涨观察</td><td class="pos">+1.4%</td></tr>
+                <tr><td>MSFT</td><td>稳态强势</td><td class="pos">+0.6%</td></tr>
+                <tr><td>TSLA</td><td>波动过高</td><td class="neg">-0.6%</td></tr>
+                <tr><td>UNH</td><td>防御修复</td><td class="pos">+0.5%</td></tr>
+              </tbody>
+            </table>
+            <div class="panel-head"><strong>涨跌幅榜</strong><span>强弱确认</span></div>
+            <table>
+              <tbody>
+                <tr><td>半导体</td><td>扩散不足</td><td class="pos">52%</td></tr>
+                <tr><td>软件</td><td>稳定</td><td class="pos">61%</td></tr>
+                <tr><td>能源</td><td>偏弱</td><td class="neg">38%</td></tr>
+                <tr><td>医疗</td><td>修复</td><td class="pos">55%</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-06-09T09:26:24.373167+00:00",
+  "ok": true,
+  "asOf": "2026-06-08",
+  "sourceRoot": "/Volumes/Extreme SSD/market-data-lab/data",
+  "counts": {
+    "latestUniverseRows": 12194,
+    "tradableCoreRows": 3454,
+    "commonOrAdrRows": 5536,
+    "latestAdjustedDailyRows": 12194,
+    "fredSeries": 12,
+    "analystReportFiles": 8,
+    "earningsReportFiles": 5
+  },
+  "warnings": []
+}

@@ -1,0 +1,204 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1180" viewBox="0 0 1440 1180">
+  <defs>
+    <style>
+      .bg { fill: #f4f7fb; }
+      .panel { fill: #ffffff; stroke: #dfe7f0; stroke-width: 1.2; }
+      .soft { fill: #f8fbfd; }
+      .line { stroke: #dfe7f0; stroke-width: 1; }
+      .muted { fill: #6b7687; font-size: 14px; font-weight: 700; }
+      .tiny { fill: #8591a2; font-size: 12px; font-weight: 700; }
+      .title { fill: #152033; font-size: 28px; font-weight: 900; }
+      .h2 { fill: #152033; font-size: 20px; font-weight: 900; }
+      .h3 { fill: #152033; font-size: 16px; font-weight: 900; }
+      .num { fill: #152033; font-size: 30px; font-weight: 950; }
+      .green { fill: #12805c; }
+      .red { fill: #bd2d2a; }
+      .blue { fill: #2f6796; }
+      .amber { fill: #a56b12; }
+      .nav { fill: #0f1b2d; font-size: 15px; font-weight: 900; }
+      .nav-muted { fill: #7b8797; font-size: 15px; font-weight: 800; }
+      .chip { fill: #eef4f9; stroke: #dbe6ef; stroke-width: 1; }
+      .axis { stroke: #ccd7e3; stroke-width: 1; stroke-dasharray: 4 6; }
+      .orange-line { fill: none; stroke: #c77a30; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .blue-line { fill: none; stroke: #2f6796; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .green-line { fill: none; stroke: #12805c; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .shadow { filter: drop-shadow(0 14px 32px rgba(40, 73, 104, .09)); }
+    </style>
+    <linearGradient id="heat" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#e6eef6"/>
+      <stop offset="48%" stop-color="#d9ebee"/>
+      <stop offset="100%" stop-color="#f3d9c7"/>
+    </linearGradient>
+    <linearGradient id="greenFill" x1="0" x2="1">
+      <stop offset="0%" stop-color="#dff4eb"/>
+      <stop offset="100%" stop-color="#12805c"/>
+    </linearGradient>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1440" height="1180"/>
+
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="236" height="1180" fill="#ffffff"/>
+  <line class="line" x1="236" y1="0" x2="236" y2="1180"/>
+  <text x="32" y="52" fill="#102033" font-size="22" font-weight="950">美股策略库</text>
+  <text x="32" y="77" class="tiny">US Market Research</text>
+
+  <rect x="22" y="122" width="192" height="44" rx="10" fill="#eaf2f8"/>
+  <rect x="22" y="122" width="4" height="44" rx="2" fill="#2f6796"/>
+  <text x="46" y="151" class="nav">图表总览</text>
+  <text x="46" y="205" class="nav-muted">市场温度计</text>
+  <text x="46" y="253" class="nav-muted">全市场强弱</text>
+  <text x="46" y="301" class="nav-muted">涨跌幅榜</text>
+  <text x="46" y="349" class="nav-muted">财报观察</text>
+  <text x="46" y="397" class="nav-muted">预期改善</text>
+  <text x="46" y="445" class="nav-muted">观察池</text>
+  <text x="46" y="493" class="nav-muted">懂币猫实盘</text>
+  <rect x="28" y="1030" width="180" height="78" rx="14" fill="#f6f9fc" stroke="#dfe7f0"/>
+  <text x="46" y="1062" class="tiny">当前数据日期</text>
+  <text x="46" y="1092" fill="#152033" font-size="20" font-weight="950">2026-05-15</text>
+
+  <!-- Main header -->
+  <text x="276" y="58" class="title">数据图表化方案</text>
+  <text x="276" y="86" class="muted">把市场温度、宏观压力、板块强弱和复盘分画出来，减少纯表格阅读负担。</text>
+  <rect x="1138" y="36" width="236" height="40" rx="20" fill="#ffffff" stroke="#dfe7f0"/>
+  <text x="1160" y="61" class="tiny">样式预览 · 待确认后实施</text>
+
+  <!-- Stat row -->
+  <g class="shadow">
+    <rect class="panel" x="276" y="122" width="260" height="110" rx="18"/>
+    <text x="302" y="158" class="tiny">市场温度</text>
+    <text x="302" y="198" class="num blue">74分</text>
+    <text x="386" y="198" class="h3">偏热但不极端</text>
+    <text x="302" y="218" class="tiny">用 VIX、利率、美元、油价、CPI 合成</text>
+  </g>
+  <g class="shadow">
+    <rect class="panel" x="556" y="122" width="260" height="110" rx="18"/>
+    <text x="582" y="158" class="tiny">复盘分高</text>
+    <text x="582" y="198" class="num green">18只</text>
+    <text x="662" y="198" class="h3">优先看</text>
+    <text x="582" y="218" class="tiny">股票同时命中强弱、事件或财报线索</text>
+  </g>
+  <g class="shadow">
+    <rect class="panel" x="836" y="122" width="260" height="110" rx="18"/>
+    <text x="862" y="158" class="tiny">宏观压力</text>
+    <text x="862" y="198" class="num amber">3项</text>
+    <text x="934" y="198" class="h3">需要观察</text>
+    <text x="862" y="218" class="tiny">30Y美债、CPI、Brent 原油偏高</text>
+  </g>
+  <g class="shadow">
+    <rect class="panel" x="1116" y="122" width="258" height="110" rx="18"/>
+    <text x="1142" y="158" class="tiny">数据覆盖</text>
+    <text x="1142" y="198" class="num blue">6类</text>
+    <text x="1212" y="198" class="h3">已接入</text>
+    <text x="1142" y="218" class="tiny">行情、强弱、宏观、财报、事件、信号</text>
+  </g>
+
+  <!-- Market temperature chart -->
+  <g class="shadow">
+    <rect class="panel" x="276" y="260" width="690" height="420" rx="22"/>
+    <text x="306" y="304" class="h2">市场温度与宏观压力</text>
+    <text x="306" y="330" class="muted">不是交易指令，只用来判断复盘强度和线索优先级。</text>
+    <rect x="742" y="292" width="184" height="42" rx="21" fill="#f7efe5" stroke="#ecd4bc"/>
+    <text x="765" y="319" fill="#a56b12" font-size="16" font-weight="950">偏热但不极端</text>
+
+    <rect x="306" y="366" width="610" height="26" rx="13" fill="url(#heat)"/>
+    <circle cx="757" cy="379" r="13" fill="#ffffff" stroke="#a56b12" stroke-width="4"/>
+    <text x="306" y="420" class="tiny">防守</text>
+    <text x="590" y="420" class="tiny">观察</text>
+    <text x="870" y="420" class="tiny">偏热</text>
+    <text x="742" y="420" fill="#a56b12" font-size="18" font-weight="950">74分</text>
+
+    <line class="axis" x1="326" y1="500" x2="920" y2="500"/>
+    <line class="axis" x1="326" y1="555" x2="920" y2="555"/>
+    <line class="axis" x1="326" y1="610" x2="920" y2="610"/>
+    <path class="orange-line" d="M326 578 C374 560 398 536 438 544 C478 552 500 596 540 588 C584 576 612 502 658 516 C704 530 728 574 770 556 C816 536 846 502 920 486"/>
+    <text x="326" y="650" class="tiny">2026-05-08</text>
+    <text x="826" y="650" class="tiny">2026-05-15</text>
+    <text x="326" y="474" class="tiny">温度变化</text>
+
+    <rect x="314" y="688" width="145" height="74" rx="14" class="soft" stroke="#dfe7f0"/>
+    <text x="334" y="716" class="tiny">VIX</text>
+    <text x="334" y="745" class="h3 green">17.26% · 低</text>
+    <rect x="474" y="688" width="145" height="74" rx="14" class="soft" stroke="#dfe7f0"/>
+    <text x="494" y="716" class="tiny">10Y美债</text>
+    <text x="494" y="745" class="h3 blue">4.47% · 中</text>
+    <rect x="634" y="688" width="145" height="74" rx="14" class="soft" stroke="#dfe7f0"/>
+    <text x="654" y="716" class="tiny">CPI同比</text>
+    <text x="654" y="745" class="h3 amber">3.95% · 高</text>
+    <rect x="794" y="688" width="132" height="74" rx="14" class="soft" stroke="#dfe7f0"/>
+    <text x="814" y="716" class="tiny">Brent</text>
+    <text x="814" y="745" class="h3 amber">$106.11</text>
+  </g>
+
+  <!-- Review score distribution -->
+  <g class="shadow">
+    <rect class="panel" x="990" y="260" width="384" height="420" rx="22"/>
+    <text x="1020" y="304" class="h2">复盘分分布</text>
+    <text x="1020" y="330" class="muted">用于观察池排序，也可作为付费模块入口。</text>
+    <circle cx="1182" cy="462" r="86" fill="none" stroke="#edf3f8" stroke-width="26"/>
+    <path d="M1182 376 A86 86 0 1 1 1114 514" fill="none" stroke="#12805c" stroke-width="26" stroke-linecap="round"/>
+    <path d="M1114 514 A86 86 0 0 1 1152 382" fill="none" stroke="#2f6796" stroke-width="26" stroke-linecap="round"/>
+    <text x="1142" y="456" class="tiny">高分占比</text>
+    <text x="1140" y="493" class="num green">28%</text>
+    <rect x="1020" y="586" width="310" height="22" rx="11" fill="#edf3f8"/>
+    <rect x="1020" y="586" width="236" height="22" rx="11" fill="#12805c"/>
+    <text x="1020" y="577" class="tiny">80-100分 · 18只</text>
+    <rect x="1020" y="635" width="310" height="22" rx="11" fill="#edf3f8"/>
+    <rect x="1020" y="635" width="184" height="22" rx="11" fill="#2f6796"/>
+    <text x="1020" y="626" class="tiny">60-79分 · 31只</text>
+    <rect x="1020" y="684" width="310" height="22" rx="11" fill="#edf3f8"/>
+    <rect x="1020" y="684" width="106" height="22" rx="11" fill="#a56b12"/>
+    <text x="1020" y="675" class="tiny">60分以下 · 16只</text>
+    <text x="1020" y="744" class="muted">点击区间后，可直接筛选观察池和股票榜单。</text>
+  </g>
+
+  <!-- Sector heatmap -->
+  <g class="shadow">
+    <rect class="panel" x="276" y="710" width="690" height="360" rx="22"/>
+    <text x="306" y="754" class="h2">板块强弱热力图</text>
+    <text x="306" y="780" class="muted">颜色代表相对强弱，数字代表当前上榜或进入观察的股票数量。</text>
+    <rect x="306" y="816" width="190" height="96" rx="16" fill="#dff4eb" stroke="#b8dfcf"/>
+    <text x="326" y="850" class="h3 green">科技 XLK</text>
+    <text x="326" y="884" class="num green">22</text>
+    <text x="386" y="884" class="tiny">只 · 强</text>
+    <rect x="510" y="816" width="190" height="96" rx="16" fill="#d9efe8" stroke="#b8dfcf"/>
+    <text x="530" y="850" class="h3 green">半导体 SMH</text>
+    <text x="530" y="884" class="num green">17</text>
+    <text x="590" y="884" class="tiny">只 · 强</text>
+    <rect x="714" y="816" width="210" height="96" rx="16" fill="#f8ead7" stroke="#efd0aa"/>
+    <text x="734" y="850" class="h3 amber">金融 XLF</text>
+    <text x="734" y="884" class="num amber">14</text>
+    <text x="794" y="884" class="tiny">只 · 偏热</text>
+    <rect x="306" y="928" width="145" height="92" rx="16" fill="#eaf2f8" stroke="#d6e4ee"/>
+    <text x="326" y="962" class="h3 blue">AI应用</text>
+    <text x="326" y="994" class="num blue">11</text>
+    <rect x="466" y="928" width="145" height="92" rx="16" fill="#eaf2f8" stroke="#d6e4ee"/>
+    <text x="486" y="962" class="h3 blue">航天</text>
+    <text x="486" y="994" class="num blue">7</text>
+    <rect x="626" y="928" width="145" height="92" rx="16" fill="#f9eeee" stroke="#efcaca"/>
+    <text x="646" y="962" class="h3 red">医药</text>
+    <text x="646" y="994" class="num red">9</text>
+    <rect x="786" y="928" width="138" height="92" rx="16" fill="#f7f9fb" stroke="#dfe7f0"/>
+    <text x="806" y="962" class="h3">消费</text>
+    <text x="806" y="994" class="num">5</text>
+  </g>
+
+  <!-- Single stock position mini chart -->
+  <g class="shadow">
+    <rect class="panel" x="990" y="710" width="384" height="360" rx="22"/>
+    <text x="1020" y="754" class="h2">个股位置图</text>
+    <text x="1020" y="780" class="muted">进入详情页后，把涨跌幅、成交额、风险和复盘分放到一张图。</text>
+    <text x="1020" y="830" class="tiny">示例：WOLF · 强但偏热</text>
+    <text x="1020" y="872" class="num green">复盘分 86</text>
+    <line class="axis" x1="1032" y1="934" x2="1332" y2="934"/>
+    <line class="axis" x1="1032" y1="984" x2="1332" y2="984"/>
+    <path class="blue-line" d="M1032 1000 C1078 968 1110 955 1144 936 C1178 916 1216 894 1254 906 C1290 918 1308 874 1332 842"/>
+    <circle cx="1332" cy="842" r="6" fill="#2f6796"/>
+    <rect x="1020" y="1024" width="86" height="30" rx="15" class="chip"/>
+    <text x="1042" y="1044" class="tiny">1日 +6.8%</text>
+    <rect x="1118" y="1024" width="96" height="30" rx="15" class="chip"/>
+    <text x="1138" y="1044" class="tiny">20日 +133.6%</text>
+    <rect x="1228" y="1024" width="104" height="30" rx="15" class="chip"/>
+    <text x="1250" y="1044" class="tiny">成交额 3.0x</text>
+  </g>
+</svg>

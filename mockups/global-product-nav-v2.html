@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美股策略库 · 二级导航结构</title>
+    <style>
+      :root {
+        --page: #f6f8fb;
+        --panel: #fff;
+        --ink: #182231;
+        --muted: #697586;
+        --line: #dce4ee;
+        --nav: #111827;
+        --blue: #28628d;
+        --green: #16745a;
+        --amber: #9b6b1a;
+        --soft: #f1f5f9;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--page); color: var(--ink); font-size: 14px; }
+      .shell { min-height: 100vh; display: grid; grid-template-columns: 230px minmax(0,1fr); }
+      aside { border-right: 1px solid var(--line); background: rgba(255,255,255,.96); padding: 18px 14px; }
+      .brand { display: flex; align-items: center; gap: 10px; padding: 0 6px 22px; }
+      .mark { width: 34px; height: 34px; border-radius: 8px; background: var(--nav); color: #fff; display: grid; place-items: center; font-weight: 900; }
+      .brand strong, .brand span { display: block; }
+      .brand strong { font-size: 16px; }
+      .brand span { color: var(--muted); font-size: 11px; }
+      .group { margin-bottom: 16px; }
+      .group-title { color: #97a1ae; font-size: 11px; font-weight: 900; padding: 0 10px 7px; }
+      nav { display: grid; gap: 4px; }
+      nav button { min-height: 42px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #4b5563; padding: 0 11px; text-align: left; font-weight: 830; }
+      nav button.active { background: #eef5fb; border-color: #cbdceb; color: var(--blue); }
+      nav button.secondary { min-height: 34px; padding-left: 24px; color: #6b7280; font-size: 13px; font-weight: 760; }
+      nav button.secondary.active { background: #f5f9fd; border-color: #d8e4ee; color: var(--blue); }
+      main { min-width: 0; padding: 0 30px 42px; }
+      .topbar { height: 62px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); color: var(--muted); }
+      .topbar strong { color: var(--ink); font-size: 18px; }
+      .topbar button { height: 34px; border: 1px solid #c8d4e2; border-radius: 7px; background: #fff; padding: 0 12px; font-weight: 850; color: var(--ink); }
+      .page { max-width: 1240px; margin: 0 auto; padding-top: 22px; }
+      .breadcrumb { color: var(--muted); font-size: 12px; font-weight: 780; margin-bottom: 10px; }
+      .hero { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 12px; }
+      .panel { border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+      .summary { padding: 24px; }
+      .kicker { color: var(--blue); font-size: 12px; font-weight: 900; }
+      h1 { margin: 10px 0 0; font-size: 34px; line-height: 1.24; letter-spacing: 0; color: var(--nav); }
+      .lead { max-width: 810px; margin: 14px 0 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+      .chip { display: inline-flex; align-items: center; min-height: 28px; border: 1px solid var(--line); border-radius: 99px; background: #f8fafc; color: #506174; padding: 0 10px; font-size: 12px; font-weight: 850; }
+      .chip.green { color: var(--green); background: #edf8f3; border-color: #cae9dc; }
+      .chip.amber { color: var(--amber); background: #fff7e8; border-color: #f0dfbd; }
+      .brief { padding: 18px; }
+      .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+      .head strong { font-size: 16px; }
+      .head span { color: var(--muted); font-size: 12px; font-weight: 760; }
+      .task { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+      .task:last-child { border-bottom: 0; }
+      .num { width: 28px; height: 28px; border-radius: 99px; background: var(--soft); color: var(--blue); display: grid; place-items: center; font-weight: 900; }
+      .task strong { display: block; font-size: 14px; }
+      .task span { display: block; color: var(--muted); font-size: 12px; line-height: 1.55; margin-top: 3px; }
+      .subnav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .subnav button { height: 34px; border: 1px solid var(--line); border-radius: 7px; background: #fff; padding: 0 12px; color: #536173; font-weight: 820; }
+      .subnav button.active { border-color: #b9cede; background: #eef5fb; color: var(--blue); }
+      .modules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+      .module { padding: 16px; min-height: 142px; }
+      .module small { color: var(--muted); font-weight: 850; }
+      .module h2 { margin: 10px 0 8px; font-size: 24px; letter-spacing: 0; }
+      .module p { margin: 0; color: var(--muted); line-height: 1.55; }
+      .module b { display: block; margin-top: 12px; font-size: 12px; }
+      .green { color: var(--green); } .amber { color: var(--amber); }
+      .matrix { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+      .section { padding: 18px; }
+      .map { display: grid; gap: 9px; }
+      .map-row { display: grid; grid-template-columns: 148px 1fr; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfe; }
+      .map-row strong { display: block; }
+      .map-row span { color: var(--muted); line-height: 1.55; }
+      @media (max-width: 980px) { .shell, .hero, .matrix { grid-template-columns: 1fr; } aside { display: none; } main { padding: 0 16px 30px; } .modules { grid-template-columns: 1fr 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand"><div class="mark">M</div><div><strong>美股策略库</strong><span>Global Market Desk</span></div></div>
+        <div class="group">
+          <div class="group-title">每日工作流</div>
+          <nav>
+            <button class="active">今日总览</button>
+            <button>市场</button>
+            <button>机会</button>
+            <button>风险</button>
+          </nav>
+        </div>
+        <div class="group">
+          <div class="group-title">研究模块</div>
+          <nav>
+            <button>股票库</button>
+            <button>财报</button>
+            <button>估值</button>
+            <button>事件中心</button>
+          </nav>
+        </div>
+        <div class="group">
+          <div class="group-title">工具与数据</div>
+          <nav>
+            <button class="secondary">数据状态</button>
+            <button class="secondary">截图生成</button>
+            <button class="secondary">导入管理</button>
+            <button class="secondary">系统设置</button>
+          </nav>
+        </div>
+      </aside>
+      <main>
+        <div class="topbar"><div><strong>今日总览</strong> · 一级导航只保留决策入口</div><button>刷新数据</button></div>
+        <div class="page">
+          <div class="breadcrumb">今日总览 / 市场判断 / 本周事件</div>
+          <section class="hero">
+            <div class="panel summary">
+              <div class="kicker">导航重构后的首页</div>
+              <h1>用户先进“今天怎么看”，再下钻到市场、机会和风险。</h1>
+              <p class="lead">一级导航不再展示所有功能，而是承接用户工作流。股票库、财报、估值、事件中心作为研究模块；数据状态、导入、截图生成收到工具区。</p>
+              <div class="chips">
+                <span class="chip green">一级入口：4 个</span>
+                <span class="chip">研究模块：4 个</span>
+                <span class="chip amber">工具功能进入二级</span>
+                <span class="chip">首页更像决策入口</span>
+              </div>
+              <div class="subnav">
+                <button class="active">总览</button>
+                <button>市场温度</button>
+                <button>机会列表</button>
+                <button>本周事件</button>
+                <button>风险提示</button>
+              </div>
+            </div>
+            <div class="panel brief">
+              <div class="head"><strong>今天只看这 3 件事</strong><span>二级聚合</span></div>
+              <div class="task"><div class="num">1</div><div><strong>市场环境是否支持风险</strong><span>来自市场模块：温度、广度、宏观压力。</span></div></div>
+              <div class="task"><div class="num">2</div><div><strong>机会是否集中或扩散</strong><span>来自机会模块：股票库、板块、趋势。</span></div></div>
+              <div class="task"><div class="num">3</div><div><strong>本周事件是否改变判断</strong><span>来自事件中心：人工上传的大事件。</span></div></div>
+            </div>
+          </section>
+          <section class="modules">
+            <div class="panel module"><small>市场</small><h2>环境</h2><p>市场温度、板块强弱、宏观压力、期权证据。</p><b class="green">一级入口</b></div>
+            <div class="panel module"><small>机会</small><h2>股票</h2><p>观察池、涨跌幅榜、趋势信号、财报后机会。</p><b class="green">一级入口</b></div>
+            <div class="panel module"><small>风险</small><h2>预警</h2><p>估值、利率、事件、异常波动和数据质量。</p><b class="green">一级入口</b></div>
+            <div class="panel module"><small>研究</small><h2>下钻</h2><p>财报、估值、事件中心保留完整细节。</p><b>二级入口</b></div>
+          </section>
+          <div class="matrix">
+            <section class="panel section">
+              <div class="head"><strong>建议导航结构</strong><span>面向用户心智</span></div>
+              <div class="map">
+                <div class="map-row"><strong>今日总览</strong><span>默认首页，输出当天判断、三件事、风险和机会。</span></div>
+                <div class="map-row"><strong>市场</strong><span>市场温度、板块强弱、宏观压力、期权/资金证据。</span></div>
+                <div class="map-row"><strong>机会</strong><span>股票观察池、涨跌幅、趋势信号、财报后机会。</span></div>
+                <div class="map-row"><strong>风险</strong><span>估值压力、事件风险、数据异常、无效条件。</span></div>
+              </div>
+            </section>
+            <section class="panel section">
+              <div class="head"><strong>收到二级的功能</strong><span>降低第一屏噪音</span></div>
+              <div class="map">
+                <div class="map-row"><strong>财报与预期</strong><span>放在“研究模块”，首页只引用重点变化。</span></div>
+                <div class="map-row"><strong>估值与持仓</strong><span>放在“风险/研究”二级，避免首页过重。</span></div>
+                <div class="map-row"><strong>资讯与日历</strong><span>作为“事件中心”，首页只显示本周重点。</span></div>
+                <div class="map-row"><strong>数据状态/导入</strong><span>收到工具区，给管理员和高级用户使用。</span></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,7675 @@
+const DATA_URL = "./data/ytd-gainers.json?v=20260609-product1";
+const MOVERS_URL = "./data/market-movers.json?v=20260609-product1";
+const CORE_URL = "./data/core-signals.json?v=20260609-product1";
+const STRENGTH_URL = "./data/strength-scanner.json?v=20260609-product1";
+const STRENGTH_REVIEW_URL = "./data/strength-review.json?v=20260609-product1";
+const EARNINGS_QUALITY_URL = "./data/earnings-quality.json?v=20260609-product1";
+const MARKET_TEMPERATURE_URL = "./data/market-temperature.json?v=20260609-product1";
+const MACRO_SERIES_URL = "./data/macro-series.json?v=20260609-product1";
+const EVENT_OPPORTUNITIES_URL = "./data/event-opportunities.json?v=20260609-product1";
+const VALIDATION_CENTER_URL = "./data/validation-center.json?v=20260609-product1";
+const INDEX_VALUATION_URL = "./data/index-valuation.json?v=20260609-product1";
+const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260609-product1";
+const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260609-product1";
+const WATCHLIST_STORAGE_KEY = "meigu_strategy_watchlist_v1";
+
+const state = {
+  activeBoard: "ytd",
+  boards: {},
+  core: null,
+  strength: null,
+  strengthReview: null,
+  strengthBucket: "strongest",
+  strengthQuery: "",
+  strengthLabelFilter: "all",
+  strengthFactorFilter: "all",
+  earningsQuality: null,
+  marketTemperature: null,
+  macroSeries: null,
+  macroSeriesRange: "1y",
+  indexValuation: null,
+  optionsFlow: null,
+  valuationIndex: "QQQ",
+  valuationMetric: "pe",
+  valuationRange: "3m",
+  eventOpportunities: null,
+  validationCenter: null,
+  loading: {},
+  qualityBoard: "quality",
+  qualityQuery: "",
+  selectedQualitySymbol: "",
+  eventBoard: "guidance_up",
+  eventQuery: "",
+  eventScoreFilter: "all",
+  eventRiskFilter: "all",
+  eventStyleFilter: "all",
+  selectedEventSymbol: "",
+  meta: {},
+  rows: [],
+  query: "",
+  capFilter: "all",
+  sectorFilter: "all",
+  directionFilter: "all",
+  riskFilter: "all",
+  macroFilter: "all",
+  auth: {
+    authenticated: false,
+    user: null,
+    entitlements: { paid: false, pro: false, proPlus: false, admin: false },
+  },
+  adminUsers: [],
+  adminPerformance: [],
+  adminSummary: null,
+  signals: null,
+  selectedSignalSymbol: "",
+  selectedMarketSymbol: "",
+  selectedStockSymbol: "",
+  stockBackPage: "market",
+  watchlist: [],
+  watchlistQuery: "",
+  watchlistViewFilter: "all",
+  watchlistSourceFilter: "all",
+  globalSearchQuery: "",
+  globalSearchIndex: -1,
+  searchUniverse: null,
+};
+
+const escapeHtml = (value) =>
+  String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const setText = (selector, value) => {
+  const element = document.querySelector(selector);
+  if (element && value !== undefined && value !== null) {
+    element.textContent = value;
+  }
+};
+
+const neutralCopy = (value) =>
+  String(value || "")
+    .replace(/可以关注/g, "可观察")
+    .replace(/适合提高/g, "可提高")
+    .replace(/适合保留/g, "可保留")
+    .replace(/更适合控制/g, "更偏向控制")
+    .replace(/只看/g, "仅看");
+
+const apiFetch = async (url, options = {}) => {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || "请求失败");
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
+};
+
+const fetchOptionalJson = async (url) => {
+  const response = await fetch(url).catch(() => null);
+  if (!response || !response.ok) return null;
+  return response.json().catch(() => null);
+};
+
+const lazyDatasets = {
+  macroSeries: {
+    url: MACRO_SERIES_URL,
+    render: (payload) => renderMacroSeries(payload),
+  },
+  indexValuation: {
+    url: INDEX_VALUATION_URL,
+    render: (payload) => renderIndexValuation(payload),
+  },
+  optionsFlow: {
+    url: OPTIONS_FLOW_URL,
+    render: (payload) => renderOptionsFlow(payload),
+  },
+  earningsQuality: {
+    url: EARNINGS_QUALITY_URL,
+    render: (payload) => renderEarningsQuality(payload),
+  },
+  eventOpportunities: {
+    url: EVENT_OPPORTUNITIES_URL,
+    render: (payload) => renderEventOpportunities(payload),
+  },
+  validationCenter: {
+    url: VALIDATION_CENTER_URL,
+    render: (payload) => renderValidationCenter(payload),
+  },
+};
+
+const loadLazyDataset = async (key) => {
+  const config = lazyDatasets[key];
+  if (!config) return null;
+  if (state[key]) return state[key];
+  if (state.loading[key]) return state.loading[key];
+  state.loading[key] = fetchOptionalJson(config.url)
+    .then((payload) => {
+      if (payload) {
+        config.render(payload);
+        renderDashboardVisualBoard();
+        renderDataStatus();
+      }
+      return payload;
+    })
+    .catch(() => null)
+    .finally(() => {
+      delete state.loading[key];
+    });
+  return state.loading[key];
+};
+
+const ensurePageData = (page) => {
+  const jobs = [];
+  if (page === "risk") jobs.push(loadLazyDataset("macroSeries"));
+  if (page === "valuation") jobs.push(loadLazyDataset("indexValuation"));
+  if (page === "options") jobs.push(loadLazyDataset("optionsFlow"));
+  if (page === "earnings") jobs.push(loadLazyDataset("earningsQuality"));
+  if (page === "events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
+  if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
+  if (page === "stock") jobs.push(loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
+  return Promise.all(jobs).catch(() => []);
+};
+
+const formatPercent = (value) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value) + "%";
+
+const formatNumber = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "--";
+  return new Intl.NumberFormat("en-US").format(number);
+};
+
+const formatMoney = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: value >= 100 ? 2 : 3,
+    maximumFractionDigits: value >= 100 ? 2 : 3,
+  }).format(value);
+
+const formatCompactMoney = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "--";
+  if (Math.abs(number) >= 1_000_000_000) return `$${(number / 1_000_000_000).toFixed(1)}B`;
+  if (Math.abs(number) >= 1_000_000) return `$${(number / 1_000_000).toFixed(1)}M`;
+  return formatMoney(number);
+};
+
+const formatSignedPct = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "--";
+  return `${number >= 0 ? "+" : ""}${formatPercent(number)}`;
+};
+
+const formatPlainPct = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "--";
+  return formatPercent(number);
+};
+
+const formatEvidencePct = (value, count, minCount = 30) => {
+  const sample = Number(count);
+  if (!Number.isFinite(sample) || sample < minCount) return "样本不足";
+  return formatPlainPct(value);
+};
+
+const formatEvidenceSignedPct = (value, count, minCount = 30) => {
+  const sample = Number(count);
+  if (!Number.isFinite(sample) || sample < minCount) return "样本不足";
+  return formatSignedPct(value);
+};
+
+const roleLabel = (role) => {
+  if (role === "super_admin") return "超级管理员";
+  if (role === "admin") return "普通管理员";
+  return "普通用户";
+};
+
+const planLabel = (plan) => {
+  if (plan === "paid" || plan === "pro" || plan === "pro_plus") return "付费";
+  return "免费";
+};
+
+const safeReadJson = (key, fallback) => {
+  try {
+    const value = window.localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch (error) {
+    return fallback;
+  }
+};
+
+const safeWriteJson = (key, value) => {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    // localStorage 不可用时，当前页面仍保留内存状态。
+  }
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatDisplayDate = (value) => {
+  if (!value) return "--";
+  const text = String(value).trim();
+  const isoDate = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoDate) return isoDate[1];
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return text;
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+};
+
+const latestDisplayDate = (...values) => {
+  const dates = values
+    .filter(Boolean)
+    .map(formatDisplayDate)
+    .filter((value) => value && value !== "--")
+    .sort();
+  return dates.length ? dates.at(-1) : "--";
+};
+
+const parseDateValue = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
+const startOfDate = (value) => {
+  const date = parseDateValue(value);
+  if (!date) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
+const addDays = (value, days) => {
+  const date = startOfDate(value) || startOfDate(new Date());
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
+};
+
+const daysBetween = (from, to) => {
+  const start = startOfDate(from);
+  const end = startOfDate(to);
+  if (!start || !end) return 0;
+  return Math.round((end - start) / 86_400_000);
+};
+
+const hasPaidAccess = () =>
+  Boolean(
+    state.auth.authenticated &&
+      (state.auth.entitlements.paid || state.auth.entitlements.pro || state.auth.entitlements.proPlus),
+  );
+
+const marketCapNumber = (label) => {
+  const match = String(label).match(/^([\d.]+)([MB])$/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return match[2] === "B" ? value * 1000 : value;
+};
+
+const getChange = (row) => (typeof row.change === "number" ? row.change : row.changeYtd);
+
+const impliedReferencePrice = (row) => row.price / (1 + getChange(row) / 100);
+
+const capBucket = (row) => {
+  const cap = marketCapNumber(row.marketCap);
+  if (cap == null) return "unknown";
+  if (cap >= 10000) return "large";
+  if (cap >= 1000) return "mid";
+  return "small";
+};
+
+const capLabel = (row) => {
+  const bucket = capBucket(row);
+  if (bucket === "large") return "大盘";
+  if (bucket === "mid") return "中盘";
+  if (bucket === "small") return "小盘";
+  return "市值待补";
+};
+
+const parseSignedPercent = (value) => {
+  const number = Number(String(value || "").replace("%", "").replace("+", "").replace(",", ""));
+  return Number.isFinite(number) ? number : 0;
+};
+
+const parseRatio = (value) => {
+  const number = Number(String(value || "").replace("x", ""));
+  return Number.isFinite(number) ? number : 0;
+};
+
+const formatChangeValue = (row) => {
+  if (!row) return "--";
+  const change = getChange(row);
+  return `${change >= 0 ? "+" : ""}${formatPercent(change)}`;
+};
+
+const uniqueBySymbol = (rows) => {
+  const seen = new Set();
+  return rows.filter((row) => {
+    if (seen.has(row.symbol)) return false;
+    seen.add(row.symbol);
+    return true;
+  });
+};
+
+const getRiskScore = (row) => {
+  let score = 28;
+  const absChange = Math.abs(getChange(row));
+  if (absChange >= 1000) score += 28;
+  else if (absChange >= 500) score += 20;
+  else if (absChange >= 100) score += 16;
+  else if (absChange >= 30) score += 10;
+
+  const cap = capBucket(row);
+  if (cap === "small") score += 22;
+  else if (cap === "mid") score += 10;
+
+  if (row.price < 1) score += 14;
+  else if (row.price < 5) score += 10;
+
+  if (/低价|高波动|流动性|临床|题材/.test(row.risk)) score += 8;
+  if (Number(String(row.volume).replace(/,/g, "")) < 500000) score += 5;
+
+  return Math.min(score, 99);
+};
+
+const getRiskBucket = (row) => {
+  const score = getRiskScore(row);
+  if (score >= 80) return "extreme";
+  if (score >= 62) return "high";
+  return "watch";
+};
+
+const getRiskLabel = (bucket) => {
+  if (bucket === "extreme") return "极高";
+  if (bucket === "high") return "偏高";
+  return "观察";
+};
+
+const signalClass = (bucket) => {
+  if (bucket === "positive") return "is-positive";
+  if (bucket === "watch") return "is-watch";
+  return "is-neutral";
+};
+
+const lightClass = (bucket) => {
+  if (bucket === "positive") return "positive";
+  if (bucket === "watch") return "watch";
+  return "neutral";
+};
+
+const openAuthModal = (message) => {
+  const modal = document.querySelector("#authModal");
+  if (!modal) return;
+  if (message) setText("#authPrompt", message);
+  setText("#authError", "");
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+  setTimeout(() => {
+    const emailInput = document.querySelector("#authEmail");
+    if (emailInput) emailInput.focus();
+  }, 30);
+};
+
+const closeAuthModal = () => {
+  const modal = document.querySelector("#authModal");
+  if (!modal) return;
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden", "true");
+};
+
+const renderAuthState = () => {
+  const button = document.querySelector("#authButton");
+  if (!button) return;
+  const { authenticated, user, entitlements } = state.auth;
+  const hasPaid = hasPaidAccess();
+  const isAdmin = Boolean(authenticated && entitlements.admin);
+  button.classList.toggle("is-authenticated", authenticated);
+  document.querySelectorAll("[data-admin-only]").forEach((item) => {
+    item.classList.toggle("is-hidden", !isAdmin);
+  });
+  document.querySelectorAll('#adminCreateForm [name="role"] option[value="admin"]').forEach((option) => {
+    option.disabled = !(user && user.role === "super_admin");
+  });
+  if (!isAdmin && document.querySelector('[data-view="admin"]').classList.contains("is-active")) {
+    showPage("dashboard");
+  }
+  if (!isAdmin && document.querySelector('[data-view="validation"]').classList.contains("is-active")) {
+    showPage("dashboard");
+  }
+  document.querySelectorAll("[data-requires-plan='paid']").forEach((card) => {
+    card.classList.toggle("is-unlocked", hasPaid);
+    card.querySelectorAll("em").forEach((item) => {
+      item.textContent = hasPaid ? "已解锁" : "锁定";
+    });
+  });
+  document.querySelectorAll("[data-pro-plus-copy]").forEach((item) => {
+    if (!item.dataset.lockedCopy) item.dataset.lockedCopy = item.textContent;
+    item.textContent = hasPaid ? "已解锁" : item.dataset.lockedCopy;
+  });
+  renderStrengthPremiumSections();
+  if (!authenticated) {
+    button.textContent = "登录";
+    return;
+  }
+  const label = user && user.role === "super_admin" ? "超级管理员" : hasPaid ? "付费" : "免费";
+  button.textContent = `${label}`;
+};
+
+const refreshAuth = async () => {
+  try {
+    const payload = await apiFetch("/api/auth/status");
+    state.auth = {
+      authenticated: Boolean(payload.authenticated),
+      user: payload.user,
+      entitlements: payload.entitlements || { paid: false, pro: false, proPlus: false, admin: false },
+    };
+  } catch {
+    state.auth = {
+      authenticated: false,
+      user: null,
+      entitlements: { paid: false, pro: false, proPlus: false, admin: false },
+    };
+  }
+  renderAuthState();
+};
+
+const renderUnlockedTradeRecords = (records) => {
+  const container = document.querySelector('[data-view="live"] .locked-records');
+  if (!container) return;
+  container.innerHTML = records
+    .map(
+      (record) => `
+        <div>
+          <span>${escapeHtml(record.symbol)}</span>
+          <strong>${escapeHtml(record.direction)} · ${escapeHtml(record.profit)}</strong>
+          <em>已解锁</em>
+        </div>
+      `,
+    )
+    .join("");
+};
+
+const unlockTradeRecords = async () => {
+  if (!state.auth.authenticated) {
+    openAuthModal("请先登录。付费用户可查看完整交割记录。");
+    return;
+  }
+  if (!(state.auth.entitlements.paid || state.auth.entitlements.pro || state.auth.entitlements.proPlus)) {
+    showPage("subscription");
+    openAuthModal("当前账号尚未开通付费会员，升级后可查看完整交割记录。");
+    return;
+  }
+  try {
+    const payload = await apiFetch("/api/pro/trade-records");
+    renderUnlockedTradeRecords(payload.records || []);
+    renderAuthState();
+  } catch (error) {
+    openAuthModal(error.message || "暂时无法读取交割记录。");
+  }
+};
+
+const renderAdminUsers = () => {
+  const body = document.querySelector("#adminUsersBody");
+  if (!body) return;
+  const summary = state.adminSummary || {};
+  setText("#adminTotalUsers", summary.total == null ? "--" : `${summary.total}`);
+  setText("#adminActiveUsers", summary.active == null ? "--" : `${summary.active}`);
+  setText("#adminPaidUsers", summary.paid == null ? "--" : `${summary.paid}`);
+  setText("#adminManagerUsers", summary.admin == null ? "--" : `${summary.admin}`);
+
+  const performance = document.querySelector("#adminPerformanceList");
+  if (performance) {
+    performance.innerHTML = state.adminPerformance.length
+      ? state.adminPerformance
+          .map(
+            (item) => `
+              <div>
+                <strong>${escapeHtml(item.creatorEmail)}</strong>
+                <span>创建 ${item.total} 人 · 有效 ${item.active} 人 · 付费 ${item.paid} 人</span>
+              </div>
+            `,
+          )
+          .join("")
+      : "<p>暂无业绩数据。</p>";
+  }
+
+  if (!state.adminUsers.length) {
+    body.innerHTML = '<tr><td colspan="8">暂无用户。</td></tr>';
+    return;
+  }
+
+  const currentUser = state.auth.user || {};
+  const canSetAdmin = currentUser.role === "super_admin";
+  body.innerHTML = state.adminUsers
+    .map((user) => {
+      const disabled = user.isSuperAdmin ? "disabled" : "";
+      const createdBy = user.createdBy && user.createdBy.email ? user.createdBy.email : "系统 / 超级管理员";
+      return `
+        <tr data-admin-user-id="${user.id}">
+          <td>
+            <strong>${escapeHtml(user.email)}</strong>
+            <span>ID ${user.id}</span>
+          </td>
+          <td>${escapeHtml(createdBy)}</td>
+          <td>
+            ${
+              user.isSuperAdmin
+                ? `<strong>${roleLabel(user.role)}</strong>`
+                : `<select data-admin-field="role" ${disabled}>
+                    <option value="user" ${user.role === "user" ? "selected" : ""}>普通用户</option>
+                    <option value="admin" ${user.role === "admin" ? "selected" : ""} ${canSetAdmin ? "" : "disabled"}>普通管理员</option>
+                  </select>`
+            }
+          </td>
+          <td>
+            <select data-admin-field="plan" ${disabled}>
+              <option value="free" ${user.plan === "free" ? "selected" : ""}>免费</option>
+              <option value="paid" ${planLabel(user.plan) === "付费" ? "selected" : ""}>付费</option>
+            </select>
+          </td>
+          <td><input data-admin-field="subscriptionExpiresAt" type="date" value="${escapeHtml((user.subscriptionExpiresAt || "").slice(0, 10))}" ${disabled} /></td>
+          <td>
+            <label class="admin-inline-check">
+              <input data-admin-field="isActive" type="checkbox" ${user.isActive ? "checked" : ""} ${disabled} />
+              <span>${user.isActive ? "启用" : "停用"}</span>
+            </label>
+          </td>
+          <td>${escapeHtml(formatDateTime(user.lastLoginAt))}</td>
+          <td>
+            ${
+              user.isSuperAdmin
+                ? '<span class="admin-lock">保留</span>'
+                : `<button type="button" data-admin-action="save">保存</button>
+                   <button type="button" data-admin-action="reset-password">改密</button>`
+            }
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+};
+
+const loadAdminUsers = async () => {
+  if (!state.auth.entitlements.admin) return;
+  const payload = await apiFetch("/api/admin/users");
+  state.adminUsers = payload.users || [];
+  state.adminSummary = payload.summary || null;
+  state.adminPerformance = payload.performance || [];
+  renderAdminUsers();
+};
+
+const eventTypeLabel = (type) => {
+  if (type === "review") return "定时复盘";
+  if (type === "switch" || type === "direction_change") return "方向切换";
+  return "即时信号";
+};
+
+const directionLabel = (direction, fallback) => {
+  if (fallback) return fallback;
+  if (direction === "long") return "上行观察";
+  if (direction === "short") return "下行观察";
+  return direction || "--";
+};
+
+const signalEventsForSymbol = (symbol) =>
+  (state.signals?.feed || []).filter((item) => item.symbol === symbol);
+
+const signalStateForSymbol = (symbol) =>
+  (state.signals?.states || []).find((item) => item.symbol === symbol) || null;
+
+const renderSignalDetail = (symbol) => {
+  const panel = document.querySelector("#signalDetailPanel");
+  if (!panel) return;
+  const tag = document.querySelector("#signalDetailTag");
+  const current = signalStateForSymbol(symbol);
+  const events = signalEventsForSymbol(symbol);
+  if (!symbol || !current) {
+    if (tag) tag.textContent = "选择标的";
+    panel.innerHTML = `
+      <div class="empty-detail">
+        <strong>点击上方任一标的</strong>
+        <p>查看首发、历次复盘、方向变化、最佳表现和最大反向波动。</p>
+      </div>
+    `;
+    return;
+  }
+  if (tag) tag.textContent = symbol;
+  const firstEvent = [...events].reverse()[0] || current;
+  const latestEvent = events[0] || current;
+  panel.innerHTML = `
+    <div class="detail-hero">
+      <div>
+        <span>${escapeHtml(current.theme || "未分类")}</span>
+        <strong>${escapeHtml(symbol)}</strong>
+        <p>${escapeHtml(directionLabel(current.direction, current.directionText))} · ${escapeHtml(current.intervalLabel || current.interval || "--")}</p>
+      </div>
+      <div>
+        <span>最佳表现</span>
+        <strong>${escapeHtml(current.maxFavorablePct || current.marketChangePct || "--")}</strong>
+        <p>最大反向波动 ${escapeHtml(current.maxAdversePct || "--")}</p>
+      </div>
+      <div>
+        <span>已跟踪</span>
+        <strong>${escapeHtml(current.signalAge || "--")}</strong>
+        <p>首发 ${escapeHtml(current.firstSignalAt || firstEvent.currentTime || "--")}</p>
+      </div>
+    </div>
+    <div class="detail-timeline">
+      ${events.slice(0, 8).map((item, index) => `
+        <article>
+          <span>${escapeHtml(item.currentTime || item.receivedAt || "--")}</span>
+          <strong>${index === 0 ? "近期" : eventTypeLabel(item.eventType)} · ${escapeHtml(directionLabel(item.direction, item.directionText))}</strong>
+          <p>触发价 ${escapeHtml(item.price || "--")}，现价 ${escapeHtml(item.livePrice || "--")}，表现 ${escapeHtml(item.marketChangePct || "--")}，最佳 ${escapeHtml(item.maxFavorablePct || "--")}。</p>
+        </article>
+      `).join("")}
+    </div>
+    <div class="detail-summary">
+      <span>复盘结论</span>
+      <p>从 ${escapeHtml(firstEvent.currentTime || current.firstSignalAt || "--")} 到 ${escapeHtml(latestEvent.currentTime || latestEvent.receivedAt || "--")}，当前方向为 ${escapeHtml(directionLabel(current.direction, current.directionText))}。重点看后续是否继续刷新顺向表现，或出现方向切换。</p>
+    </div>
+  `;
+};
+
+const renderSignalDashboard = () => {
+  const payload = state.signals;
+  if (!payload) return;
+  const overview = payload.overview || {};
+  const stateRows = payload.states || [];
+  const feedRows = payload.feed || [];
+  const reviewRows = payload.reviewQueue || [];
+  const activeCount = overview.activeSymbols ?? stateRows.length;
+  const switchCount = overview.switches24h ?? feedRows.filter((item) => item.eventType === "switch" || item.eventType === "direction_change").length;
+  const reviewCount = overview.reviewQueue ?? reviewRows.length;
+  const capturedMove = overview.capturedMovePct || (stateRows.length ? "--" : "暂无记录");
+  setText("#signalActiveCount", `${activeCount}`);
+  setText("#signalSwitchCount", `${switchCount}`);
+  setText("#signalReviewCount", `${reviewCount}`);
+  setText("#signalCapturePct", capturedMove);
+  setText("#signalCapturedHero", capturedMove);
+
+  const feed = document.querySelector("#signalFeed");
+  if (feed) {
+    const rows = payload.feed || [];
+    feed.innerHTML = rows.length
+      ? rows.slice(0, 8).map((item) => `
+          <article class="${item.eventType === "switch" || item.eventType === "direction_change" ? "is-switch" : ""}">
+            <span>${escapeHtml(item.symbol)} · ${escapeHtml(item.theme || "未分类")} · ${escapeHtml(item.intervalLabel || item.interval || "--")}</span>
+            <strong>${escapeHtml(eventTypeLabel(item.eventType))} · ${escapeHtml(directionLabel(item.direction, item.directionText))}</strong>
+            <p>触发价 ${escapeHtml(item.price || "--")}，现价 ${escapeHtml(item.livePrice || "--")}，表现 ${escapeHtml(item.marketChangePct || "--")}。</p>
+            <em>${escapeHtml(item.currentTime || item.receivedAt || "--")}</em>
+          </article>
+        `).join("")
+      : "<article><strong>等待信号记录</strong><p>收到新信号、复盘或方向切换后，会显示标的、方向、价格和复盘表现。</p><em>等待接入</em></article>";
+  }
+
+  const stateTable = document.querySelector("#signalStateTable");
+  if (stateTable) {
+    const rows = payload.states || [];
+    if (!state.selectedSignalSymbol && rows[0]) state.selectedSignalSymbol = rows[0].symbol;
+    stateTable.innerHTML = rows.length
+      ? `
+        <div class="signal-state-head">
+          <span>标的</span>
+          <span>方向</span>
+          <span>周期</span>
+          <span>触发价</span>
+          <span title="最近一次可用复盘价格">现价</span>
+          <span title="从触发价到现价的涨跌幅，不等于账户收益">表现</span>
+        </div>
+        ${rows.slice(0, 12).map((item) => `
+          <button class="signal-state-row ${state.selectedSignalSymbol === item.symbol ? "is-selected" : ""}" type="button" data-signal-symbol="${escapeHtml(item.symbol)}">
+            <strong>${escapeHtml(item.symbol)}</strong>
+            <span class="${item.direction === "short" ? "is-short" : "is-long"}">${escapeHtml(directionLabel(item.direction, item.directionText))}</span>
+            <span>${escapeHtml(item.intervalLabel || item.interval || "--")}</span>
+            <span>${escapeHtml(item.price || "--")}</span>
+            <span>${escapeHtml(item.livePrice || "--")}</span>
+            <b>${escapeHtml(item.marketChangePct || "--")}</b>
+          </button>
+        `).join("")}
+      `
+      : "<div><span>等待记录</span><strong>有新信号后会显示方向、价格和表现。</strong></div>";
+  }
+  renderSignalDetail(state.selectedSignalSymbol);
+
+  const latest = payload.latestState;
+  const lifeCard = document.querySelector("#signalLifeCard");
+  if (lifeCard && latest) {
+    lifeCard.innerHTML = `
+      <div>
+        <span>观察标的</span>
+        <strong>${escapeHtml(latest.symbol)}</strong>
+        <small class="signal-theme-pill">${escapeHtml(latest.theme || "未分类")}</small>
+      </div>
+      <ol>
+        <li><b>首发</b><span>${escapeHtml(directionLabel(latest.direction, latest.directionText))} · 触发价 ${escapeHtml(latest.price || "--")} · ${escapeHtml(latest.intervalLabel || "--")}</span></li>
+        <li><b>持续</b><span>${escapeHtml(latest.signalAge || "--")}，当前方向 ${escapeHtml(directionLabel(latest.direction, latest.directionText))}</span></li>
+        <li><b>表现</b><span>当前 ${escapeHtml(latest.marketChangePct || "--")}，最佳 ${escapeHtml(latest.maxFavorablePct || "--")}</span></li>
+        <li><b>回撤</b><span>最大反向波动 ${escapeHtml(latest.maxAdversePct || "--")}</span></li>
+      </ol>
+    `;
+  } else if (lifeCard) {
+    lifeCard.innerHTML = `
+      <div>
+        <span>观察标的</span>
+        <strong>等待信号</strong>
+      </div>
+      <ol>
+        <li><b>首发</b><span>收到首条信号后显示触发价和周期。</span></li>
+        <li><b>复盘</b><span>有复盘记录后显示持续时间和方向变化。</span></li>
+        <li><b>表现</b><span>有价格表现后显示当前和最佳表现。</span></li>
+      </ol>
+    `;
+  }
+
+  const sectorList = document.querySelector("#signalSectorList");
+  if (sectorList) {
+    const sectors = payload.sectors || [];
+    sectorList.innerHTML = sectors.length
+      ? sectors.slice(0, 6).map((item) => `
+          <article>
+            <span>${escapeHtml(item.theme)}</span>
+            <strong>${escapeHtml(item.total)} 个标的 · 上行 ${escapeHtml(item.long)} / 下行 ${escapeHtml(item.short)}</strong>
+            <p>${escapeHtml((item.symbols || []).slice(0, 5).join(" / ") || "--")}</p>
+          </article>
+        `).join("")
+      : "<article><span>板块观察</span><strong>等待更多记录</strong><p>有多只标的进入观察后，会显示主题强弱。</p></article>";
+  }
+
+  const sectorBoard = document.querySelector("#signalSectorBoard");
+  if (sectorBoard) {
+    const sectors = payload.sectors || [];
+    sectorBoard.innerHTML = sectors.length
+      ? sectors.slice(0, 4).map((item) => `
+          <article>
+            <span>${escapeHtml(item.theme)}</span>
+            <strong>${escapeHtml(item.longRatioPct || "--")} 上行占比</strong>
+            <p>最佳 ${escapeHtml(item.bestSymbol || "--")} · 捕捉幅度 ${escapeHtml(item.capturedMovePct || "--")}</p>
+          </article>
+        `).join("")
+      : `
+        <article>
+          <span>等待主题</span>
+          <strong>等待更多信号</strong>
+          <p>多只标的进入观察后，会自动形成板块强弱。</p>
+        </article>
+      `;
+  }
+
+  const reviewQueue = document.querySelector("#signalReviewQueue");
+  if (reviewQueue) {
+    const reviews = payload.reviewQueue || [];
+    reviewQueue.innerHTML = reviews.length
+      ? reviews.slice(0, 6).map((item) => `
+          <div><span>${escapeHtml(item.intervalLabel || "--")}</span><strong>${escapeHtml(item.symbol)} · ${escapeHtml(directionLabel(item.direction, item.directionText))}</strong></div>
+        `).join("")
+      : "<div><span>等待记录</span><strong>有复盘任务后会显示队列</strong></div>";
+  }
+  renderAuthState();
+};
+
+const loadSignals = async () => {
+  try {
+    state.signals = await apiFetch("/api/signals");
+    renderSignalDashboard();
+    renderWatchlist();
+  } catch (error) {
+    state.signals = {
+      overview: { activeSymbols: 0, switches24h: 0, reviewQueue: 0, capturedMovePct: "暂无记录" },
+      states: [],
+      feed: [],
+      sectors: [],
+      reviewQueue: [],
+    };
+    renderSignalDashboard();
+  }
+};
+
+const normalizeStockSymbol = (symbol) => String(symbol || "").trim().toUpperCase();
+
+const allMarketRows = () => uniqueBySymbol(Object.values(state.boards || {}).flat());
+
+const allQualityRows = () => {
+  const boards = state.earningsQuality?.boards || {};
+  return uniqueBySymbol(
+    Object.values(boards)
+      .flatMap((board) => board.rows || [])
+      .map((row) => ({ ...row, symbol: row.ticker })),
+  );
+};
+
+const allEventRows = () => {
+  const boards = state.eventOpportunities?.boards || {};
+  return uniqueBySymbol(
+    Object.values(boards)
+      .flatMap((board) => board.rows || [])
+      .map((row) => ({ ...row, symbol: row.ticker })),
+  );
+};
+
+const findMarketRow = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  return (
+    getMarketDetailSource(target) ||
+    allMarketRows().find((row) => normalizeStockSymbol(row.symbol) === target) ||
+    null
+  );
+};
+
+const findStrengthRow = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  return (state.strength?.rows || []).find((row) => normalizeStockSymbol(row.symbol) === target) || null;
+};
+
+const findQualityRow = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  return allQualityRows().find((row) => normalizeStockSymbol(row.ticker || row.symbol) === target) || null;
+};
+
+const findEventRow = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  const boards = state.eventOpportunities?.boards || {};
+  const orderedRows = [
+    ...(boards.guidance_up?.rows || []),
+    ...(boards.earnings_beat?.rows || []),
+    ...(boards.analyst_positive?.rows || []),
+    ...(boards.short_squeeze?.rows || []),
+    ...allEventRows(),
+  ];
+  return orderedRows.find((row) => normalizeStockSymbol(row.ticker || row.symbol) === target) || null;
+};
+
+const stockDisplayName = (symbol) => {
+  const market = findMarketRow(symbol);
+  const strength = findStrengthRow(symbol);
+  const quality = findQualityRow(symbol);
+  const event = findEventRow(symbol);
+  return {
+    symbol: normalizeStockSymbol(symbol),
+    chineseName: market?.chineseName || "",
+    company: market?.company || quality?.companyName || event?.companyName || quality?.name || strength?.name || "",
+    sector: market?.sector || strength?.sectorProxy || signalStateForSymbol(symbol)?.theme || "未分类",
+  };
+};
+
+const resultSymbolFromRow = (row) => normalizeStockSymbol(row?.symbol || row?.ticker);
+
+const mergeSearchRow = (map, row, source) => {
+  const symbol = resultSymbolFromRow(row);
+  if (!symbol) return;
+  const existing = map.get(symbol) || { symbol, sources: new Set() };
+  existing.sources.add(source);
+  existing.name = existing.name
+    || row.company
+    || row.companyName
+    || row.name
+    || row.chineseName
+    || "";
+  existing.sector = existing.sector
+    || row.sector
+    || row.sectorProxy
+    || row.theme
+    || "";
+  existing.change = existing.change
+    || row.changePct
+    || row.dayChangePct
+    || row.change
+    || row.return1dPct
+    || row.return20d
+    || "";
+  existing.marketCap = existing.marketCap || row.marketCap || "";
+  existing.volume = existing.volume || row.dollarVolume || row.volumeDollar || row.volume || "";
+  map.set(symbol, existing);
+};
+
+const extractSearchRows = (value, rows = []) => {
+  if (Array.isArray(value)) {
+    value.forEach((item) => extractSearchRows(item, rows));
+    return rows;
+  }
+  if (!value || typeof value !== "object") return rows;
+  const symbol = resultSymbolFromRow(value);
+  if (symbol) rows.push(value);
+  Object.values(value).forEach((item) => {
+    if (item && typeof item === "object") extractSearchRows(item, rows);
+  });
+  return rows;
+};
+
+const loadGlobalSearchUniverse = () => {
+  if (state.searchUniverse) return Promise.resolve(state.searchUniverse);
+  if (state.loading.searchUniverse) return state.loading.searchUniverse;
+  state.loading.searchUniverse = fetchOptionalJson(SITE_DATA_INDEX_URL)
+    .then((payload) => {
+      const rows = extractSearchRows(payload?.payloads || payload || []);
+      const map = new Map();
+      rows.forEach((row) => mergeSearchRow(map, row, "覆盖池"));
+      state.searchUniverse = [...map.values()];
+      return state.searchUniverse;
+    })
+    .catch(() => {
+      state.searchUniverse = [];
+      return state.searchUniverse;
+    })
+    .finally(() => {
+      delete state.loading.searchUniverse;
+    });
+  return state.loading.searchUniverse;
+};
+
+const buildGlobalSearchItems = () => {
+  const map = new Map();
+  (state.searchUniverse || []).forEach((row) => mergeSearchRow(map, row, "覆盖池"));
+  allMarketRows().forEach((row) => mergeSearchRow(map, row, "行情"));
+  (state.strength?.rows || []).forEach((row) => mergeSearchRow(map, row, "强弱"));
+  (state.watchlist || []).forEach((row) => mergeSearchRow(map, row, "观察池"));
+  const coreRows = Array.isArray(state.core?.mag7)
+    ? state.core.mag7
+    : Array.isArray(state.core?.rows)
+      ? state.core.rows
+      : [];
+  coreRows.forEach((row) => mergeSearchRow(map, row, "核心"));
+  allQualityRows().forEach((row) => mergeSearchRow(map, row, "财报"));
+  allEventRows().forEach((row) => mergeSearchRow(map, row, "事件"));
+  return [...map.values()].map((item) => ({
+    ...item,
+    sources: [...item.sources],
+    searchText: [item.symbol, item.name, item.sector, ...item.sources].join(" ").toLowerCase(),
+  }));
+};
+
+const globalPageSearchItems = () =>
+  pageModules
+    .filter((item) => !["dashboard", "subscription", "courses", "strategies", "live"].includes(item.id))
+    .map((item) => ({
+      type: "page",
+      id: item.id,
+      title: item.title,
+      nav: item.nav,
+      summary: item.summary,
+      searchText: [item.title, item.nav, item.kicker, item.summary].join(" ").toLowerCase(),
+    }));
+
+const globalSearchResults = (query) => {
+  const clean = String(query || "").trim().toLowerCase();
+  if (!clean) return { stocks: [], pages: [] };
+  const stocks = buildGlobalSearchItems()
+    .map((item) => {
+      const symbolMatch = item.symbol.toLowerCase().startsWith(clean);
+      const exact = item.symbol.toLowerCase() === clean;
+      const includes = item.searchText.includes(clean);
+      if (!symbolMatch && !includes) return null;
+      return { ...item, score: exact ? 0 : symbolMatch ? 1 : 2 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score || a.symbol.localeCompare(b.symbol))
+    .slice(0, 8);
+  const pages = globalPageSearchItems()
+    .filter((item) => item.searchText.includes(clean))
+    .slice(0, 4);
+  return { stocks, pages };
+};
+
+const flattenGlobalResults = () =>
+  [...document.querySelectorAll("[data-global-search-result]")];
+
+const closeGlobalSearch = () => {
+  const panel = document.querySelector("#globalSearchResults");
+  const input = document.querySelector("#globalSearchInput");
+  if (panel) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+  }
+  if (input) input.setAttribute("aria-expanded", "false");
+  state.globalSearchIndex = -1;
+};
+
+const openGlobalResult = (item) => {
+  if (!item) return;
+  const type = item.dataset.resultType;
+  if (type === "stock") {
+    closeGlobalSearch();
+    openStockHub(item.dataset.symbol);
+    return;
+  }
+  if (type === "page") {
+    closeGlobalSearch();
+    showPage(item.dataset.page);
+  }
+};
+
+const setGlobalSearchActive = (index) => {
+  const items = flattenGlobalResults();
+  state.globalSearchIndex = items.length ? Math.max(0, Math.min(index, items.length - 1)) : -1;
+  items.forEach((item, itemIndex) => {
+    const active = itemIndex === state.globalSearchIndex;
+    item.classList.toggle("is-active", active);
+    item.setAttribute("aria-selected", active ? "true" : "false");
+  });
+};
+
+const renderGlobalSearchResults = () => {
+  const input = document.querySelector("#globalSearchInput");
+  const panel = document.querySelector("#globalSearchResults");
+  if (!input || !panel) return;
+  const query = input.value.trim();
+  state.globalSearchQuery = query;
+  if (!query) {
+    closeGlobalSearch();
+    return;
+  }
+  if (!state.searchUniverse && !state.loading.searchUniverse) {
+    loadGlobalSearchUniverse().then(() => {
+      if (document.querySelector("#globalSearchInput")?.value.trim() === query) renderGlobalSearchResults();
+    });
+  }
+  const { stocks, pages } = globalSearchResults(query);
+  if (!stocks.length && state.loading.searchUniverse) {
+    panel.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    panel.innerHTML = `
+      <div class="global-search-empty">
+        <strong>正在加载搜索覆盖池</strong>
+        <span>稍后会显示可搜索股票、页面和已接入数据。</span>
+      </div>
+    `;
+    state.globalSearchIndex = -1;
+    return;
+  }
+  if (!stocks.length && !pages.length) {
+    panel.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    panel.innerHTML = `
+      <div class="global-search-empty">
+        <strong>未找到匹配结果</strong>
+        <span>可以输入股票代码、公司名，或进入股票库查看覆盖范围。</span>
+      </div>
+    `;
+    state.globalSearchIndex = -1;
+    return;
+  }
+  panel.hidden = false;
+  input.setAttribute("aria-expanded", "true");
+  panel.innerHTML = `
+    ${stocks.length ? `
+      <div class="global-search-group">股票</div>
+      ${stocks.map((item) => {
+        const change = parseSignedPercent(item.change);
+        const changeClass = Number.isFinite(change) && change !== 0 ? (change > 0 ? "is-positive" : "is-negative") : "";
+        const detail = [item.name, item.sector, item.marketCap && item.marketCap !== "--" ? item.marketCap : ""]
+          .filter(Boolean)
+          .join(" · ");
+        return `
+          <button class="global-search-result" type="button" role="option" data-global-search-result data-result-type="stock" data-symbol="${escapeHtml(item.symbol)}">
+            <strong>${escapeHtml(item.symbol)}</strong>
+            <span>${escapeHtml(detail || item.sources.join(" / "))}</span>
+            <em class="${escapeHtml(changeClass)}">${escapeHtml(Number.isFinite(change) ? formatSignedPct(change) : item.sources[0] || "股票")}</em>
+          </button>
+        `;
+      }).join("")}
+    ` : ""}
+    ${pages.length ? `
+      <div class="global-search-group">页面</div>
+      ${pages.map((item) => `
+        <button class="global-search-result" type="button" role="option" data-global-search-result data-result-type="page" data-page="${escapeHtml(item.id)}">
+          <strong>${escapeHtml(item.nav)}</strong>
+          <span>${escapeHtml(item.title)} · ${escapeHtml(item.summary)}</span>
+          <em>打开</em>
+        </button>
+      `).join("")}
+    ` : ""}
+  `;
+  setGlobalSearchActive(0);
+};
+
+const stockMetric = (label, value, className = "") => `
+  <article class="${className}">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value == null || value === "" ? "--" : value)}</strong>
+  </article>
+`;
+
+const stockDataBadge = (label, active) => `
+  <span class="${active ? "is-ready" : "is-muted"}">${escapeHtml(label)}${active ? "已接入" : "待补充"}</span>
+`;
+
+const stockSignedClass = (value) => {
+  const parsed = parseSignedPercent(value);
+  if (!Number.isFinite(parsed) || parsed === 0) return "";
+  return parsed >= 0 ? "is-positive" : "is-negative";
+};
+
+const signalToHistoryLabel = {
+  guidance_up: "预期改善",
+  earnings_beat: "财报超预期",
+  analyst_positive: "机构观点变化",
+  short_squeeze: "空头压力变化",
+};
+
+const stockHistoryEvidence = (signal) => {
+  const key = signal === "short_squeeze" ? "squeeze_watch" : signal;
+  const decision = (state.validationCenter?.productDecisions || []).find((item) => item.signal === key);
+  const benchmark = (state.validationCenter?.historicalBenchmarkStats || []).find(
+    (item) => item.signal === key && item.horizon === "20d",
+  );
+  const row = decision || benchmark || {};
+  return {
+    label: signalToHistoryLabel[signal] || row.label || "同类线索",
+    count: row.count,
+    positiveRate: row.winRatePct,
+    strongerSpyRate: row.beatSpyRatePct,
+    median: row.medianPct,
+    stableAverage: row.trimmedMeanPct,
+    status: decision?.status || "参考观察",
+    note: decision?.note || "历史样本仅用于辅助判断，仍需结合价格、成交和市场环境。",
+  };
+};
+
+const stockResearchSummary = ({ target, market, strength, quality, eventRow, signal }) => {
+  const evidence = stockHistoryEvidence(eventRow?.eventType || "guidance_up");
+  const title = eventRow
+    ? `${eventRow.eventLabel || "观察线索"}：${eventReasonForUser(eventRow)}`
+    : quality
+      ? `财报观察：${quality.userReason || quality.userAngle || "财报和预期数据正在补充"}`
+      : strength
+        ? `强弱观察：${strength.action || strength.label || "价格相对强弱正在跟踪"}`
+        : `${target} 暂无完整研究线索`;
+  const currentState = strength?.label
+    || (market ? getRiskLabel(getRiskBucket(market)) : "")
+    || (signal ? directionLabel(signal.direction, signal.directionText) : "")
+    || "等待更多数据";
+  const risk = eventRow?.risk
+    || quality?.userRisk
+    || market?.risk
+    || "暂无独立风险标签，先看价格、成交额和大盘环境是否继续确认。";
+  const nextStep = eventRow
+    ? "先加入观察池，后续看价格是否继续站稳、成交额是否放大，以及市场温度是否恶化。"
+    : quality
+      ? "先看财报后的价格承接，再观察后续几天是否继续强于大盘。"
+      : "先保留观察，不急于下结论，等待更多数据确认。";
+  return { title, currentState, risk, nextStep, evidence };
+};
+
+const stockDataSources = ({ market, day, week, month, volume, strength, quality, eventRow, signal }) => [
+  ["行情", Boolean(market || day || week || month || volume)],
+  ["强弱", Boolean(strength)],
+  ["财报", Boolean(quality)],
+  ["线索", Boolean(eventRow)],
+  ["信号", Boolean(signal)],
+];
+
+const stockSourceCount = (sources) => sources.filter(([, active]) => active).length;
+
+const stockReviewPriority = ({ target, market, day, week, month, volume, strength, quality, eventRow, signal }) => {
+  const sources = stockDataSources({ market, day, week, month, volume, strength, quality, eventRow, signal });
+  const sourceCount = stockSourceCount(sources);
+  const marketChange = market ? getChange(market) : null;
+  const directChange = Number(quality?.return20dPct ?? eventRow?.return20dPct);
+  const monthChange = month
+    ? getChange(month)
+    : Number.isFinite(Number(marketChange))
+      ? marketChange
+      : Number.isFinite(directChange)
+        ? directChange
+        : parseSignedPercent(strength?.periods?.["20d"]);
+  const dayChange = day ? getChange(day) : parseSignedPercent(strength?.periods?.["1d"]);
+  const volumeRatio = parseRatio(volume?.volumeRatio || strength?.crowding?.volumeRatio || market?.volumeRatio);
+  const strengthScore = Number(strength?.score);
+  const qualityScore = Number(quality?.score ?? quality?.qualityScore ?? quality?.confluenceScore);
+  const eventScore = Number(eventRow?.signalScore);
+  const riskBucket = market ? getRiskBucket(market) : "watch";
+  let score = 34;
+
+  if (Number.isFinite(strengthScore)) score += Math.min(26, strengthScore * 0.28);
+  if (Number.isFinite(qualityScore)) score += Math.min(12, qualityScore * 1.35);
+  if (Number.isFinite(eventScore)) score += Math.min(12, eventScore * 3);
+  if (eventRow) score += 10;
+  if (quality) score += 9;
+  if (signal) score += 7;
+  score += Math.min(18, sourceCount * 4);
+
+  if (Number.isFinite(monthChange)) {
+    if (monthChange >= 20) score += 12;
+    else if (monthChange >= 8) score += 8;
+    else if (monthChange >= 0) score += 4;
+    else if (monthChange <= -20) score -= 10;
+    else score -= 4;
+  }
+  if (Number.isFinite(dayChange) && Math.abs(dayChange) >= 18) score -= 4;
+  if (volumeRatio >= 3) score += 10;
+  else if (volumeRatio >= 2) score += 7;
+  else if (volumeRatio >= 1.25) score += 4;
+
+  if (riskBucket === "extreme") score -= 24;
+  else if (riskBucket === "high") score -= 10;
+  if (Number(market?.price) > 0 && Number(market.price) < 5) score -= 6;
+
+  const reasons = [];
+  if (Number.isFinite(strengthScore)) reasons.push(`强弱 ${Math.round(strengthScore)}`);
+  if (Number.isFinite(qualityScore)) reasons.push(`财报分 ${qualityScore.toFixed(1)}`);
+  if (Number.isFinite(eventScore)) reasons.push(`线索分 ${eventScore.toFixed(1)}`);
+  if (volumeRatio >= 1.25) reasons.push(`成交额 ${volumeRatio}x`);
+  if (Number.isFinite(monthChange)) reasons.push(`近月 ${formatSignedPct(monthChange)}`);
+  if (sourceCount) reasons.push(`依据 ${sourceCount}项`);
+  if (eventRow) reasons.push("事件线索");
+  if (quality) reasons.push("财报线索");
+  if (signal) reasons.push("趋势信号");
+  if (market) reasons.push(`风险 ${getRiskLabel(riskBucket)}`);
+
+  return {
+    score: Math.round(Math.max(0, Math.min(100, score))),
+    reason: reasons.slice(0, 5).join(" · ") || "等待更多数据",
+  };
+};
+
+const reviewPriorityForMarketRow = (row) => {
+  const target = normalizeStockSymbol(row?.symbol);
+  return stockReviewPriority({
+    target,
+    market: row,
+    day: getBoardRow("day", target),
+    week: getBoardRow("week", target),
+    month: getBoardRow("month", target),
+    volume: getBoardRow("volume", target),
+    strength: findStrengthRow(target),
+    quality: findQualityRow(target),
+    eventRow: findEventRow(target),
+    signal: signalStateForSymbol(target),
+  });
+};
+
+const reviewPriorityForQualityRow = (row) => {
+  const target = normalizeStockSymbol(row?.ticker || row?.symbol);
+  return stockReviewPriority({
+    target,
+    market: findMarketRow(target),
+    day: getBoardRow("day", target),
+    week: getBoardRow("week", target),
+    month: getBoardRow("month", target) || { change: Number(row?.return20dPct) },
+    volume: getBoardRow("volume", target),
+    strength: findStrengthRow(target),
+    quality: row,
+    eventRow: findEventRow(target),
+    signal: signalStateForSymbol(target),
+  });
+};
+
+const reviewPriorityForEventRow = (row) => {
+  const target = normalizeStockSymbol(row?.ticker || row?.symbol);
+  return stockReviewPriority({
+    target,
+    market: findMarketRow(target),
+    day: getBoardRow("day", target),
+    week: getBoardRow("week", target),
+    month: getBoardRow("month", target) || { change: Number(row?.return20dPct) },
+    volume: getBoardRow("volume", target),
+    strength: findStrengthRow(target),
+    quality: findQualityRow(target),
+    eventRow: row,
+    signal: signalStateForSymbol(target),
+  });
+};
+
+const stockResearchVerdict = ({ market, strength, quality, eventRow, signal }) => {
+  const sourceCount = stockSourceCount(stockDataSources({ market, strength, quality, eventRow, signal }));
+  const riskText = `${eventRow?.risk || ""} ${quality?.userRisk || ""} ${market?.risk || ""}`;
+  if (/低价|流动性|短期涨幅|高热度|空头|波动/.test(riskText)) return "可观察，但需要更严格风控";
+  if (eventRow && strength) return "复盘优先级高";
+  if (quality && strength) return "基本面与价格同时改善";
+  if (signal && strength) return "方向信号与强弱共振";
+  if (sourceCount >= 2) return "可以继续观察";
+  return "先等待更多数据确认";
+};
+
+const stockHeatSummary = ({ market, strength, month, volume }) => {
+  const monthChange = month ? getChange(month) : null;
+  const crowding = Number(strength?.crowding?.score || 0);
+  const volumeRatio = parseRatio(volume?.volumeRatio || market?.volumeRatio);
+  if ((Number.isFinite(monthChange) && monthChange >= 40) || crowding >= 72 || volumeRatio >= 3) {
+    return {
+      label: "短线偏热",
+      note: "涨幅、成交或热度已经偏高，更适合等分歧、回踩或新的确认。不要只因为涨得快就提高优先级。",
+    };
+  }
+  if ((Number.isFinite(monthChange) && monthChange <= -20) || strength?.bucket === "weakest") {
+    return {
+      label: "走势偏弱",
+      note: "价格表现落后，先看是否有明确修复信号；没有新理由前，观察优先级可以降低。",
+    };
+  }
+  if (strength && strength.bucket === "strongest") {
+    return {
+      label: "相对强势",
+      note: "相对大盘或行业表现更强，可以继续观察，但仍要看成交额和市场温度是否配合。",
+    };
+  }
+  return {
+    label: "等待确认",
+    note: "当前信息还不够集中，先看后续价格、成交额和新的财报/事件是否继续支持。",
+  };
+};
+
+const stockWatchlistState = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  const raw = state.watchlist.find((item) => normalizeStockSymbol(item.symbol) === target);
+  if (!raw) {
+    return {
+      active: false,
+      title: "未加入观察池",
+      note: "如果这只股票需要继续跟踪，可以先加入观察池，后续按复盘节奏复盘。",
+      source: "未加入",
+      review: "--",
+    };
+  }
+  const item = enrichWatchlistItem(raw);
+  const review = watchlistReviewPlan(item);
+  return {
+    active: true,
+    title: review.due ? "观察池待复盘" : "已在观察池",
+    note: watchlistNextStep(item),
+    source: raw.source || "观察池",
+    review: watchlistReviewLabel(item),
+  };
+};
+
+const stockPrimarySource = ({ market, strength, quality, eventRow, signal }) => {
+  if (eventRow) return eventRow.eventLabel || "预期改善观察";
+  if (quality) return quality.userAngle || "财报观察";
+  if (signal) return "趋势信号";
+  if (strength) return "全市场强弱";
+  if (market) return "行情异动";
+  return "等待数据";
+};
+
+const stockReviewPlan = ({ eventRow, quality, strength, signal, market }) => {
+  if (signal) return "按信号周期复盘，方向切换时重新评估。";
+  if (eventRow) return eventNextReview(eventRow);
+  if (quality) return "看财报后的价格承接、机构关注度和后续预期是否继续改善。";
+  if (strength) return "看相对大盘和行业的强弱是否保持，回落时降低观察频率。";
+  if (market) return "先看成交额是否连续放大，避免只被单日波动吸引。";
+  return "先保留观察，等待更多行情、财报或线索数据补充。";
+};
+
+const isInWatchlist = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  return state.watchlist.some((item) => normalizeStockSymbol(item.symbol) === target);
+};
+
+const saveWatchlist = () => {
+  state.watchlist = uniqueBySymbol(
+    state.watchlist
+      .map((item) => ({ ...item, symbol: normalizeStockSymbol(item.symbol) }))
+      .filter((item) => item.symbol),
+  );
+  safeWriteJson(WATCHLIST_STORAGE_KEY, state.watchlist);
+};
+
+const addToWatchlist = (symbol, source = "手动加入") => {
+  const target = normalizeStockSymbol(symbol);
+  if (!target) return;
+  if (isInWatchlist(target)) {
+    state.watchlist = state.watchlist.map((item) =>
+      normalizeStockSymbol(item.symbol) === target
+        ? { ...item, source: item.source || source, updatedAt: new Date().toISOString() }
+        : item,
+    );
+  } else {
+    const profile = stockDisplayName(target);
+    state.watchlist.unshift({
+      symbol: target,
+      name: profile.chineseName || profile.company || target,
+      company: profile.company || "",
+      sector: profile.sector || "未分类",
+      source,
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  saveWatchlist();
+  refreshWatchlistViews();
+};
+
+const removeFromWatchlist = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  state.watchlist = state.watchlist.filter((item) => normalizeStockSymbol(item.symbol) !== target);
+  saveWatchlist();
+  refreshWatchlistViews();
+};
+
+const clearWatchlist = () => {
+  state.watchlist = [];
+  saveWatchlist();
+  refreshWatchlistViews();
+};
+
+const updateWatchlistReview = (symbol, action) => {
+  const target = normalizeStockSymbol(symbol);
+  if (!target) return;
+  const now = new Date().toISOString();
+  state.watchlist = state.watchlist.map((item) => {
+    if (normalizeStockSymbol(item.symbol) !== target) return item;
+    const reviewCount = Number(item.reviewCount || 0) + 1;
+    const nextDays = action === "lower" ? 10 : action === "continue" ? 3 : 5;
+    return {
+      ...item,
+      reviewAction: action,
+      reviewCount,
+      lastReviewedAt: now,
+      nextReviewAt: addDays(now, nextDays),
+      updatedAt: now,
+    };
+  });
+  saveWatchlist();
+  refreshWatchlistViews();
+};
+
+const watchlistActionButton = (symbol, source = "手动加入") => {
+  const target = normalizeStockSymbol(symbol);
+  const active = isInWatchlist(target);
+  return `<button class="watchlist-action ${active ? "is-added" : ""}" type="button" data-watchlist-toggle="${escapeHtml(target)}" data-watchlist-source="${escapeHtml(source)}">${active ? "已加入观察池" : "加入观察池"}</button>`;
+};
+
+const watchlistDataSources = (item) => [
+  ["行情", Boolean(item.market || item.ytd || item.month)],
+  ["强弱", Boolean(item.strength)],
+  ["财报", Boolean(item.quality)],
+  ["事件", Boolean(item.eventRow)],
+  ["信号", Boolean(item.signal)],
+];
+
+const watchlistDataCount = (item) => watchlistDataSources(item).filter(([, active]) => active).length;
+
+const watchlistReviewPlan = (item) => {
+  const dataCount = watchlistDataCount(item);
+  const anchor = item.lastReviewedAt
+    || item.addedAt
+    || item.eventRow?.eventDate
+    || item.quality?.latestEarningsDate
+    || state.eventOpportunities?.asOf
+    || state.strength?.asOf
+    || state.meta?.ytd?.updatedAt
+    || new Date().toISOString();
+  const reviewGap = item.signal ? 1 : item.eventRow || item.quality ? 3 : item.strength ? 5 : 7;
+  const nextReviewAt = item.nextReviewAt || addDays(anchor, reviewGap);
+  const daysLeft = daysBetween(new Date(), nextReviewAt);
+  const due = dataCount > 0 && daysLeft <= 0;
+  const actionLabel = item.reviewAction === "continue"
+    ? "继续观察"
+    : item.reviewAction === "lower"
+      ? "降低频率"
+      : item.reviewAction === "reviewed"
+        ? "已复盘"
+        : "未复盘";
+  const label = due ? "今天复盘" : daysLeft === 1 ? "明天复盘" : `${Math.max(daysLeft, 0)}天后复盘`;
+  return {
+    due,
+    label,
+    actionLabel,
+    date: formatDisplayDate(nextReviewAt),
+    daysLeft,
+  };
+};
+
+const watchlistReviewPriority = (item) => {
+  const target = normalizeStockSymbol(item?.symbol);
+  const base = stockReviewPriority({
+    target,
+    market: item.market || findMarketRow(target),
+    day: getBoardRow("day", target),
+    week: getBoardRow("week", target),
+    month: item.month || getBoardRow("month", target),
+    volume: getBoardRow("volume", target),
+    strength: item.strength || findStrengthRow(target),
+    quality: item.quality || findQualityRow(target),
+    eventRow: item.eventRow || findEventRow(target),
+    signal: item.signal || signalStateForSymbol(target),
+  });
+  const review = watchlistReviewPlan(item);
+  let score = base.score;
+  const reasons = base.reason === "等待更多数据" ? [] : base.reason.split(" · ");
+  if (review.due) {
+    score += 8;
+    reasons.unshift("到期复盘");
+  }
+  if (item.reviewAction === "lower") {
+    score -= 12;
+    reasons.push("已降频");
+  }
+  if (item.reviewAction === "reviewed") {
+    score -= 4;
+    reasons.push("已复盘");
+  }
+  return {
+    score: Math.round(Math.max(0, Math.min(100, score))),
+    reason: reasons.slice(0, 5).join(" · ") || "等待更多数据",
+  };
+};
+
+const watchlistPriorityScore = (item) => {
+  return watchlistReviewPriority(item).score;
+};
+
+const watchlistStatus = (item) => {
+  const dataCount = watchlistDataCount(item);
+  const review = watchlistReviewPlan(item);
+  if (review.due) return { label: "待复盘", className: "is-watch" };
+  if (item.signal) {
+    return {
+      label: directionLabel(item.signal.direction, item.signal.directionText),
+      className: item.signal.direction === "short" ? "is-watch" : "is-ready",
+    };
+  }
+  if (dataCount >= 2) return { label: "优先复盘", className: "is-ready" };
+  if (item.eventRow) return { label: "事件确认", className: "is-event" };
+  if (item.quality) return { label: "财报跟踪", className: "is-event" };
+  if (item.strength) return { label: item.strength.label || "强弱跟踪", className: "is-ready" };
+  if (item.market) return { label: "行情异动", className: "is-muted" };
+  return { label: "等待数据", className: "is-muted" };
+};
+
+const watchlistNextStep = (item) => {
+  if (item.signal) {
+    return `看 ${item.signal.intervalLabel || item.signal.interval || "当前周期"} 方向是否延续，若方向切换就重新评估。`;
+  }
+  if (item.eventRow) {
+    return "先看事件后的价格和成交额是否继续确认，再决定是否提高优先级。";
+  }
+  if (item.quality) {
+    return "看财报后的股价表现是否延续，避免只因为单次业绩超预期就提高优先级。";
+  }
+  if (item.strength) {
+    return "看强弱是否保持在同类股票前列，回落时降低跟踪优先级。";
+  }
+  if (item.market) {
+    return "先确认成交额是否连续放大，避免只追一天的情绪波动。";
+  }
+  return "等待更多数据补充，先不要把它当成高优先级线索。";
+};
+
+const watchlistReviewLabel = (item) => {
+  const review = watchlistReviewPlan(item);
+  if (review.due) return `复盘到期 ${review.date}`;
+  if (item.signal?.intervalLabel) return `按 ${item.signal.intervalLabel} 复盘`;
+  if (item.nextReviewAt) return `下次复盘 ${formatDisplayDate(item.nextReviewAt)}`;
+  if (item.eventRow?.eventDate) return `事件后复盘 ${formatDisplayDate(item.eventRow.eventDate)}`;
+  if (item.quality?.latestEarningsDate) return `财报后复盘 ${formatDisplayDate(item.quality.latestEarningsDate)}`;
+  if (item.addedAt) return `加入于 ${formatDisplayDate(item.addedAt)}`;
+  return "下次看盘复盘";
+};
+
+const enrichWatchlistItem = (item) => {
+  const target = normalizeStockSymbol(item.symbol);
+  const profile = stockDisplayName(target);
+  const market = findMarketRow(target);
+  const strength = findStrengthRow(target);
+  const quality = findQualityRow(target);
+  const eventRow = findEventRow(target);
+  const signal = signalStateForSymbol(target);
+  const ytd = getBoardRow("ytd", target);
+  const month = getBoardRow("month", target);
+  return {
+    ...item,
+    symbol: target,
+    name: profile.chineseName || item.name || profile.company || target,
+    company: profile.company || item.company || "",
+    sector: profile.sector || item.sector || "未分类",
+    market,
+    strength,
+    quality,
+    eventRow,
+    signal,
+    ytd,
+    month,
+  };
+};
+
+const watchlistMatchesView = (item) => {
+  const filter = state.watchlistViewFilter;
+  if (filter === "all") return true;
+  if (filter === "due") return watchlistReviewPlan(item).due;
+  if (filter === "priority") return watchlistPriorityScore(item) >= 70;
+  if (filter === "signal") return Boolean(item.signal);
+  if (filter === "event") return Boolean(item.eventRow);
+  if (filter === "earnings") return Boolean(item.quality);
+  if (filter === "strength") return Boolean(item.strength);
+  if (filter === "market") return Boolean(item.market) && watchlistDataCount(item) === 1;
+  if (filter === "no-data") return watchlistDataCount(item) === 0;
+  return true;
+};
+
+const getWatchlistRows = () => {
+  const query = state.watchlistQuery.trim().toLowerCase();
+  return state.watchlist
+    .map(enrichWatchlistItem)
+    .filter((item) => {
+      if (state.watchlistSourceFilter !== "all" && (item.source || "观察池") !== state.watchlistSourceFilter) return false;
+      if (!watchlistMatchesView(item)) return false;
+      if (!query) return true;
+      const haystack = [
+        item.symbol,
+        item.name,
+        item.company,
+        item.sector,
+        item.source,
+        item.eventRow?.reason,
+        item.quality?.userReason,
+        item.strength?.action,
+        item.market?.actionNote,
+        watchlistNextStep(item),
+      ].filter(Boolean).join(" ").toLowerCase();
+      return haystack.includes(query);
+    })
+    .sort((a, b) => watchlistPriorityScore(b) - watchlistPriorityScore(a));
+};
+
+const renderWatchlistSourceOptions = (rows) => {
+  const select = document.querySelector("#watchlistSourceFilter");
+  if (!select) return;
+  const sources = Array.from(new Set(rows.map((item) => item.source || "观察池"))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const current = state.watchlistSourceFilter;
+  select.innerHTML = '<option value="all">全部来源</option>' + sources.map((source) => `<option value="${escapeHtml(source)}">${escapeHtml(source)}</option>`).join("");
+  select.value = sources.includes(current) ? current : "all";
+  if (select.value !== current) state.watchlistSourceFilter = select.value;
+};
+
+const renderWatchlistDailyPlan = (rows, reviewRows, priorityRows) => {
+  const focus = document.querySelector("#watchlistTodayFocus");
+  const reason = document.querySelector("#watchlistTodayReason");
+  const action = document.querySelector("#watchlistTodayAction");
+  const next = document.querySelector("#watchlistTodayNext");
+  if (!focus || !reason || !action || !next) return;
+  const top = reviewRows[0] || priorityRows[0] || rows[0];
+  if (!top) {
+    focus.textContent = "先加入观察对象";
+    reason.textContent = "观察池会根据复盘分、到期时间和数据覆盖自动排序。";
+    action.textContent = "等待观察对象";
+    next.textContent = "从涨跌幅榜、强弱、财报或预期改善观察加入股票后，这里会给出下一步。";
+    return;
+  }
+  const review = watchlistReviewPlan(top);
+  const status = watchlistStatus(top);
+  const priority = watchlistReviewPriority(top);
+  focus.textContent = `${top.symbol} · ${status.label}`;
+  reason.textContent = review.due
+    ? `${top.symbol} 已到复盘时间，复盘分 ${priority.score}，先检查加入理由是否仍成立。`
+    : `${top.symbol} 复盘分 ${priority.score}，${priority.reason}。`;
+  action.textContent = review.due ? "先复盘，再决定保留频率" : "继续观察确认条件";
+  next.textContent = watchlistNextStep(top);
+};
+
+const stockPeerRows = (symbol, limit = 6) => {
+  const target = normalizeStockSymbol(symbol);
+  const profile = stockDisplayName(target);
+  const byMarket = allMarketRows().filter((row) => row.symbol !== target && row.sector === profile.sector);
+  const byStrength = (state.strength?.rows || [])
+    .filter((row) => normalizeStockSymbol(row.symbol) !== target && row.sectorProxy === profile.sector)
+    .map((row) => ({
+      symbol: row.symbol,
+      company: row.name,
+      chineseName: row.symbol,
+      sector: row.sectorProxy,
+      change: parseSignedPercent(row.periods?.["20d"]),
+      price: row.price,
+      volumeRatio: row.crowding?.volumeRatio,
+      volume: row.liquidity,
+      marketCap: row.liquidity,
+      risk: row.label,
+      actionNote: row.action,
+    }));
+  return uniqueBySymbol([...byMarket, ...byStrength]).slice(0, limit);
+};
+
+const stockTimelineItems = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  const items = [];
+  ["day", "week", "month", "ytd", "volume"].forEach((board) => {
+    const row = getBoardRow(board, target);
+    if (row) {
+      const label = board === "day" ? "24h榜" : board === "week" ? "周榜" : board === "month" ? "月榜" : board === "ytd" ? "年内榜" : "成交额榜";
+      items.push({
+        label,
+        title: `进入${label}`,
+        value: `${formatChangeValue(row)} · 排名 ${row.rank}`,
+      });
+    }
+  });
+  const strength = findStrengthRow(target);
+  if (strength) {
+    items.push({
+      label: "强弱榜",
+      title: strength.label,
+      value: `${strength.periods?.["20d"] || "--"} · ${strength.action || "--"}`,
+    });
+  }
+  const quality = findQualityRow(target);
+  const eventRow = findEventRow(target);
+  if (quality) {
+    items.push({
+      label: "财报观察",
+      title: quality.userAngle || "财报观察",
+      value: `${quality.return20dPct == null ? "--" : formatSignedPct(quality.return20dPct)} · ${quality.latestEarningsDate || "--"}`,
+    });
+  }
+  if (eventRow) {
+    items.push({
+      label: "观察线索",
+      title: eventRow.eventLabel || eventRow.eventType || "预期改善观察",
+      value: `${eventRow.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct)} · ${eventRow.eventDate || "--"}`,
+    });
+  }
+  const signal = signalStateForSymbol(target);
+  if (signal) {
+    items.push({
+      label: "趋势信号",
+      title: directionLabel(signal.direction, signal.directionText),
+      value: `${signal.marketChangePct || "--"} · ${signal.intervalLabel || signal.interval || "--"}`,
+    });
+  }
+  return items;
+};
+
+const stockActionChecklist = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  const market = findMarketRow(target);
+  const strength = findStrengthRow(target);
+  const quality = findQualityRow(target);
+  const eventRow = findEventRow(target);
+  const signal = signalStateForSymbol(target);
+  const items = [];
+  if (strength) items.push(`先看强弱是否保持：${strength.label}，20日表现 ${strength.periods?.["20d"] || "--"}。`);
+  if (market) items.push(`再看风险是否可接受：${market.risk}，不只看涨幅，也看成交额是否连续。`);
+  if (quality) items.push(`财报角度：${quality.userReason || quality.userAngle || "等待更多财报解释"}。`);
+  if (eventRow) items.push(`观察线索：${eventRow.reason || eventRow.eventLabel || "先看线索是否继续被价格确认"}。`);
+  if (signal) items.push(`趋势信号：${directionLabel(signal.direction, signal.directionText)}，当前表现 ${signal.marketChangePct || "--"}。`);
+  if (!items.length) items.push("先加入观察池，等待更多行情、强弱、财报或信号数据补充。");
+  return items.slice(0, 4);
+};
+
+const renderWatchlist = () => {
+  const body = document.querySelector("#watchlistBody");
+  const empty = document.querySelector("#watchlistEmpty");
+  if (!body || !empty) return;
+
+  const allRows = state.watchlist.map(enrichWatchlistItem).sort((a, b) => watchlistPriorityScore(b) - watchlistPriorityScore(a));
+  renderWatchlistSourceOptions(allRows);
+  const rows = getWatchlistRows();
+
+  const reviewRows = allRows.filter((item) => watchlistReviewPlan(item).due);
+  const priorityRows = allRows.filter((item) => watchlistPriorityScore(item) >= 70);
+  setText("#watchlistCount", `${allRows.length}只`);
+  setText("#watchlistReviewCount", `${reviewRows.length}只`);
+  setText("#watchlistPriorityCount", `${priorityRows.length}只`);
+  setText("#watchlistCoverageCount", allRows.length ? `${Math.round((allRows.filter((item) => watchlistDataCount(item) > 0).length / allRows.length) * 100)}%` : "--");
+  setText("#watchlistResultSummary", `${rows.length} / ${allRows.length} 只`);
+  setText(
+    "#watchlistDataAsOf",
+    latestDisplayDate(
+      state.eventOpportunities?.asOf,
+      state.earningsQuality?.asOf,
+      state.strength?.asOf,
+      state.marketTemperature?.asOf,
+      state.meta?.ytd?.updatedAt,
+    ),
+  );
+  renderWatchlistDailyPlan(allRows, reviewRows, priorityRows);
+  empty.classList.toggle("is-hidden", rows.length > 0);
+  empty.querySelector("strong").textContent = allRows.length ? "当前筛选没有结果" : "还没有加入观察池";
+  empty.querySelector("p").textContent = allRows.length
+    ? "换一个复盘状态、加入来源或搜索词再看。"
+    : "在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入观察池”。";
+
+  body.innerHTML = rows
+    .map((item) => {
+      const status = watchlistStatus(item);
+      const dataSources = watchlistDataSources(item);
+      const review = watchlistReviewPlan(item);
+      const priority = watchlistReviewPriority(item);
+      const checklist = stockActionChecklist(item.symbol).slice(0, 3);
+      const reason = item.eventRow?.reason || item.quality?.userReason || item.strength?.action || item.market?.actionNote || "等待更多数据补充。";
+      const itemDataAsOf = latestDisplayDate(
+        item.eventRow?.eventDate,
+        item.quality?.latestEarningsDate,
+        state.strength?.asOf,
+        state.meta?.ytd?.updatedAt,
+      );
+      return `
+      <article class="watchlist-card" data-watchlist-symbol="${escapeHtml(item.symbol)}">
+        <div class="watchlist-card-head">
+          <div>
+            <span>${escapeHtml(item.sector)}</span>
+            <strong>${escapeHtml(item.symbol)}</strong>
+            <p>${escapeHtml(item.name)}${item.company && item.company !== item.name ? ` · ${escapeHtml(item.company)}` : ""}</p>
+          </div>
+          <button class="icon-action" type="button" data-watchlist-remove="${escapeHtml(item.symbol)}" aria-label="移除 ${escapeHtml(item.symbol)}">×</button>
+        </div>
+        <div class="watchlist-status-row">
+          <b class="${status.className}">${escapeHtml(status.label)}</b>
+          <span>${escapeHtml(item.source || "观察池")}</span>
+          <span>${escapeHtml(`复盘分 ${priority.score}`)}</span>
+          <em>${escapeHtml(watchlistReviewLabel(item))}</em>
+        </div>
+        <section class="watchlist-score-box">
+          <div>
+            <span>复盘分</span>
+            <strong>${escapeHtml(String(priority.score))}</strong>
+          </div>
+          <p>${escapeHtml(priority.reason)}</p>
+        </section>
+        <div class="watchlist-metrics">
+          <div><span>近一月</span><strong class="${item.month && getChange(item.month) < 0 ? "is-negative" : "is-positive"}">${formatChangeValue(item.month)}</strong></div>
+          <div><span>今年以来</span><strong class="${item.ytd && getChange(item.ytd) < 0 ? "is-negative" : "is-positive"}">${formatChangeValue(item.ytd)}</strong></div>
+          <div><span>强弱</span><strong>${escapeHtml(item.strength?.label || "--")}</strong></div>
+          <div><span>趋势</span><strong>${escapeHtml(item.signal ? directionLabel(item.signal.direction, item.signal.directionText) : "--")}</strong></div>
+        </div>
+        <section class="watchlist-reason">
+          <span>为什么跟踪</span>
+          <p>${escapeHtml(reason)}</p>
+        </section>
+        <section class="watchlist-next">
+          <span>下一步看什么</span>
+          <strong>${escapeHtml(watchlistNextStep(item))}</strong>
+        </section>
+        <section class="watchlist-next">
+          <span>数据日期</span>
+          <strong>${escapeHtml(itemDataAsOf)}</strong>
+        </section>
+        <section class="watchlist-review-flow">
+          <div>
+            <span>复盘节奏</span>
+            <strong>${escapeHtml(review.label)}</strong>
+            <p>复盘分 ${escapeHtml(String(priority.score))} · ${escapeHtml(review.actionLabel)}${item.reviewCount ? ` · 已复盘 ${escapeHtml(String(item.reviewCount))} 次` : ""}</p>
+          </div>
+          <div class="watchlist-review-actions">
+            <button type="button" data-watchlist-review="reviewed" data-watchlist-symbol="${escapeHtml(item.symbol)}">标记已复盘</button>
+            <button type="button" data-watchlist-review="continue" data-watchlist-symbol="${escapeHtml(item.symbol)}">继续观察</button>
+            <button type="button" data-watchlist-review="lower" data-watchlist-symbol="${escapeHtml(item.symbol)}">降低频率</button>
+          </div>
+        </section>
+        <div class="watchlist-data-row">
+          ${dataSources.map(([label, active]) => `<span class="${active ? "is-ready" : "is-muted"}">${escapeHtml(label)}</span>`).join("")}
+        </div>
+        <div class="watchlist-checklist" data-lockable-module="watchlist-review">
+          ${checklist.map((entry) => `<div>${escapeHtml(entry)}</div>`).join("")}
+        </div>
+        <div class="watchlist-card-actions">
+          <button class="ghost-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">查看详情</button>
+          <span>${escapeHtml(item.addedAt ? `加入 ${formatDisplayDate(item.addedAt)}` : "观察池")}</span>
+        </div>
+      </article>
+    `;
+    })
+    .join("");
+};
+
+const refreshWatchlistViews = () => {
+  renderWatchlist();
+  const activePage = document.querySelector(".page-view.is-active")?.dataset.view;
+  if (activePage === "stock") renderStockHub(state.selectedStockSymbol);
+  if (activePage === "market") renderMarketDetail(state.selectedMarketSymbol);
+  if (activePage === "strength") renderStrengthTable();
+  if (activePage === "earnings") renderQualityTable();
+  if (activePage === "events") renderEventTable();
+};
+
+const renderStockHub = (symbol) => {
+  const target = normalizeStockSymbol(symbol || state.selectedStockSymbol);
+  const content = document.querySelector("#stockHubContent");
+  if (!content) return;
+  if (!target) {
+    setText("#stockHubSymbol", "--");
+    setText("#stockHubSubtitle", "集中查看涨跌幅、强弱位置、财报质量、趋势信号和风险提示。");
+    content.innerHTML = `
+      <div class="empty-detail">
+        <strong>选择一只股票</strong>
+        <p>从预期改善观察、涨跌幅榜、全市场强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
+      </div>
+    `;
+    return;
+  }
+
+  const market = findMarketRow(target);
+  const ytd = getBoardRow("ytd", target);
+  const day = getBoardRow("day", target);
+  const week = getBoardRow("week", target);
+  const month = getBoardRow("month", target);
+  const volume = getBoardRow("volume", target);
+  const strength = findStrengthRow(target);
+  const quality = findQualityRow(target);
+  const eventRow = findEventRow(target);
+  const signal = signalStateForSymbol(target);
+  const events = signalEventsForSymbol(target);
+  const profile = stockDisplayName(target);
+  const currentPrice = market?.price || strength?.price || quality?.close || eventRow?.close || signal?.livePrice || "--";
+  const moveReasons = market ? inferMoveReason(market, volume) : [];
+  const riskBucket = market ? getRiskBucket(market) : null;
+  const riskScore = market ? getRiskScore(market) : 0;
+  const targetUpside = quality?.avgPriceTargetUpsidePct == null ? "--" : formatSignedPct(quality.avgPriceTargetUpsidePct);
+  const signalPerformance = signal?.marketChangePct || signal?.directionalChangePct || "--";
+  const peers = stockPeerRows(target, 6);
+  const timelineItems = stockTimelineItems(target);
+  const actionItems = stockActionChecklist(target);
+  const research = stockResearchSummary({ target, market, strength, quality, eventRow, signal });
+  const evidence = research.evidence;
+  const dataSources = stockDataSources({ market, day, week, month, volume, strength, quality, eventRow, signal });
+  const visibleDataSources = dataSources.filter(([label, active]) => active || label !== "信号");
+  const sourceCount = stockSourceCount(dataSources);
+  const priority = stockReviewPriority({ target, market, day, week, month, volume, strength, quality, eventRow, signal });
+  const verdict = stockResearchVerdict({ market, strength, quality, eventRow, signal });
+  const heat = stockHeatSummary({ market, strength, month, volume });
+  const watchState = stockWatchlistState(target);
+  const macroExposure = stockMacroExposure(profile, market);
+  const primarySource = stockPrimarySource({ market, strength, quality, eventRow, signal });
+  const reviewPlan = stockReviewPlan({ eventRow, quality, strength, signal, market });
+  const dataDates = [
+    state.eventOpportunities?.asOf,
+    state.earningsQuality?.asOf,
+    state.marketTemperature?.asOf,
+    state.strength?.asOf,
+  ].filter(Boolean).map(formatDisplayDate);
+  const dataAsOf = dataDates.length ? dataDates.sort().at(-1) : "--";
+  const priceMeta = signal
+    ? `数据日期 ${escapeHtml(dataAsOf)} · 趋势信号表现 ${escapeHtml(signalPerformance)} · 依据 ${escapeHtml(`${sourceCount}项`)}`
+    : `数据日期 ${escapeHtml(dataAsOf)} · 依据 ${escapeHtml(`${sourceCount}项`)}`;
+  const signalCard = signal
+    ? `
+      <article class="stock-hub-card">
+        <div class="stock-card-head">
+          <div>
+            <span>趋势信号</span>
+            <strong>${escapeHtml(directionLabel(signal.direction, signal.directionText))}</strong>
+          </div>
+          <em>基础</em>
+        </div>
+        <div class="stock-metric-grid">
+          ${stockMetric("周期", signal.intervalLabel || signal.interval || "--")}
+          ${stockMetric("触发价", signal.price || "--")}
+          ${stockMetric("现价", signal.livePrice || "--")}
+          ${stockMetric("当前表现", signalPerformance, stockSignedClass(signalPerformance))}
+          ${stockMetric("最佳表现", signal.maxFavorablePct || "--", stockSignedClass(signal.maxFavorablePct))}
+          ${stockMetric("反向波动", signal.maxAdversePct || "--", "is-negative")}
+        </div>
+        <p class="stock-card-note">已跟踪 ${escapeHtml(signal.signalAge || "--")}，首发时间 ${escapeHtml(signal.firstSignalAt || "--")}。</p>
+      </article>
+    `
+    : "";
+  const signalHistoryCard = events.length
+    ? `
+      <article class="stock-hub-card stock-hub-card-wide" data-lockable-module="stock-hub-signal-history">
+        <div class="stock-card-head">
+          <div>
+            <span>信号生命周期</span>
+            <strong>从首发到复盘</strong>
+          </div>
+          <em>后续开放</em>
+        </div>
+        <div class="stock-event-list">
+          ${events.slice(0, 5).map((item) => `
+            <div>
+              <span>${escapeHtml(item.currentTime || item.receivedAt || "--")}</span>
+              <strong>${escapeHtml(eventTypeLabel(item.eventType))} · ${escapeHtml(directionLabel(item.direction, item.directionText))}</strong>
+              <p>触发价 ${escapeHtml(item.price || "--")}，现价 ${escapeHtml(item.livePrice || "--")}，表现 ${escapeHtml(item.marketChangePct || "--")}。</p>
+            </div>
+          `).join("")}
+        </div>
+      </article>
+    `
+    : "";
+
+  setText("#stockHubSymbol", target);
+  setText(
+    "#stockHubSubtitle",
+    `${profile.chineseName ? `${profile.chineseName} · ` : ""}${profile.company || "单股观察"} · ${profile.sector}`,
+  );
+
+  content.innerHTML = `
+    <section class="stock-hub-hero">
+      <div class="stock-identity-card">
+        <div>
+          <span>单股画像</span>
+          <strong>${escapeHtml(target)}</strong>
+          <p>${escapeHtml(profile.chineseName ? `${profile.chineseName} · ${profile.company}` : profile.company || "等待名称数据补充")}</p>
+        </div>
+        <div class="stock-badge-row">
+          <span>${escapeHtml(profile.sector)}</span>
+          ${visibleDataSources.map(([label, active]) => stockDataBadge(label, active)).join("")}
+          ${watchlistActionButton(target, "股票详情")}
+        </div>
+      </div>
+      <div class="stock-price-card">
+        <span>最近价</span>
+        <strong>${escapeHtml(typeof currentPrice === "number" ? formatMoney(currentPrice) : currentPrice)}</strong>
+        <p>${priceMeta}</p>
+      </div>
+    </section>
+
+    <section class="stock-decision-strip" aria-label="单股研究结论">
+      <article>
+        <span>一句话结论</span>
+        <strong>${escapeHtml(verdict)}</strong>
+        <p>${escapeHtml(research.risk)}</p>
+      </article>
+      <article>
+        <span>为什么被看到</span>
+        <strong>${escapeHtml(primarySource)}</strong>
+        <p>${escapeHtml(research.title)}</p>
+      </article>
+      <article>
+        <span>现在位置</span>
+        <strong>${escapeHtml(heat.label)}</strong>
+        <p>${escapeHtml(heat.note)}</p>
+      </article>
+      <article>
+        <span>复盘优先级</span>
+        <strong>${escapeHtml(`${priority.score}分`)}</strong>
+        <p>${escapeHtml(priority.reason)}</p>
+      </article>
+      <article>
+        <span>接下来怎么观察</span>
+        <strong>${escapeHtml(reviewPlan)}</strong>
+        <p>加入观察池后，可以按这个条件继续跟踪。</p>
+      </article>
+    </section>
+
+    <section class="stock-retail-guide" aria-label="普通投资者观察说明">
+      <article>
+        <span>普通投资者先看</span>
+        <strong>${escapeHtml(heat.label)}</strong>
+        <p>${escapeHtml(heat.note)}</p>
+      </article>
+      <article>
+        <span>观察池状态</span>
+        <strong>${escapeHtml(watchState.title)}</strong>
+        <p>${escapeHtml(`${watchState.source} · ${watchState.review}`)}</p>
+      </article>
+      <article>
+        <span>下一步复盘</span>
+        <strong>${escapeHtml(watchState.active ? "按复盘节奏跟踪" : "先加入观察池")}</strong>
+        <p>${escapeHtml(watchState.note)}</p>
+      </article>
+    </section>
+
+    <section class="stock-macro-panel" data-lockable-module="stock-hub-macro" aria-label="单股宏观背景">
+      <div class="stock-macro-copy">
+        <span>宏观背景</span>
+        <h2>${escapeHtml(macroExposure.label)}</h2>
+        <p>${escapeHtml(macroExposure.note)}</p>
+      </div>
+      <div class="stock-macro-grid">
+        ${
+          macroExposure.rows.length
+            ? macroExposure.rows.map((indicator) => `
+                <article class="${signalClass(indicator.status)}">
+                  <span>
+                    ${escapeHtml(indicator.name || "宏观指标")}
+                    <button class="info-tip" type="button" aria-label="${escapeHtml(indicator.name || "宏观指标")}解释" data-tip="${escapeHtml(marketIndicatorTip(indicator))}">?</button>
+                  </span>
+                  <strong>${escapeHtml(indicator.value || "--")} · ${escapeHtml(indicator.level || "--")}</strong>
+                  <p>${escapeHtml(macroImpactCopy(indicator))}</p>
+                  <em>${escapeHtml(indicator.explain || "--")}</em>
+                </article>
+              `).join("")
+            : `
+              <article>
+                <span>等待宏观数据</span>
+                <strong>暂未生成</strong>
+                <p>宏观背景数据生成后，会显示这只股票更该关注哪些指标。</p>
+              </article>
+            `
+        }
+      </div>
+    </section>
+
+    <section class="stock-research-panel">
+      <article class="stock-research-main">
+        <span>研究摘要</span>
+        <h2>${escapeHtml(research.title)}</h2>
+        <p>${escapeHtml(research.nextStep)}</p>
+        <div class="stock-research-actions">
+          ${watchlistActionButton(target, eventRow ? "预期改善观察" : "股票详情")}
+          <button class="ghost-action" type="button" data-page-link="watchlist">去观察池</button>
+        </div>
+      </article>
+      <article class="stock-research-side">
+        <span>当前状态</span>
+        <strong>${escapeHtml(research.currentState)}</strong>
+        <p>${escapeHtml(research.risk)}</p>
+      </article>
+    </section>
+
+    <section class="stock-evidence-grid">
+      <article>
+        <span>同类历史样本</span>
+        <strong>${escapeHtml(evidence.count ? formatNumber(evidence.count) : "样本不足")}</strong>
+        <p>${escapeHtml(evidence.label)} · ${escapeHtml(evidence.status)}</p>
+      </article>
+      <article>
+        <span>20日正向占比</span>
+        <strong>${escapeHtml(formatEvidencePct(evidence.positiveRate, evidence.count))}</strong>
+        <p>只在样本量足够时展示</p>
+      </article>
+      <article>
+        <span>强于SPY占比</span>
+        <strong>${escapeHtml(formatEvidencePct(evidence.strongerSpyRate, evidence.count))}</strong>
+        <p>和大盘做相对比较</p>
+      </article>
+      <article>
+        <span>稳健均值</span>
+        <strong>${escapeHtml(formatEvidenceSignedPct(evidence.stableAverage, evidence.count))}</strong>
+        <p>去除极端值后的参考</p>
+      </article>
+    </section>
+
+    <section class="stock-hub-grid">
+      <article class="stock-hub-card">
+        <div class="stock-card-head">
+          <div>
+            <span>涨跌幅与成交额</span>
+            <strong>现在热不热</strong>
+          </div>
+          <em>基础</em>
+        </div>
+        <div class="stock-metric-grid">
+          ${stockMetric("24h", formatChangeValue(day), day && getChange(day) < 0 ? "is-negative" : "is-positive")}
+          ${stockMetric("近一周", formatChangeValue(week), week && getChange(week) < 0 ? "is-negative" : "is-positive")}
+          ${stockMetric("近一月", formatChangeValue(month), month && getChange(month) < 0 ? "is-negative" : "is-positive")}
+          ${stockMetric("今年以来", formatChangeValue(ytd), ytd && getChange(ytd) < 0 ? "is-negative" : "is-positive")}
+          ${stockMetric("成交额倍数", volume?.volumeRatio || market?.volumeRatio || "--")}
+          ${stockMetric("成交额 / 成交量", volume?.volume || market?.volume || "--")}
+        </div>
+      </article>
+
+      <article class="stock-hub-card">
+        <div class="stock-card-head">
+          <div>
+            <span>强弱位置</span>
+            <strong>${escapeHtml(strength?.label || "等待强弱数据")}</strong>
+          </div>
+          <em>基础</em>
+        </div>
+        <div class="stock-metric-grid">
+          ${stockMetric("强弱分", strength?.score == null ? "--" : `${strength.score} 分`)}
+          ${stockMetric("1D", strength?.periods?.["1d"] || "--", stockSignedClass(strength?.periods?.["1d"]))}
+          ${stockMetric("5D", strength?.periods?.["5d"] || "--", stockSignedClass(strength?.periods?.["5d"]))}
+          ${stockMetric("20D", strength?.periods?.["20d"] || "--", stockSignedClass(strength?.periods?.["20d"]))}
+          ${stockMetric("相对 SPY", strength?.relative?.spy || "--", stockSignedClass(strength?.relative?.spy))}
+          ${stockMetric("成交额热度", strength?.crowding?.volumeRatio || "--")}
+        </div>
+        <p class="stock-card-note">${escapeHtml(strength?.action || "后续接入强弱数据后，会显示它相对大盘、纳指和行业的位置。")}</p>
+      </article>
+
+      <article class="stock-hub-card">
+        <div class="stock-card-head">
+          <div>
+            <span>财报质量</span>
+            <strong>${escapeHtml(quality?.userAngle || "等待财报数据")}</strong>
+          </div>
+          <em>基础</em>
+        </div>
+        <div class="stock-metric-grid">
+          ${stockMetric("综合分", quality?.score == null ? "--" : Number(quality.score).toFixed(2))}
+          ${stockMetric("20日表现", quality?.return20dPct == null ? "--" : formatSignedPct(quality.return20dPct), Number(quality?.return20dPct) >= 0 ? "is-positive" : "is-negative")}
+          ${stockMetric("目标价空间", targetUpside, Number(quality?.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative")}
+          ${stockMetric("覆盖机构", quality?.firms30d == null ? "--" : `${quality.firms30d} 家`)}
+        </div>
+        <p class="stock-card-note">${escapeHtml(quality?.userReason || "后续接入财报数据后，会显示业绩、指引、分析师和股价是否同向改善。")}</p>
+      </article>
+
+      ${signalCard}
+
+      <article class="stock-hub-card stock-hub-card-wide" data-lockable-module="stock-hub-catalyst">
+        <div class="stock-card-head">
+          <div>
+            <span>为什么进入观察</span>
+            <strong>原因与下一步</strong>
+          </div>
+          <em>后续开放</em>
+        </div>
+        <div class="stock-reason-list">
+          ${
+            moveReasons.length
+              ? moveReasons.map((reason) => `<b>${escapeHtml(reason)}</b>`).join("")
+              : "<b>等待更多行情和公告数据</b>"
+          }
+        </div>
+        <p class="stock-card-note">${escapeHtml(market?.actionNote || quality?.userRisk || strength?.action || "先看数据是否持续改善，再决定是否加入观察名单。")}</p>
+      </article>
+
+      <article class="stock-hub-card" data-lockable-module="stock-hub-action-plan">
+        <div class="stock-card-head">
+          <div>
+            <span>下一步怎么跟</span>
+            <strong>观察清单</strong>
+          </div>
+          <em>后续开放</em>
+        </div>
+        <div class="stock-checklist">
+          ${actionItems.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}
+        </div>
+      </article>
+
+      <article class="stock-hub-card stock-hub-card-wide" data-lockable-module="stock-hub-peer-depth">
+        <div class="stock-card-head">
+          <div>
+            <span>同方向对比</span>
+            <strong>${escapeHtml(profile.sector)}</strong>
+          </div>
+          <em>后续开放</em>
+        </div>
+        <div class="stock-peer-table">
+          ${
+            peers.length
+              ? peers.map((peer) => `
+                  <button type="button" data-stock-open="${escapeHtml(peer.symbol)}">
+                    <strong>${escapeHtml(peer.symbol)}</strong>
+                    <span>${escapeHtml(peer.chineseName || peer.company || peer.symbol)}</span>
+                    <b>${formatChangeValue(peer)}</b>
+                  </button>
+                `).join("")
+              : "<p class=\"stock-card-note\">暂无同板块对比，后续接入更多标的后会显示谁更强、谁更弱。</p>"
+          }
+        </div>
+      </article>
+
+      <article class="stock-hub-card" data-lockable-module="stock-hub-risk">
+        <div class="stock-card-head">
+          <div>
+            <span>风险提示</span>
+            <strong>${escapeHtml(market ? getRiskLabel(riskBucket) : quality?.userRisk || "等待数据")}</strong>
+          </div>
+          <em>后续开放</em>
+        </div>
+        ${
+          market
+            ? `<div class="risk-score risk-${riskBucket}">
+                <strong>${escapeHtml(getRiskLabel(riskBucket))}</strong>
+                <div class="risk-bar"><i style="width: ${riskScore}%"></i></div>
+                <span>${escapeHtml(market.risk)}</span>
+              </div>`
+            : `<p class="stock-card-note">${escapeHtml(quality?.userRisk || "暂无独立风险标签。")}</p>`
+        }
+      </article>
+
+      <article class="stock-hub-card" data-lockable-module="stock-hub-history">
+        <div class="stock-card-head">
+          <div>
+            <span>观察记录</span>
+            <strong>${timelineItems.length ? `${timelineItems.length} 条记录` : "等待记录"}</strong>
+          </div>
+          <em>后续开放</em>
+        </div>
+        <div class="stock-timeline">
+          ${
+            timelineItems.length
+              ? timelineItems.map((item) => `
+                  <div>
+                    <span>${escapeHtml(item.label)}</span>
+                    <strong>${escapeHtml(item.title)}</strong>
+                    <p>${escapeHtml(item.value)}</p>
+                  </div>
+                `).join("")
+            : "<p class=\"stock-card-note\">暂无观察记录。后续会记录它在哪些模块、什么原因、什么价格进入观察。</p>"
+          }
+        </div>
+      </article>
+
+      ${signalHistoryCard}
+    </section>
+  `;
+};
+
+const openStockHub = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  if (!target) return;
+  const activeView = document.querySelector(".page-view.is-active");
+  state.stockBackPage = activeView?.dataset.view && activeView.dataset.view !== "stock" ? activeView.dataset.view : state.stockBackPage || "market";
+  state.selectedStockSymbol = target;
+  showPage("stock", { hash: `#stock/${encodeURIComponent(target)}` });
+  renderStockHub(target);
+  if (!state.signals) {
+    loadSignals().then(() => renderStockHub(target));
+  }
+};
+
+const valuationMetricConfig = {
+  pe: {
+    label: "PE",
+    title: "PE 估值走势",
+    unit: "x",
+    tip: "市盈率，常用来观察价格相对盈利的水平。",
+  },
+  pb: {
+    label: "PB",
+    title: "PB 估值走势",
+    unit: "x",
+    tip: "市净率，常用来观察价格相对净资产的水平。",
+  },
+  roe: {
+    label: "ROE",
+    title: "ROE 走势",
+    unit: "%",
+    tip: "净资产收益率，观察企业使用股东权益创造利润的效率。",
+  },
+  dividendYield: {
+    label: "股息率",
+    title: "股息率走势",
+    unit: "%",
+    tip: "年度股息相对价格的比例，用于观察现金分红水平。",
+  },
+  peg: {
+    label: "PEG",
+    title: "PEG 走势",
+    unit: "x",
+    tip: "市盈率相对盈利增速的比例，用于把估值和增长放在一起观察。",
+  },
+};
+
+const parseValuationNumber = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (value == null || value === "") return null;
+  const parsed = Number(String(value).replace(/[%x倍,\s]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatValuationValue = (value, unit = "") => {
+  const number = parseValuationNumber(value);
+  if (!Number.isFinite(number)) return "--";
+  const decimals = Math.abs(number) >= 100 ? 1 : 2;
+  if (unit === "%") return `${number.toFixed(decimals)}%`;
+  if (unit === "x") return `${number.toFixed(decimals)}x`;
+  return number.toFixed(decimals);
+};
+
+const formatValuationPercentile = (value) => {
+  const number = parseValuationNumber(value);
+  if (!Number.isFinite(number)) return "等待分位";
+  return `${Math.round(Math.max(0, Math.min(100, number)))}%分位`;
+};
+
+const valuationPayloadReady = (payload) =>
+  Boolean(payload && !["waiting", "waiting_for_data", "pending"].includes(String(payload.status || "").toLowerCase()) && !payload.frontendHints?.showWaitingState);
+
+const normalizeValuationMetrics = (payload) => {
+  const rawMetrics = payload?.metrics || payload?.indicators || payload?.valuation || {};
+  const rawMetricMap = Array.isArray(rawMetrics)
+    ? Object.fromEntries(rawMetrics.map((item) => [item.key || item.id || item.label, item]))
+    : rawMetrics;
+  const trendMap = Array.isArray(payload?.trendSeries)
+    ? Object.fromEntries(payload.trendSeries.map((item) => [item.key || item.metric || item.id, item]))
+    : payload?.trendSeries || {};
+  const percentileItems = payload?.historyPercentiles?.items;
+  const percentileMap = Array.isArray(percentileItems)
+    ? Object.fromEntries(percentileItems.map((item) => [item.key || item.metric || item.id, item]))
+    : {};
+  return Object.entries(valuationMetricConfig).reduce((acc, [key, config]) => {
+    const raw = rawMetricMap[key] || rawMetricMap[config.label] || rawMetricMap[key.toLowerCase()] || {};
+    const trend = trendMap[key] || {};
+    const percentileItem = percentileMap[key] || {};
+    const series = (raw.series || raw.points || raw.data || raw.trend || trend.series || trend.points || trend.data || [])
+      .map((point) => ({
+        date: point.date || point.t || point[0],
+        value: parseValuationNumber(point.value ?? point.close ?? point.y ?? point[1]),
+      }))
+      .filter((point) => point.date && Number.isFinite(point.value))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    acc[key] = {
+      ...raw,
+      key,
+      label: raw.label || config.label,
+      unit: raw.unit || config.unit,
+      value: raw.current ?? raw.currentValue ?? raw.latestValue ?? raw.value ?? series.at(-1)?.value,
+      percentile: raw.percentile?.fiveYear ?? raw.percentile?.tenYear ?? raw.percentile ?? raw.rankPercentile ?? raw.percentileRank ?? raw.percentiles?.fiveYear ?? percentileItem.percentile,
+      note: raw.note || raw.summary || raw.description || "等待数据",
+      refs: raw.refs || raw.bands || raw.referenceLines || {
+        p25: raw.p25 ?? percentileItem.p25,
+        median: raw.median ?? percentileItem.median,
+        p75: raw.p75 ?? percentileItem.p75,
+      },
+      series,
+    };
+    return acc;
+  }, {});
+};
+
+const renderValuationNavState = (ready) => {
+  document.querySelectorAll("[data-valuation-nav]").forEach((item) => {
+    item.classList.toggle("nav-item-waiting", !ready);
+    item.dataset.valuationState = ready ? "ready" : "waiting";
+  });
+  document.querySelectorAll("[data-valuation-nav-link]").forEach((item) => {
+    item.dataset.valuationState = ready ? "ready" : "waiting";
+  });
+  const module = pageModules.find((item) => item.id === "valuation");
+  if (module) module.status = ready ? "数据驱动" : "待数据";
+};
+
+const getActiveIndexValuation = (payload) => {
+  const indices = Array.isArray(payload?.indices) ? payload.indices : [];
+  if (!indices.length) return payload;
+  const selected = indices.find((item) => String(item?.index?.symbol || "").toUpperCase() === state.valuationIndex);
+  return selected || indices[0] || payload;
+};
+
+const valuationIndexName = (symbol, fallback = "") => {
+  if (symbol === "QQQ") return "纳指 100";
+  if (symbol === "SPY") return "标普 500";
+  return fallback || symbol || "指数";
+};
+
+const valuationReferenceMarkers = (refs, geometry, min, max, unit) => {
+  const markers = [
+    ["P75", refs.p75 ?? refs.p70],
+    ["中位", refs.median],
+    ["P25", refs.p25 ?? refs.p30],
+  ];
+  return markers
+    .map(([label, rawValue]) => {
+      const value = parseValuationNumber(rawValue);
+      if (!Number.isFinite(value)) return "";
+      const y = macroSeriesYFromValue(value, geometry, min, max);
+      if (y < geometry.y - 1 || y > geometry.y + geometry.height + 1) return "";
+      return `
+        <g class="valuation-ref">
+          <line x1="${geometry.x}" x2="${geometry.x + geometry.width}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line>
+          <text x="${geometry.labelX}" y="${(y + 4).toFixed(1)}">${escapeHtml(label)} ${escapeHtml(formatValuationValue(value, unit))}</text>
+        </g>
+      `;
+    })
+    .join("");
+};
+
+const valuationRangeDays = {
+  "3m": 92,
+  "6m": 183,
+  "1y": 366,
+};
+
+const filterValuationSeriesByRange = (points) => {
+  const days = valuationRangeDays[state.valuationRange];
+  if (!days || points.length < 2) return points;
+  const lastDate = new Date(points.at(-1).date);
+  if (Number.isNaN(lastDate.getTime())) return points;
+  const cutoff = new Date(lastDate);
+  cutoff.setDate(cutoff.getDate() - days);
+  const filtered = points.filter((point) => new Date(point.date) >= cutoff);
+  return filtered.length >= 2 ? filtered : points;
+};
+
+const valuationDateTicks = (points, geometry) => {
+  if (!points.length) return "";
+  const tickCount = points.length < 45 ? 3 : 4;
+  const indexes = Array.from({ length: tickCount }, (_, index) =>
+    Math.round((index * (points.length - 1)) / Math.max(1, tickCount - 1)),
+  );
+  return [...new Set(indexes)]
+    .map((index) => {
+      const point = points[index];
+      const x = geometry.x + (points.length > 1 ? (geometry.width * index) / (points.length - 1) : 0);
+      return `<text class="macro-series-x-label" x="${x.toFixed(1)}" y="${geometry.y + geometry.height + 28}" text-anchor="${index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}">${escapeHtml(formatDisplayDate(point.date).slice(0, 7))}</text>`;
+    })
+    .join("");
+};
+
+const valuationMetricSparkline = (metric) => {
+  const points = filterValuationSeriesByRange(metric?.series || []).slice(-72);
+  if (points.length < 2) return "";
+  const values = points.map((point) => point.value).filter(Number.isFinite);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const span = maxValue - minValue || 1;
+  const width = 150;
+  const height = 38;
+  const pad = 3;
+  const path = points
+    .map((point, index) => {
+      const x = pad + ((width - pad * 2) * index) / Math.max(1, points.length - 1);
+      const y = pad + (1 - (point.value - minValue) / span) * (height - pad * 2);
+      return `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const first = points[0].value;
+  const last = points.at(-1).value;
+  const trendClass = last >= first ? "is-up" : "is-down";
+  return `
+    <div class="valuation-metric-spark ${trendClass}" aria-hidden="true">
+      <svg viewBox="0 0 ${width} ${height}">
+        <path d="${path}"></path>
+      </svg>
+      <span>${last >= first ? "近阶段上行" : "近阶段回落"}</span>
+    </div>
+  `;
+};
+
+const bindValuationChartHover = (points, geometry, min, max, unit) => {
+  const svg = document.querySelector("#valuationChartWrap svg");
+  const hover = svg?.querySelector("[data-valuation-hover]");
+  const hit = svg?.querySelector("[data-valuation-hover-hit]");
+  if (!svg || !hover || !hit || points.length < 2) return;
+  const line = hover.querySelector("[data-hover-line]");
+  const dot = hover.querySelector("[data-hover-dot]");
+  const box = hover.querySelector("[data-hover-box]");
+  const dateText = hover.querySelector("[data-hover-date]");
+  const valueText = hover.querySelector("[data-hover-value]");
+  const positions = points.map((point, index) => macroSeriesPositionFromGeometry(point, index, points.length, geometry, min, max));
+
+  const setHover = (event) => {
+    const rect = svg.getBoundingClientRect();
+    const viewBoxWidth = svg.viewBox.baseVal.width || 1280;
+    const x = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
+    const index = Math.max(
+      0,
+      Math.min(
+        points.length - 1,
+        Math.round(((x - geometry.x) / Math.max(1, geometry.width)) * (points.length - 1)),
+      ),
+    );
+    const point = points[index];
+    const position = positions[index];
+    const boxX = Math.min(geometry.x + geometry.width - 136, Math.max(geometry.x + 8, position.x + 12));
+    const boxY = Math.max(geometry.y + 10, Math.min(geometry.y + geometry.height - 68, position.y - 70));
+    hover.style.opacity = "1";
+    line.setAttribute("x1", position.x.toFixed(1));
+    line.setAttribute("x2", position.x.toFixed(1));
+    line.setAttribute("y1", geometry.y);
+    line.setAttribute("y2", geometry.y + geometry.height);
+    dot.setAttribute("cx", position.x.toFixed(1));
+    dot.setAttribute("cy", position.y.toFixed(1));
+    box.setAttribute("transform", `translate(${boxX.toFixed(1)}, ${boxY.toFixed(1)})`);
+    dateText.textContent = formatDisplayDate(point.date);
+    valueText.textContent = formatValuationValue(point.value, unit);
+  };
+
+  hit.addEventListener("pointermove", setHover);
+  hit.addEventListener("pointerleave", () => {
+    hover.style.opacity = "0";
+  });
+};
+
+const renderValuationChart = (metric) => {
+  const wrap = document.querySelector("#valuationChartWrap");
+  if (!wrap) return;
+  const config = valuationMetricConfig[metric.key] || valuationMetricConfig.pe;
+  const points = filterValuationSeriesByRange(metric.series || []);
+  if (points.length < 2) {
+    const hasCurrentValue = Number.isFinite(parseValuationNumber(metric.value));
+    wrap.innerHTML = `
+      <div class="valuation-empty-chart">
+        <span>${escapeHtml(hasCurrentValue ? "等待完整历史" : "等待估值数据")}</span>
+        <strong>${escapeHtml(hasCurrentValue ? `${config.label} 当前值已显示` : `${config.title}将在数据接入后显示`)}</strong>
+        <p>${escapeHtml(hasCurrentValue ? "历史分位需要同口径历史估值序列，当前先展示最新覆盖样本读数。" : "当前不会展示示意数值。")}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const refs = metric.refs || {};
+  const refValues = [refs.p25, refs.p30, refs.median, refs.p70, refs.p75].map(parseValuationNumber).filter(Number.isFinite);
+  const values = [...points.map((point) => point.value), ...refValues];
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const padding = (maxValue - minValue || Math.abs(maxValue) || 1) * 0.08;
+  const min = minValue - padding;
+  const max = maxValue + padding;
+  const width = 1280;
+  const height = 420;
+  const geometry = { x: 96, y: 44, width: 910, height: 286, axisX: 72, labelX: 1028 };
+  const linePath = macroSeriesPathFromGeometry(points, geometry, min, max);
+  const areaPath = `${linePath} L${geometry.x + geometry.width} ${geometry.y + geometry.height} L${geometry.x} ${geometry.y + geometry.height} Z`;
+  const end = points.at(-1);
+  const endPosition = macroSeriesPositionFromGeometry(end, points.length - 1, points.length, geometry, min, max);
+  const ticks = macroSeriesTickValues(min, max, 5);
+  const clipId = `valuation-clip-${metric.key}`;
+  const currentValue = formatValuationValue(metric.value, metric.unit);
+  const calloutX = Math.min(width - 172, endPosition.x + 28);
+  const calloutY = Math.max(48, Math.min(height - 108, endPosition.y - 34));
+
+  wrap.innerHTML = `
+    <svg class="valuation-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(config.title)}">
+      <defs>
+        <clipPath id="${clipId}">
+          <rect x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}"></rect>
+        </clipPath>
+      </defs>
+      <rect class="valuation-plot-bg" x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}"></rect>
+      ${macroSeriesYAxis(ticks, geometry, metric.unit)}
+      ${valuationReferenceMarkers(refs, geometry, min, max, metric.unit)}
+      <g clip-path="url(#${clipId})">
+        <path class="valuation-area" d="${areaPath}"></path>
+        <path class="valuation-line" d="${linePath}"></path>
+      </g>
+      <line class="valuation-current-guide" x1="${endPosition.x.toFixed(1)}" x2="${(calloutX - 12).toFixed(1)}" y1="${endPosition.y.toFixed(1)}" y2="${(calloutY + 33).toFixed(1)}"></line>
+      <circle class="valuation-current-dot" cx="${endPosition.x.toFixed(1)}" cy="${endPosition.y.toFixed(1)}" r="5"></circle>
+      <g class="valuation-current-callout" transform="translate(${calloutX.toFixed(1)}, ${calloutY.toFixed(1)})">
+        <rect width="148" height="66" rx="7"></rect>
+        <text x="14" y="21">当前值</text>
+        <text class="valuation-current-value" x="14" y="44">${escapeHtml(currentValue)}</text>
+        <text class="valuation-current-date" x="14" y="58">${escapeHtml(formatDisplayDate(end.date))}</text>
+      </g>
+      <g class="valuation-hover" data-valuation-hover style="opacity:0">
+        <line data-hover-line x1="0" x2="0" y1="0" y2="0"></line>
+        <circle data-hover-dot cx="0" cy="0" r="5"></circle>
+        <g data-hover-box>
+          <rect width="126" height="58" rx="6"></rect>
+          <text data-hover-date x="12" y="22"></text>
+          <text class="valuation-hover-value" data-hover-value x="12" y="44"></text>
+        </g>
+      </g>
+      <rect class="valuation-hover-hit" data-valuation-hover-hit x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}"></rect>
+      ${valuationDateTicks(points, geometry)}
+    </svg>
+  `;
+  bindValuationChartHover(points, geometry, min, max, metric.unit);
+};
+
+const formatValuationWeight = (value) => {
+  const number = parseValuationNumber(value);
+  if (!Number.isFinite(number)) return "--";
+  return `${number.toFixed(number >= 10 ? 1 : 2)}%`;
+};
+
+const formatValuationStat = (value, suffix = "") => {
+  const number = parseValuationNumber(value);
+  if (!Number.isFinite(number)) return "--";
+  return `${formatNumber(Math.round(number))}${suffix}`;
+};
+
+const renderValuationHoldings = (payload, ready) => {
+  const panel = document.querySelector("#valuationHoldingsPanel");
+  if (!panel) return;
+  const coverage = payload?.holdingsCoverage || {};
+  const topHoldings = payload?.topHoldings || coverage.topHoldings || [];
+  const hasHoldings = ready && topHoldings.length > 0;
+
+  if (!hasHoldings) {
+    panel.innerHTML = `
+      <div class="valuation-holdings-head">
+        <div>
+          <span>持仓结构</span>
+          <h2>等待持仓数据</h2>
+        </div>
+        <p>成分权重接入后，会显示前十大持仓和当前覆盖情况。</p>
+      </div>
+    `;
+    return;
+  }
+
+  const stats = [
+    ["持仓数量", formatValuationStat(coverage.valuationHoldings || coverage.holdingsWithTicker), "只"],
+    ["权重覆盖", formatValuationWeight(coverage.valuationWeightPct || coverage.priceCoveredWeightPct), ""],
+    ["价格覆盖", formatValuationWeight(coverage.priceCoveragePctOfValuationWeight), ""],
+  ];
+
+  const maxWeight = Math.max(...topHoldings.map((item) => parseValuationNumber(item.weightPct) || 0), 1);
+  panel.innerHTML = `
+    <div class="valuation-holdings-head">
+      <div>
+        <span>估值样本构成</span>
+        <h2>前十大权重股</h2>
+      </div>
+      <p>前十大权重股用于理解当前估值读数的构成；PE、PB、ROE 使用当前可覆盖样本口径，PEG 和完整历史分位仍等待同口径数据。</p>
+    </div>
+    <div class="valuation-holdings-stats">
+      ${stats
+        .map(
+          ([label, value, suffix]) => `
+            <article>
+              <span>${escapeHtml(label)}</span>
+              <strong>${escapeHtml(value)}${escapeHtml(suffix)}</strong>
+            </article>
+          `,
+        )
+        .join("")}
+    </div>
+    <div class="valuation-holdings-list">
+      ${topHoldings
+        .map((item, index) => {
+          const weight = parseValuationNumber(item.weightPct) || 0;
+          const width = Math.max(3, (weight / maxWeight) * 100);
+          return `
+            <article>
+              <div class="valuation-holding-rank">${index + 1}</div>
+              <div class="valuation-holding-main">
+                <div>
+                  <strong>${escapeHtml(item.ticker || "--")}</strong>
+                  <span>${escapeHtml(item.issuerName || "")}</span>
+                </div>
+                <em>${escapeHtml(formatValuationWeight(weight))}</em>
+              </div>
+              <div class="valuation-holding-bar" aria-hidden="true"><i style="width:${width.toFixed(1)}%"></i></div>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+};
+
+const renderIndexValuation = (payload) => {
+  state.indexValuation = payload;
+  const activePayload = getActiveIndexValuation(payload);
+  const activeSymbol = String(activePayload?.index?.symbol || state.valuationIndex || "QQQ").toUpperCase();
+  state.valuationIndex = activeSymbol;
+  const ready = valuationPayloadReady(activePayload);
+  const partialReady = String(activePayload?.status || "").toLowerCase() === "partial_data";
+  renderValuationNavState(ready);
+
+  const metrics = normalizeValuationMetrics(activePayload || {});
+  const selectedKey = metrics[state.valuationMetric] ? state.valuationMetric : "pe";
+  const selected = metrics[selectedKey];
+  const indexName = activePayload?.index?.name || activePayload?.indexName || activePayload?.name || "Nasdaq 100";
+  const shortIndexName = valuationIndexName(activeSymbol, indexName);
+
+  document.querySelectorAll("[data-valuation-metric]").forEach((button) => {
+    const active = button.dataset.valuationMetric === selectedKey;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.querySelectorAll("[data-valuation-range]").forEach((button) => {
+    const active = button.dataset.valuationRange === state.valuationRange;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  document.querySelectorAll("[data-valuation-index]").forEach((button) => {
+    const symbol = String(button.dataset.valuationIndex || "").toUpperCase();
+    const available = !Array.isArray(payload?.indices) || payload.indices.some((item) => String(item?.index?.symbol || "").toUpperCase() === symbol);
+    const active = symbol === activeSymbol;
+    button.classList.toggle("is-active", active);
+    button.disabled = !available;
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+
+  setText("#valuationPageTitle", `${shortIndexName} 估值`);
+  setText("#valuationPageSubtitle", `用 PE、PB、ROE、股息率和 PEG 观察 ${shortIndexName} 当前所处的位置。`);
+  setText("#valuationIndexLabel", indexName);
+  setText("#valuationStatusLabel", ready ? (partialReady ? "持仓已接入" : "数据已接入") : "等待估值数据");
+  setText("#valuationAsOf", ready ? formatDisplayDate(activePayload?.asOf || activePayload?.updatedAt || activePayload?.generatedAt) : "--");
+  setText("#valuationCoverage", ready ? activePayload?.coverage || activePayload?.sample || "指数估值样本" : "等待指数估值样本接入");
+  setText("#valuationTitle", ready ? activePayload?.title || `${indexName} 估值概览` : "等待估值数据");
+  setText(
+    "#valuationSummary",
+    ready
+      ? activePayload?.summary || "展示核心估值指标的当前读数、历史分位和趋势变化。"
+      : activePayload?.frontendHints?.emptyStateBody || "数据未接入前，不展示 PE、PB、ROE 等估值数字。",
+  );
+  setText("#valuationChartKicker", ready ? `${valuationMetricConfig[selectedKey].label} 观察` : "趋势图");
+  setText("#valuationChartTitle", ready ? valuationMetricConfig[selectedKey].title : "等待估值数据");
+
+  const metricGrid = document.querySelector("#valuationMetricSummary");
+  if (metricGrid) {
+    metricGrid.innerHTML = Object.entries(valuationMetricConfig)
+      .map(([key, config]) => {
+        const metric = metrics[key];
+        const value = ready ? formatValuationValue(metric.value, metric.unit) : "--";
+        const percentile = ready
+          ? Number.isFinite(parseValuationNumber(metric.percentile))
+            ? formatValuationPercentile(metric.percentile)
+            : metric.value == null
+              ? "等待数据"
+              : metric.note || "当前值"
+          : "等待数据";
+        return `
+          <article class="${key === selectedKey ? "is-active" : ""}">
+            <span>${escapeHtml(config.label)} <button class="info-tip" type="button" aria-label="${escapeHtml(config.label)}解释" data-tip="${escapeHtml(config.tip)}">?</button></span>
+            <strong>${escapeHtml(value)}</strong>
+            ${valuationMetricSparkline(metric)}
+            <p>${escapeHtml(percentile)}</p>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  renderValuationHoldings(activePayload, ready);
+
+  setText(
+    "#valuationPercentileNote",
+    ready
+      ? selected.series?.length
+        ? `${valuationMetricConfig[selectedKey].label} 轨迹为近似口径，用于观察阶段变化。`
+        : `${valuationMetricConfig[selectedKey].label} 暂无同口径历史序列。`
+      : "轨迹用于观察近期价格变化对估值读数的影响，不代表未来方向。",
+  );
+  renderValuationChart(ready ? selected : { ...selected, series: [] });
+};
+
+const pageModules = [
+  {
+    id: "dashboard",
+    kicker: "策略总览",
+    title: "策略驾驶舱",
+    nav: "总览",
+    summary: "先看市场温度，再进入具体工具。",
+    status: "入口",
+  },
+  {
+    id: "risk",
+    kicker: "市场温度",
+    title: "市场温度计",
+    nav: "温度",
+    summary: "用几项公开指标看当前市场偏强、偏中性还是偏防守。",
+    status: "已上线",
+  },
+  {
+    id: "events",
+    kicker: "研究线索",
+    title: "预期改善观察",
+    nav: "观察",
+    summary: "优先展示经过历史样本检验后更适合研究的预期改善线索。",
+    status: "数据驱动",
+  },
+  {
+    id: "strength",
+    kicker: "全市场强弱",
+    title: "今日观察池",
+    nav: "强弱",
+    summary: "把全市场压缩为重点观察、风险回避和等回踩清单。",
+    status: "数据驱动",
+  },
+  {
+    id: "mag7",
+    kicker: "七姐妹雷达",
+    title: "强弱排序",
+    nav: "七姐",
+    summary: "跟踪七姐妹谁在领跑、谁在掉队、谁需要降权。",
+    status: "已上线",
+  },
+  {
+    id: "watchlist",
+    kicker: "观察池",
+    title: "我的观察池",
+    nav: "自选",
+    summary: "集中跟踪从涨跌幅、强弱、财报和信号加入的股票。",
+    status: "本地保存",
+  },
+  {
+    id: "earnings",
+    kicker: "财报观察",
+    title: "财报观察",
+    nav: "财报",
+    summary: "筛选财报超预期、预期上调、股价走强的候选股。",
+    status: "数据驱动",
+  },
+  {
+    id: "valuation",
+    kicker: "指数估值",
+    title: "估值观察",
+    nav: "估值",
+    summary: "观察指数 PE、PB、ROE、股息率和 PEG 的历史位置。",
+    status: "待数据",
+  },
+  {
+    id: "market",
+    kicker: "行情异动",
+    title: "涨跌幅榜",
+    nav: "行情",
+    summary: "按年内、日、周、月和成交额异动查看市场热点。",
+    status: "数据驱动",
+  },
+  {
+    id: "options",
+    kicker: "衍生品线索",
+    title: "期权流向复盘",
+    nav: "流向",
+    summary: "把期权权利金、净流向和价格确认放进同一个复盘视角。",
+    status: "离线快照",
+  },
+  {
+    id: "signals",
+    kicker: "趋势信号",
+    title: "信号中心",
+    nav: "信号",
+    summary: "跟踪方向变化、定时复盘和板块共振。",
+    status: "接口接入",
+  },
+  {
+    id: "live",
+    kicker: "策略实盘",
+    title: "懂币猫实盘",
+    nav: "实盘",
+    summary: "展示账户曲线、月度收益、盈利主线和付费复盘入口。",
+    status: "付费扩展",
+  },
+  {
+    id: "courses",
+    kicker: "课程",
+    title: "课程",
+    nav: "课程",
+    summary: "按新手、财报、交易纪律和工具训练组织学习路径。",
+    status: "页面已开",
+  },
+  {
+    id: "strategies",
+    kicker: "策略研究",
+    title: "策略合集",
+    nav: "策略",
+    summary: "沉淀强势股回踩、财报后趋势、小盘过滤和行业轮动模板。",
+    status: "页面已开",
+  },
+  {
+    id: "subscription",
+    kicker: "工具订阅",
+    title: "订阅方案",
+    nav: "订阅",
+    summary: "说明免费和付费权益，把工具价值讲清楚。",
+    status: "转化页",
+  },
+];
+
+const pageMeta = Object.fromEntries(pageModules.map((item) => [item.id, [item.kicker, item.title]]));
+pageMeta.stock = ["股票详情", "股票详情"];
+pageMeta.admin = ["管理后台", "会员管理"];
+pageMeta.validation = ["验证中心", "模块有效性验证"];
+
+const dataFreshnessLabel = (value, item = {}) => {
+  if (item.status === "waiting" || item.ready === false) return { label: "待接入", level: "muted" };
+  if (!value) return { label: "待接入", level: "muted" };
+  const age = daysBetween(value, new Date());
+  if (age <= 0) return { label: "今日可用", level: "fresh" };
+  if (age === 1) return { label: "1天前", level: "fresh" };
+  if (age <= 7) return { label: `${age}天前`, level: "normal" };
+  return { label: `${age}天前`, level: "stale" };
+};
+
+const getPageFromHash = () => {
+  const raw = window.location.hash ? window.location.hash.replace("#", "") : "dashboard";
+  const [page, symbol] = raw.split("/");
+  if (page === "stock") {
+    state.selectedStockSymbol = normalizeStockSymbol(symbol ? decodeURIComponent(symbol) : state.selectedStockSymbol);
+    return "stock";
+  }
+  return pageMeta[page] ? page : "dashboard";
+};
+
+const renderModuleGrid = () => {
+  const grid = document.querySelector("#dashboardModuleGrid");
+  if (!grid) return;
+  grid.innerHTML = pageModules
+    .filter((item) => item.id !== "dashboard")
+    .map(
+      (item) => `
+        <button class="module-card" type="button" data-page-link="${escapeHtml(item.id)}">
+          <span>${escapeHtml(item.nav)}</span>
+          <strong>${escapeHtml(item.title)}</strong>
+          <p>${escapeHtml(item.summary)}</p>
+          <em>${escapeHtml(item.status)}</em>
+        </button>
+      `,
+    )
+    .join("");
+};
+
+const renderDashboardFocus = () => {
+  const activeBoard = state.rows?.length ? state.rows : state.boards?.day || state.boards?.ytd || [];
+  const mover = activeBoard[0];
+  const strengthLeader = state.strength?.rows?.find((row) => row.bucket === "strongest") || state.strength?.rows?.[0];
+  const eventBoards = state.eventOpportunities?.boards || {};
+  const eventRows = Object.values(eventBoards).flatMap((board) => board.rows || []);
+  const eventTop = eventRows[0];
+  const temp = normalizeTemperaturePayload(state.marketTemperature || {});
+  const tempScore = temp.overall?.score;
+  const tempLabel = temp.overall?.label || "等待温度";
+
+  setText("#dashboardFocusTemperature", Number.isFinite(Number(tempScore)) ? `${tempScore}分 · ${tempLabel}` : tempLabel);
+  setText("#dashboardFocusTemperatureNote", neutralCopy(temp.overall?.summary || "先看当前环境偏强、偏中性还是偏防守。"));
+
+  setText("#dashboardFocusMover", mover ? `${mover.symbol} ${formatChangeValue(mover)}` : "等待行情异动");
+  setText(
+    "#dashboardFocusMoverNote",
+    mover
+      ? `${mover.chineseName || mover.company || mover.symbol} · ${mover.sector} · ${getRiskLabel(getRiskBucket(mover))}风险。`
+      : "看当前最明显的涨跌、成交额和风险标签。",
+  );
+
+  setText("#dashboardFocusStrength", strengthLeader ? `${strengthLeader.symbol} · ${strengthLeader.label}` : "等待强弱扫描");
+  setText(
+    "#dashboardFocusStrengthNote",
+    strengthLeader
+      ? `${strengthLeader.primaryFactor || strengthLeader.label || "相对强弱靠前"}，继续看成交额和价格确认。`
+      : "优先从强于大盘和行业的股票里找线索。",
+  );
+
+  setText("#dashboardFocusEvent", eventTop ? `${normalizeStockSymbol(eventTop.ticker || eventTop.symbol)} · ${eventTop.eventLabel || "研究线索"}` : "等待研究线索");
+  setText(
+    "#dashboardFocusEventNote",
+    eventTop ? eventReasonForUser(eventTop) : "用财报、预期改善和机构观点解释为什么需要继续跟踪。",
+  );
+};
+
+const clampPercent = (value) => Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+
+const boardDirectionStats = (rows = []) => {
+  const total = rows.length;
+  const upCount = rows.filter((row) => getChange(row) >= 0).length;
+  return {
+    total,
+    upCount,
+    downCount: Math.max(0, total - upCount),
+    upPct: total ? (upCount / total) * 100 : 0,
+  };
+};
+
+const dashboardRadarScores = () => {
+  const coreSignals = state.core?.risk?.signals || [];
+  const trendTerms = ["SPY", "QQQ", "IWM"];
+  const trendRows = trendTerms.map((term) => coreSignals.find((item) => item.term === term)).filter(Boolean);
+  const trendScore = trendRows.length
+    ? (trendRows.filter((item) => item.bucket === "positive").length / trendRows.length) * 100
+    : parseRiskBudget(state.core?.marketRegime?.riskBudget);
+  const dayStats = boardDirectionStats(state.boards?.day || []);
+  const vixSignal = coreSignals.find((item) => item.term === "VIX");
+  const vixValue = Number.parseFloat(String(vixSignal?.label || "").replace(/[^\d.-]/g, ""));
+  const volatilityScore = Number.isFinite(vixValue) ? 100 - Math.max(0, Math.min(100, (vixValue - 12) * 4.5)) : 56;
+  const volumeRows = state.boards?.volume || [];
+  const hotCount = volumeRows.filter((row) => parseRatio(row.volumeRatio) >= 2).length;
+  const heatScore = volumeRows.length ? Math.min(100, (hotCount / Math.min(volumeRows.length, 80)) * 180) : 45;
+  return [
+    ["趋势", trendScore],
+    ["广度", dayStats.upPct],
+    ["波动", volatilityScore],
+    ["热度", heatScore],
+  ];
+};
+
+const renderDashboardRegimeRadar = () => {
+  const radar = document.querySelector("#dashboardRegimeRadar");
+  if (!radar) return;
+  radar.innerHTML = dashboardRadarScores()
+    .map(([label, score]) => {
+      const safeScore = clampPercent(score);
+      return `<div><b>${escapeHtml(label)}</b><i style="--level:${safeScore}%"></i><em>${safeScore}</em></div>`;
+    })
+    .join("");
+};
+
+const dashboardStrengthMix = () => {
+  const rows = state.strength?.rows || [];
+  const strongest = rows.filter((row) => row.bucket === "strongest").length;
+  const watchlist = rows.filter((row) => row.bucket === "watchlist").length;
+  const weakest = rows.filter((row) => row.bucket === "weakest").length;
+  return [
+    ["强势", strongest, "is-positive"],
+    ["观察", watchlist, "is-neutral"],
+    ["弱势", weakest, "is-negative"],
+  ];
+};
+
+const renderDashboardVisualBoard = () => {
+  const board = document.querySelector("#dashboardSnapshotBoard");
+  if (!board) return;
+  const temp = normalizeTemperaturePayload(state.marketTemperature || {});
+  const tempScore = clampPercent(temp.overall?.score);
+  const tempLabel = temp.overall?.label || "等待数据";
+  const dayRows = state.boards?.day || [];
+  const direction = boardDirectionStats(dayRows);
+  const sectorRows = marketSectorStats(dayRows).slice(0, 5);
+  const maxSectorCount = Math.max(...sectorRows.map((item) => item.count), 1);
+  const strengthMix = dashboardStrengthMix();
+  const maxStrength = Math.max(...strengthMix.map((item) => item[1]), 1);
+  const eventBoards = state.eventOpportunities?.boards || {};
+  const eventRows = Object.values(eventBoards).flatMap((item) => item.rows || []);
+  const eventTypes = Object.values(eventBoards)
+    .map((item) => [item.title || "事件", item.rows?.length || 0])
+    .filter((item) => item[1])
+    .slice(0, 4);
+  const maxEvent = Math.max(...eventTypes.map((item) => item[1]), 1);
+
+  board.innerHTML = `
+    <article class="dashboard-snapshot-card dashboard-temperature-card">
+      <div class="dashboard-snapshot-head">
+        <span>市场温度</span>
+        <strong>${escapeHtml(String(tempScore))}分</strong>
+      </div>
+      <div class="dashboard-ring" style="--score:${tempScore}%">
+        <b>${escapeHtml(tempLabel)}</b>
+      </div>
+      <p>${escapeHtml(neutralCopy(temp.overall?.summary || "等待市场环境数据。"))}</p>
+    </article>
+
+    <article class="dashboard-snapshot-card">
+      <div class="dashboard-snapshot-head">
+        <span>涨跌结构</span>
+        <strong>${direction.total ? `${direction.upCount}涨 / ${direction.downCount}跌` : "--"}</strong>
+      </div>
+      <div class="dashboard-breadth-meter" style="--up:${direction.upPct.toFixed(1)}%">
+        <i></i><b></b>
+      </div>
+      <div class="dashboard-sector-bars">
+        ${sectorRows.length ? sectorRows.map((item) => `
+          <div>
+            <span>${escapeHtml(item.sector)}</span>
+            <i style="--level:${Math.max(8, (item.count / maxSectorCount) * 100).toFixed(1)}%"></i>
+            <b>${escapeHtml(String(item.count))}</b>
+          </div>
+        `).join("") : '<em>等待板块数据</em>'}
+      </div>
+    </article>
+
+    <article class="dashboard-snapshot-card">
+      <div class="dashboard-snapshot-head">
+        <span>强弱分布</span>
+        <strong>${escapeHtml(state.strength?.summary?.leader || "--")}</strong>
+      </div>
+      <div class="dashboard-strength-bars">
+        ${strengthMix.map(([label, value, className]) => `
+          <div class="${escapeHtml(className)}">
+            <span>${escapeHtml(label)}</span>
+            <i style="--level:${Math.max(6, (value / maxStrength) * 100).toFixed(1)}%"></i>
+            <b>${escapeHtml(String(value))}</b>
+          </div>
+        `).join("")}
+      </div>
+      <p>相对强弱用于区分主线、观察和弱势风险。</p>
+    </article>
+
+    <article class="dashboard-snapshot-card">
+      <div class="dashboard-snapshot-head">
+        <span>事件密度</span>
+        <strong>${eventRows.length ? `${eventRows.length}条` : "--"}</strong>
+      </div>
+      <div class="dashboard-event-bars">
+        ${eventTypes.length ? eventTypes.map(([label, value]) => `
+          <div>
+            <span>${escapeHtml(label)}</span>
+            <i style="--level:${Math.max(8, (value / maxEvent) * 100).toFixed(1)}%"></i>
+            <b>${escapeHtml(String(value))}</b>
+          </div>
+        `).join("") : '<em>等待事件数据</em>'}
+      </div>
+      <p>财报、指引和机构观点变化会进入研究线索。</p>
+    </article>
+  `;
+};
+
+const dataStatusItems = () => [
+  {
+    label: "预期改善观察",
+    date: state.eventOpportunities?.asOf,
+    generatedAt: state.eventOpportunities?.generatedAt,
+    cadence: "按数据批次更新",
+    note: "查看财报、指引和机构观点变化后的研究线索。",
+  },
+  {
+    label: "市场温度计",
+    date: state.marketTemperature?.asOf,
+    generatedAt: state.marketTemperature?.generatedAt,
+    cadence: "宏观数据更新后刷新",
+    note: "观察波动率、利率、美元、原油和通胀环境。",
+  },
+  {
+    label: "全市场强弱",
+    date: state.strength?.asOf,
+    generatedAt: state.strength?.generatedAt,
+    cadence: "行情批次更新",
+    note: "观察个股相对强弱、成交额异动和行业分布。",
+  },
+  {
+    label: "财报观察",
+    date: state.earningsQuality?.asOf,
+    generatedAt: state.earningsQuality?.generatedAt,
+    cadence: "财报季重点更新",
+    note: "查看财报超预期、预期变化和价格确认。",
+  },
+  {
+    label: "指数估值",
+    date: state.indexValuation?.asOf,
+    generatedAt: state.indexValuation?.generatedAt,
+    status: valuationPayloadReady(state.indexValuation) ? "ready" : "waiting",
+    ready: valuationPayloadReady(state.indexValuation),
+    cadence: "等待估值数据",
+    note: "等待成分权重、价格/市值和 TTM 财务序列接入。",
+  },
+  {
+    label: "期权流向",
+    date: state.optionsFlow?.asOf || state.optionsFlow?.meta?.tradeDate,
+    generatedAt: state.optionsFlow?.generatedAt || state.optionsFlow?.meta?.generatedAt,
+    cadence: "离线期权批次更新",
+    note: "查看期权权利金、Call/Put 活跃度和价格确认。",
+  },
+  {
+    label: "涨跌幅榜",
+    date: state.meta?.ytd?.updatedAt || state.meta?.day?.updatedAt,
+    generatedAt: "",
+    cadence: "行情批次更新",
+    note: "查看年内、24h、周度、月度和成交额变化。",
+  },
+  {
+    label: "历史验证",
+    date: state.validationCenter?.asOf,
+    generatedAt: state.validationCenter?.generatedAt,
+    cadence: "样本更新后刷新",
+    note: "查看历史样本、相对指数表现和样本数量。",
+  },
+];
+
+const renderDataStatus = () => {
+  const grid = document.querySelector("#dashboardDataStatusGrid");
+  if (!grid) return;
+  const items = dataStatusItems();
+  grid.innerHTML = items
+    .map((item) => {
+      const date = formatDisplayDate(item.date || item.generatedAt);
+      const freshness = dataFreshnessLabel(item.date || item.generatedAt, item);
+      return `
+        <article class="data-status-card is-${escapeHtml(freshness.level)}">
+          <span>${escapeHtml(item.label)} <em>${escapeHtml(freshness.label)}</em></span>
+          <strong>${escapeHtml(date)}</strong>
+          <small>${escapeHtml(item.cadence || "按数据批次更新")}</small>
+          <p>${escapeHtml(item.note)}</p>
+        </article>
+      `;
+    })
+    .join("");
+};
+
+const optionFlowPayload = (payload = state.optionsFlow) => {
+  if (!payload) return null;
+  const boards = payload.boards || {};
+  return {
+    generatedAt: payload.generatedAt || payload.meta?.generatedAt,
+    asOf: payload.asOf || payload.meta?.tradeDate,
+    meta: payload.meta || {},
+    summary: payload.summary || {},
+    timeline: Array.isArray(payload.timeline) ? payload.timeline : [],
+    bullish: Array.isArray(payload.bullish) ? payload.bullish : (boards.bullish || []),
+    bearish: Array.isArray(payload.bearish) ? payload.bearish : (boards.bearish || []),
+    quality: payload.quality || {},
+  };
+};
+
+const optionPremiumValue = (row) => Number(row?.premium ?? row?.callPremium ?? row?.putPremium ?? row?.netCallPutPremium ?? 0);
+
+const optionFlowState = (summary) => {
+  const call = Math.abs(Number(summary.callPremium || 0));
+  const put = Math.abs(Number(summary.putPremium || 0));
+  const net = Number(summary.netDrift ?? summary.netCallPutPremium ?? 0);
+  const total = Math.max(Math.abs(Number(summary.totalPremium || 0)), call + put, 1);
+  if (!call && !put) return ["等待数据", "接入期权快照后判断偏多、偏空或分歧。"];
+  if (Math.abs(net) / total >= 0.2) {
+    if (net > 0) return ["净流向偏多", "净权利金偏向 Call 侧，但仍要看价格是否同步确认。"];
+    return ["净流向偏空", "净权利金偏向 Put 或卖压代理，先看股价是否确认压力。"];
+  }
+  const ratio = put ? call / put : 99;
+  if (ratio >= 1.35) return ["Call 活跃", "Call 权利金明显高于 Put，方向仍需价格确认。"];
+  if (ratio <= 0.74) return ["Put 活跃", "Put 权利金明显高于 Call，先看股价是否确认压力。"];
+  return ["多空分歧", "Call 与 Put 权利金接近，适合等待价格走出方向。"];
+};
+
+const optionPathFromPoints = (points) =>
+  points.map((point, index) => `${index ? "L" : "M"}${point[0].toFixed(1)} ${point[1].toFixed(1)}`).join(" ");
+
+const optionScaleY = (value, min, max, yMin, yMax) => {
+  if (max === min) return (yMin + yMax) / 2;
+  return yMax - ((value - min) / (max - min)) * (yMax - yMin);
+};
+
+const renderOptionsChart = (timeline) => {
+  const svg = document.querySelector("#optionsFlowChart");
+  if (!svg) return;
+  if (!timeline.length) {
+    svg.innerHTML = `<text x="32" y="70" class="options-chart-empty">等待期权流向数据</text>`;
+    return;
+  }
+  const width = 760;
+  const height = 500;
+  const pad = { left: 72, right: 68, top: 42, bottom: 52 };
+  const chartBottom = height - pad.bottom;
+  const xStep = timeline.length > 1 ? (width - pad.left - pad.right) / (timeline.length - 1) : 0;
+  const premiumValues = timeline.flatMap((row) => [Number(row.call || 0), Number(row.put || 0), Number(row.net || 0)]);
+  const premiumMax = Math.max(20_000_000, ...premiumValues);
+  const premiumMin = Math.min(-20_000_000, ...premiumValues);
+  const prices = timeline.map((row) => Number(row.price || 0)).filter(Number.isFinite);
+  const priceMin = Math.min(...prices) - 4;
+  const priceMax = Math.max(...prices) + 4;
+  const x = (index) => pad.left + index * xStep;
+  const premiumPoint = (row, index, key) => [x(index), optionScaleY(Number(row[key] || 0), premiumMin, premiumMax, pad.top, chartBottom - 70)];
+  const pricePoint = (row, index) => [x(index), optionScaleY(Number(row.price || 0), priceMin, priceMax, pad.top, chartBottom - 70)];
+  const volumeValues = timeline.map((row) => Number(row.putVolume ?? row.callVolume ?? 0));
+  const volumeMin = Math.min(...volumeValues, 0);
+  const volumeMax = Math.max(...volumeValues, 1);
+  const volumeTop = chartBottom - 52;
+  const volumePoint = (row, index) => [
+    x(index),
+    optionScaleY(Number(row.putVolume ?? row.callVolume ?? 0), volumeMin, volumeMax, volumeTop, chartBottom),
+  ];
+  const ticks = [-100_000_000, -60_000_000, -20_000_000, 0, 20_000_000].filter((tick) => tick >= premiumMin && tick <= premiumMax);
+  const grid = ticks
+    .map((tick) => {
+      const y = optionScaleY(tick, premiumMin, premiumMax, pad.top, chartBottom - 70);
+      return `<line x1="${pad.left}" x2="${width - pad.right}" y1="${y}" y2="${y}" class="options-grid-line"></line><text x="18" y="${y + 5}" class="options-axis-label">${escapeHtml(formatCompactMoney(tick))}</text>`;
+    })
+    .join("");
+  const priceTicks = [priceMin, (priceMin + priceMax) / 2, priceMax]
+    .map((tick) => {
+      const y = optionScaleY(tick, priceMin, priceMax, pad.top, chartBottom - 70);
+      return `<text x="${width - pad.right + 12}" y="${y + 5}" class="options-axis-label">$${tick.toFixed(0)}</text>`;
+    })
+    .join("");
+  const timeLabels = timeline
+    .filter((_, index) => index === 0 || index === Math.floor((timeline.length - 1) / 2) || index === timeline.length - 1)
+    .map((row, index, rows) => {
+      const originalIndex = rows.length === 1 ? 0 : (index === 0 ? 0 : index === 1 ? Math.floor((timeline.length - 1) / 2) : timeline.length - 1);
+      return `<text x="${x(originalIndex) - 18}" y="${height - 16}" class="options-time-label">${escapeHtml(row.time || "")}</text>`;
+    })
+    .join("");
+  const volumePath = optionPathFromPoints(timeline.map(volumePoint));
+  const volumeArea = `${volumePath} L${width - pad.right} ${chartBottom} L${pad.left} ${chartBottom} Z`;
+  svg.innerHTML = `
+    <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
+    ${grid}
+    ${priceTicks}
+    <path class="options-volume-area" d="${volumeArea}"></path>
+    <path class="options-price-line" d="${optionPathFromPoints(timeline.map(pricePoint))}"></path>
+    <path class="options-call-line" d="${optionPathFromPoints(timeline.map((row, index) => premiumPoint(row, index, "call")))}"></path>
+    <path class="options-put-line" d="${optionPathFromPoints(timeline.map((row, index) => premiumPoint(row, index, "put")))}"></path>
+    <path class="options-net-line" d="${optionPathFromPoints(timeline.map((row, index) => premiumPoint(row, index, "net")))}"></path>
+    ${timeLabels}
+  `;
+};
+
+const renderOptionsRank = (selector, rows, tone) => {
+  const element = document.querySelector(selector);
+  if (!element) return;
+  if (!rows.length) {
+    element.innerHTML = `<p class="options-empty">等待榜单数据</p>`;
+    return;
+  }
+  const max = Math.max(...rows.map((row) => Math.abs(optionPremiumValue(row))), 1);
+  element.innerHTML = rows
+    .slice(0, 12)
+    .map((row, index) => {
+      const premium = Math.abs(optionPremiumValue(row));
+      const width = Math.max(4, (premium / max) * 100);
+      const ticker = row.ticker || row.symbol || "--";
+      return `
+        <button class="options-rank-row" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="期权流向">
+          <span>${index + 1}</span>
+          <strong>${escapeHtml(ticker)}</strong>
+          <em class="is-${escapeHtml(tone)}" style="--level:${width.toFixed(1)}%"><i></i><b>${escapeHtml(formatCompactMoney(premium))}</b></em>
+        </button>
+      `;
+    })
+    .join("");
+};
+
+const renderOptionsFlow = (payload) => {
+  state.optionsFlow = payload || state.optionsFlow;
+  const data = optionFlowPayload(state.optionsFlow);
+  if (!data) return;
+  const { meta, summary, timeline, bullish, bearish } = data;
+  const symbol = meta.symbol || "--";
+  const company = meta.company || "离线流向快照";
+  const [stateLabel, stateNote] = optionFlowState(summary);
+  setText("#optionsAsOf", formatDisplayDate(data.asOf || data.generatedAt));
+  setText("#optionsFocusSymbol", symbol);
+  setText("#optionsFocusCompany", company);
+  setText("#optionsBullishPremium", formatCompactMoney(Math.abs(Number(summary.callPremium || 0))));
+  setText("#optionsBearishPremium", formatCompactMoney(Math.abs(Number(summary.putPremium || 0))));
+  setText("#optionsFlowState", stateLabel);
+  setText("#optionsFlowStateNote", stateNote);
+  setText("#optionsHeadline", summary.headline || `${symbol} 期权流向等待确认。`);
+  setText("#optionsLeadNote", `净流向 ${formatCompactMoney(Number(summary.netDrift ?? summary.netCallPutPremium ?? 0))}，标的价格 ${formatMoney(Number(summary.underlyingLast || meta.underlyingLast || 0))}。`);
+  setText("#optionsChartTitle", `${symbol} Call / Put / 股价`);
+  setText("#optionsExpiration", `到期日 ${formatDisplayDate(meta.expiration || meta.expirationDate || data.asOf)}`);
+  const action = document.querySelector("[data-options-add-watch]");
+  if (action) {
+    action.dataset.watchlistToggle = symbol;
+    action.dataset.watchlistSource = "期权流向";
+    action.textContent = isInWatchlist(symbol) ? "已加入观察池" : "加入观察池";
+  }
+  renderOptionsChart(timeline);
+  renderOptionsRank("#optionsBullishRows", bullish, "positive");
+  renderOptionsRank("#optionsBearishRows", bearish, "negative");
+  renderDataStatus();
+};
+
+const showPage = (page, options = {}) => {
+  const { syncHash = true, hash = "" } = options;
+  if (!pageMeta[page]) page = "dashboard";
+  if ((page === "admin" || page === "validation") && !state.auth.entitlements.admin) {
+    openAuthModal("请先使用管理员账号登录。");
+    page = "dashboard";
+  }
+  document.querySelectorAll(".page-view").forEach((view) => {
+    view.classList.toggle("is-active", view.dataset.view === page);
+  });
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    const active = item.dataset.page === page;
+    item.classList.toggle("is-active", active);
+    item.setAttribute("aria-current", active ? "page" : "false");
+  });
+  document.querySelectorAll("[data-page-link]").forEach((item) => {
+    const active = item.dataset.pageLink === page;
+    item.classList.toggle("is-active", active);
+    if (!item.matches("a[data-disabled='true']")) {
+      item.setAttribute("aria-current", active ? "page" : "false");
+    }
+  });
+  const meta = pageMeta[page] || pageMeta.market;
+  document.querySelector("#workspaceKicker").textContent = meta[0];
+  document.querySelector("#workspaceTitle").textContent = meta[1];
+  document.title = `${meta[1]} - 美股策略库`;
+  const targetHash = hash || `#${page}`;
+  if (syncHash && window.location.hash !== targetHash) {
+    window.history.pushState(null, "", targetHash);
+  }
+  window.scrollTo({ top: 0, behavior: "auto" });
+  if (page === "admin" && state.auth.entitlements.admin) {
+    loadAdminUsers().catch((error) => {
+      const body = document.querySelector("#adminUsersBody");
+      if (body) body.innerHTML = `<tr><td colspan="8">${escapeHtml(error.message || "用户列表加载失败")}</td></tr>`;
+    });
+  }
+  if (page === "signals") {
+    loadSignals();
+  }
+  if (page === "earnings") {
+    renderQualityTable();
+  }
+  if (page === "events") {
+    renderEventTable();
+  }
+  if (page === "valuation") {
+    renderIndexValuation(state.indexValuation);
+  }
+  if (page === "options") {
+    renderOptionsFlow(state.optionsFlow);
+  }
+  if (page === "stock") {
+    renderStockHub(state.selectedStockSymbol);
+  }
+  if (page === "watchlist") {
+    renderWatchlist();
+  }
+  ensurePageData(page);
+};
+
+const getFilteredRows = () => {
+  const query = state.query.trim().toLowerCase();
+  const macroPool = state.macroFilter === "all" ? null : macroStockPools.find((pool) => pool.key === state.macroFilter);
+  const filtered = state.rows.filter((row) => {
+      const matchesQuery =
+        !query ||
+        row.symbol.toLowerCase().includes(query) ||
+        row.company.toLowerCase().includes(query) ||
+        row.chineseName.includes(query) ||
+        row.sector.includes(query);
+      const matchesCap = state.capFilter === "all" || capBucket(row) === state.capFilter;
+      const matchesSector = state.sectorFilter === "all" || row.sector === state.sectorFilter;
+      const matchesRisk = state.riskFilter === "all" || getRiskBucket(row) === state.riskFilter;
+      const matchesDirection =
+        state.directionFilter === "all" ||
+        (state.directionFilter === "up" && getChange(row) >= 0) ||
+        (state.directionFilter === "down" && getChange(row) < 0);
+      const matchesMacro = !macroPool || macroPoolMatchesRow(macroPool, row);
+      return matchesQuery && matchesCap && matchesSector && matchesRisk && matchesDirection && matchesMacro;
+    });
+  if (!macroPool) return filtered;
+  return filtered
+    .map((row) => {
+      const priority = reviewPriorityForMarketRow(row);
+      return {
+        ...row,
+        macroPriority: priority.score,
+        macroPriorityReason: priority.reason,
+      };
+    })
+    .sort((a, b) => b.macroPriority - a.macroPriority)
+    .map((row, index) => ({ ...row, displayRank: index + 1 }));
+};
+
+const renderLeader = (leader, updatedAt) => {
+  const change = getChange(leader);
+  const meta = state.meta[state.activeBoard];
+  if (document.querySelector('[data-view="market"]').classList.contains("is-active")) {
+    document.title = meta.title;
+  }
+  document.querySelector("#pageTitle").textContent = meta.title;
+  document.querySelector("#pageSubtitle").textContent = meta.subtitle;
+  document.querySelector("#leaderBadge").textContent = meta.badge;
+  document.querySelector("#updatedAt").textContent = updatedAt;
+  document.querySelector("#leader-title").textContent = leader.symbol;
+  document.querySelector("#leader-cn-name").textContent = leader.chineseName;
+  document.querySelector("#leader-name").textContent = leader.company;
+  document.querySelector("#leader-sector").textContent = leader.sector;
+  document.querySelector("#leader-risk").textContent = leader.risk;
+  document.querySelector("#leader-change").textContent =
+    (change >= 0 ? "+" : "") + formatPercent(change);
+  document.querySelector("#leader-price").textContent = formatMoney(leader.price);
+  document.querySelector("#leader-start").textContent = formatMoney(impliedReferencePrice(leader));
+
+  const multiple = 1 + change / 100;
+  document.querySelector("#leaderMultiple").textContent = multiple.toFixed(2) + "x";
+  document.querySelector("#changeHeader").textContent = `${meta.periodLabel}涨跌幅`;
+  document.querySelector("#referenceHeader").textContent = meta.referenceLabel;
+  document.querySelector("#volumeHeader").textContent = meta.volumeLabel || "成交量";
+  document.querySelector("#leaderChangeLabel").textContent = `${meta.periodLabel}累计涨跌幅`;
+  document.querySelector("#leaderReferenceLabel").textContent = meta.referenceLabel;
+  document.querySelector("#leaderMultipleLabel").textContent = meta.multipleLabel || `${meta.periodLabel}价格倍数`;
+  document.querySelector("#leader-start").textContent =
+    meta.referenceMode === "volume" ? escapeHtml(leader.volume || "--") : formatMoney(impliedReferencePrice(leader));
+
+  if (meta.multipleMode === "volumeRatio") {
+    document.querySelector("#leaderMultiple").textContent = leader.volumeRatio || "--";
+    return;
+  }
+
+  document.querySelector("#leaderMultiple").textContent = multiple.toFixed(2) + "x";
+};
+
+const renderSectorOptions = () => {
+  const sectorFilter = document.querySelector("#sectorFilter");
+  const sectors = Array.from(new Set(state.rows.map((row) => row.sector))).sort((a, b) =>
+    a.localeCompare(b, "zh-CN"),
+  );
+  sectorFilter.innerHTML =
+    '<option value="all">全部板块</option>' +
+    sectors.map((sector) => `<option value="${sector}">${sector}</option>`).join("");
+};
+
+const renderStats = () => {
+  const total = state.rows.length;
+  const tenBaggers = state.rows.filter((row) => getChange(row) >= 900).length;
+  const smallCap = state.rows.filter((row) => capBucket(row) === "small").length;
+  const extremeRisk = state.rows.filter((row) => getRiskBucket(row) === "extreme").length;
+  const topUp = state.rows.filter((row) => getChange(row) >= 0)[0];
+  const topDown = state.rows.filter((row) => getChange(row) < 0).sort((a, b) => getChange(a) - getChange(b))[0];
+
+  document.querySelector("#statCount").textContent = `${total}只`;
+  document.querySelector("#statTopGain").textContent = topUp
+    ? "+" + formatPercent(getChange(topUp))
+    : "--";
+  document.querySelector("#statThirdLabel").textContent =
+    state.activeBoard === "ytd" ? "十倍股数量" : state.activeBoard === "volume" ? "最高成交额倍数" : "最大下跌";
+  document.querySelector("#statTenBaggers").textContent = topDown
+    ? state.activeBoard === "volume"
+      ? ((state.rows[0] && state.rows[0].volumeRatio) || "--")
+      : formatPercent(getChange(topDown))
+    : `${tenBaggers}只`;
+  document.querySelector("#statFourthLabel").textContent =
+    state.activeBoard === "ytd" ? "小市值占比" : state.activeBoard === "volume" ? "高热度标的" : "极高风险";
+  document.querySelector("#statSmallCap").textContent =
+    state.activeBoard === "ytd"
+      ? total
+        ? `${Math.round((smallCap / total) * 100)}%`
+        : "--"
+      : state.activeBoard === "volume"
+        ? `${state.rows.filter((row) => parseRatio(row.volumeRatio) >= 2).length}只`
+      : `${extremeRisk}只`;
+};
+
+const marketBoardBrief = (rows) => {
+  const total = rows.length;
+  const upCount = rows.filter((row) => getChange(row) >= 0).length;
+  const downCount = total - upCount;
+  const hotVolume = rows.filter((row) => parseRatio(row.volumeRatio) >= 2).length;
+  const extremeRisk = rows.filter((row) => getRiskBucket(row) === "extreme").length;
+  const top = rows[0];
+  const topChange = top ? formatChangeValue(top) : "--";
+  const boardLabel = state.activeBoard === "day"
+    ? "24h异动"
+    : state.activeBoard === "week"
+      ? "周度强弱"
+      : state.activeBoard === "month"
+        ? "月度趋势"
+        : state.activeBoard === "volume"
+          ? "成交额异动"
+          : "年内强势";
+  const conclusion = top ? `${boardLabel}：${top.symbol} ${topChange}` : "等待数据";
+  const conclusionNote = top
+    ? `${top.chineseName || top.company || top.symbol} 处在当前榜首，先看异动是否有成交额和板块支撑。`
+    : "加载后显示当前榜单榜首。";
+  const structure = total ? `${upCount}涨 / ${downCount}跌` : "--";
+  const structureNote = state.activeBoard === "volume"
+    ? `${hotVolume} 只成交额明显放大，优先排查是否有财报、公告或主题催化。`
+    : `当前筛选里 ${upCount} 只上涨、${downCount} 只下跌，用来判断是单点异动还是整体扩散。`;
+  const risk = total ? `${extremeRisk}只高波动` : "--";
+  const riskNote = extremeRisk
+    ? "高波动股票先看流动性和回撤承接，不急着按涨幅排序下结论。"
+    : "当前极端风险较少，但仍要看成交额和数据日期。";
+  const next = state.activeBoard === "volume" ? "先看原因链" : "先看详情页";
+  const nextNote = state.activeBoard === "volume"
+    ? "成交额放大只是入口，下一步要看价格是否同步确认。"
+    : "从卡片进入股票详情，把涨跌幅、强弱、财报和线索放在一起看。";
+  return { conclusion, conclusionNote, structure, structureNote, risk, riskNote, next, nextNote };
+};
+
+const renderMarketBrief = (rows) => {
+  const brief = marketBoardBrief(rows);
+  setText("#marketBriefConclusion", brief.conclusion);
+  setText("#marketBriefConclusionNote", brief.conclusionNote);
+  setText("#marketBriefStructure", brief.structure);
+  setText("#marketBriefStructureNote", brief.structureNote);
+  setText("#marketBriefRisk", brief.risk);
+  setText("#marketBriefRiskNote", brief.riskNote);
+  setText("#marketBriefNext", brief.next);
+  setText("#marketBriefNextNote", brief.nextNote);
+};
+
+const marketSectorStats = (rows) => {
+  const sectorMap = new Map();
+  rows.forEach((row) => {
+    const key = row.sector || "未分类";
+    const current = sectorMap.get(key) || { sector: key, count: 0, totalChange: 0, hotVolume: 0 };
+    current.count += 1;
+    current.totalChange += getChange(row);
+    if (parseRatio(row.volumeRatio) >= 2) current.hotVolume += 1;
+    sectorMap.set(key, current);
+  });
+  return [...sectorMap.values()]
+    .map((item) => ({
+      ...item,
+      avgChange: item.totalChange / Math.max(1, item.count),
+    }))
+    .sort((a, b) => b.count - a.count || b.avgChange - a.avgChange);
+};
+
+const renderMarketVisualBoard = (rows) => {
+  const board = document.querySelector("#marketVisualBoard");
+  if (!board) return;
+  const total = rows.length;
+  if (!total) {
+    board.innerHTML = `
+      <article class="market-chart-card">
+        <span>行情雷达</span>
+        <strong>暂无符合条件的股票</strong>
+      </article>
+    `;
+    return;
+  }
+  const sectors = marketSectorStats(rows).slice(0, 7);
+  const maxSectorCount = Math.max(...sectors.map((item) => item.count), 1);
+  const upCount = rows.filter((row) => getChange(row) >= 0).length;
+  const downCount = total - upCount;
+  const riskStats = [
+    ["极高风险", rows.filter((row) => getRiskBucket(row) === "extreme").length, "is-negative"],
+    ["高风险", rows.filter((row) => getRiskBucket(row) === "high").length, "is-watch"],
+    ["可观察", rows.filter((row) => getRiskBucket(row) === "watch").length, "is-positive"],
+  ];
+  const hotVolumeRows = [...rows]
+    .map((row) => {
+      const volumeRow = getBoardRow("volume", row.symbol);
+      return {
+        ...row,
+        volumeRatio: volumeRow?.volumeRatio || row.volumeRatio,
+        ratio: parseRatio(volumeRow?.volumeRatio || row.volumeRatio),
+      };
+    })
+    .filter((row) => Number.isFinite(row.ratio) && row.ratio > 0)
+    .sort((a, b) => b.ratio - a.ratio)
+    .slice(0, 5);
+  const fallbackVolumeRows = !hotVolumeRows.length
+    ? (state.boards.volume || [])
+        .map((row) => ({ ...row, ratio: parseRatio(row.volumeRatio) }))
+        .filter((row) => Number.isFinite(row.ratio) && row.ratio > 0)
+        .slice(0, 5)
+    : hotVolumeRows;
+  const maxVolumeRatio = Math.max(...fallbackVolumeRows.map((row) => row.ratio), 1);
+
+  board.innerHTML = `
+    <article class="market-chart-card market-sector-chart">
+      <div class="market-chart-head">
+        <span>板块热度</span>
+        <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
+      </div>
+      <div class="market-sector-bars">
+        ${sectors.map((item) => `
+          <div>
+            <b>${escapeHtml(item.sector)}</b>
+            <i><em style="width:${Math.max(5, (item.count / maxSectorCount) * 100).toFixed(1)}%"></em></i>
+            <strong>${escapeHtml(String(item.count))}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+    <article class="market-chart-card">
+      <div class="market-chart-head">
+        <span>涨跌结构</span>
+        <strong>${escapeHtml(`${upCount} / ${downCount}`)}</strong>
+      </div>
+      <div class="market-direction-meter">
+        <i style="width:${((upCount / total) * 100).toFixed(1)}%"></i>
+      </div>
+      <div class="market-direction-labels">
+        <span>上涨 ${escapeHtml(String(upCount))}</span>
+        <span>下跌 ${escapeHtml(String(downCount))}</span>
+      </div>
+      <p>${escapeHtml(upCount >= downCount ? "当前筛选里上涨占优。" : "当前筛选里回落更多。")}</p>
+    </article>
+    <article class="market-chart-card">
+      <div class="market-chart-head">
+        <span>风险标签</span>
+        <strong>${escapeHtml(`${riskStats[0][1]}只`)}</strong>
+      </div>
+      <div class="market-risk-donut" style="--extreme:${(riskStats[0][1] / total * 100).toFixed(1)}%; --high:${(riskStats[1][1] / total * 100).toFixed(1)}%">
+        <b>${escapeHtml(String(total))}</b>
+      </div>
+      <div class="market-risk-legend">
+        ${riskStats.map(([label, count, className]) => `<span class="${className}">${escapeHtml(label)} ${escapeHtml(String(count))}</span>`).join("")}
+      </div>
+    </article>
+    <article class="market-chart-card">
+      <div class="market-chart-head">
+        <span>成交额放大</span>
+        <strong>${escapeHtml(hotVolumeRows[0]?.symbol || "--")}</strong>
+      </div>
+      <div class="market-volume-rank">
+        ${fallbackVolumeRows.length ? fallbackVolumeRows.map((row) => `
+          <div>
+            <b>${escapeHtml(row.symbol)}</b>
+            <i><em style="width:${Math.max(5, (row.ratio / maxVolumeRatio) * 100).toFixed(1)}%"></em></i>
+            <strong>${escapeHtml(row.volumeRatio || `${row.ratio.toFixed(1)}x`)}</strong>
+          </div>
+        `).join("") : "<p>当前榜单暂无成交额倍数字段。</p>"}
+      </div>
+    </article>
+  `;
+};
+
+const getBoardRow = (board, symbol) => (state.boards[board] || []).find((row) => row.symbol === symbol);
+
+const getMarketDetailSource = (symbol) =>
+  getBoardRow(state.activeBoard, symbol) ||
+  getBoardRow("ytd", symbol) ||
+  getBoardRow("day", symbol) ||
+  getBoardRow("week", symbol) ||
+  getBoardRow("month", symbol) ||
+  getBoardRow("volume", symbol);
+
+const inferMoveReason = (row, volume) => {
+  const change = Math.abs(getChange(row));
+  const volumeRatio = parseRatio(volume?.volumeRatio || row.volumeRatio);
+  const reasons = [];
+  if (volumeRatio >= 3) reasons.push("成交额明显放大");
+  else if (volumeRatio >= 1.8) reasons.push("成交额高于平时");
+  if (change >= 100) reasons.push("价格波动极端");
+  else if (change >= 30) reasons.push("短线涨跌幅较大");
+  if (/AI|半导体|科技|算力|航天|加密|金融/.test(row.sector)) reasons.push("热门主题带动");
+  if (/低价|高波动|极端|剧震|小盘/.test(row.risk)) reasons.push("波动风险偏高");
+  return reasons.length ? reasons : ["等待更多成交额和公告数据确认"];
+};
+
+const marketDetailPreview = (row) => {
+  const target = normalizeStockSymbol(row.symbol);
+  const day = getBoardRow("day", target);
+  const week = getBoardRow("week", target);
+  const month = getBoardRow("month", target);
+  const volume = getBoardRow("volume", target);
+  const strength = findStrengthRow(target);
+  const quality = findQualityRow(target);
+  const eventRow = findEventRow(target);
+  const signal = signalStateForSymbol(target);
+  const sources = stockDataSources({ market: row, day, week, month, volume, strength, quality, eventRow, signal })
+    .filter(([, active]) => active)
+    .map(([label]) => label);
+  const heat = stockHeatSummary({ market: row, strength, month, volume });
+  return {
+    title: eventRow?.eventLabel || quality?.userAngle || strength?.label || heat.label,
+    note: eventRow?.reason || quality?.userReason || strength?.action || heat.note,
+    primary: stockPrimarySource({ market: row, strength, quality, eventRow, signal }),
+    sourceText: sources.length ? sources.join(" / ") : "行情",
+  };
+};
+
+const renderSectorDetail = (row) => {
+  const sectorRows = uniqueBySymbol(
+    Object.values(state.boards)
+      .flat()
+      .filter((item) => item.sector === row.sector),
+  );
+  const sorted = [...sectorRows].sort((a, b) => getChange(b) - getChange(a));
+  const top = sorted.slice(0, 5);
+  const hot = sectorRows.filter((item) => parseRatio(item.volumeRatio) >= 2).length;
+  const highRisk = sectorRows.filter((item) => getRiskBucket(item) === "extreme").length;
+  const macroExposure = stockMacroExposure({ sector: row.sector, company: row.sector, chineseName: "" }, row);
+  return `
+    <div class="market-paid-module market-sector-detail" data-lockable-module="sector-detail">
+      <div class="module-head">
+        <div>
+          <span>板块详情</span>
+          <strong>${escapeHtml(row.sector)}</strong>
+        </div>
+        <em>后续开放</em>
+      </div>
+      <div class="sector-detail-grid">
+        <article><span>覆盖标的</span><strong>${sectorRows.length}只</strong></article>
+        <article><span>成交额放大</span><strong>${hot}只</strong></article>
+        <article><span>极高风险</span><strong>${highRisk}只</strong></article>
+      </div>
+      <div class="sector-peer-list">
+        ${
+          top.length
+            ? top.map((peer) => `<b>${escapeHtml(peer.symbol)} ${formatChangeValue(peer)}</b>`).join("")
+            : "<p>暂无同板块对比。</p>"
+        }
+      </div>
+      <div class="sector-macro-strip">
+        <span>宏观背景</span>
+        <strong>${escapeHtml(macroExposure.label)}</strong>
+        <p>${escapeHtml(macroExposure.note)}</p>
+        <div>
+          ${
+            macroExposure.rows.length
+              ? macroExposure.rows.slice(0, 3).map((indicator) => `<b>${escapeHtml(indicator.name)} ${escapeHtml(indicator.value || "--")} · ${escapeHtml(indicator.level || "--")}</b>`).join("")
+              : "<b>等待宏观数据</b>"
+          }
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const renderMarketCards = (rows) => {
+  const grid = document.querySelector("#marketCardGrid");
+  if (!grid) return;
+  if (!rows.length) {
+    grid.innerHTML = `
+      <article class="market-observation-card">
+        <span>暂无符合条件的股票</span>
+        <strong>可以放宽筛选</strong>
+        <p>先切换榜单或放宽板块、市值、风险筛选。</p>
+      </article>
+    `;
+    return;
+  }
+  grid.innerHTML = rows.slice(0, 12).map((row) => {
+    const change = getChange(row);
+    const volume = getBoardRow("volume", row.symbol);
+    const reasons = inferMoveReason(row, volume).slice(0, 3);
+    const preview = marketDetailPreview(row);
+    const riskBucket = getRiskBucket(row);
+    const selected = state.selectedMarketSymbol === row.symbol;
+    return `
+      <article class="market-observation-card ${selected ? "is-selected" : ""}" data-market-symbol="${escapeHtml(row.symbol)}">
+        <div class="market-card-head">
+          <div>
+            <span>${escapeHtml(row.sector)}</span>
+            <strong>${escapeHtml(row.symbol)}</strong>
+            <p>${escapeHtml(row.chineseName || row.company || row.symbol)}</p>
+          </div>
+          <em>${escapeHtml(capLabel(row))}</em>
+        </div>
+        <div class="market-card-metrics">
+          <div>
+            <span>${escapeHtml(state.meta[state.activeBoard].periodLabel)}</span>
+            <strong class="${change >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatChangeValue(row))}</strong>
+          </div>
+          <div>
+            <span>最近价</span>
+            <strong>${escapeHtml(formatMoney(row.price))}</strong>
+          </div>
+          <div>
+            <span>成交额</span>
+            <strong>${escapeHtml(volume?.volumeRatio || row.volumeRatio || row.volume || "--")}</strong>
+          </div>
+        </div>
+        <section>
+          <span>为什么异动</span>
+          <p>${reasons.map(escapeHtml).join(" / ")}</p>
+        </section>
+        <section>
+          <span>下一步观察</span>
+          <p>${escapeHtml(row.actionNote || "先看价格和成交额是否继续确认。")}</p>
+        </section>
+        <section>
+          <span>点进详情看什么</span>
+          <p>${escapeHtml(`${preview.primary} · ${preview.sourceText}`)}</p>
+        </section>
+        <div class="market-card-actions">
+          <span class="risk-pill risk-${riskBucket}">${escapeHtml(getRiskLabel(riskBucket))}</span>
+          ${watchlistActionButton(row.symbol, "涨跌幅榜")}
+          <button class="ghost-action" type="button" data-stock-open="${escapeHtml(row.symbol)}">股票详情</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+};
+
+const renderMarketDetail = (symbol) => {
+  const panel = document.querySelector("#marketDetailPanel");
+  if (!panel) return;
+  const row = getMarketDetailSource(symbol);
+  if (!row) {
+    panel.innerHTML = `
+      <div class="empty-detail">
+        <strong>点击榜单股票查看详情</strong>
+        <p>集中查看 24h、周、月、年内表现、成交额异动、风险标签和同板块对比。</p>
+      </div>
+    `;
+    return;
+  }
+  const ytd = getBoardRow("ytd", row.symbol);
+  const day = getBoardRow("day", row.symbol);
+  const week = getBoardRow("week", row.symbol);
+  const month = getBoardRow("month", row.symbol);
+  const volume = getBoardRow("volume", row.symbol);
+  const moveReasons = inferMoveReason(row, volume);
+  const riskBucket = getRiskBucket(row);
+  const riskScore = getRiskScore(row);
+  const peers = uniqueBySymbol(state.rows.filter((item) => item.sector === row.sector && item.symbol !== row.symbol)).slice(0, 5);
+  panel.innerHTML = `
+    <div class="market-detail-head">
+      <div>
+        <span>单股详情</span>
+        <strong>${escapeHtml(row.symbol)}</strong>
+        <p>${escapeHtml(row.chineseName)} · ${escapeHtml(row.company)}</p>
+      </div>
+      <div class="market-detail-actions">
+        <div class="tag-row">
+          <span>${escapeHtml(row.sector)}</span>
+          <span>${escapeHtml(row.risk)}</span>
+          <span>${capLabel(row)}</span>
+        </div>
+        <div class="market-action-row">
+          ${watchlistActionButton(row.symbol, "涨跌幅榜")}
+          <button class="ghost-action" type="button" data-stock-open="${escapeHtml(row.symbol)}">完整画像</button>
+        </div>
+      </div>
+    </div>
+    <div class="market-detail-grid">
+      <article>
+        <span>24h</span>
+        <strong class="${day && getChange(day) < 0 ? "loss-cell" : "gain-cell"}">${formatChangeValue(day)}</strong>
+        <p>${day ? `排名 ${escapeHtml(day.rank)}` : "暂无 24h 榜单记录"}</p>
+      </article>
+      <article>
+        <span>近一周</span>
+        <strong class="${week && getChange(week) < 0 ? "loss-cell" : "gain-cell"}">${formatChangeValue(week)}</strong>
+        <p>${week ? `排名 ${escapeHtml(week.rank)}` : "暂无周榜记录"}</p>
+      </article>
+      <article>
+        <span>近一月</span>
+        <strong class="${month && getChange(month) < 0 ? "loss-cell" : "gain-cell"}">${formatChangeValue(month)}</strong>
+        <p>${month ? `排名 ${escapeHtml(month.rank)}` : "暂无月榜记录"}</p>
+      </article>
+      <article>
+        <span>今年以来</span>
+        <strong class="${ytd && getChange(ytd) < 0 ? "loss-cell" : "gain-cell"}">${formatChangeValue(ytd)}</strong>
+        <p>${ytd ? `排名 ${escapeHtml(ytd.rank)}` : "暂无年内榜记录"}</p>
+      </article>
+      <article>
+        <span>成交额异动</span>
+        <strong>${escapeHtml(volume?.volumeRatio || row.volumeRatio || "--")}</strong>
+        <p>${escapeHtml(volume?.volume || row.volume || "--")}</p>
+      </article>
+      <article>
+        <span>风险标签</span>
+        <strong>${escapeHtml(getRiskLabel(riskBucket))}</strong>
+        <div class="risk-score risk-${riskBucket}">
+          <div class="risk-bar"><i style="width: ${riskScore}%"></i></div>
+          <span>${escapeHtml(row.risk)}</span>
+        </div>
+      </article>
+    </div>
+    <div class="market-detail-bottom">
+      <div class="market-paid-module" data-lockable-module="observe-action">
+        <div class="module-head">
+          <span>观察动作</span>
+          <em>后续开放</em>
+        </div>
+        <p>${escapeHtml(row.actionNote)}</p>
+      </div>
+      <div class="market-paid-module" data-lockable-module="sector-peers">
+        <div class="module-head">
+          <span>同板块对比</span>
+          <em>后续开放</em>
+        </div>
+        ${
+          peers.length
+            ? peers.map((peer) => `<b>${escapeHtml(peer.symbol)} ${formatChangeValue(peer)}</b>`).join("")
+            : "<p>当前筛选下暂无同板块标的。</p>"
+        }
+      </div>
+    </div>
+    <div class="market-extra-grid">
+      <div class="market-paid-module" data-lockable-module="move-reason">
+        <div class="module-head">
+          <div>
+            <span>成交额异动原因</span>
+            <strong>初步拆解</strong>
+          </div>
+          <em>后续开放</em>
+        </div>
+        <div class="reason-list">
+          ${moveReasons.map((reason) => `<b>${escapeHtml(reason)}</b>`).join("")}
+        </div>
+        <p>后续可接公告、财报、新闻和板块热度数据，展示更完整的原因链。</p>
+      </div>
+      ${renderSectorDetail(row)}
+    </div>
+  `;
+};
+
+const renderTable = () => {
+  const rows = getFilteredRows();
+  const body = document.querySelector("#gainersBody");
+  const summary = document.querySelector("#resultSummary");
+
+  summary.textContent = `${state.meta[state.activeBoard].title} · ${rows.length} 只股票`;
+  if (rows.length && (!state.selectedMarketSymbol || !rows.some((row) => row.symbol === state.selectedMarketSymbol))) {
+    state.selectedMarketSymbol = rows[0].symbol;
+  }
+  renderMarketBrief(rows);
+  renderMarketVisualBoard(rows);
+  renderMarketMacroFilter(rows);
+  renderMarketCards(rows);
+  renderDashboardFocus();
+  renderDashboardVisualBoard();
+
+  if (!rows.length) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="11">没有符合条件的股票</td>
+      </tr>
+    `;
+    renderMarketDetail("");
+    return;
+  }
+
+  body.innerHTML = rows
+    .map((row) => {
+      const change = getChange(row);
+      const riskBucket = getRiskBucket(row);
+      const riskScore = getRiskScore(row);
+      const riskLabel = getRiskLabel(riskBucket);
+      const preview = marketDetailPreview(row);
+      const priority = state.macroFilter === "all" ? reviewPriorityForMarketRow(row) : { score: row.macroPriority, reason: row.macroPriorityReason };
+      return `
+        <tr class="market-row ${state.selectedMarketSymbol === row.symbol ? "is-selected" : ""}" data-market-symbol="${escapeHtml(row.symbol)}">
+          <td class="rank-cell" data-label="排名">${row.displayRank || row.rank}</td>
+          <td class="symbol-cell" data-label="股票">
+            <strong>${row.symbol}</strong>
+            <span>${capLabel(row)}</span>
+          </td>
+          <td class="company-cell" data-label="中文简称">
+            <strong>${row.chineseName}</strong>
+            <span>${row.company}</span>
+          </td>
+          <td data-label="板块"><span class="sector-chip">${row.sector}</span></td>
+          <td data-label="${escapeHtml(state.meta[state.activeBoard].changeLabel)}" class="${change >= 0 ? "gain-cell" : "loss-cell"}">${change >= 0 ? "+" : ""}${formatPercent(change)}</td>
+          <td data-label="最近价">${formatMoney(row.price)}</td>
+          <td data-label="${escapeHtml(state.meta[state.activeBoard].referenceLabel)}">${state.meta[state.activeBoard].referenceMode === "volume" ? escapeHtml(row.volume || "--") : formatMoney(impliedReferencePrice(row))}</td>
+          <td data-label="市值">${row.marketCap}</td>
+          <td data-label="${escapeHtml(state.meta[state.activeBoard].volumeLabel)}">${state.meta[state.activeBoard].volumeLabel === "成交额倍数" ? escapeHtml(row.volumeRatio || "--") : escapeHtml(row.volume || "--")}</td>
+          <td data-label="风险">
+            <div class="risk-score risk-${riskBucket}">
+              <strong>${riskLabel}</strong>
+              <div class="risk-bar"><i style="width: ${riskScore}%"></i></div>
+              <span>${row.risk}</span>
+            </div>
+          </td>
+          <td class="action-cell" data-label="详情">
+            <strong>${escapeHtml(preview.title)}</strong>
+            <span>${escapeHtml(preview.note)}</span>
+            <small class="macro-rank-reason">${escapeHtml(`复盘分 ${priority.score} · ${priority.reason || "等待更多数据"}`)}</small>
+            <div class="inline-action-row">
+              <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">详情</button>
+              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="涨跌幅榜">${isInWatchlist(row.symbol) ? "已观察" : "加入观察"}</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+  renderMarketDetail(state.selectedMarketSymbol);
+};
+
+const enrichMarketRow = (row, nameMap) => {
+  const mapped = nameMap[row.symbol] || {};
+  return {
+    rank: row.rank,
+    symbol: row.symbol,
+    company: row.name || mapped.company || row.symbol,
+    chineseName: mapped.chineseName || row.symbol,
+    sector: row.sectorProxy || mapped.sector || "未分类",
+    risk: row.label || mapped.risk || "波动观察",
+    actionNote: row.action || mapped.actionNote || "先观察成交额和价格是否能延续。",
+    change: parseSignedPercent(row.periods && row.periods["20d"]),
+    price: Number(row.price) || 0,
+    volume: row.liquidity || mapped.volume || "--",
+    volumeRatio: row.crowding && row.crowding.volumeRatio ? row.crowding.volumeRatio : "--",
+    marketCap: mapped.marketCap || "--",
+  };
+};
+
+const parseRiskBudget = (value) => {
+  const number = Number(String(value || "").replace("%", ""));
+  return Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : 50;
+};
+
+const temperatureProfile = (riskBudget) => {
+  const score = parseRiskBudget(riskBudget);
+  if (score >= 70) {
+    return {
+      score,
+      title: "偏热，环境偏强",
+      label: "偏强环境",
+      copy: "市场比较友好，可以优先复盘强势方向，但仍要看确认。",
+      scoreLabel: "满分 100，当前适合提高复盘频率。",
+      className: "is-hot",
+    };
+  }
+  if (score >= 50) {
+    return {
+      score,
+      title: "不冷不热，边走边看",
+      label: "观察环境",
+      copy: "线索还在，但不急于下结论，先等价格和成交继续确认。",
+      scoreLabel: "满分 100，当前适合保留弹性。",
+      className: "is-warm",
+    };
+  }
+  return {
+    score,
+    title: "偏冷，先防守",
+    label: "防守观察",
+    copy: "风险信号增多，先少做决定，多留现金和耐心。",
+    scoreLabel: "满分 100，当前更适合控制回撤。",
+    className: "is-cool",
+  };
+};
+
+const readableActionCopy = (action, score) => {
+  if (score >= 70) return "市场环境相对友好，可以提高强势线索的复盘优先级。";
+  if (score >= 50) return "市场环境中性，优先看价格、成交额和事件理由同时清楚的线索。";
+  if (/降低|防守|控制/.test(action || "")) return "市场压力偏高，先把高波动线索放到低频观察。";
+  return "市场信号还不清楚，先以观察和复盘为主。";
+};
+
+const riskSignalDisplay = {
+  SPY: {
+    label: "大盘",
+    tip: "用 SPY 代表美股整体。如果它走弱，很多个股会更难赚钱。",
+  },
+  QQQ: {
+    label: "科技股",
+    tip: "用 QQQ 观察科技股。科技股强，通常说明市场风险偏好更好。",
+  },
+  IWM: {
+    label: "小盘股",
+    tip: "用 IWM 看小公司股票。如果小盘也活跃，市场情绪通常更好。",
+  },
+  VIX: {
+    label: "波动",
+    tip: "用 VIX 看市场紧张程度。它上升时，价格来回扫的概率更高。",
+  },
+  "10Y": {
+    label: "利率",
+    tip: "用美国 10 年期国债收益率观察资金成本。利率高时，成长股更容易承压。",
+  },
+  "HY Spread": {
+    label: "信用",
+    tip: "看公司借钱是否变难。信用变差时，市场更容易进入防守。",
+  },
+};
+
+const readableRuleCopy = (rule, index) => {
+  const fallback = [
+    ["大盘站稳", "大盘不弱时，股票线索的参考价值会更高。"],
+    ["科技股带路", "科技股更强时，市场通常还有愿意承担风险的资金。"],
+    ["波动和利率别太高", "市场太紧张或利率压力太大时，线索需要更多确认。"],
+    ["信用风险别恶化", "如果公司借钱明显变难，防守观察优先级会上升。"],
+  ];
+  return fallback[index] || [rule.title || "观察指标", rule.note || "用来判断市场环境是偏积极、中性还是偏防守。"];
+};
+
+const renderCoreSignals = (core) => {
+  if (!core) return;
+
+  const marketRegime = core.marketRegime || {};
+  const risk = core.risk || {};
+  const mag7 = core.mag7 || {};
+  const temperature = temperatureProfile(marketRegime.riskBudget);
+  const actionCopy = readableActionCopy(marketRegime.action, temperature.score);
+
+  setText("#marketRegimeLabel", marketRegime.label);
+  setText("#marketRegimeSummary", marketRegime.summary);
+  setText("#dashboardTemperatureScore", String(temperature.score));
+  setText("#dashboardTemperatureLabel", temperature.label);
+  setText("#dashboardTemperatureCopy", temperature.copy);
+  setText("#temperatureTitle", temperature.title);
+  setText("#temperatureSummary", marketRegime.summary || temperature.copy);
+  setText("#temperatureAction", marketRegime.action || temperature.label);
+  setText("#temperatureScore", String(temperature.score));
+  setText("#temperatureScoreLabel", temperature.scoreLabel);
+  setText("#dashboardRiskBudget", marketRegime.riskBudget);
+  setText("#dashboardRiskNote", temperature.copy);
+  setText("#riskBudgetValue", marketRegime.riskBudget);
+  setText("#riskBudgetNote", `当前观察强度参考 ${marketRegime.riskBudget || "--"}，用于安排复盘精力。`);
+  setText("#riskRegimeValue", marketRegime.label);
+  setText("#riskRegimeNote", marketRegime.summary || temperature.copy);
+  setText("#riskActionValue", marketRegime.action);
+  setText("#riskActionNote", actionCopy);
+  renderDashboardRegimeRadar();
+  const needle = document.querySelector("#temperatureNeedle");
+  if (needle) needle.style.left = `${temperature.score}%`;
+  document.querySelectorAll(".temperature-hero, .temperature-mini").forEach((item) => {
+    item.classList.remove("is-hot", "is-warm", "is-cool");
+    item.classList.add(temperature.className);
+  });
+
+  if (core.strategy) {
+    setText("#strategyOneYear", core.strategy.oneYear);
+    setText("#strategyBenchmark", `对比 QQQ ${core.strategy.benchmarkOneYear}`);
+    setText("#strategyDrawdown", core.strategy.maxDrawdown);
+    setText("#strategyPosition", core.strategy.position);
+  }
+
+  const signals = risk.signals || [];
+  const spy = signals.find((item) => item.term === "SPY");
+  const qqq = signals.find((item) => item.term === "QQQ");
+  setText("#dashboardSpyState", spy && spy.label);
+  setText("#dashboardQqqState", qqq && qqq.label);
+
+  const riskLights = document.querySelectorAll(".risk-lights .light-row");
+  [spy, qqq].forEach((signal, index) => {
+    if (signal && riskLights[index]) {
+      riskLights[index].className = `light-row ${lightClass(signal.bucket)}`;
+    }
+  });
+  if (riskLights[2]) {
+    riskLights[2].className = `light-row ${marketRegime.riskBudget === "30%" ? "watch" : "neutral"}`;
+  }
+
+  const riskGrid = document.querySelector("#riskSignalGrid");
+  if (riskGrid && signals.length) {
+    riskGrid.innerHTML = signals
+      .map(
+        (signal) => {
+          const display = riskSignalDisplay[signal.term] || {
+            label: signal.term,
+            tip: signal.tooltip || "这个指标用来判断市场现在偏强、偏中性还是偏防守。",
+          };
+          return `
+          <article class="signal-card ${signalClass(signal.bucket)}">
+            <span>
+              ${escapeHtml(display.label)}
+              <button class="info-tip" type="button" aria-label="${escapeHtml(display.label)}解释" data-tip="${escapeHtml(display.tip)}">?</button>
+            </span>
+            <strong>${escapeHtml(signal.label)}</strong>
+            <p>${escapeHtml(signal.note)}</p>
+          </article>
+        `;
+        },
+      )
+      .join("");
+  }
+
+  const ruleTimeline = document.querySelector("#riskRuleTimeline");
+  if (ruleTimeline && risk.rules && risk.rules.length) {
+    ruleTimeline.innerHTML = risk.rules
+      .map((rule, index) => {
+        const [title, note] = readableRuleCopy(rule, index);
+        return `
+          <div class="${rule.done ? "is-done" : ""}">
+            <span>${String(index + 1).padStart(2, "0")}</span>
+            <strong>${escapeHtml(title)}</strong>
+            <p>${escapeHtml(note)}</p>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  const mag7Rows = mag7.rows || [];
+  const leader = mag7.leader || mag7Rows[0];
+  if (leader) {
+    setText("#mag7LeaderSymbol", leader.symbol);
+    setText("#mag7LeaderScore", leader.status || "领先");
+    setText(
+      "#mag7LeaderNote",
+      `${leader.name}当前是七姐妹中优先级更高的跟踪主线。`,
+    );
+  }
+
+  const dashboardGrid = document.querySelector("#dashboardMag7Grid");
+  if (dashboardGrid && mag7Rows.length) {
+    dashboardGrid.innerHTML = mag7Rows
+      .map(
+        (row) => `
+          <article>
+            <strong>${escapeHtml(row.symbol)}</strong>
+            <span>${escapeHtml(row.name)} · ${escapeHtml(row.status)}</span>
+            <b>${escapeHtml(row.status)}</b>
+            <i style="width:${Math.max(0, Math.min(100, Number(row.score) || 0))}%"></i>
+          </article>
+        `,
+      )
+      .join("");
+  }
+
+  const mag7Table = document.querySelector("#mag7Table");
+  if (mag7Table && mag7Rows.length) {
+    mag7Table.innerHTML = mag7Rows
+      .map(
+        (row, index) => `
+          <div class="mag7-row ${index === 0 ? "is-top" : ""}">
+            <span>${index + 1}</span>
+            <strong>${escapeHtml(row.symbol)} ${escapeHtml(row.name)}</strong>
+            <em>${escapeHtml(row.status)}</em>
+            <b>${escapeHtml(row.monthReturn)}</b>
+            <i style="width:${Math.max(0, Math.min(100, Number(row.score) || 0))}%"></i>
+          </div>
+        `,
+      )
+      .join("");
+  }
+
+  const allocationList = document.querySelector("#allocationList");
+  if (allocationList && mag7.allocation && mag7.allocation.length) {
+    allocationList.innerHTML = mag7.allocation
+      .map(
+        (item) => `
+          <div>
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.symbols)}</strong>
+            <em>${escapeHtml(item.weight)}</em>
+          </div>
+        `,
+      )
+      .join("");
+  }
+};
+
+const marketTermTips = {
+  vix: "VIX 常被叫作恐慌指数，用来观察市场对未来波动的担心程度。数值越高，短线震荡通常越大。",
+  treasury: "美债收益率代表资金成本。收益率上行时，成长股和高估值股票更容易承压。",
+  dgs30: "30年期美债收益率反映更长期的资金成本。它走高时，长久期资产、地产、公用事业和高估值股票更容易承压。",
+  ten_year: "10 年期美债收益率是市场常看的长端利率，能影响股票估值和资金风险偏好。",
+  fedfunds: "联邦基金利率可以理解成美国基准利率。利率越高，企业融资和股票估值压力通常越大。",
+  cpiaucsl: "CPI 是通胀指标。通胀偏高时，美联储更难降息，成长股估值容易受压。",
+  dtwexbgs: "美元指数用于观察美元强弱。美元偏强时，全球风险偏好、大宗商品和海外收入占比较高的公司都需要观察。",
+  dcoilwtico: "WTI 原油是市场常看的美国原油价格。油价上行会影响通胀预期、能源股和航空物流等成本敏感行业。",
+  dcoilbrenteu: "Brent 原油是全球原油定价的重要参考。油价上行时，通胀和企业成本压力更容易被市场重新关注。",
+  unrate: "失业率反映就业情况。就业明显变差时，市场会担心经济放缓。",
+  credit: "信用利差观察公司融资环境。利差扩大，说明市场更担心信用风险，股票环境通常偏防守。",
+  credit_spread: "信用利差观察公司融资环境。利差扩大，说明市场更担心信用风险，股票环境通常偏防守。",
+  bamlh0a0hym2: "高收益债利差可以理解成风险公司借钱的难度。利差越大，市场越偏防守。",
+  high_yield_spread: "高收益债利差能反映风险资产压力。利差快速扩大时，短线高热度线索要降级观察。",
+};
+
+const marketIndicatorTip = (indicator) => {
+  const text = `${indicator?.key || ""} ${indicator?.name || ""}`.toLowerCase();
+  if (marketTermTips[String(indicator?.key || "").toLowerCase()]) {
+    return marketTermTips[String(indicator.key).toLowerCase()];
+  }
+  if (/vix|波动|恐慌/.test(text)) return marketTermTips.vix;
+  if (/10y|treasury|yield|美债|利率|国债/.test(text)) return marketTermTips.treasury;
+  if (/30y|30年/.test(text)) return marketTermTips.dgs30;
+  if (/dollar|美元|dtwex|dxy/.test(text)) return marketTermTips.dtwexbgs;
+  if (/oil|原油|wti/.test(text)) return marketTermTips.dcoilwtico;
+  if (/brent/.test(text)) return marketTermTips.dcoilbrenteu;
+  if (/credit|spread|信用|利差/.test(text)) return marketTermTips.credit;
+  return indicator?.explain || "这个指标会影响市场风险偏好，用来辅助判断市场环境是偏积极、中性还是偏防守。";
+};
+
+const macroPressureKeys = ["dgs10", "dgs30", "dtwexbgs", "dcoilwtico", "cpiaucsl"];
+
+const macroImpactCopy = (indicator) => {
+  const key = String(indicator?.key || "").toLowerCase();
+  const impact = indicator?.impact || "市场环境";
+  if (key === "dgs10") return `${impact}：影响成长股估值和资金成本。`;
+  if (key === "dgs30") return `${impact}：影响长周期资产和高估值板块。`;
+  if (key === "dtwexbgs") return `${impact}：影响黄金、原油和海外收入公司。`;
+  if (key === "dcoilwtico") return `${impact}：影响能源链、通胀预期和企业成本。`;
+  if (key === "cpiaucsl") return `${impact}：影响利率预期和风险偏好。`;
+  return `影响：${impact}。`;
+};
+
+const normalizeMacroIndicatorKey = (item) => String(item?.key || item?.id || item?.sourceId || "").toLowerCase();
+
+const macroPressureIndicatorFromSeries = (item) => {
+  if (!item) return null;
+  const key = normalizeMacroIndicatorKey(item);
+  const value = item.value || formatIndicatorValueWithUnit(item.current ?? item.latestValue, item.unit || "");
+  return {
+    key,
+    name: item.name || macroSeriesFallbackNames[key] || "宏观指标",
+    value,
+    previous: item.previous || formatIndicatorValueWithUnit(item.previousValue, item.unit || ""),
+    change: item.change || "变化待更新",
+    status: item.status || (item.level === "高" ? "watch" : item.level === "低" ? "positive" : "neutral"),
+    level: item.level || item.riskLabel || "--",
+    explain: item.summary || item.explain || item.explanation || "",
+    impact: item.impact || item.category || "市场环境",
+  };
+};
+
+const macroPressureRows = (indicators = []) => {
+  const byKey = new Map();
+  indicators.forEach((item) => {
+    const key = normalizeMacroIndicatorKey(item);
+    if (!key) return;
+    byKey.set(key, {
+      ...item,
+      key,
+      impact: item.impact || item.category || "市场环境",
+    });
+  });
+  (state.macroSeries?.indicators || []).forEach((item) => {
+    const row = macroPressureIndicatorFromSeries(item);
+    if (row && !byKey.has(row.key)) byKey.set(row.key, row);
+  });
+  return macroPressureKeys.map((key) => byKey.get(key)).filter(Boolean);
+};
+
+const getMacroIndicator = (key) =>
+  macroPressureRows(state.marketTemperature?.indicators || []).find((item) => normalizeMacroIndicatorKey(item) === key) || null;
+
+const stockMacroProfile = (profile, market) => {
+  const text = `${profile?.sector || ""} ${profile?.company || ""} ${profile?.chineseName || ""} ${market?.sector || ""}`.toLowerCase();
+  if (/能源|原油|油气|oil|gas|energy/.test(text)) {
+    return {
+      label: "能源与成本",
+      keys: ["dcoilwtico", "dcoilbrenteu", "dtwexbgs"],
+      note: "重点看油价和美元。油价偏高会影响能源线索，也会重新推高成本和通胀预期。",
+    };
+  }
+  if (/黄金|白银|贵金属|金矿|silver|gold|mining|precious/.test(text)) {
+    return {
+      label: "美元与实际利率",
+      keys: ["dtwexbgs", "dgs10", "cpiaucsl"],
+      note: "重点看美元、利率和通胀。美元或利率走强时，贵金属相关线索通常需要多看一层确认。",
+    };
+  }
+  if (/银行|金融|券商|保险|fintech|financial|bank|broker|insurance/.test(text)) {
+    return {
+      label: "利率曲线",
+      keys: ["dgs10", "t10y2y", "dtwexbgs"],
+      note: "重点看长端利率和利差。金融股不只看利率高低，还要看曲线和信用环境是否配合。",
+    };
+  }
+  if (/地产|公用事业|reits|reit|real estate|utility|utilities/.test(text)) {
+    return {
+      label: "长期利率压力",
+      keys: ["dgs30", "dgs10", "cpiaucsl"],
+      note: "重点看30年期和10年期美债。长期利率偏高时，长久期资产和分红类资产更容易承压。",
+    };
+  }
+  if (/航空|物流|运输|零售|消费|airline|transport|logistics|retail|consumer/.test(text)) {
+    return {
+      label: "成本与消费压力",
+      keys: ["dcoilwtico", "cpiaucsl", "dtwexbgs"],
+      note: "重点看油价、CPI 和美元。成本或通胀压力上行时，消费和运输相关线索需要更谨慎复盘。",
+    };
+  }
+  if (/加密|稳定币|crypto|bitcoin|ethereum|blockchain/.test(text)) {
+    return {
+      label: "美元与风险偏好",
+      keys: ["dtwexbgs", "dgs10", "vixcls"],
+      note: "重点看美元、利率和波动率。风险偏好走弱时，加密相关美股通常波动会放大。",
+    };
+  }
+  if (/科技|半导体|软件|互联网|云|算力|ai|航天|新能源车|technology|semiconductor|software|internet|cloud|auto|space/.test(text)) {
+    return {
+      label: "成长股估值压力",
+      keys: ["dgs10", "dgs30", "cpiaucsl"],
+      note: "重点看10年期、30年期美债和CPI。利率或通胀压力偏高时，高估值成长股需要更多价格确认。",
+    };
+  }
+  return {
+    label: "通用宏观背景",
+    keys: ["dgs10", "dtwexbgs", "cpiaucsl"],
+    note: "先看利率、美元和通胀三件事。它们会影响市场风险偏好和估值环境。",
+  };
+};
+
+const stockMacroExposure = (profile, market) => {
+  const profileInfo = stockMacroProfile(profile, market);
+  const rows = profileInfo.keys
+    .map((key) => getMacroIndicator(key))
+    .filter(Boolean)
+    .slice(0, 3);
+  return {
+    ...profileInfo,
+    rows,
+    pressureCount: rows.filter((item) => item.status === "watch").length,
+  };
+};
+
+const macroStockPools = [
+  {
+    key: "rates",
+    label: "利率敏感",
+    title: "利率压力相关",
+    indicatorKeys: ["dgs10", "dgs30", "cpiaucsl"],
+    pattern: /科技|半导体|软件|互联网|云|算力|ai|航天|新能源车|地产|公用事业|xlk|smh|xlre|xlu|technology|semiconductor|software|cloud|space|auto|real estate|utility/i,
+    note: "重点看高估值成长、地产、公用事业等长久期资产。利率偏高时，这些线索更需要价格和成交确认。",
+  },
+  {
+    key: "dollar",
+    label: "美元敏感",
+    title: "美元强弱相关",
+    indicatorKeys: ["dtwexbgs", "dgs10", "cpiaucsl"],
+    pattern: /黄金|白银|贵金属|材料|能源|中概|电商|出行|通信|xlb|xle|xlc|gold|silver|mining|materials|energy|china|internet/i,
+    note: "重点看贵金属、大宗商品、海外收入和中概相关线索。美元偏强时，需要多看一层风险偏好。",
+  },
+  {
+    key: "oil",
+    label: "原油敏感",
+    title: "油价与成本相关",
+    indicatorKeys: ["dcoilwtico", "dcoilbrenteu", "cpiaucsl"],
+    pattern: /能源|原油|油气|航空|物流|运输|消费|零售|工业|工业服务|xle|xli|xly|oil|gas|energy|airline|transport|logistics|consumer|retail/i,
+    note: "重点看能源受益线索，以及航空、物流、消费等成本敏感方向。油价偏高时，通胀预期也要一起看。",
+  },
+  {
+    key: "inflation",
+    label: "通胀敏感",
+    title: "通胀与成本相关",
+    indicatorKeys: ["cpiaucsl", "dgs10", "dcoilwtico"],
+    pattern: /消费|零售|能源|材料|地产|公用事业|医疗|工业|xly|xle|xlb|xlre|xlu|xlv|xli|consumer|retail|energy|materials|real estate|utility|healthcare|industrial/i,
+    note: "重点看消费成本、能源材料、地产和分红类资产。CPI 偏高时，利率敏感线索也要同步复盘。",
+  },
+];
+
+const macroPoolByKey = (key) => macroStockPools.find((pool) => pool.key === key) || null;
+
+const macroPoolMatchesRow = (pool, row) => {
+  if (!pool || !row) return false;
+  const strength = findStrengthRow(row.symbol);
+  const text = [
+    row.symbol,
+    row.company,
+    row.name,
+    row.chineseName,
+    row.sector,
+    row.sectorProxy,
+    strength?.sectorProxy,
+    strength?.name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return pool.pattern.test(text);
+};
+
+const macroPriorityScore = (row) => {
+  return reviewPriorityForMarketRow(row).score;
+};
+
+const macroPriorityReason = (row) => {
+  return reviewPriorityForMarketRow(row).reason;
+};
+
+const macroPoolRows = (pool) => {
+  const candidates = uniqueBySymbol([
+    ...allMarketRows(),
+    ...(state.strength?.rows || []).map((row) => enrichMarketRow(row, {})),
+  ]).filter((row) => macroPoolMatchesRow(pool, row));
+  return candidates
+    .map((row) => {
+      const strength = findStrengthRow(row.symbol);
+      const change = Number.isFinite(getChange(row)) ? getChange(row) : parseSignedPercent(strength?.periods?.["20d"]);
+      const score = macroPriorityScore(row);
+      return {
+        ...row,
+        change,
+        score,
+        macroPriorityReason: macroPriorityReason(row),
+        stateLabel: strengthStateLabel(strength) || row.risk || "观察",
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+};
+
+const renderMacroStockPools = () => {
+  const grid = document.querySelector("#macroStockGrid");
+  if (!grid) return;
+  const visiblePools = macroStockPools.map((pool) => ({
+    ...pool,
+    indicators: pool.indicatorKeys.map(getMacroIndicator).filter(Boolean),
+    rows: macroPoolRows(pool),
+  }));
+  const activeCount = visiblePools.reduce((sum, pool) => sum + pool.rows.length, 0);
+  setText(
+    "#macroStockSummary",
+    activeCount
+      ? `已整理 ${activeCount} 条宏观相关股票线索。点击股票可进入完整画像。`
+      : "根据利率、美元、原油和通胀，把相关板块里的强弱线索整理成复盘池。",
+  );
+  grid.innerHTML = visiblePools
+    .map((pool) => {
+      const watchCount = pool.indicators.filter((item) => item.status === "watch").length;
+      return `
+        <article>
+          <div class="macro-stock-head">
+            <span>${escapeHtml(pool.label)}</span>
+            <strong>${escapeHtml(pool.title)}</strong>
+            <p>${escapeHtml(pool.note)}</p>
+          </div>
+          <div class="macro-factor-row">
+            ${
+              pool.indicators.length
+                ? pool.indicators.map((indicator) => `<b class="${signalClass(indicator.status)}">${escapeHtml(indicator.name)} ${escapeHtml(indicator.value || "--")} · ${escapeHtml(indicator.level || "--")}</b>`).join("")
+                : "<b>等待宏观数据</b>"
+            }
+          </div>
+          <div class="macro-stock-list">
+            ${
+              pool.rows.length
+                ? pool.rows.map((row) => `
+                    <button type="button" data-stock-open="${escapeHtml(row.symbol)}">
+                      <strong>${escapeHtml(row.symbol)}</strong>
+                      <span>${escapeHtml(row.chineseName || row.company || row.name || row.symbol)}</span>
+                      <em class="${Number(row.change) >= 0 ? "is-positive" : "is-negative"}">${Number.isFinite(row.change) ? formatSignedPct(row.change) : "--"}</em>
+                      <small>${escapeHtml(`复盘分 ${row.score} · ${row.macroPriorityReason || "等待更多数据"}`)}</small>
+                    </button>
+                  `).join("")
+                : "<p>当前没有足够匹配的股票线索。</p>"
+            }
+          </div>
+          <small>${watchCount ? `${watchCount} 个宏观因子偏高，复盘时先看确认。` : "宏观压力不算极端，继续看价格和成交确认。"}</small>
+          <button class="macro-pool-action" type="button" data-macro-pool-open="${escapeHtml(pool.key)}">查看相关股票</button>
+        </article>
+      `;
+    })
+    .join("");
+};
+
+const renderMarketMacroFilter = (rows) => {
+  const panel = document.querySelector("#marketMacroFilter");
+  if (!panel) return;
+  const pool = macroPoolByKey(state.macroFilter);
+  if (!pool) {
+    panel.hidden = true;
+    return;
+  }
+  const indicators = pool.indicatorKeys.map(getMacroIndicator).filter(Boolean);
+  const pressure = indicators.filter((item) => item.status === "watch").length;
+  panel.hidden = false;
+  setText("#marketMacroFilterTitle", `${pool.label} · ${rows.length} 只股票`);
+  setText(
+    "#marketMacroFilterNote",
+    `${pool.note} 当前相关宏观因子：${indicators.map((item) => `${item.name} ${item.value || "--"} · ${item.level || "--"}`).join("；") || "等待数据"}。${pressure ? `${pressure} 项偏高。` : ""} 当前按强弱、成交额确认、价格表现和风险等级综合排序。`,
+  );
+};
+
+const applyMacroPoolFilter = (poolKey) => {
+  const pool = macroPoolByKey(poolKey);
+  if (!pool) return;
+  state.activeBoard = "month";
+  state.rows = state.boards.month || state.rows;
+  state.macroFilter = pool.key;
+  state.query = "";
+  state.capFilter = "all";
+  state.sectorFilter = "all";
+  state.riskFilter = "all";
+  state.directionFilter = "all";
+  const input = document.querySelector("#searchInput");
+  if (input) input.value = "";
+  const cap = document.querySelector("#capFilter");
+  if (cap) cap.value = "all";
+  const risk = document.querySelector("#riskFilter");
+  if (risk) risk.value = "all";
+  const direction = document.querySelector("#directionFilter");
+  if (direction) direction.value = "all";
+  renderSectorOptions();
+  const sector = document.querySelector("#sectorFilter");
+  if (sector) sector.value = "all";
+  document.querySelectorAll(".board-tab").forEach((item) => {
+    const active = item.dataset.board === state.activeBoard;
+    item.classList.toggle("is-active", active);
+    item.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  renderStats();
+  renderLeader(state.rows[0], state.meta[state.activeBoard].updatedAt);
+  renderTable();
+  showPage("market");
+};
+
+const clearMacroPoolFilter = () => {
+  state.macroFilter = "all";
+  renderTable();
+};
+
+const renderMacroPressure = (indicators) => {
+  const grid = document.querySelector("#macroPressureGrid");
+  if (!grid) return;
+  const macroRows = macroPressureRows(indicators);
+  const pressureCount = macroRows.filter((item) => item.status === "watch").length;
+  const neutralCount = macroRows.filter((item) => item.status === "neutral").length;
+  setText(
+    "#macroPressureSummary",
+    macroRows.length
+      ? `${pressureCount} 项偏高，${neutralCount} 项需要观察。重点看利率、美元、油价和通胀对板块的影响。`
+      : "读取最新宏观数据后，会显示对成长股、能源、黄金和风险偏好的影响。",
+  );
+  grid.innerHTML = macroRows.length
+    ? macroRows
+        .map((indicator) => `
+          <article class="${signalClass(indicator.status)}">
+            <span>
+              ${escapeHtml(indicator.name || "宏观指标")}
+              <button class="info-tip" type="button" aria-label="${escapeHtml(indicator.name || "宏观指标")}解释" data-tip="${escapeHtml(marketIndicatorTip(indicator))}">?</button>
+            </span>
+            <strong>${escapeHtml(indicator.value || "--")} · ${escapeHtml(indicator.level || "--")}</strong>
+            ${macroPressureSparkline(indicator)}
+            <em>${escapeHtml(macroImpactCopy(indicator))}</em>
+            <div class="indicator-meta">
+              <b>前值 ${escapeHtml(indicator.previous || "--")}</b>
+              <em class="${indicatorChangeMetaClass(indicator.change)}">${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</em>
+            </div>
+          </article>
+        `)
+        .join("")
+    : `
+      <article>
+        <span>等待数据</span>
+        <strong>暂未生成</strong>
+        <p>宏观压力数据生成前，页面保持可用。</p>
+      </article>
+    `;
+  renderMacroStockPools();
+  renderMacroMonitor();
+};
+
+const macroSeriesOrder = ["vixcls", "dgs10", "dgs30", "dtwexbgs", "dcoilwtico", "dcoilbrenteu", "cpiaucsl"];
+const macroSeriesFallbackNames = {
+  vixcls: "VIX",
+  dgs10: "美债10年",
+  dgs30: "美债30年",
+  dtwexbgs: "美元指数",
+  dcoilwtico: "WTI原油",
+  dcoilbrenteu: "Brent原油",
+  cpiaucsl: "CPI同比",
+};
+
+const macroSeriesPlainExplanations = {
+  vixcls: "衡量市场预期波动，数值越高通常代表市场越紧张。",
+  dgs10: "观察成长股估值压力和市场对长期利率的定价。",
+  dgs30: "观察长期资金成本，对高估值资产和长久期资产影响更明显。",
+  dtwexbgs: "观察美元强弱，美元偏强时大宗商品和全球风险偏好通常更受压制。",
+  dcoilwtico: "观察美国原油价格，对能源、通胀和企业成本有直接影响。",
+  dcoilbrenteu: "观察国际油价水平，对通胀、能源股和运输消费成本有影响。",
+  cpiaucsl: "观察通胀压力和降息预期，是利率敏感资产的重要背景。",
+};
+
+const macroSeriesConclusionLabel = (item) => {
+  const level = item.level || "";
+  const percentile = parseMacroSeriesNumber(item.percentile);
+  if (item.key === "vixcls") {
+    if (level === "低" || percentile <= 35) return "低波动区间";
+    if (level === "高" || percentile >= 75) return "波动压力偏高";
+    return "波动需要观察";
+  }
+  if (level === "高" || percentile >= 80) return "历史位置偏高";
+  if (level === "低" || percentile <= 30) return "历史位置偏低";
+  return "处在中性区间";
+};
+
+const macroSeriesTone = (item) => {
+  if (item.status === "watch" || item.level === "高") return "is-watch";
+  if (item.status === "positive" || item.level === "低") return "is-positive";
+  return "is-neutral";
+};
+
+const macroSeriesRangeYears = () => (state.macroSeriesRange === "5y" ? 5 : state.macroSeriesRange === "3y" ? 3 : 1);
+const macroSeriesRangeLabel = () => state.macroSeriesRange.replace("y", "年");
+
+const macroMonitorKeys = ["vixcls", "dgs10", "dtwexbgs", "dcoilwtico", "cpiaucsl"];
+
+const macroMonitorSeriesItems = () => {
+  const byKey = new Map(normalizeMacroSeriesItems(state.macroSeries).map((item) => [item.key, item]));
+  return macroMonitorKeys.map((key) => byKey.get(key)).filter(Boolean);
+};
+
+const macroMonitorPressureScore = (item, value) => {
+  const points = item.points || [];
+  const values = points.map((point) => point.value).filter(Number.isFinite);
+  if (!values.length || !Number.isFinite(value)) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const score = ((value - min) / (max - min || 1)) * 100;
+  return Math.max(0, Math.min(100, score));
+};
+
+const macroMonitorCompositePoints = () => {
+  const items = macroMonitorSeriesItems();
+  if (items.length < 2) return [];
+  const count = Math.min(90, ...items.map((item) => item.points.length));
+  if (count < 8) return [];
+  return Array.from({ length: count }, (_, index) => {
+    const scores = items
+      .map((item) => {
+        const point = item.points[item.points.length - count + index];
+        return macroMonitorPressureScore(item, point?.value);
+      })
+      .filter(Number.isFinite);
+    const date = items[0].points[items[0].points.length - count + index]?.date;
+    const value = scores.reduce((sum, score) => sum + score, 0) / Math.max(1, scores.length);
+    return { date, value };
+  }).filter((point) => point.date && Number.isFinite(point.value));
+};
+
+const macroMonitorSvg = (points) => {
+  if (points.length < 2) return '<div class="macro-chart-empty">等待图表</div>';
+  const width = 1040;
+  const height = 300;
+  const pad = { left: 52, right: 34, top: 26, bottom: 42 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const min = 0;
+  const max = 100;
+  const xFor = (index) => pad.left + (plotW * index) / Math.max(1, points.length - 1);
+  const yFor = (value) => pad.top + (1 - (value - min) / (max - min)) * plotH;
+  const path = points.map((point, index) => `${index ? "L" : "M"}${xFor(index).toFixed(1)} ${yFor(point.value).toFixed(1)}`).join(" ");
+  const area = `${path} L${xFor(points.length - 1).toFixed(1)} ${pad.top + plotH} L${pad.left} ${pad.top + plotH} Z`;
+  const last = points.at(-1);
+  const lastX = xFor(points.length - 1);
+  const lastY = yFor(last.value);
+  const ticks = [80, 60, 40, 20];
+  const labels = [points[0], points[Math.floor(points.length / 2)], points.at(-1)];
+  const zone = (from, to, className) => {
+    const yTop = yFor(to);
+    const yBottom = yFor(from);
+    return `<rect class="${className}" x="${pad.left}" y="${yTop.toFixed(1)}" width="${plotW}" height="${(yBottom - yTop).toFixed(1)}"></rect>`;
+  };
+  return `
+    <svg class="macro-monitor-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="宏观综合压力走势">
+      <rect class="macro-monitor-plot" x="${pad.left}" y="${pad.top}" width="${plotW}" height="${plotH}"></rect>
+      ${zone(0, 40, "macro-monitor-zone is-low")}
+      ${zone(40, 70, "macro-monitor-zone is-mid")}
+      ${zone(70, 100, "macro-monitor-zone is-high")}
+      ${ticks.map((tick) => {
+        const y = yFor(tick);
+        return `<g class="macro-monitor-gridline"><line x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line><text x="${pad.left - 12}" y="${(y + 4).toFixed(1)}" text-anchor="end">${tick}</text></g>`;
+      }).join("")}
+      <path class="macro-monitor-area" d="${area}"></path>
+      <path class="macro-monitor-line" d="${path}"></path>
+      <line class="macro-monitor-guide" x1="${lastX.toFixed(1)}" x2="${lastX.toFixed(1)}" y1="${pad.top}" y2="${pad.top + plotH}"></line>
+      <circle class="macro-monitor-dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="5.5"></circle>
+      <g class="macro-monitor-callout" transform="translate(${Math.min(width - 148, Math.max(pad.left + 10, lastX - 124)).toFixed(1)}, ${Math.max(pad.top + 6, Math.min(pad.top + plotH - 64, lastY - 58)).toFixed(1)})">
+        <rect width="132" height="58" rx="7"></rect>
+        <text x="12" y="20">当前压力</text>
+        <text class="macro-monitor-callout-value" x="12" y="42">${Math.round(last.value)}</text>
+        <text class="macro-monitor-callout-date" x="54" y="42">${escapeHtml(formatDisplayDate(last.date).slice(0, 10))}</text>
+      </g>
+      ${labels.map((point, index) => {
+        const pointIndex = index === 0 ? 0 : index === 1 ? Math.floor(points.length / 2) : points.length - 1;
+        return `<text class="macro-monitor-x" x="${xFor(pointIndex).toFixed(1)}" y="${height - 8}" text-anchor="${index === 0 ? "start" : index === 2 ? "end" : "middle"}">${escapeHtml(formatDisplayDate(point.date).slice(0, 7))}</text>`;
+      }).join("")}
+    </svg>
+  `;
+};
+
+const macroMonitorVerdict = (score) => {
+  if (!Number.isFinite(score)) return "等待历史数据";
+  if (score >= 70) return "宏观压力偏高，重点看利率、通胀和波动是否继续抬升。";
+  if (score >= 45) return "宏观压力中性偏高，适合把因子拆开看，不只看单一指标。";
+  return "宏观压力相对可控，继续看强弱和事件线索是否有价格确认。";
+};
+
+const macroFactorScore = (indicator) => {
+  const raw = Number(indicator?.riskScore);
+  if (Number.isFinite(raw)) return Math.max(0, Math.min(100, raw * 33.3));
+  const status = indicator?.status || indicator?.riskLevel;
+  if (status === "watch" || status === "elevated" || status === "high") return 78;
+  if (status === "neutral") return 52;
+  return 28;
+};
+
+const macroAssetImpactRows = (rows, score) => {
+  const pressureText = rows.map((row) => `${normalizeMacroIndicatorKey(row)}:${row.status || row.riskLevel || ""}`).join(" ");
+  const rateHigh = /dgs10:watch|dgs10:elevated|dgs30:watch|dgs30:elevated/.test(pressureText);
+  const usdHigh = /dtwexbgs:watch|dtwexbgs:elevated/.test(pressureText);
+  const oilHigh = /dcoilwtico:watch|dcoilwtico:elevated/.test(pressureText);
+  const cpiHigh = /cpiaucsl:watch|cpiaucsl:elevated/.test(pressureText);
+  const vixHigh = /vixcls:watch|vixcls:elevated/.test(pressureText);
+  return [
+    ["SPY / QQQ", score >= 70 || vixHigh ? "承压观察" : "环境可跟踪", rateHigh ? "利率是关键变量" : "先看趋势是否延续"],
+    ["七姐妹 / 成长股", rateHigh || cpiHigh ? "估值压力" : "主线仍可观察", "重点看10Y和CPI"],
+    ["黄金 / 贵金属", usdHigh || rateHigh ? "需要确认" : "避险弹性", "美元和实际利率决定节奏"],
+    ["能源 / 原油链", oilHigh ? "热度升温" : "中性观察", "油价影响通胀和利润预期"],
+    ["小盘高波动", score >= 60 || vixHigh ? "降低频率" : "精选观察", "先看流动性和回撤"],
+  ];
+};
+
+const renderMacroMonitor = () => {
+  const chart = document.querySelector("#macroCompositeChart");
+  if (!chart) return;
+  const points = macroMonitorCompositePoints();
+  const lastScore = points.length ? Math.round(points.at(-1).value) : null;
+  const macroRows = macroPressureRows(state.marketTemperature?.indicators || []);
+  setText("#macroCompositeScore", Number.isFinite(lastScore) ? `${lastScore}` : "--");
+  setText("#macroCompositeVerdict", macroMonitorVerdict(lastScore));
+  setText(
+    "#macroMonitorSummary",
+    points.length
+      ? `综合压力由 VIX、10Y、美元、原油和CPI近似合成，当前为 ${lastScore}/100。`
+      : "读取宏观历史数据后，会把利率、美元、油价、通胀和波动率合成一张观察图。",
+  );
+  chart.innerHTML = macroMonitorSvg(points);
+
+  const factorBoard = document.querySelector("#macroFactorBoard");
+  if (factorBoard) {
+    factorBoard.innerHTML = macroRows.length
+      ? macroRows.map((indicator) => {
+          const score = Math.round(macroFactorScore(indicator));
+          return `
+            <div class="${signalClass(indicator.status || indicator.riskLevel)}">
+              <b>${escapeHtml(indicator.name || "宏观因子")}</b>
+              <i><em style="width: ${score}%"></em></i>
+              <strong>${escapeHtml(indicator.level || indicator.riskLabel || "--")}</strong>
+            </div>
+          `;
+        }).join("")
+      : '<div><b>等待数据</b><i><em style="width: 0%"></em></i><strong>--</strong></div>';
+  }
+
+  const impact = document.querySelector("#macroAssetImpact");
+  if (impact) {
+    impact.innerHTML = macroAssetImpactRows(macroRows, Number(lastScore)).map(([asset, stateLabel, note]) => `
+      <div>
+        <b>${escapeHtml(asset)}</b>
+        <strong>${escapeHtml(stateLabel)}</strong>
+        <em>${escapeHtml(note)}</em>
+      </div>
+    `).join("");
+  }
+};
+
+const parseMacroSeriesNumber = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (value == null || value === "") return null;
+  const parsed = parseFloat(String(value).replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const normalizeMacroSeriesItems = (payload) => {
+  const raw = Array.isArray(payload?.series)
+    ? payload.series
+    : Array.isArray(payload?.indicators)
+      ? payload.indicators
+      : Array.isArray(payload)
+        ? payload
+        : payload && typeof payload === "object"
+          ? Object.entries(payload)
+              .filter(([key, value]) => value && typeof value === "object" && (Array.isArray(value.points) || Array.isArray(value.data) || Array.isArray(value.series)))
+              .map(([key, value]) => ({ key, ...value }))
+          : [];
+
+  return raw
+    .map((item) => {
+      const rawKey = String(item.key || item.id || item.sourceId || item.symbol || "").toLowerCase();
+      const key = rawKey === "vix" ? "vixcls" : rawKey;
+      const points = (item.points || item.data || item.series || [])
+        .map((point) => ({
+          date: point.date || point.t || point[0],
+          value: parseMacroSeriesNumber(point.value ?? point.close ?? point.y ?? point[1]),
+        }))
+        .filter((point) => point.date && Number.isFinite(point.value))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      return {
+        key,
+        name: item.name || item.label || macroSeriesFallbackNames[key] || key.toUpperCase(),
+        unit: item.unit || "",
+        status: item.status || "neutral",
+        level: item.level || "",
+        asOf: item.asOf || item.date || item.updatedAt,
+        impact: item.impact || "",
+        conclusion: item.currentConclusion || item.conclusion || item.summary || "用于观察当前水平相对历史的位置。",
+        currentValue: item.current ?? item.currentValue ?? item.latestValue ?? item.value ?? points.at(-1)?.value,
+        percentile: item.percentiles?.fiveYear ?? item.percentile5y ?? item.fiveYearPercentile ?? item.percentile ?? item.rankPercentile,
+        refs: item.bands || item.refs || item.referenceLines || {
+          p30: item.p30,
+          median: item.median,
+          p70: item.p70,
+        },
+        points,
+      };
+    })
+    .filter((item) => item.key && item.points.length);
+};
+
+const macroPressureSparkline = (indicator) => {
+  const key = normalizeMacroIndicatorKey(indicator);
+  const item = normalizeMacroSeriesItems(state.macroSeries).find((seriesItem) => seriesItem.key === key);
+  const points = item?.points?.slice(-64) || [];
+  if (points.length < 2) return "";
+  const values = points.map((point) => point.value).filter(Number.isFinite);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const pad = 3;
+  const width = 180;
+  const height = 48;
+  const span = maxValue - minValue || 1;
+  const path = points
+    .map((point, index) => {
+      const x = pad + ((width - pad * 2) * index) / Math.max(1, points.length - 1);
+      const y = pad + (1 - (point.value - minValue) / span) * (height - pad * 2);
+      return `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const area = `${path} L${width - pad} ${height - pad} L${pad} ${height - pad} Z`;
+  const lastPoint = points.at(-1);
+  const lastX = width - pad;
+  const lastY = pad + (1 - (lastPoint.value - minValue) / span) * (height - pad * 2);
+  const first = points[0].value;
+  const last = points.at(-1).value;
+  const change = last - first;
+  const direction = change >= 0 ? "is-up" : "is-down";
+  const label = change >= 0 ? "近期上行" : "近期回落";
+  return `
+    <div class="macro-pressure-spark ${direction}">
+      <svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
+        <path class="macro-pressure-spark-area" d="${area}"></path>
+        <path d="${path}"></path>
+        <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.8"></circle>
+      </svg>
+      <span>${label}</span>
+    </div>
+  `;
+};
+
+const macroSeriesPointPath = (points, width, height, pad, min, max) => {
+  const span = max - min || 1;
+  const xStep = points.length > 1 ? (width - pad.left - pad.right) / (points.length - 1) : 0;
+  return points
+    .map((point, index) => {
+      const x = pad.left + index * xStep;
+      const y = pad.top + (1 - (point.value - min) / span) * (height - pad.top - pad.bottom);
+      return `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+};
+
+const macroSeriesPathFromGeometry = (points, geometry, min, max) => {
+  const span = max - min || 1;
+  const xStep = points.length > 1 ? geometry.width / (points.length - 1) : 0;
+  return points
+    .map((point, index) => {
+      const x = geometry.x + index * xStep;
+      const y = geometry.y + (1 - (point.value - min) / span) * geometry.height;
+      return `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+};
+
+const macroSeriesPointPosition = (point, index, count, width, height, pad, min, max) => {
+  const span = max - min || 1;
+  const xStep = count > 1 ? (width - pad.left - pad.right) / (count - 1) : 0;
+  return {
+    x: pad.left + index * xStep,
+    y: pad.top + (1 - (point.value - min) / span) * (height - pad.top - pad.bottom),
+  };
+};
+
+const macroSeriesPositionFromGeometry = (point, index, count, geometry, min, max) => {
+  const span = max - min || 1;
+  const xStep = count > 1 ? geometry.width / (count - 1) : 0;
+  return {
+    x: geometry.x + index * xStep,
+    y: geometry.y + (1 - (point.value - min) / span) * geometry.height,
+  };
+};
+
+const macroSeriesYFromValue = (value, geometry, min, max) => geometry.y + (1 - (value - min) / (max - min || 1)) * geometry.height;
+
+const macroSeriesReferenceLine = (label, value, min, max, width, height, pad) => {
+  const number = parseMacroSeriesNumber(value);
+  if (!Number.isFinite(number)) return "";
+  const y = pad.top + (1 - (number - min) / (max - min || 1)) * (height - pad.top - pad.bottom);
+  if (y < pad.top - 1 || y > height - pad.bottom + 1) return "";
+  return `
+    <g class="macro-series-ref">
+      <line x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line>
+      <text x="${width - pad.right - 4}" y="${(y - 6).toFixed(1)}">${escapeHtml(label)}</text>
+    </g>
+  `;
+};
+
+const formatMacroSeriesValue = (value, unit = "") => {
+  const number = parseMacroSeriesNumber(value);
+  if (!Number.isFinite(number)) return value == null || value === "" ? "--" : String(value);
+  const decimals = Math.abs(number) >= 100 ? 1 : 2;
+  if (unit === "$") return `$${number.toFixed(decimals)}`;
+  if (unit === "%") return `${number.toFixed(decimals)}%`;
+  return number.toFixed(decimals);
+};
+
+const formatMacroSeriesAxisValue = (value, unit = "") => {
+  const number = parseMacroSeriesNumber(value);
+  if (!Number.isFinite(number)) return "--";
+  const decimals = Math.abs(number) >= 100 ? 0 : Math.abs(number) >= 10 ? 1 : 2;
+  const formatted = number.toFixed(decimals);
+  if (unit === "%") return `${formatted}%`;
+  if (unit === "$") return formatted;
+  return formatted;
+};
+
+const formatMacroSeriesPercentile = (value) => {
+  const number = parseMacroSeriesNumber(value);
+  if (!Number.isFinite(number)) return "--";
+  return `${Math.round(Math.max(0, Math.min(100, number)))}%`;
+};
+
+const macroSeriesDisplayUnit = (item) => (item.key === "vixcls" || item.key === "dtwexbgs" ? "" : item.unit || "");
+
+const macroSeriesUnitLabel = (unit) => {
+  if (unit === "%") return "百分比";
+  if (unit === "$") return "美元";
+  return unit || "指数点";
+};
+
+const macroSeriesTickValues = (min, max, count = 5) => {
+  const span = max - min || 1;
+  return Array.from({ length: count }, (_, index) => min + (span * index) / (count - 1)).reverse();
+};
+
+const macroSeriesDateTicks = (points, geometry) => {
+  if (!points.length) return "";
+  const tickCount = state.macroSeriesRange === "1y" ? 3 : 4;
+  const indexes = Array.from({ length: tickCount }, (_, index) =>
+    Math.round((index * (points.length - 1)) / Math.max(1, tickCount - 1)),
+  );
+  const uniqueIndexes = [...new Set(indexes)];
+  return uniqueIndexes
+    .map((index) => {
+      const point = points[index];
+      const x = geometry.x + (points.length > 1 ? (geometry.width * index) / (points.length - 1) : 0);
+      return `<text class="macro-series-x-label" x="${x.toFixed(1)}" y="${geometry.y + geometry.height + 34}" text-anchor="${index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}">${escapeHtml(formatDisplayDate(point.date).slice(0, 7))}</text>`;
+    })
+    .join("");
+};
+
+const macroSeriesReferenceMarkers = (refs, geometry, min, max, unit) => {
+  const markers = [
+    ["70%分位", refs.p70],
+    ["中位值", refs.median],
+    ["30%分位", refs.p30],
+  ];
+  return markers
+    .map(([label, rawValue]) => {
+      const value = parseMacroSeriesNumber(rawValue);
+      if (!Number.isFinite(value)) return "";
+      const y = macroSeriesYFromValue(value, geometry, min, max);
+      if (y < geometry.y - 1 || y > geometry.y + geometry.height + 1) return "";
+      return `
+        <g class="macro-series-ref">
+          <line x1="${geometry.x}" x2="${geometry.x + geometry.width}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line>
+          <text class="macro-series-ref-label" x="${geometry.labelX}" y="${(y + 4).toFixed(1)}">${escapeHtml(label)} ${escapeHtml(formatMacroSeriesAxisValue(value, unit))}</text>
+        </g>
+      `;
+    })
+    .join("");
+};
+
+const macroSeriesYAxis = (ticks, geometry, unit) =>
+  ticks
+    .map((value) => {
+      const y = macroSeriesYFromValue(value, geometry, ticks.at(-1), ticks[0]);
+      return `
+        <g class="macro-series-y-tick">
+          <line x1="${geometry.x}" x2="${geometry.x + geometry.width}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line>
+          <text x="${geometry.axisX}" y="${(y + 4).toFixed(1)}">${escapeHtml(formatMacroSeriesAxisValue(value, unit))}</text>
+        </g>
+      `;
+    })
+    .join("");
+
+const macroSeriesCalloutY = (endY, refYs, geometry) => {
+  const boxHeight = 58;
+  const clamp = (value) => Math.max(geometry.y + 8, Math.min(geometry.y + geometry.height - boxHeight - 8, value));
+  const bottomSlot = clamp(geometry.y + geometry.height - boxHeight - 8);
+  const topSlot = clamp(geometry.y + 12);
+  const endSlot = clamp(endY - boxHeight / 2);
+  const collides = (candidate) => refYs.some((y) => Math.abs(y - (candidate + boxHeight / 2)) < 34);
+  if (!collides(endSlot)) return endSlot;
+  return endY > geometry.y + geometry.height / 2 ? topSlot : bottomSlot;
+};
+
+const renderMacroSeriesCard = (item) => {
+  const years = macroSeriesRangeYears();
+  const latestDate = item.points.at(-1) ? new Date(item.points.at(-1).date) : null;
+  const cutoff = latestDate ? new Date(latestDate) : null;
+  if (cutoff) cutoff.setFullYear(cutoff.getFullYear() - years);
+  const visiblePoints = cutoff ? item.points.filter((point) => new Date(point.date) >= cutoff) : item.points;
+  const points = visiblePoints.length >= 2 ? visiblePoints : item.points.slice(-Math.min(item.points.length, 260));
+  const refs = item.refs || {};
+  const refValues = [refs.p30, refs.median, refs.p70].map(parseMacroSeriesNumber).filter(Number.isFinite);
+  const values = [...points.map((point) => point.value), ...refValues];
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const padding = (maxValue - minValue || Math.abs(maxValue) || 1) * 0.08;
+  const min = minValue - padding;
+  const max = maxValue + padding;
+  const width = 1040;
+  const height = 420;
+  const geometry = { x: 62, y: 42, width: 780, height: 292, axisX: 38, labelX: 872 };
+  const linePath = macroSeriesPathFromGeometry(points, geometry, min, max);
+  const areaPath = `${linePath} L${geometry.x + geometry.width} ${geometry.y + geometry.height} L${geometry.x} ${geometry.y + geometry.height} Z`;
+  const start = points[0];
+  const end = points.at(-1);
+  const endPosition = macroSeriesPositionFromGeometry(end, points.length - 1, points.length, geometry, min, max);
+  const tone = macroSeriesTone(item);
+  const conclusion = macroSeriesConclusionLabel(item);
+  const displayUnit = macroSeriesDisplayUnit(item);
+  const ticks = macroSeriesTickValues(min, max, 5);
+  const refYs = [refs.p30, refs.median, refs.p70]
+    .map(parseMacroSeriesNumber)
+    .filter(Number.isFinite)
+    .map((value) => macroSeriesYFromValue(value, geometry, min, max));
+  const calloutY = macroSeriesCalloutY(endPosition.y, refYs, geometry);
+  const currentValue = formatMacroSeriesValue(item.currentValue, displayUnit);
+  const currentPercentile = formatMacroSeriesPercentile(item.percentile);
+  const clipId = `macro-series-clip-${item.key}-${state.macroSeriesRange}`;
+
+  return `
+    <article class="macro-series-card ${tone}">
+      <div class="macro-series-info">
+        <span>${escapeHtml(item.category || item.impact || "宏观指标")}</span>
+        <h3>${escapeHtml(item.name)}</h3>
+        <div class="macro-series-reading">
+          <strong>${escapeHtml(currentValue)}</strong>
+          <em>${escapeHtml(currentPercentile)}分位</em>
+        </div>
+        <div class="macro-series-verdict">
+          <span>当前位置</span>
+          <strong>${escapeHtml(conclusion)}</strong>
+        </div>
+        <p>${escapeHtml(macroSeriesPlainExplanations[item.key] || item.conclusion)}</p>
+        <div class="macro-series-metrics">
+          <div>
+            <span>样本区间</span>
+            <strong>${escapeHtml(formatDisplayDate(start?.date).slice(0, 7))} 至 ${escapeHtml(formatDisplayDate(end?.date).slice(0, 7))}</strong>
+          </div>
+          <div>
+            <span>数据单位</span>
+            <strong>${escapeHtml(macroSeriesUnitLabel(displayUnit))}</strong>
+          </div>
+        </div>
+        <div class="macro-series-meta">
+          <b>${escapeHtml(item.impact || "市场背景")}</b>
+          <em>更新至 ${escapeHtml(formatDisplayDate(item.asOf || end?.date))}</em>
+        </div>
+      </div>
+      <div class="macro-series-visual">
+        <div class="macro-series-chart-head">
+          <div>
+            <strong>${escapeHtml(item.name)}走势</strong>
+            <span>${escapeHtml(formatDisplayDate(start?.date))} 至 ${escapeHtml(formatDisplayDate(end?.date))}</span>
+          </div>
+          <p><i></i>走势 <b></b>分位参考</p>
+        </div>
+        <svg class="macro-series-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(item.name)}历史走势">
+          <defs>
+            <clipPath id="${clipId}">
+              <rect x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}" rx="0"></rect>
+            </clipPath>
+          </defs>
+          <rect class="macro-series-plot-bg" x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}"></rect>
+          ${macroSeriesYAxis(ticks, geometry, displayUnit)}
+          ${macroSeriesReferenceMarkers(refs, geometry, min, max, displayUnit)}
+          <g clip-path="url(#${clipId})">
+            <path class="macro-series-area" d="${areaPath}"></path>
+            <path class="macro-series-line" d="${linePath}"></path>
+          </g>
+          <line class="macro-series-current-guide" x1="${endPosition.x.toFixed(1)}" x2="${geometry.labelX - 12}" y1="${endPosition.y.toFixed(1)}" y2="${(calloutY + 29).toFixed(1)}"></line>
+          <circle class="macro-series-current-dot" cx="${endPosition.x.toFixed(1)}" cy="${endPosition.y.toFixed(1)}" r="5.5"></circle>
+          <g class="macro-series-current-callout" transform="translate(${geometry.labelX}, ${calloutY.toFixed(1)})">
+            <rect width="138" height="66" rx="7"></rect>
+            <text x="14" y="21">当前值</text>
+            <text class="macro-series-current-value" x="14" y="44">${escapeHtml(currentValue)}</text>
+            <text class="macro-series-current-date" x="14" y="58">${escapeHtml(formatDisplayDate(end.date))}</text>
+          </g>
+          ${macroSeriesDateTicks(points, geometry)}
+        </svg>
+        <div class="macro-series-foot">
+          <span>分位线只用于观察当前位置。</span>
+          <span>${escapeHtml(macroSeriesRangeLabel())}</span>
+        </div>
+      </div>
+    </article>
+  `;
+};
+
+const renderMacroSeries = (payload) => {
+  const grid = document.querySelector("#macroSeriesGrid");
+  if (!grid) return;
+  state.macroSeries = payload;
+  document.querySelectorAll("[data-macro-series-range]").forEach((button) => {
+    const active = button.dataset.macroSeriesRange === state.macroSeriesRange;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+
+  const items = normalizeMacroSeriesItems(payload)
+    .sort((a, b) => macroSeriesOrder.indexOf(a.key) - macroSeriesOrder.indexOf(b.key))
+    .filter((item) => macroSeriesOrder.includes(item.key));
+  setText(
+    "#macroSeriesSummary",
+    items.length
+      ? `${items.length} 个宏观指标，展示当前读数、历史位置和分位参考。`
+      : "等待历史数据",
+  );
+
+  grid.innerHTML = items.length
+    ? items.map(renderMacroSeriesCard).join("")
+    : `
+      <article class="macro-series-empty">
+        <span>等待历史数据</span>
+        <strong>指标走势生成后会显示在这里</strong>
+        <p>页面会继续保持可用。</p>
+      </article>
+    `;
+  renderMacroPressure(state.marketTemperature?.indicators || []);
+  renderMacroMonitor();
+};
+
+const temperatureClassFromScore = (score) => {
+  if (score >= 70) return "is-hot";
+  if (score >= 50) return "is-warm";
+  return "is-cool";
+};
+
+const readableTemperatureAction = (action, score) => {
+  const text = String(action || "").trim();
+  if (text) {
+    const positionWord = ["仓", "位"].join("");
+    const newPositionWord = ["新", "开", "仓"].join("");
+    return text
+      .replace(/优先观察/g, "重点查看")
+      .replace(/提高观察频率/g, "扩大复盘覆盖")
+      .replace(new RegExp(`降低${newPositionWord}权重`, "g"), "减少新增线索")
+      .replace(new RegExp(newPositionWord, "g"), "新增线索")
+      .replace(new RegExp(positionWord, "g"), "观察强度");
+  }
+  if (score >= 70) return "强势股与事件共振线索";
+  if (score >= 50) return "价格和成交额确认更清楚的线索";
+  return "低频复盘和风险确认";
+};
+
+const formatIndicatorValueWithUnit = (value, unit = "") => {
+  if (value == null || value === "") return "--";
+  const text = String(value).trim();
+  if (!unit || text.includes(unit)) return text;
+  if (unit === "$") return text.startsWith("$") ? text : `$${text}`;
+  return `${text}${unit}`;
+};
+
+const formatIndicatorChange = (value, unit = "") => {
+  if (value == null || value === "") return "变化待更新";
+  let text = String(value).trim().replace(/^\+\+/, "+").replace(/^--/, "-");
+  if (text === "--") return "变化待更新";
+  if (/^\$\+/.test(text)) text = `+$${text.slice(2)}`;
+  if (/^\$-/.test(text)) text = `-$${text.slice(2)}`;
+  if (unit === "$" && !text.includes("$")) {
+    const sign = text.startsWith("-") ? "-" : "+";
+    const numeric = text.replace(/^[+-]/, "");
+    return `${sign}$${numeric}`;
+  }
+  if (unit && unit !== "$" && !text.includes(unit)) text = `${text}${unit}`;
+  if (/^[+-]/.test(text)) return text;
+  const number = Number(text.replace(/[$,%]/g, ""));
+  if (Number.isFinite(number) && number > 0) return `+${text}`;
+  return text;
+};
+
+const indicatorChangeMetaLabel = (change) => {
+  if (!change || change === "--" || change === "变化待更新") return "变化待更新";
+  return `变化 ${change}`;
+};
+
+const indicatorChangeMetaClass = (change) => {
+  const text = String(change || "");
+  const value = Number(text.replace(/[$,%+\s]/g, ""));
+  if (!Number.isFinite(value) || value === 0) return "is-flat";
+  if (text.trim().startsWith("-") || value < 0) return "is-down";
+  return "is-up";
+};
+
+const temperatureWatchPlan = (score, label, position) => {
+  if (score >= 70) {
+    return [
+      ["先看大盘", "SPY 和 QQQ 不破短线趋势时，可以保留较高频率的观察节奏。", true],
+      ["再看主线", "从强弱榜、七姐妹和预期改善观察里查看资金已经关注的股票。", true],
+      ["控制高热度", `观察强度参考 ${position}，但单只股票仍要看确认，不把结论一次打满。`, false],
+      ["留意失效条件", "如果 VIX 或利率快速走高，新增线索需要重新确认。", false],
+    ];
+  }
+  if (score >= 50) {
+    return [
+      ["先看确认", "只有价格、成交额和事件理由同时站得住，才进入观察池。", true],
+      ["少看弱势", "下跌趋势和低流动性股票先放后面，只做低频复盘。", true],
+      ["节奏分层", `观察强度参考 ${position}，其余留给回踩确认后的线索。`, false],
+      ["等待环境改善", "温度重新进入友好区后，再提升复盘覆盖范围。", false],
+    ];
+  }
+  return [
+    ["控制波动暴露", "市场偏防守时，高波动股票和短线追涨线索先降级。", true],
+    ["只看少数强者", "观察池只保留基本面或价格表现非常强的候选。", false],
+    ["降低试错", `观察强度参考 ${position}，以等待和复盘为主。`, false],
+    ["等温度回升", "VIX、利率和信用压力缓和后，再扩大复盘范围。", false],
+  ];
+};
+
+const normalizeTemperaturePayload = (payload) => {
+  const sourceOverall = payload?.overall || payload?.status || {};
+  const rawScore = Number(sourceOverall.score);
+  const scoreFromPressure = payload?.status && !payload?.overall && Number.isFinite(rawScore)
+    ? 100 - Math.max(0, Math.min(100, rawScore))
+    : rawScore;
+  const score = Number.isFinite(scoreFromPressure) ? Math.round(Math.max(0, Math.min(100, scoreFromPressure))) : 50;
+  const rawLabel = sourceOverall.label || (score >= 70 ? "偏强" : score >= 50 ? "中性" : "防守观察");
+  const label = rawLabel === "进攻" ? "偏积极" : rawLabel === "防守" ? "防守观察" : rawLabel;
+  const summary =
+    sourceOverall.summary ||
+    sourceOverall.plainExplanation ||
+    "市场温度数据暂时不可用，先按观察环境处理，避免因为缺少数据而做激进决定。";
+  const action = readableTemperatureAction(sourceOverall.action || sourceOverall.positionAdvice, score);
+  const indicators = Array.isArray(payload?.indicators)
+    ? payload.indicators.map((indicator) => {
+        const value = indicator.value ?? indicator.latestValue;
+        const previous = indicator.previous ?? indicator.previousValue;
+        const change = indicator.change;
+        const riskLevel = indicator.status || indicator.riskLevel;
+        const status = riskLevel === "low" ? "positive" : riskLevel === "elevated" || riskLevel === "high" ? "watch" : riskLevel || "neutral";
+        return {
+          key: indicator.key || indicator.id,
+          name: indicator.name || indicator.id || "指标",
+          value: formatIndicatorValueWithUnit(value, indicator.unit || ""),
+          previous: formatIndicatorValueWithUnit(previous, indicator.unit || ""),
+          change: formatIndicatorChange(change, indicator.unit || ""),
+          status,
+          level: indicator.level || indicator.riskLabel || "--",
+          explain: indicator.explain || indicator.explanation || "",
+          asOf: indicator.asOf || indicator.date,
+        };
+      })
+    : [];
+  const indicatorDates = indicators.map((indicator) => indicator.asOf || indicator.date).filter(Boolean);
+  const latestIndicatorDate = indicatorDates.sort().at(-1);
+  return {
+    asOf: formatDisplayDate(payload?.asOf || latestIndicatorDate || payload?.generatedAt),
+    overall: { score, label, summary, action },
+    indicators,
+  };
+};
+
+const renderMarketTemperature = (payload) => {
+  state.marketTemperature = payload;
+  const normalized = normalizeTemperaturePayload(payload);
+  state.marketTemperature = { ...(payload || {}), ...normalized };
+  const overall = normalized.overall || {};
+  const score = Number.isFinite(Number(overall.score)) ? Math.max(0, Math.min(100, Number(overall.score))) : 50;
+  const label = overall.label || "等待数据";
+  const summary = overall.summary || "市场温度数据暂时不可用，先按观察环境处理，避免因为缺少数据而做激进决定。";
+  const action = overall.action || "先观察，等数据更新";
+  const className = temperatureClassFromScore(score);
+  const position = score >= 70 ? "70%-85%" : score >= 50 ? "45%-65%" : "20%-40%";
+
+  const readableConclusion =
+    score >= 70
+      ? "结论：市场环境偏友好，强势股和事件共振线索的复盘优先级更高。"
+      : score >= 50
+        ? "结论：市场环境中性，先保持观察，等价格和成交额确认。"
+        : "结论：市场环境偏防守，高波动线索降级观察。";
+
+  setText("#temperatureAsOf", normalized.asOf || "--");
+  setText("#marketRegimeLabel", label);
+  setText("#marketRegimeSummary", summary);
+  setText("#dashboardTemperatureScore", String(score));
+  setText("#dashboardTemperatureLabel", label);
+  setText("#dashboardTemperatureCopy", summary);
+  setText("#temperatureTitle", label === "等待数据" ? "等待温度数据" : `${score}分 · ${label}环境`);
+  setText("#temperatureSummary", readableConclusion);
+  setText("#temperatureAction", `观察重点：${action}`);
+  setText("#temperatureScore", String(score));
+  setText("#temperatureScoreLabel", `${label}环境。满分 100，分数越高，说明市场环境越偏积极。`);
+  setText("#dashboardRiskBudget", position);
+  setText("#dashboardRiskNote", summary);
+  setText("#riskBudgetValue", position);
+  setText("#riskBudgetNote", `当前观察强度参考 ${position}，其余留给确认后的线索。`);
+  setText("#riskRegimeValue", label);
+  setText("#riskRegimeNote", readableConclusion.replace(/^结论：/, ""));
+  setText("#riskActionValue", action);
+  setText("#riskActionNote", "先用温度判断复盘强度，再查看强弱榜和事件观察里的具体线索。");
+
+  const needle = document.querySelector("#temperatureNeedle");
+  if (needle) needle.style.left = `${score}%`;
+  document.querySelectorAll(".temperature-hero, .temperature-mini").forEach((item) => {
+    item.classList.remove("is-hot", "is-warm", "is-cool");
+    item.classList.add(className);
+  });
+
+  const indicators = normalized.indicators;
+  renderMacroPressure(indicators);
+  const grid = document.querySelector("#riskSignalGrid");
+  if (grid) {
+    grid.innerHTML = indicators.length
+      ? indicators
+          .map((indicator) => `
+            <article class="signal-card ${signalClass(indicator.status)}">
+              <span>
+                ${escapeHtml(indicator.name || indicator.key || "指标")}
+                <button class="info-tip" type="button" aria-label="${escapeHtml(indicator.name || "指标")}解释" data-tip="${escapeHtml(marketIndicatorTip(indicator))}">?</button>
+              </span>
+              <strong>${escapeHtml(indicator.value || "--")} · ${escapeHtml(indicator.level || "--")}</strong>
+              <p>${escapeHtml(indicator.explain || `${indicator.value || "--"}，较前值 ${indicator.previous || "--"}，变化 ${indicator.change || "--"}。`)}</p>
+              <div class="indicator-meta">
+                <b>前值 ${escapeHtml(indicator.previous || "--")}</b>
+                <em class="${indicatorChangeMetaClass(indicator.change)}">${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</em>
+              </div>
+            </article>
+          `)
+          .join("")
+      : `
+        <article class="signal-card is-neutral">
+          <span>等待数据</span>
+          <strong>暂未生成</strong>
+          <p>温度数据生成前，页面保持可用，不影响其他工具。</p>
+        </article>
+      `;
+  }
+
+  const ruleTimeline = document.querySelector("#riskRuleTimeline");
+  if (ruleTimeline) {
+    ruleTimeline.innerHTML = temperatureWatchPlan(score, label, position)
+      .map(
+        ([title, note, done], index) => `
+          <div class="${done ? "is-done" : ""}">
+            <span>${String(index + 1).padStart(2, "0")}</span>
+            <strong>${escapeHtml(title)}</strong>
+            <p>${escapeHtml(note)}</p>
+          </div>
+        `,
+      )
+      .join("");
+  }
+  renderDashboardFocus();
+};
+
+const getStrengthRows = () => {
+  if (!state.strength || !Array.isArray(state.strength.rows)) return [];
+  const query = state.strengthQuery.trim().toLowerCase();
+  return state.strength.rows.filter((row) => {
+    const matchesBucket = row.bucket === state.strengthBucket;
+    const matchesQuery =
+      !query ||
+      row.symbol.toLowerCase().includes(query) ||
+      row.name.toLowerCase().includes(query) ||
+      row.label.includes(query) ||
+      row.primaryFactor.includes(query) ||
+      row.sectorProxy.includes(query);
+    const matchesLabel = state.strengthLabelFilter === "all" || row.label === state.strengthLabelFilter;
+    const matchesFactor = state.strengthFactorFilter === "all" || row.primaryFactor === state.strengthFactorFilter;
+    return matchesBucket && matchesQuery && matchesLabel && matchesFactor;
+  });
+};
+
+const scoreClass = (score) => {
+  if (score >= 75) return "is-strong";
+  if (score <= 35) return "is-weak";
+  return "is-neutral";
+};
+
+const strengthStateLabel = (row) => {
+  if (!row) return "--";
+  if (row.bucket === "weakest") return "偏弱";
+  if (row.bucket === "watchlist") return row.crowding && row.crowding.score >= 72 ? "偏热" : "观察";
+  if (row.crowding && row.crowding.score >= 72) return "强但热";
+  return "领先";
+};
+
+const crowdingLabel = (score) => {
+  const value = Number(score) || 0;
+  if (value >= 72) return "偏热，等分歧";
+  if (value >= 52) return "热度上升";
+  return "不算拥挤";
+};
+
+const breakoutLabel = (row) => {
+  const score = Number(row && row.breakout && row.breakout.score) || 0;
+  const distance = row && row.breakout ? row.breakout.distanceToHigh : "--";
+  if (score >= 72) return `接近新高 · ${distance}`;
+  if (score >= 52) return `趋势修复 · ${distance}`;
+  return `尚未突破 · ${distance}`;
+};
+
+const renderStrengthFilterOptions = () => {
+  if (!state.strength || !Array.isArray(state.strength.rows)) return;
+  const labelSelect = document.querySelector("#strengthLabelFilter");
+  const factorSelect = document.querySelector("#strengthFactorFilter");
+  if (!labelSelect || !factorSelect) return;
+  const labels = Array.from(new Set(state.strength.rows.map((row) => row.label))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const factors = Array.from(new Set(state.strength.rows.map((row) => row.primaryFactor))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+  labelSelect.innerHTML = '<option value="all">全部标签</option>' + labels.map((label) => `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`).join("");
+  factorSelect.innerHTML = '<option value="all">全部原因</option>' + factors.map((factor) => `<option value="${escapeHtml(factor)}">${escapeHtml(factor)}</option>`).join("");
+};
+
+const renderStrengthHero = (row) => {
+  if (!row) return;
+  setText("#strengthHeroSymbol", row.symbol);
+  setText("#strengthHeroName", row.name);
+  setText("#strengthHeroScore", strengthStateLabel(row));
+  setText("#strengthHeroSpy", row.relative && row.relative.spy);
+  setText("#strengthHeroQqq", row.relative && row.relative.qqq);
+  setText("#strengthHeroSector", row.relative && row.relative.sector);
+  setText("#strengthHeroCrowding", row.crowding ? crowdingLabel(row.crowding.score) : "--");
+  const tags = document.querySelector("#strengthHeroTags");
+  if (tags) {
+    tags.innerHTML = `
+      <span>${escapeHtml(row.label)}</span>
+      <span>${escapeHtml(row.sectorProxy)}</span>
+      <span>${escapeHtml(row.primaryFactor)}</span>
+      <span>${escapeHtml(row.onBoard ? row.onBoard.label : "今日新上榜")}</span>
+    `;
+  }
+};
+
+const renderStrengthThemes = (themes) => {
+  const grid = document.querySelector("#strengthThemeGrid");
+  if (!grid) return;
+  const rows = themes && Array.isArray(themes.leaders) ? themes.leaders.slice(0, 6) : [];
+  setText("#strengthThemeSummary", themes && themes.summary ? "已整理主线" : "等待数据");
+  if (!rows.length) {
+    grid.innerHTML = "<article><span>等待数据</span><strong>--</strong><p>刷新后显示最强方向。</p></article>";
+    return;
+  }
+  grid.innerHTML = rows
+    .map(
+      (item) => `
+        <article class="${item.status === "热度偏高" ? "is-hot" : item.status === "整体落后" ? "is-weak" : ""}">
+          <span>${escapeHtml(item.status)}</span>
+          <strong>${escapeHtml(item.name)}</strong>
+          <p>${escapeHtml(item.action)}</p>
+          <div>
+            <b>${escapeHtml(item.symbols)}</b>
+            <em>相对大盘 ${escapeHtml(item.vsMarket)} · 强势 ${escapeHtml(item.strongCount)} 只</em>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+};
+
+const renderStrengthPremiumSections = () => {
+  const container = document.querySelector("#strengthPremiumThemes");
+  const action = document.querySelector("#strengthPremiumAction");
+  const row = document.querySelector(".theme-paid-row");
+  if (!container) return;
+
+  const themes = (state.strength && state.strength.themes) || {};
+  const risk = Array.isArray(themes.risk) ? themes.risk.slice(0, 2) : [];
+  const hot = Array.isArray(themes.hot) ? themes.hot.slice(0, 2) : [];
+  const cards = [
+    ...risk.map((item) => ({ ...item, type: "is-risk", kicker: "少碰方向" })),
+    ...hot.map((item) => ({ ...item, type: "is-hot", kicker: "过热方向" })),
+  ].slice(0, 4);
+
+  container.innerHTML = cards.length
+    ? cards
+        .map(
+          (item) => `
+            <article class="${escapeHtml(item.type)}">
+              <span>${escapeHtml(item.kicker)}</span>
+              <strong>${escapeHtml(item.name)}</strong>
+              <p>${escapeHtml(item.action)} ${escapeHtml(item.symbols ? `代表：${item.symbols}` : "")}</p>
+            </article>
+          `,
+        )
+        .join("")
+    : `
+      <article>
+        <span>当前扩展</span>
+        <strong>当前没有明显需要额外提醒的方向</strong>
+        <p>先按上方主线和名单继续观察。</p>
+      </article>
+    `;
+  if (action) {
+    action.textContent = cards.length ? "今日已更新" : "暂无额外提醒";
+    action.disabled = true;
+  }
+  if (row) row.classList.add("is-ready");
+};
+
+const renderStrengthInsightGrid = () => {
+  const grid = document.querySelector("#strengthInsightGrid");
+  if (!grid || !state.strength || !Array.isArray(state.strength.rows)) return;
+  const rows = state.strength.rows;
+  const summary = state.strength.summary || {};
+  const strongest = rows.find((row) => row.bucket === "strongest") || rows[0];
+  const weakest = rows.find((row) => row.bucket === "weakest");
+  const watch = rows.find((row) => row.bucket === "watchlist");
+  const theme = state.strength.themes?.leaders?.[0];
+  grid.innerHTML = `
+    <article>
+      <span>当前怎么看</span>
+      <strong>${escapeHtml(summary.leader ? `先看 ${summary.leader}` : "先看相对强弱")}</strong>
+      <p>${escapeHtml(strongest ? `${strongest.symbol} 当前${strongest.label}，相对大盘 ${strongest.relative?.spy || "--"}。` : "优先从强于大盘、强于行业的股票里找研究线索。")}</p>
+    </article>
+    <article>
+      <span>为什么入选</span>
+      <strong>${escapeHtml(strongest?.primaryFactor || "价格和成交确认")}</strong>
+      <p>${escapeHtml(strongest?.action || "短线太热时不急着下结论，等待分歧或回踩后再复盘。")}</p>
+    </article>
+    <article>
+      <span>风险提醒</span>
+      <strong>${escapeHtml(weakest ? `少看 ${weakest.symbol}` : "避开明显落后")}</strong>
+      <p>${escapeHtml(weakest?.action || "走势持续落后的股票，先从观察池里降级。")}</p>
+    </article>
+    <article>
+      <span>下一步</span>
+      <strong>${escapeHtml(theme ? `主线：${theme.name}` : "加入观察池")}</strong>
+      <p>${escapeHtml(watch ? `${watch.symbol} 更适合等回踩确认；观察池只放熟悉、流动性好的股票。` : "只把熟悉、流动性好的股票加入观察，再等确认。")}</p>
+    </article>
+  `;
+};
+
+const renderStrengthScanner = (strength) => {
+  if (!strength) return;
+  state.strength = strength;
+  const summary = strength.summary || {};
+  const universe = strength.universe || {};
+  const strongest = strength.rows.find((row) => row.bucket === "strongest");
+
+  setText("#strengthAsOf", strength.asOf);
+  setText("#strengthUniverse", universe.total == null ? "--" : `${universe.total}只`);
+  setText("#strengthUniverseNote", universe.minAdv ? `已过滤低流动性和高噪音股票，最低20日成交额 ${universe.minAdv}。` : undefined);
+  setText("#strengthLeader", summary.leader || "--");
+  setText("#strengthLeaderNote", strength.benchmarks ? `近20个交易日：大盘 ${strength.benchmarks.spy20d}，纳指 ${strength.benchmarks.qqq20d}。` : undefined);
+  setText("#strengthWeakest", summary.weakest || "--");
+  setText("#strengthCrowdingCount", summary.hotCrowdingCount == null ? "--" : `${summary.hotCrowdingCount}只`);
+  renderStrengthHero(strongest);
+  renderStrengthThemes(strength.themes);
+  renderStrengthFilterOptions();
+  renderStrengthInsightGrid();
+
+  const review = state.strengthReview || strength.review || {};
+  const reviewList = document.querySelector("#strengthReviewList");
+  const reviewItems = [...(review.buckets || []), ...(review.labels || []), ...(review.factors || [])].slice(0, 7);
+  const reviewCard = document.querySelector('[data-module="strength-review"]');
+  if (reviewCard) {
+    reviewCard.classList.toggle("is-hidden", !reviewItems.length);
+  }
+  setText(
+    "#strengthReviewSummary",
+    reviewItems.length ? "这些是历史记录里更需要继续跟踪的结论。" : "",
+  );
+  if (reviewList) {
+    reviewList.innerHTML = reviewItems.length
+      ? reviewItems
+          .map(
+            (item) => `
+              <div>
+                <strong>${escapeHtml(item.name)}</strong>
+                <span>${escapeHtml(item.hitRate || item.winRate ? `历史正向占比 ${item.hitRate || item.winRate}` : item.horizon || "入选原因")} · ${escapeHtml(item.count || item.sample)} 次 · 相对SPY ${escapeHtml(item.vsSpy || item.avgExcess)}</span>
+              </div>
+            `,
+          )
+          .join("")
+      : "";
+  }
+
+  const methodList = document.querySelector("#strengthMethodList");
+  if (methodList) {
+    methodList.innerHTML = `
+      <div>先看“重点观察”前 10，只挑你熟悉、流动性好的股票继续研究。</div>
+      <div>看到“强但偏热”，默认等回踩或分歧，不把它当成立刻行动信号。</div>
+      <div>“风险回避”里的股票，除非有新的基本面变化，否则只做低频复盘。</div>
+    `;
+  }
+  renderStrengthPremiumSections();
+  renderStrengthTable();
+  renderDashboardFocus();
+};
+
+const renderStrengthTable = () => {
+  const rows = getStrengthRows();
+  const body = document.querySelector("#strengthBody");
+  const summary = document.querySelector("#strengthResultSummary");
+  if (!body || !summary) return;
+  const bucketLabel = state.strengthBucket === "strongest" ? "重点观察" : state.strengthBucket === "weakest" ? "风险回避" : "等回踩";
+  summary.textContent = `${bucketLabel} · ${rows.length} 只股票`;
+
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="9">没有符合条件的股票</td></tr>';
+    return;
+  }
+
+  body.innerHTML = rows
+    .map(
+      (row) => `
+        <tr>
+          <td class="rank-cell">${row.rank}</td>
+          <td class="on-board-cell">
+            <strong>${escapeHtml(row.onBoard ? row.onBoard.label : "今日新上榜")}</strong>
+            <span>${escapeHtml(row.onBoard && row.onBoard.firstSeen ? `本轮 ${row.onBoard.firstSeen}` : "")}</span>
+          </td>
+          <td class="symbol-cell">
+            <strong>${escapeHtml(row.symbol)}</strong>
+            <span>${escapeHtml(row.name)}</span>
+            <div class="inline-action-row">
+              <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">完整画像</button>
+              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="强弱榜">${isInWatchlist(row.symbol) ? "已加入" : "加入观察"}</button>
+            </div>
+          </td>
+          <td class="strength-action-cell">
+            <strong>${escapeHtml(row.label)}</strong>
+            <span>${escapeHtml(row.action)}</span>
+          </td>
+          <td class="strength-mini-metrics">
+            <span>大盘 ${escapeHtml(row.relative.spy)}</span>
+            <span>纳指 ${escapeHtml(row.relative.qqq)}</span>
+            <span>行业 ${escapeHtml(row.relative.sector)}</span>
+          </td>
+          <td class="strength-mini-metrics">
+            <span>1D ${escapeHtml(row.periods["1d"])}</span>
+            <span>5D ${escapeHtml(row.periods["5d"])}</span>
+            <span>20D ${escapeHtml(row.periods["20d"])}</span>
+            <span>63D ${escapeHtml(row.periods["63d"])}</span>
+          </td>
+          <td class="strength-mini-metrics">
+            <strong>${escapeHtml(breakoutLabel(row))}</strong>
+            <span>${escapeHtml(row.primaryFactor)}</span>
+          </td>
+          <td class="strength-mini-metrics">
+            <strong>${escapeHtml(crowdingLabel(row.crowding.score))}</strong>
+            <span>成交额 ${escapeHtml(row.crowding.volumeRatio)}</span>
+          </td>
+          <td>${escapeHtml(row.liquidity)}</td>
+        </tr>
+      `,
+    )
+    .join("");
+};
+
+const getQualityBoard = () => {
+  const board = state.earningsQuality &&
+    state.earningsQuality.boards &&
+    state.earningsQuality.boards[state.qualityBoard]
+    ? state.earningsQuality.boards[state.qualityBoard]
+    : { title: "--", subtitle: "--", rows: [] };
+  if (state.qualityBoard === "quality") {
+    return { ...board, title: "财报观察", subtitle: "按财报质量、预期上修、近期走势和流动性排序。" };
+  }
+  if (state.qualityBoard === "confluence") {
+    return { ...board, title: "机构也在看", subtitle: "财报改善后，再看分析师覆盖、目标价空间和价格确认。" };
+  }
+  return board;
+};
+
+const getQualityRows = () => {
+  const board = getQualityBoard();
+  const query = state.qualityQuery.trim().toLowerCase();
+  const rows = Array.isArray(board.rows) ? board.rows : [];
+  if (!query) return rows;
+  return rows.filter((row) => {
+    const haystack = [
+      row.ticker,
+      row.name,
+      row.companyName,
+      row.userAngle,
+      row.userReason,
+      row.userRisk,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(query);
+  });
+};
+
+const qualityMetric = (label, value, className = "") => `
+  <div class="${className}">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value == null ? "--" : value)}</strong>
+  </div>
+`;
+
+const qualityRiskFlag = (row) => {
+  const riskText = String(row?.userRisk || "");
+  const return20d = Number(row?.return20dPct);
+  return /短线|涨幅|高热度|波动|回撤|成交|流动性|谨慎|风险/.test(riskText) || (Number.isFinite(return20d) && return20d >= 30);
+};
+
+const qualityRiskSummary = (row) => {
+  const return20d = Number(row?.return20dPct);
+  if (Number.isFinite(return20d) && return20d >= 50) return "短期涨幅很大";
+  if (Number.isFinite(return20d) && return20d >= 30) return "短期涨幅偏大";
+  const text = String(row?.userRisk || "").trim();
+  if (!text || /暂无明显负面/.test(text)) return "暂无明显负面事件";
+  if (/追高/.test(text)) return "追高风险";
+  if (/流动性|成交/.test(text)) return "成交额需观察";
+  if (/波动|回撤/.test(text)) return "波动需观察";
+  return text.length > 18 ? `${text.slice(0, 18)}...` : text;
+};
+
+const qualityConclusion = (row) => {
+  if (!row) return "等待候选";
+  const score = Number(row.score);
+  if (qualityRiskFlag(row)) return "可观察，但先控制节奏";
+  if (Number.isFinite(score) && score >= 3) return "复盘优先级高";
+  if (Number.isFinite(score) && score >= 2) return "可以继续观察";
+  return "先放入候选池";
+};
+
+const qualityNextReview = (row) => {
+  if (!row) return "有新候选后，先看财报、预期、股价和成交额是否同时确认。";
+  if (qualityRiskFlag(row)) return "先看财报后价格是否站稳，成交额是否连续确认；如果快速回落，就降低观察频率。";
+  if (Number(row.analystHeatScore) >= 70 || Number(row.firms30d) >= 5) return "继续看机构观点是否跟进，同时观察目标价空间和价格承接。";
+  return "继续看下一份财报前的预期变化、成交额变化，以及股价是否保持相对强势。";
+};
+
+const qualityDetailPreview = (row) => {
+  const ticker = normalizeStockSymbol(row?.ticker || row?.symbol);
+  const market = findMarketRow(ticker);
+  const day = getBoardRow("day", ticker);
+  const week = getBoardRow("week", ticker);
+  const month = getBoardRow("month", ticker);
+  const volume = getBoardRow("volume", ticker);
+  const strength = findStrengthRow(ticker);
+  const eventRow = findEventRow(ticker);
+  const signal = signalStateForSymbol(ticker);
+  const sources = stockDataSources({ market, day, week, month, volume, strength, quality: row, eventRow, signal })
+    .filter(([, active]) => active)
+    .map(([label]) => label);
+  return {
+    sources: sources.length ? sources.join(" / ") : "财报线索",
+    title: `${row?.userAngle || "财报观察"} · ${sources.length || 1}项依据`,
+    note: row?.userReason || qualityNextReview(row),
+  };
+};
+
+const renderQualityFocusGrid = (rows) => {
+  const top = rows
+    .map((row) => ({ row, priority: reviewPriorityForQualityRow(row) }))
+    .sort((a, b) => b.priority.score - a.priority.score)[0]?.row || rows[0];
+  const ticker = normalizeStockSymbol(top?.ticker || top?.symbol);
+  const preview = top ? qualityDetailPreview(top) : null;
+  const priority = top ? reviewPriorityForQualityRow(top) : null;
+  const riskRows = rows.filter(qualityRiskFlag);
+  setText("#qualityFocusLeader", top ? `${ticker} · ${top.userAngle || "财报观察"}` : "等待候选");
+  setText(
+    "#qualityFocusLeaderNote",
+    top ? `${top.companyName || top.name || ticker}：复盘分 ${priority.score}，${priority.reason}。` : "先看财报、预期和价格同时改善的股票。",
+  );
+  setText("#qualityFocusReason", top ? qualityConclusion(top) : "等待理由");
+  setText(
+    "#qualityFocusReasonNote",
+    top?.userReason || "这里会把财报、预期和价格变化翻译成容易理解的观察理由。",
+  );
+  setText("#qualityFocusRisk", rows.length ? `${riskRows.length} 只需谨慎` : "先看确认");
+  setText(
+    "#qualityFocusRiskNote",
+    riskRows.length
+      ? "有短线涨幅、波动或成交提醒的股票，先降低观察频率。"
+      : "当前筛选下风险提醒较少，但仍要看价格和成交是否继续确认。",
+  );
+  setText("#qualityFocusDetail", preview ? preview.title : "依据汇总");
+  setText(
+    "#qualityFocusDetailNote",
+    preview ? `详情页会汇总：${preview.sources}。` : "股票详情会把财报、行情、强弱和观察池状态放在一起看。",
+  );
+};
+
+const renderQualityDetail = (row) => {
+  const panel = document.querySelector("#qualityDetailPanel");
+  if (!panel) return;
+  if (!row) {
+    panel.innerHTML = `
+      <div class="empty-detail">
+        <strong>点击榜单股票查看详情</strong>
+        <p>这里会集中显示上榜理由、财报日期、预期上调幅度、目标价空间和主要风险。</p>
+      </div>
+    `;
+    return;
+  }
+
+  const heatLabel = row.analystHeatScore == null
+    ? "暂无"
+    : `${Number(row.analystHeatScore).toFixed(1)} 分`;
+  const targetLabel = row.avgPriceTargetUpsidePct == null ? "--" : formatSignedPct(row.avgPriceTargetUpsidePct);
+  const preview = qualityDetailPreview(row);
+  const priority = reviewPriorityForQualityRow(row);
+  panel.innerHTML = `
+    <div class="quality-detail-head">
+      <div>
+        <span>${escapeHtml(row.userAngle || "财报后走强")}</span>
+        <h2>${escapeHtml(row.ticker)}</h2>
+        <p>${escapeHtml(row.companyName || row.name || "")}</p>
+      </div>
+      <div class="quality-head-actions">
+        ${watchlistActionButton(row.ticker, "财报观察")}
+        <button class="ghost-action" type="button" data-stock-open="${escapeHtml(row.ticker)}">完整画像</button>
+      </div>
+    </div>
+    <div class="quality-score-block">
+      <div>
+        <span>复盘分</span>
+        <strong>${escapeHtml(String(priority.score))}</strong>
+      </div>
+      <div>
+        <span>财报分</span>
+        <strong>${escapeHtml(row.score == null ? "--" : Number(row.score).toFixed(2))}</strong>
+      </div>
+    </div>
+    <section class="quality-reason-box">
+      <span>复盘分依据</span>
+      <p>${escapeHtml(priority.reason)}</p>
+    </section>
+    <section class="quality-reason-box">
+      <span>为什么上榜</span>
+      <p>${escapeHtml(row.userReason || "--")}</p>
+    </section>
+    <section class="quality-risk-box">
+      <span>主要风险</span>
+      <p>${escapeHtml(row.userRisk || "--")}</p>
+    </section>
+    <section class="quality-reason-box">
+      <span>点进详情看什么</span>
+      <p>${escapeHtml(`${preview.title}；${preview.sources}`)}</p>
+    </section>
+    <section class="quality-reason-box">
+      <span>下一步复盘</span>
+      <p>${escapeHtml(qualityNextReview(row))}</p>
+    </section>
+    <div class="quality-detail-grid">
+      ${qualityMetric("公司上调预期", `${row.guidanceUpCount || 0} 次`)}
+      ${qualityMetric("财报超预期", `${row.earningsBeatCount || 0} 次`)}
+      ${qualityMetric("每股收益预期上调", row.epsRevisionPct == null ? "--" : formatSignedPct(row.epsRevisionPct), "is-positive")}
+      ${qualityMetric("收入预期上调", row.revenueRevisionPct == null ? "--" : formatSignedPct(row.revenueRevisionPct), "is-positive")}
+      ${qualityMetric("每股收益超预期", row.epsSurprisePct == null ? "--" : formatSignedPct(row.epsSurprisePct), "is-positive")}
+      ${qualityMetric("收入超预期", row.revenueSurprisePct == null ? "--" : formatSignedPct(row.revenueSurprisePct), "is-positive")}
+      ${qualityMetric("20日表现", row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct), Number(row.return20dPct) >= 0 ? "is-positive" : "is-negative")}
+      ${qualityMetric("分析师目标价空间", targetLabel, Number(row.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative")}
+      ${qualityMetric("分析师热度", heatLabel)}
+      ${qualityMetric("覆盖机构", row.firms30d == null ? "--" : `${row.firms30d} 家`)}
+      ${qualityMetric("20日成交额", formatCompactMoney(row.dollarVolume20d))}
+      ${qualityMetric("财报日期", row.latestEarningsDate || "--")}
+    </div>
+  `;
+};
+
+const renderQualityInsightGrid = () => {
+  const grid = document.querySelector("#qualityInsightGrid");
+  if (!grid || !state.earningsQuality) return;
+  const qualityRows = state.earningsQuality.boards?.quality?.rows || [];
+  const confluenceRows = state.earningsQuality.boards?.confluence?.rows || [];
+  const rows = qualityRows.slice(0, 80);
+  const topRows = rows.slice(0, 8);
+  const maxScore = Math.max(...topRows.map((row) => Number(row.score) || 0), 1);
+  const total = Math.max(1, rows.length);
+  const eventStats = [
+    ["预期上修", rows.filter((row) => Number(row.guidanceUpCount) > 0).length],
+    ["财报超预期", rows.filter((row) => Number(row.earningsBeatCount) > 0).length],
+    ["机构覆盖", rows.filter((row) => Number(row.firms30d) > 0 || Number(row.analystHeatScore) > 0).length],
+    ["短期涨幅大", rows.filter((row) => Number(row.return20dPct) >= 30).length],
+  ];
+  const returnBuckets = [
+    ["30%以上", rows.filter((row) => Number(row.return20dPct) >= 30).length],
+    ["10%-30%", rows.filter((row) => Number(row.return20dPct) >= 10 && Number(row.return20dPct) < 30).length],
+    ["0%-10%", rows.filter((row) => Number(row.return20dPct) >= 0 && Number(row.return20dPct) < 10).length],
+    ["回落", rows.filter((row) => Number(row.return20dPct) < 0).length],
+  ];
+  const confluenceTop = confluenceRows.slice(0, 5);
+  grid.innerHTML = `
+    <article class="quality-chart-card quality-score-chart">
+      <div class="quality-chart-head">
+        <span>复盘分 Top 8</span>
+        <strong>${escapeHtml(topRows[0]?.ticker || "--")}</strong>
+      </div>
+      <div class="quality-bar-rank">
+        ${topRows.map((row) => {
+          const score = Number(row.score) || 0;
+          return `
+            <div>
+              <b>${escapeHtml(row.ticker || "--")}</b>
+              <i><em style="width:${Math.max(4, (score / maxScore) * 100).toFixed(1)}%"></em></i>
+              <strong>${escapeHtml(score.toFixed(1))}</strong>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </article>
+    <article class="quality-chart-card">
+      <div class="quality-chart-head">
+        <span>线索构成</span>
+        <strong>${escapeHtml(`${rows.length}只`)}</strong>
+      </div>
+      <div class="quality-share-bars">
+        ${eventStats.map(([label, count]) => `
+          <div>
+            <span>${escapeHtml(label)}</span>
+            <i><em style="width:${((count / total) * 100).toFixed(1)}%"></em></i>
+            <strong>${escapeHtml(String(count))}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+    <article class="quality-chart-card">
+      <div class="quality-chart-head">
+        <span>20日表现分布</span>
+        <strong>${escapeHtml(`${returnBuckets[0][1]}只高位`)}</strong>
+      </div>
+      <div class="quality-bucket-row">
+        ${returnBuckets.map(([label, count], index) => `
+          <div class="bucket-${index}">
+            <strong>${escapeHtml(String(count))}</strong>
+            <span>${escapeHtml(label)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+    <article class="quality-chart-card">
+      <div class="quality-chart-head">
+        <span>机构共振</span>
+        <strong>${escapeHtml(confluenceTop[0]?.ticker || "--")}</strong>
+      </div>
+      <div class="quality-confluence-list">
+        ${confluenceTop.map((row) => `
+          <div>
+            <b>${escapeHtml(row.ticker || "--")}</b>
+            <span>${escapeHtml(row.firms30d == null ? "机构数据待补" : `${row.firms30d}家 · ${row.avgPriceTargetUpsidePct == null ? "目标价待补" : formatSignedPct(row.avgPriceTargetUpsidePct)}`)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+};
+
+const renderQualityTable = () => {
+  const rows = getQualityRows();
+  const board = getQualityBoard();
+  const body = document.querySelector("#qualityBody");
+  const summary = document.querySelector("#qualityResultSummary");
+  if (!body || !summary) return;
+
+  setText("#qualityBoardTitle", board.title);
+  setText("#qualityBoardSubtitle", board.subtitle);
+  summary.textContent = `${board.title} · ${rows.length} 只股票`;
+  renderQualityFocusGrid(rows);
+
+  if (!state.selectedQualitySymbol && rows.length) {
+    state.selectedQualitySymbol = rows[0].ticker;
+  }
+  if (state.selectedQualitySymbol && !rows.some((row) => row.ticker === state.selectedQualitySymbol)) {
+    state.selectedQualitySymbol = rows[0] ? rows[0].ticker : "";
+  }
+
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="8">没有符合条件的股票</td></tr>';
+    renderQualityDetail(null);
+    return;
+  }
+
+  body.innerHTML = rows
+    .map((row) => {
+      const selected = row.ticker === state.selectedQualitySymbol;
+      const heat = row.analystHeatScore == null ? "--" : Number(row.analystHeatScore).toFixed(1);
+      const priority = reviewPriorityForQualityRow(row);
+      return `
+        <tr class="quality-row ${selected ? "is-selected" : ""}" data-quality-symbol="${escapeHtml(row.ticker)}">
+          <td class="rank-cell" data-label="排名">${escapeHtml(row.rank)}</td>
+          <td class="symbol-cell" data-label="股票">
+            <strong>${escapeHtml(row.ticker)}</strong>
+            <span>${escapeHtml(row.companyName || row.name || "")}</span>
+            <div class="inline-action-row">
+              <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.ticker)}">详情</button>
+              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.ticker)}" data-watchlist-source="财报观察">${isInWatchlist(row.ticker) ? "已观察" : "加入观察"}</button>
+            </div>
+          </td>
+          <td class="quality-angle-cell" data-label="财报">
+            <strong>${escapeHtml(row.userAngle || "--")}</strong>
+            <span>${escapeHtml(row.latestEarningsDate || "--")} 财报</span>
+          </td>
+          <td class="quality-reason-cell" data-label="理由"><span>${escapeHtml(row.userReason || "--")}</span></td>
+          <td class="quality-score-cell" data-label="复盘分">
+            <div class="quality-score-stack">
+              <strong>${escapeHtml(String(priority.score))}</strong>
+              <small class="macro-rank-reason">${escapeHtml(priority.reason)}</small>
+            </div>
+          </td>
+          <td class="${Number(row.return20dPct) >= 0 ? "gain-cell" : "loss-cell"}" data-label="20日表现">${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</td>
+          <td class="quality-mini-cell" data-label="机构">
+            <strong>${escapeHtml(heat)}</strong>
+            <span>${escapeHtml(row.firms30d == null ? "暂无覆盖" : `${row.firms30d} 家机构`)}</span>
+          </td>
+          <td class="quality-risk-cell" data-label="风险"><span class="quality-risk-text">${escapeHtml(qualityRiskSummary(row))}</span></td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  renderQualityDetail(rows.find((row) => row.ticker === state.selectedQualitySymbol) || rows[0]);
+};
+
+const renderEarningsQuality = (payload) => {
+  if (!payload) return;
+  state.earningsQuality = payload;
+  const summary = payload.summary || {};
+  setText("#earningsAsOf", formatDisplayDate(payload.asOf || payload.generatedAt));
+  setText("#qualityCoreCount", summary.coreCount == null ? "--" : `${summary.coreCount}只`);
+  setText("#qualityCoreLeader", summary.coreLeader || "--");
+  setText("#qualityConfluenceLeader", summary.confluenceLeader || "--");
+  setText("#qualityCoreReason", summary.coreDefinition || "财报和未来预期同时变好。");
+  setText("#qualityUserAngle", "财报季选股");
+  const rows = getQualityRows();
+  state.selectedQualitySymbol = rows[0] ? rows[0].ticker : "";
+  renderQualityInsightGrid();
+  renderQualityTable();
+};
+
+const eventBoardFallbacks = {
+  guidance_up: { title: "预期改善观察", subtitle: "公司主动上调未来预期，先看价格和成交是否继续确认。" },
+  earnings_beat: { title: "财报超预期观察", subtitle: "业绩明显好于市场预期后，观察资金是否继续确认。" },
+  analyst_positive: { title: "机构观点变化", subtitle: "目标价、评级或观点明显转好时，先看股价是否同步确认。" },
+  short_squeeze: { title: "空头压力变化", subtitle: "空头比例较高且价格开始转强，波动会更大，确认条件要更严格。" },
+};
+
+const eventTermTips = {
+  analyst_positive: "机构观点变化指券商或研究机构上调评级、目标价，或给出更积极观点。重点看市场是否真的用价格和成交额投票。",
+  guidance_up: "预期改善指公司把未来收入或利润预期往上调，通常说明管理层对后续经营更有信心，但仍需要价格和成交确认。",
+  earnings_beat: "财报超预期指实际业绩比市场原本预期更好。后续要看好消息是否已经被股价提前反映。",
+  short_squeeze: "空头挤压指做空的人被迫回补，容易带来快速拉升，也容易快速回落，需要更严格的确认条件。",
+  liquidity: "流动性可以理解成成交额。成交额越高，通常越容易进出；太低时滑点和波动会更明显。",
+  score: "分数是排序辅助，用来帮你先看更需要研究的股票，不构成交易建议。",
+  return20d: "20日表现约等于过去一个月的涨跌，用来判断事件后是否有资金继续跟进。",
+};
+
+const getEventBoard = () => {
+  const fallback = eventBoardFallbacks[state.eventBoard] || eventBoardFallbacks.analyst_positive;
+  return state.eventOpportunities?.boards?.[state.eventBoard] || { ...fallback, rows: [] };
+};
+
+const getEventRows = () => {
+  const rows = getEventBoard().rows;
+  const query = normalizeStockSymbol(state.eventQuery || "");
+  const scoreFilter = state.eventScoreFilter || "all";
+  const riskFilter = state.eventRiskFilter || "all";
+  const styleFilter = state.eventStyleFilter || "all";
+  return (Array.isArray(rows) ? rows : []).filter((row) => {
+    const ticker = normalizeStockSymbol(row.ticker || row.symbol);
+    const haystack = `${ticker} ${row.companyName || row.name || ""} ${row.reason || ""} ${row.eventLabel || ""}`.toUpperCase();
+    if (query && !haystack.includes(query)) return false;
+    const score = Number(row.signalScore);
+    if (scoreFilter === "high" && !(score >= 1.2)) return false;
+    if (scoreFilter === "mid" && !(score >= 0.8 && score < 1.2)) return false;
+    if (scoreFilter === "low" && !(score < 0.8)) return false;
+    const riskText = String(row.risk || "");
+    const isWatchRisk = /短期涨幅|高热度|低频|流动性|低价|空头|波动|谨慎/.test(riskText);
+    if (riskFilter === "watch" && !isWatchRisk) return false;
+    if (riskFilter === "normal" && isWatchRisk) return false;
+    const return20d = Number(row.return20dPct);
+    const reasonText = `${row.reason || ""} ${row.risk || ""} ${row.eventLabel || ""}`;
+    const liquidityText = String(row.liquidity || "");
+    if (styleFilter === "steady" && (isWatchRisk || score < 1.1 || return20d < 0)) return false;
+    if (styleFilter === "elastic" && !(return20d >= 20 || /波动|弹性|空头|挤压|严格确认/.test(reasonText))) return false;
+    if (styleFilter === "institutional" && !/分析师|机构|评级|目标价|关注度|热度/.test(reasonText)) return false;
+    if (styleFilter === "speculative" && !/小盘|波动|流动性|空头|挤压|低价/.test(`${reasonText} ${liquidityText}`)) return false;
+    return true;
+  });
+};
+
+const eventTermTip = (row) => eventTermTips[row?.eventType] || eventTermTips[state.eventBoard] || "先看线索为什么出现，再看价格和成交额有没有确认。";
+
+const eventDateLabel = (row) => {
+  const type = row?.eventType || state.eventBoard;
+  if (type === "earnings_beat") return "财报日期";
+  if (type === "guidance_up") return "财报日期";
+  if (type === "analyst_positive") return "机构观点日期";
+  if (type === "short_squeeze") return "空头数据日期";
+  return "事件日期";
+};
+
+const eventTypeFieldLabel = (row) => {
+  const type = row?.eventType || state.eventBoard;
+  if (type === "earnings_beat") return "财报类型";
+  if (type === "guidance_up") return "预期类型";
+  if (type === "analyst_positive") return "机构观点";
+  if (type === "short_squeeze") return "空头状态";
+  return "事件类型";
+};
+
+const eventReasonForUser = (row) => {
+  const raw = String(row?.reason || "").replace(/\s+/g, " ").trim();
+  const ticker = normalizeStockSymbol(row?.ticker || row?.symbol);
+  const name = row?.companyName || row?.name || ticker || "该公司";
+  const target = raw.match(/price target of\s+\$?([\d,.]+)/i)?.[1];
+  const targetCopy = target ? `，并给出目标价 $${target}` : "";
+  if (/upgraded/i.test(raw)) return `机构上调 ${name} 的评级${targetCopy}；后续重点看价格和成交额是否继续确认。`;
+  if (/initiated coverage/i.test(raw)) return `机构首次覆盖 ${name}${targetCopy}；这类线索先看市场是否用价格和成交额确认。`;
+  if (/maintained|reiterated/i.test(raw)) return `机构维持对 ${name} 的积极观点${targetCopy}；继续观察观点变化后股价是否有持续反馈。`;
+  if (row?.eventType === "analyst_positive" && /[A-Za-z]{4,}/.test(raw)) {
+    return `机构观点出现积极变化；后续重点看价格、成交额和大盘环境是否配合。`;
+  }
+  if (row?.eventType === "guidance_up" && !raw) {
+    return "公司上调未来预期，说明经营层面对后续更有信心；后续看股价和成交额是否同步确认。";
+  }
+  if (row?.eventType === "earnings_beat" && !raw) {
+    return "财报结果好于市场原本预期；后续看好消息是否已经被股价提前反映。";
+  }
+  return raw || eventNextReview(row);
+};
+
+const eventDecisionCopy = (rows) => {
+  if (!rows.length) return ["等待数据", "当前筛选下没有候选，放宽筛选或切换榜单。"];
+  const highScore = rows.filter((row) => Number(row.signalScore) >= 1.2).length;
+  const watchRisk = rows.filter((row) => /短期涨幅|高热度|低频|流动性|低价|空头|波动|谨慎/.test(String(row.risk || ""))).length;
+  if (highScore >= Math.max(1, Math.ceil(rows.length * 0.25))) {
+    return ["先看高分", `当前有 ${highScore} 只高分候选，优先检查价格和成交是否继续确认。`];
+  }
+  if (watchRisk >= Math.ceil(rows.length * 0.5)) {
+    return ["降低节奏", "当前波动提醒较多，适合先加入观察池，等待更多确认。"];
+  }
+  return ["逐只确认", "先看进入原因，再看20日表现和流动性是否支持继续跟踪。"];
+};
+
+const eventMetric = (label, value, className = "") => `
+  <div class="${className}">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value == null || value === "" ? "--" : value)}</strong>
+  </div>
+`;
+
+const eventHistoryEvidence = (eventType) => {
+  const stats = state.validationCenter?.historicalBenchmarkStats || [];
+  const stat = stats.find((item) => item.signal === eventType && item.horizon === "20d")
+    || stats.find((item) => item.signal === eventType)
+    || stats.find((item) => item.signal === "guidance_up" && item.horizon === "20d")
+    || stats.find((item) => item.signal === "guidance_up")
+    || {};
+  return {
+    count: stat.count,
+    positiveRate: stat.winRatePct,
+    strongerSpyRate: stat.beatSpyRatePct,
+    median: stat.medianPct,
+    stableAverage: stat.trimmedMeanPct,
+  };
+};
+
+const eventRiskFlag = (row) => /短期涨幅|高热度|低频|流动性|低价|空头|波动|谨慎/.test(String(row?.risk || ""));
+
+const eventRiskSummary = (row) => {
+  const text = String(row?.risk || "").trim();
+  if (!text) return "--";
+  if (/短期涨幅|高热度/.test(text)) return "短期涨幅偏大";
+  if (/流动性|低频|低价/.test(text)) return "流动性需观察";
+  if (/空头|挤压/.test(text)) return "波动可能较大";
+  if (/波动|回撤/.test(text)) return "波动需观察";
+  if (/估值/.test(text)) return "估值需确认";
+  return text.length > 18 ? `${text.slice(0, 18)}...` : text;
+};
+
+const eventConclusion = (row) => {
+  const score = Number(row?.signalScore);
+  const evidence = eventHistoryEvidence(row?.eventType || state.eventBoard);
+  if (eventRiskFlag(row)) return "可观察，但需要更严格风控";
+  if (!Number.isFinite(Number(evidence.count)) || Number(evidence.count) < 30) return "样本不足，先小心观察";
+  if (Number.isFinite(score) && score >= 1.2) return "复盘优先级高";
+  if (Number.isFinite(score) && score >= 0.8) return "可以继续观察";
+  return "先放低优先级";
+};
+
+const eventNextReview = (row) => {
+  if (eventRiskFlag(row)) return "先看价格是否站稳，成交额是否连续放大；如果次日快速回落，就降低观察频率。";
+  if (row?.eventType === "short_squeeze") return "重点看回补行情是否延续，若成交缩小且价格回落，先不要提高优先级。";
+  if (row?.eventType === "earnings_beat") return "看财报后的价格承接和分析师后续调整，避免只因为单次财报超预期就提高优先级。";
+  if (row?.eventType === "analyst_positive") return "看机构观点变化后价格是否继续确认，单日拉升后等回踩更稳。";
+  return "看预期改善后价格和成交是否继续确认，再决定是否加入长期跟踪。";
+};
+
+const eventCurrentPosition = (row) => {
+  const return20d = row?.return20dPct == null ? "--" : formatSignedPct(row.return20dPct);
+  const fwd20d = row?.fwd20dPct == null ? "--" : formatSignedPct(row.fwd20dPct);
+  return `近20日表现 ${return20d}，历史观察窗口参考 ${fwd20d}。`;
+};
+
+const eventDetailPreview = (row) => {
+  const ticker = normalizeStockSymbol(row?.ticker || row?.symbol);
+  const market = findMarketRow(ticker);
+  const day = getBoardRow("day", ticker);
+  const week = getBoardRow("week", ticker);
+  const month = getBoardRow("month", ticker);
+  const volume = getBoardRow("volume", ticker);
+  const strength = findStrengthRow(ticker);
+  const quality = findQualityRow(ticker);
+  const signal = signalStateForSymbol(ticker);
+  const sources = stockDataSources({ market, day, week, month, volume, strength, quality, eventRow: row, signal })
+    .filter(([, active]) => active)
+    .map(([label]) => label);
+  return {
+    sources: sources.length ? sources.join(" / ") : "线索",
+    title: `${row?.eventLabel || "观察线索"} · ${sources.length || 1}项依据`,
+    note: eventReasonForUser(row),
+  };
+};
+
+const renderEventFocusGrid = (rows) => {
+  const top = rows
+    .map((row) => ({ row, priority: reviewPriorityForEventRow(row) }))
+    .sort((a, b) => b.priority.score - a.priority.score)[0]?.row || rows[0];
+  const ticker = normalizeStockSymbol(top?.ticker || top?.symbol);
+  const preview = top ? eventDetailPreview(top) : null;
+  const priority = top ? reviewPriorityForEventRow(top) : null;
+  const riskRows = rows.filter(eventRiskFlag);
+  setText("#eventFocusLeader", top ? `${ticker} · ${top.eventLabel || "观察线索"}` : "等待线索");
+  setText(
+    "#eventFocusLeaderNote",
+    top ? `${top.companyName || top.name || ticker}：复盘分 ${priority.score}，${priority.reason}。` : "先看理由清楚、价格已经确认、流动性够用的股票。",
+  );
+  setText("#eventFocusReason", top ? eventConclusion(top) : "等待理由");
+  setText(
+    "#eventFocusReasonNote",
+    top ? eventReasonForUser(top) : "这里会把专业事件翻译成普通投资者能看懂的观察理由。",
+  );
+  setText("#eventFocusRisk", rows.length ? `${riskRows.length} 只需谨慎` : "先看确认");
+  setText(
+    "#eventFocusRiskNote",
+    riskRows.length
+      ? "有短线涨幅、流动性或波动提醒的股票，先降低观察频率。"
+      : "当前筛选下风险提醒较少，但仍要看成交额和价格确认。",
+  );
+  setText("#eventFocusDetail", preview ? preview.title : "依据汇总");
+  setText(
+    "#eventFocusDetailNote",
+    preview ? `详情页会汇总：${preview.sources}。` : "股票详情会把事件、行情、强弱、财报和观察池状态放在一起看。",
+  );
+};
+
+const renderExpectationEvidence = () => {
+  const decision = (state.validationCenter?.productDecisions || []).find((item) => item.signal === "guidance_up") || {};
+  const sample = state.validationCenter?.historicalSample || {};
+  const count = decision.count || sample.rows;
+  const rows = getEventRows();
+  const asOf = state.eventOpportunities?.asOf || state.eventOpportunities?.generatedAt;
+  setText("#expectationCandidateCount", rows.length ? `${rows.length}只` : "--");
+  setText("#expectationCandidateNote", rows.length ? "当前筛选后的观察线索" : "当前筛选暂无结果");
+  setText("#expectationDataDate", formatDisplayDate(asOf));
+  setText("#expectationSampleCount", count ? formatNumber(count) : "--");
+  setText(
+    "#expectationSampleRange",
+    sample.start && sample.end ? `${formatDisplayDate(sample.start)} 至 ${formatDisplayDate(sample.end)}` : "等待历史样本",
+  );
+  setText("#expectationPositiveRate", formatEvidencePct(decision.winRatePct, decision.count));
+  setText("#expectationSpyRate", formatEvidencePct(decision.beatSpyRatePct, decision.count));
+  setText("#expectationStableAvg", formatEvidenceSignedPct(decision.trimmedMeanPct, decision.count));
+
+  const overall = state.marketTemperature?.overall || {};
+  const score = Number(overall.score);
+  setText("#expectationTemperatureScore", Number.isFinite(score) ? String(score) : "--");
+  setText("#expectationTemperatureLabel", overall.label ? `${overall.label}环境` : "等待数据");
+  setText("#expectationTemperatureAction", overall.action || "市场环境只用于辅助判断观察频率。");
+  setText(
+    "#expectationHeroTitle",
+    rows.length
+      ? `当前先看：${eventBoardFallbacks[state.eventBoard]?.title || "观察线索"}里的 ${rows.length} 只候选`
+      : "当前先看：等待更清晰的确认信号",
+  );
+};
+
+const renderEventDetail = (row) => {
+  const panel = document.querySelector("#eventDetailPanel");
+  if (!panel) return;
+  if (!row) {
+    panel.innerHTML = `
+      <div class="empty-detail">
+        <strong>点击榜单股票查看详情</strong>
+        <p>这里会显示事件日期、事件类型、核心理由、主要风险和后续观察窗口。</p>
+      </div>
+    `;
+    return;
+  }
+
+  const ticker = normalizeStockSymbol(row.ticker || row.symbol);
+  const evidence = eventHistoryEvidence(row.eventType || state.eventBoard);
+  const conclusion = eventConclusion(row);
+  const priority = reviewPriorityForEventRow(row);
+  panel.innerHTML = `
+    <div class="event-detail-head">
+      <div>
+        <span>${escapeHtml(row.eventLabel || row.eventType || "观察线索")}</span>
+        <h2>${escapeHtml(ticker)}</h2>
+        <p>${escapeHtml(row.companyName || row.name || "")}</p>
+      </div>
+      <div class="quality-head-actions">
+        ${watchlistActionButton(ticker, "预期改善观察")}
+        <button class="ghost-action" type="button" data-stock-open="${escapeHtml(ticker)}">股票详情</button>
+      </div>
+    </div>
+    <div class="event-score-block">
+      <div>
+        <span>复盘分</span>
+        <strong>${escapeHtml(String(priority.score))}</strong>
+      </div>
+      <div>
+        <span>线索分</span>
+        <strong>${escapeHtml(row.signalScore == null ? "--" : Number(row.signalScore).toFixed(1))}</strong>
+      </div>
+    </div>
+    <section class="event-report-box">
+      <span>复盘分依据</span>
+      <strong>${escapeHtml(priority.reason)}</strong>
+      <p>分数只用于排序和复盘优先级，不代表确定性结果。</p>
+    </section>
+    <section class="event-report-box">
+      <span>当前结论</span>
+      <strong>${escapeHtml(conclusion)}</strong>
+      <p>${escapeHtml(eventCurrentPosition(row))}</p>
+    </section>
+    <section class="quality-reason-box">
+      <span>为什么进入观察</span>
+      <p>${escapeHtml(eventReasonForUser(row))}</p>
+    </section>
+    <section class="event-report-box">
+      <span>历史同类样本</span>
+      <strong>${escapeHtml(evidence.count ? `${formatNumber(evidence.count)} 条样本` : "样本不足")}</strong>
+      <p>20日正向占比 ${escapeHtml(formatEvidencePct(evidence.positiveRate, evidence.count))}；强于SPY占比 ${escapeHtml(formatEvidencePct(evidence.strongerSpyRate, evidence.count))}；中位表现 ${escapeHtml(formatEvidenceSignedPct(evidence.median, evidence.count))}。</p>
+    </section>
+    <section class="quality-risk-box">
+      <span>主要风险</span>
+      <p>${escapeHtml(row.risk || "这类线索波动可能较大，先看价格和成交额是否继续确认。")}</p>
+    </section>
+    <section class="event-report-box">
+      <span>下一步复盘</span>
+      <strong>${escapeHtml(eventNextReview(row))}</strong>
+      <p>加入观察池后，后续可以按价格确认、成交变化和市场温度变化继续复盘。</p>
+    </section>
+    <div class="event-detail-grid">
+      ${eventMetric(eventDateLabel(row), row.eventDate || "--")}
+      ${eventMetric(eventTypeFieldLabel(row), row.eventLabel || row.eventType || "--")}
+      ${eventMetric("20日表现", row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct), Number(row.return20dPct) >= 0 ? "is-positive" : "is-negative")}
+      ${eventMetric("5日后观察", row.fwd5dPct == null ? "--" : formatSignedPct(row.fwd5dPct), Number(row.fwd5dPct) >= 0 ? "is-positive" : "is-negative")}
+      ${eventMetric("20日后观察", row.fwd20dPct == null ? "--" : formatSignedPct(row.fwd20dPct), Number(row.fwd20dPct) >= 0 ? "is-positive" : "is-negative")}
+      ${eventMetric("60日后观察", row.fwd60dPct == null ? "--" : formatSignedPct(row.fwd60dPct), Number(row.fwd60dPct) >= 0 ? "is-positive" : "is-negative")}
+      ${eventMetric("目标价空间", row.priceTargetUpsidePct == null ? "--" : formatSignedPct(row.priceTargetUpsidePct), Number(row.priceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative")}
+      ${eventMetric("流动性", row.liquidity || "--")}
+      ${eventMetric("空头比例", row.shortInterest == null ? "--" : `${row.shortInterest}`)}
+      ${eventMetric("回补天数", row.daysToCover == null ? "--" : `${row.daysToCover}`)}
+    </div>
+    <div class="event-lock-row" data-lockable-module="event-detail-premium">
+      <article>
+        <span>深度样本</span>
+        <strong>后续开放</strong>
+        <p>展示同类线索在不同市场温度下的历史表现。</p>
+      </article>
+      <article>
+        <span>完整解释</span>
+        <strong>后续开放</strong>
+        <p>后续展开原文、关键变化和需要确认的价格条件。</p>
+      </article>
+      <article>
+        <span>同类复盘</span>
+        <strong>后续开放</strong>
+        <p>后续回看相似事件 5/20/60 日后的真实表现。</p>
+      </article>
+    </div>
+  `;
+};
+
+const renderEventTable = () => {
+  renderExpectationEvidence();
+  const board = getEventBoard();
+  const rows = getEventRows();
+  const totalRows = Array.isArray(board.rows) ? board.rows.length : 0;
+  const body = document.querySelector("#eventBody");
+  const cardGrid = document.querySelector("#eventCardGrid");
+  const summary = document.querySelector("#eventResultSummary");
+  if (!body || !summary) return;
+
+  setText("#eventBoardTitle", board.title || eventBoardFallbacks[state.eventBoard]?.title || "--");
+  setText("#eventBoardSubtitle", board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "--");
+  setText("#eventActiveTitle", board.title || "--");
+  setText("#eventActiveSubtitle", board.subtitle || "等待数据加载。");
+  const [decisionValue, decisionNote] = eventDecisionCopy(rows);
+  setText("#eventDecisionValue", decisionValue);
+  setText("#eventDecisionNote", decisionNote);
+  renderEventFocusGrid(rows);
+  summary.textContent = `${board.title || "事件榜"} · ${rows.length}/${totalRows} 只股票`;
+
+  if (!state.selectedEventSymbol && rows.length) state.selectedEventSymbol = normalizeStockSymbol(rows[0].ticker || rows[0].symbol);
+  if (state.selectedEventSymbol && !rows.some((row) => normalizeStockSymbol(row.ticker || row.symbol) === state.selectedEventSymbol)) {
+    state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
+  }
+
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="8">这张榜单暂时没有数据，生成后会自动显示。</td></tr>';
+    if (cardGrid) {
+      cardGrid.innerHTML = `
+        <article class="event-observation-card">
+          <span>暂无符合条件的股票</span>
+          <strong>可以放宽筛选或切换线索类型</strong>
+          <p>先从“全部观察风格”开始，再逐步缩小到稳一点、弹性大、机构关注或小盘高波动。</p>
+        </article>
+      `;
+    }
+    renderEventDetail(null);
+    return;
+  }
+
+  if (cardGrid) {
+    cardGrid.innerHTML = rows.slice(0, 12).map((row) => {
+      const ticker = normalizeStockSymbol(row.ticker || row.symbol);
+      const selected = ticker === state.selectedEventSymbol;
+      const conclusion = eventConclusion(row);
+      const preview = eventDetailPreview(row);
+      const priority = reviewPriorityForEventRow(row);
+      const returnClass = Number(row.return20dPct) >= 0 ? "is-positive" : "is-negative";
+      return `
+        <article class="event-observation-card ${selected ? "is-selected" : ""}" data-event-symbol="${escapeHtml(ticker)}">
+          <div class="event-card-head">
+            <div>
+              <span>${escapeHtml(row.eventLabel || row.eventType || "观察线索")}</span>
+              <strong>${escapeHtml(ticker)}</strong>
+              <p>${escapeHtml(row.companyName || row.name || "")}</p>
+            </div>
+            <em>${escapeHtml(conclusion)}</em>
+          </div>
+          <div class="event-card-metrics">
+            <div><span>复盘分</span><strong>${escapeHtml(String(priority.score))}</strong></div>
+            <div><span>20日表现</span><strong class="${returnClass}">${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</strong></div>
+            <div><span>流动性</span><strong>${escapeHtml(row.liquidity || "--")}</strong></div>
+          </div>
+          <section>
+            <span>为什么出现</span>
+            <p>${escapeHtml(eventReasonForUser(row))}</p>
+          </section>
+          <section>
+            <span>现在怎么看</span>
+            <p>${escapeHtml(eventNextReview(row))}</p>
+          </section>
+          <section>
+            <span>主要风险</span>
+            <p>${escapeHtml(row.risk || "先看价格和成交额是否继续确认。")}</p>
+          </section>
+          <section>
+            <span>点进详情看什么</span>
+            <p>${escapeHtml(`${preview.title}；${preview.sources}`)}</p>
+          </section>
+          <div class="event-card-actions">
+            <button class="ghost-action" type="button" data-stock-open="${escapeHtml(ticker)}">股票详情</button>
+            ${watchlistActionButton(ticker, "预期改善观察")}
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  body.innerHTML = rows
+    .map((row, index) => {
+      const ticker = normalizeStockSymbol(row.ticker || row.symbol);
+      const selected = ticker === state.selectedEventSymbol;
+      const priority = reviewPriorityForEventRow(row);
+      return `
+        <tr class="event-row ${selected ? "is-selected" : ""}" data-event-symbol="${escapeHtml(ticker)}">
+          <td class="rank-cell" data-label="排名">${escapeHtml(row.rank || index + 1)}</td>
+          <td class="symbol-cell" data-label="股票">
+            <div class="event-symbol-card">
+              <strong>${escapeHtml(ticker)}</strong>
+              <span>${escapeHtml(row.companyName || row.name || "")}</span>
+              <div class="inline-action-row">
+                <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(ticker)}">详情</button>
+                <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="预期改善观察">${isInWatchlist(ticker) ? "已观察" : "加入观察"}</button>
+              </div>
+            </div>
+          </td>
+          <td class="event-type-cell" data-label="线索">
+            <div class="event-label-stack">
+              <strong>
+                ${escapeHtml(row.eventLabel || row.eventType || "--")}
+                <button class="info-tip" type="button" aria-label="${escapeHtml(row.eventLabel || "线索")}解释" data-tip="${escapeHtml(eventTermTip(row))}">?</button>
+              </strong>
+              <span>${escapeHtml(eventDateLabel(row))} ${escapeHtml(formatDisplayDate(row.eventDate))}</span>
+            </div>
+          </td>
+          <td class="event-reason-cell" data-label="进入原因"><span class="event-reason-text">${escapeHtml(eventReasonForUser(row))}</span></td>
+          <td class="quality-score-cell" data-label="复盘分">
+            <div class="event-score-stack">
+              <strong>${escapeHtml(String(priority.score))}</strong>
+              <small class="macro-rank-reason">${escapeHtml(priority.reason)}</small>
+            </div>
+          </td>
+          <td class="${Number(row.return20dPct) >= 0 ? "gain-cell" : "loss-cell"}" data-label="20日表现">${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</td>
+          <td class="event-mini-cell" data-label="流动性">${escapeHtml(row.liquidity || "--")}</td>
+          <td class="quality-risk-cell" data-label="风险"><span class="event-risk-text">${escapeHtml(eventRiskSummary(row))}</span></td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  renderEventDetail(rows.find((row) => normalizeStockSymbol(row.ticker || row.symbol) === state.selectedEventSymbol) || rows[0]);
+};
+
+const renderEventOpportunities = (payload) => {
+  state.eventOpportunities = payload;
+  const guidanceRows = payload?.boards?.guidance_up?.rows || [];
+  const rows = guidanceRows.length ? guidanceRows : allEventRows();
+  const first = rows[0];
+  const stats = Array.isArray(payload?.forwardStats) ? payload.forwardStats : [];
+  setText("#eventsAsOf", formatDisplayDate(payload?.asOf));
+  setText("#eventTotalCount", rows.length ? `${rows.length}只` : "--");
+  setText("#eventTopSymbol", first ? normalizeStockSymbol(first.ticker || first.symbol) : "--");
+  setText("#eventTopReason", first ? eventReasonForUser(first) : "有数据后显示当前更需要进一步研究的线索。");
+  setText("#dashboardEventLeader", first ? normalizeStockSymbol(first.ticker || first.symbol) : "等待数据");
+  setText("#dashboardEventCount", rows.length ? `${rows.length}` : "--");
+  setText("#dashboardEventCopy", first ? eventReasonForUser(first) : "预期改善、财报和机构观点变化会集中展示。");
+  setText("#dashboardEventNote", first?.eventLabel || first?.eventType || "适合先加入观察池，再看价格是否确认。");
+  setText("#eventForwardSummary", stats.length ? `${stats.length}组记录` : "待接入");
+  renderEventTable();
+  renderDashboardFocus();
+};
+
+const validationClass = (winRate) => {
+  const value = Number(winRate);
+  if (!Number.isFinite(value)) return "";
+  if (value >= 55) return "is-positive";
+  if (value < 50) return "is-negative";
+  return "is-neutral";
+};
+
+const validationEvidenceClass = (value, count, minCount = 30) => {
+  const sample = Number(count);
+  if (!Number.isFinite(sample) || sample < minCount) return "is-neutral";
+  return validationClass(value);
+};
+
+const renderValidationCenter = (payload) => {
+  state.validationCenter = payload;
+  renderExpectationEvidence();
+  const summary = payload?.summary || {};
+  const best = Array.isArray(summary.bestSignals) ? summary.bestSignals[0] : null;
+  setText("#validationAsOf", formatDisplayDate(payload?.asOf));
+  setText("#validationVerdict", summary.verdict || "--");
+  setText("#validationConclusion", summary.conclusion || "等待验证数据生成。");
+  setText("#validationBestSignal", best ? `${best.label} ${formatPlainPct(best.winRatePct)}` : "--");
+  setText("#validationBestNote", best ? `20日样本 ${formatNumber(best.count)} 条，历史均值 ${formatEvidenceSignedPct(best.meanPct, best.count)}。` : "先找样本量、正向占比和相对指数表现都更稳的方向。");
+  const historicalSample = payload?.historicalSample || {};
+  setText("#validationSampleSize", historicalSample.rows ? `${formatNumber(historicalSample.rows)} 条` : "--");
+  setText(
+    "#validationSampleNote",
+    historicalSample.start && historicalSample.end
+      ? `${formatDisplayDate(historicalSample.start)} 至 ${formatDisplayDate(historicalSample.end)}，覆盖 ${formatNumber(historicalSample.symbols || 0)} 个标的。`
+      : summary.sampleNote || "已接入事件级历史样本、指数对照和市场环境分层。"
+  );
+
+  const decisionBody = document.querySelector("#validationDecisionBody");
+  if (decisionBody) {
+    const rows = Array.isArray(payload?.productDecisions) ? payload.productDecisions : [];
+    decisionBody.innerHTML = rows.length
+      ? rows
+          .map((row) => {
+            const statusClass = row.status === "重点观察" ? "is-positive" : row.status === "只作背景" ? "is-negative" : "is-neutral";
+            return `
+              <tr>
+                <td><strong>${escapeHtml(row.label || row.signal || "--")}</strong></td>
+                <td class="${statusClass}">${escapeHtml(row.status || "--")}</td>
+                <td>${escapeHtml(formatNumber(row.count || 0))}</td>
+                <td class="${validationEvidenceClass(row.winRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.winRatePct, row.count))}</td>
+                <td class="${validationEvidenceClass(row.beatSpyRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.beatSpyRatePct, row.count))}</td>
+                <td class="${Number(row.trimmedMeanPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatEvidenceSignedPct(row.trimmedMeanPct, row.count))}</td>
+              </tr>
+            `;
+          })
+          .join("")
+      : '<tr><td colspan="6">等待历史回测数据。</td></tr>';
+  }
+
+  const basketBody = document.querySelector("#validationBasketBody");
+  if (basketBody) {
+    const rows = Array.isArray(payload?.rollingBaskets) ? payload.rollingBaskets : [];
+    basketBody.innerHTML = rows.length
+      ? rows
+          .slice(0, 8)
+          .map((row) => `
+            <tr>
+              <td><strong>${escapeHtml(row.label || row.signal || "--")}</strong></td>
+              <td>${escapeHtml(formatNumber(row.days || 0))}</td>
+              <td>${escapeHtml(row.avgPicks == null ? "--" : Number(row.avgPicks).toFixed(1))}</td>
+              <td class="${Number(row.medianPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatEvidenceSignedPct(row.medianPct, row.count))}</td>
+              <td class="${validationEvidenceClass(row.winRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.winRatePct, row.count))}</td>
+              <td class="${validationEvidenceClass(row.beatSpyRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.beatSpyRatePct, row.count))}</td>
+            </tr>
+          `)
+          .join("")
+      : '<tr><td colspan="6">等待滚动名单验证。</td></tr>';
+  }
+
+  const historyBenchmarkBody = document.querySelector("#validationHistoryBenchmarkBody");
+  if (historyBenchmarkBody) {
+    const rows = Array.isArray(payload?.historicalBenchmarkStats) ? payload.historicalBenchmarkStats : [];
+    historyBenchmarkBody.innerHTML = rows.length
+      ? rows
+          .filter((row) => row.horizon === "20d" || row.horizon === "60d")
+          .map((row) => `
+            <tr>
+              <td><strong>${escapeHtml(row.label || row.signal || "--")}</strong></td>
+              <td>${escapeHtml(row.horizon || "--")}</td>
+              <td>${escapeHtml(formatNumber(row.count || 0))}</td>
+              <td class="${Number(row.medianPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatEvidenceSignedPct(row.medianPct, row.count))}</td>
+              <td class="${validationEvidenceClass(row.winRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.winRatePct, row.count))}</td>
+              <td class="${validationEvidenceClass(row.beatSpyRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.beatSpyRatePct, row.count))}</td>
+              <td class="${Number(row.meanExcessSpyPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatEvidenceSignedPct(row.meanExcessSpyPct, row.count))}</td>
+              <td class="${validationEvidenceClass(row.beatQqqRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.beatQqqRatePct, row.count))}</td>
+            </tr>
+          `)
+          .join("")
+      : '<tr><td colspan="8">等待全历史指数对照。</td></tr>';
+  }
+
+  const eventBody = document.querySelector("#validationEventBody");
+  if (eventBody) {
+    const rows = Array.isArray(payload?.eventTypeStats) ? payload.eventTypeStats : [];
+    eventBody.innerHTML = rows.length
+      ? rows
+          .map((row) => `
+            <tr>
+              <td><strong>${escapeHtml(row.label || row.signal || "--")}</strong></td>
+              <td>${escapeHtml(row.horizon || "--")}</td>
+              <td>${escapeHtml(row.count || "--")}</td>
+              <td class="${Number(row.meanPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatSignedPct(row.meanPct))}</td>
+              <td class="${Number(row.medianPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatSignedPct(row.medianPct))}</td>
+              <td class="${validationEvidenceClass(row.winRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.winRatePct, row.count))}</td>
+            </tr>
+          `)
+          .join("")
+      : '<tr><td colspan="6">等待验证数据生成。</td></tr>';
+  }
+
+  const scoreBody = document.querySelector("#validationScoreBody");
+  if (scoreBody) {
+    const rows = Array.isArray(payload?.scoreBuckets) ? payload.scoreBuckets : [];
+    scoreBody.innerHTML = rows.length
+      ? rows
+          .map((row) => `
+            <tr>
+              <td><strong>${escapeHtml(row.boardLabel || row.board || "--")}</strong></td>
+              <td>${escapeHtml(row.bucketLabel || "--")}</td>
+              <td>${escapeHtml(row.count || "--")}</td>
+              <td>${escapeHtml(row.avgScore == null ? "--" : Number(row.avgScore).toFixed(2))}</td>
+              <td class="${Number(row.meanPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatSignedPct(row.meanPct))}</td>
+              <td class="${validationEvidenceClass(row.winRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.winRatePct, row.count))}</td>
+            </tr>
+          `)
+          .join("")
+      : '<tr><td colspan="6">等待分数组验证。</td></tr>';
+  }
+
+  const benchmarkBody = document.querySelector("#validationBenchmarkBody");
+  if (benchmarkBody) {
+    const rows = Array.isArray(payload?.benchmarkTests) ? payload.benchmarkTests : [];
+    benchmarkBody.innerHTML = rows.length
+      ? rows
+          .map((row) => {
+            const spy = row.spy || {};
+            const qqq = row.qqq || {};
+            return `
+              <tr>
+                <td><strong>${escapeHtml(row.boardLabel || row.board || "--")}</strong></td>
+                <td>${escapeHtml(row.horizon || "--")}</td>
+                <td>${escapeHtml(spy.count || "--")}</td>
+                <td class="${validationEvidenceClass(spy.beatRatePct, spy.count)}">${escapeHtml(formatEvidencePct(spy.beatRatePct, spy.count))}</td>
+                <td class="${Number(spy.meanExcessPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatEvidenceSignedPct(spy.meanExcessPct, spy.count))}</td>
+                <td class="${validationEvidenceClass(qqq.beatRatePct, qqq.count)}">${escapeHtml(formatEvidencePct(qqq.beatRatePct, qqq.count))}</td>
+                <td class="${Number(qqq.meanExcessPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatEvidenceSignedPct(qqq.meanExcessPct, qqq.count))}</td>
+              </tr>
+            `;
+          })
+          .join("")
+      : '<tr><td colspan="7">等待指数对照数据。</td></tr>';
+  }
+
+  const temperatureBody = document.querySelector("#validationTemperatureBody");
+  if (temperatureBody) {
+    const rows = Array.isArray(payload?.temperatureStats) ? payload.temperatureStats : [];
+    temperatureBody.innerHTML = rows.length
+      ? rows
+          .map((row) => `
+            <tr>
+              <td><strong>${escapeHtml(row.regime || "--")}</strong></td>
+              <td>${escapeHtml(row.horizon || "--")}</td>
+              <td>${escapeHtml(row.count || "--")}</td>
+              <td class="${Number(row.meanPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatSignedPct(row.meanPct))}</td>
+              <td class="${validationEvidenceClass(row.winRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.winRatePct, row.count))}</td>
+              <td class="${validationEvidenceClass(row.beatSpyRatePct, row.count)}">${escapeHtml(formatEvidencePct(row.beatSpyRatePct, row.count))}</td>
+              <td class="${Number(row.meanExcessSpyPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatEvidenceSignedPct(row.meanExcessSpyPct, row.count))}</td>
+            </tr>
+          `)
+          .join("")
+      : '<tr><td colspan="7">等待温度分层数据。</td></tr>';
+  }
+
+  const currentGrid = document.querySelector("#validationCurrentGrid");
+  if (currentGrid) {
+    const rows = Array.isArray(payload?.currentTests) ? payload.currentTests : [];
+    currentGrid.innerHTML = rows.length
+      ? rows
+          .map((row) => {
+            const five = row.fiveDay || {};
+            const twenty = row.twentyDay || {};
+            return `
+              <article>
+                <span>${escapeHtml(row.boardLabel || row.board || "--")}</span>
+                <strong>${escapeHtml(row.sampleCount || 0)} 条</strong>
+                <p>5日正向占比 ${escapeHtml(formatEvidencePct(five.winRatePct, five.count))}，均值 ${escapeHtml(formatEvidenceSignedPct(five.meanPct, five.count))}。</p>
+                <p>20日正向占比 ${escapeHtml(formatEvidencePct(twenty.winRatePct, twenty.count))}，均值 ${escapeHtml(formatEvidenceSignedPct(twenty.meanPct, twenty.count))}。</p>
+              </article>
+            `;
+          })
+          .join("")
+      : '<article><span>等待数据</span><strong>暂无</strong><p>生成验证数据后显示当前榜单体检。</p></article>';
+  }
+};
+
+const setupInfoTips = () => {
+  if (document.querySelector("#globalInfoTip")) return;
+  document.body.classList.add("has-global-tip");
+  const tip = document.createElement("div");
+  tip.id = "globalInfoTip";
+  tip.className = "global-info-tip";
+  tip.setAttribute("role", "tooltip");
+  document.body.appendChild(tip);
+
+  const showTip = (button) => {
+    const text = button?.dataset?.tip;
+    if (!text) return;
+    tip.textContent = text;
+    tip.classList.add("is-visible");
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(300, window.innerWidth - 28);
+    const left = Math.max(14, Math.min(window.innerWidth - width - 14, rect.left + rect.width / 2 - width / 2));
+    const placeBelow = rect.top < 96;
+    const top = placeBelow ? rect.bottom + 10 : rect.top - tip.offsetHeight - 10;
+    tip.style.width = `${width}px`;
+    tip.style.left = `${left}px`;
+    tip.style.top = `${Math.max(12, top)}px`;
+  };
+
+  const hideTip = () => {
+    tip.classList.remove("is-visible");
+  };
+
+  document.addEventListener("pointerover", (event) => {
+    const button = event.target.closest(".info-tip");
+    if (button) showTip(button);
+  });
+  document.addEventListener("pointerout", (event) => {
+    if (event.target.closest(".info-tip")) hideTip();
+  });
+  document.addEventListener("focusin", (event) => {
+    const button = event.target.closest(".info-tip");
+    if (button) showTip(button);
+  });
+  document.addEventListener("focusout", (event) => {
+    if (event.target.closest(".info-tip")) hideTip();
+  });
+  window.addEventListener("scroll", hideTip, { passive: true });
+  window.addEventListener("resize", hideTip);
+};
+
+const bindEvents = () => {
+  setupInfoTips();
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    item.setAttribute("aria-current", item.classList.contains("is-active") ? "page" : "false");
+  });
+  document.querySelectorAll(".board-tab").forEach((tab) => {
+    tab.setAttribute("aria-pressed", tab.classList.contains("is-active") ? "true" : "false");
+  });
+
+  const syncPageFromLocation = () => {
+    showPage(getPageFromHash(), { syncHash: false });
+  };
+  window.addEventListener("popstate", syncPageFromLocation);
+  window.addEventListener("hashchange", syncPageFromLocation);
+
+  const globalSearchInput = document.querySelector("#globalSearchInput");
+  const globalSearchResultsPanel = document.querySelector("#globalSearchResults");
+  if (globalSearchInput) {
+    globalSearchInput.addEventListener("input", renderGlobalSearchResults);
+    globalSearchInput.addEventListener("focus", () => {
+      if (globalSearchInput.value.trim()) renderGlobalSearchResults();
+    });
+    globalSearchInput.addEventListener("keydown", (event) => {
+      const items = flattenGlobalResults();
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (!items.length) renderGlobalSearchResults();
+        setGlobalSearchActive(state.globalSearchIndex + 1);
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setGlobalSearchActive(state.globalSearchIndex <= 0 ? items.length - 1 : state.globalSearchIndex - 1);
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        openGlobalResult(items[state.globalSearchIndex] || items[0]);
+        return;
+      }
+      if (event.key === "Escape") {
+        closeGlobalSearch();
+      }
+    });
+  }
+  if (globalSearchResultsPanel) {
+    globalSearchResultsPanel.addEventListener("mousedown", (event) => {
+      const item = event.target.closest("[data-global-search-result]");
+      if (!item) return;
+      event.preventDefault();
+      openGlobalResult(item);
+    });
+  }
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".global-search")) closeGlobalSearch();
+  });
+
+  document.querySelectorAll("[data-page]").forEach((item) => {
+    item.addEventListener("click", () => {
+      if (item.dataset.disabled === "true" || item.disabled) return;
+      showPage(item.dataset.page);
+    });
+  });
+
+  document.querySelectorAll("[data-page-link]").forEach((item) => {
+    item.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (item.dataset.disabled === "true" || item.getAttribute("aria-disabled") === "true") return;
+      showPage(item.dataset.pageLink);
+    });
+  });
+
+  document.querySelectorAll('a[data-disabled="true"]').forEach((item) => {
+    item.addEventListener("click", (event) => event.preventDefault());
+  });
+
+  document.addEventListener("click", (event) => {
+    const macroSeriesRange = event.target.closest("[data-macro-series-range]");
+    if (macroSeriesRange) {
+      event.preventDefault();
+      state.macroSeriesRange = macroSeriesRange.dataset.macroSeriesRange || "1y";
+      renderMacroSeries(state.macroSeries);
+      return;
+    }
+    const valuationMetric = event.target.closest("[data-valuation-metric]");
+    if (valuationMetric) {
+      event.preventDefault();
+      state.valuationMetric = valuationMetric.dataset.valuationMetric || "pe";
+      renderIndexValuation(state.indexValuation);
+      return;
+    }
+    const valuationIndex = event.target.closest("[data-valuation-index]");
+    if (valuationIndex) {
+      event.preventDefault();
+      state.valuationIndex = String(valuationIndex.dataset.valuationIndex || "QQQ").toUpperCase();
+      renderIndexValuation(state.indexValuation);
+      return;
+    }
+    const valuationRange = event.target.closest("[data-valuation-range]");
+    if (valuationRange) {
+      event.preventDefault();
+      state.valuationRange = valuationRange.dataset.valuationRange || "3m";
+      renderIndexValuation(state.indexValuation);
+      return;
+    }
+    const macroPoolTrigger = event.target.closest("[data-macro-pool-open]");
+    if (macroPoolTrigger) {
+      event.preventDefault();
+      event.stopPropagation();
+      applyMacroPoolFilter(macroPoolTrigger.dataset.macroPoolOpen);
+      return;
+    }
+    const macroClearTrigger = event.target.closest("[data-clear-macro-filter]");
+    if (macroClearTrigger) {
+      event.preventDefault();
+      clearMacroPoolFilter();
+      return;
+    }
+    const stockTrigger = event.target.closest("[data-stock-open]");
+    if (stockTrigger) {
+      event.preventDefault();
+      event.stopPropagation();
+      openStockHub(stockTrigger.dataset.stockOpen);
+      return;
+    }
+    const backTrigger = event.target.closest("[data-stock-back]");
+    if (backTrigger) {
+      event.preventDefault();
+      showPage(state.stockBackPage || "market");
+      return;
+    }
+    const watchlistToggle = event.target.closest("[data-watchlist-toggle]");
+    if (watchlistToggle) {
+      event.preventDefault();
+      event.stopPropagation();
+      const symbol = watchlistToggle.dataset.watchlistToggle;
+      if (isInWatchlist(symbol)) removeFromWatchlist(symbol);
+      else addToWatchlist(symbol, watchlistToggle.dataset.watchlistSource || "手动加入");
+      return;
+    }
+    const watchlistRemove = event.target.closest("[data-watchlist-remove]");
+    if (watchlistRemove) {
+      event.preventDefault();
+      event.stopPropagation();
+      removeFromWatchlist(watchlistRemove.dataset.watchlistRemove);
+      return;
+    }
+    const watchlistReview = event.target.closest("[data-watchlist-review]");
+    if (watchlistReview) {
+      event.preventDefault();
+      event.stopPropagation();
+      updateWatchlistReview(watchlistReview.dataset.watchlistSymbol, watchlistReview.dataset.watchlistReview);
+    }
+  });
+
+  const signalStateTable = document.querySelector("#signalStateTable");
+  if (signalStateTable) {
+    signalStateTable.addEventListener("click", (event) => {
+      const row = event.target.closest("[data-signal-symbol]");
+      if (!row) return;
+      state.selectedSignalSymbol = row.dataset.signalSymbol;
+      renderSignalDashboard();
+    });
+  }
+
+  const authButton = document.querySelector("#authButton");
+  if (authButton) authButton.addEventListener("click", async () => {
+    if (!state.auth.authenticated) {
+      openAuthModal("登录后可查看订阅状态。付费用户可解锁交割记录和完整复盘。");
+      return;
+    }
+    if (window.confirm("是否退出当前账号？")) {
+      await apiFetch("/api/auth/logout", { method: "POST", body: "{}" }).catch(() => null);
+      window.location.reload();
+    }
+  });
+
+  document.querySelectorAll("[data-auth-close]").forEach((item) => {
+    item.addEventListener("click", closeAuthModal);
+  });
+
+  const authForm = document.querySelector("#authForm");
+  if (authForm) authForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = document.querySelector("#authEmail").value;
+    const password = document.querySelector("#authPassword").value;
+    setText("#authError", "");
+    try {
+      const payload = await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      state.auth = {
+        authenticated: Boolean(payload.authenticated),
+        user: payload.user,
+        entitlements: payload.entitlements || { paid: false, pro: false, proPlus: false, admin: false },
+      };
+      renderAuthState();
+      closeAuthModal();
+      if (state.auth.entitlements.admin) {
+        loadAdminUsers().catch(() => null);
+      }
+    } catch (error) {
+      setText("#authError", error.message || "登录失败");
+    }
+  });
+
+  const adminCreateForm = document.querySelector("#adminCreateForm");
+  if (adminCreateForm) adminCreateForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(adminCreateForm);
+    const payload = {
+      email: form.get("email"),
+      password: form.get("password"),
+      role: form.get("role"),
+      plan: form.get("plan"),
+      subscriptionExpiresAt: form.get("subscriptionExpiresAt"),
+      isActive: form.get("isActive") === "on",
+    };
+    setText("#adminCreateMsg", "");
+    try {
+      await apiFetch("/api/admin/users/create", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      adminCreateForm.reset();
+      adminCreateForm.querySelector('[name="isActive"]').checked = true;
+      setText("#adminCreateMsg", "用户已创建，并已记录创建人业绩归属。");
+      await loadAdminUsers();
+    } catch (error) {
+      setText("#adminCreateMsg", error.message || "创建失败");
+    }
+  });
+
+  const adminRefreshUsers = document.querySelector("#adminRefreshUsers");
+  if (adminRefreshUsers) adminRefreshUsers.addEventListener("click", () => {
+    loadAdminUsers().catch((error) => setText("#adminCreateMsg", error.message || "刷新失败"));
+  });
+
+  const adminUsersBody = document.querySelector("#adminUsersBody");
+  if (adminUsersBody) adminUsersBody.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-admin-action]");
+    if (!button) return;
+    const row = button.closest("[data-admin-user-id]");
+    const userId = Number(row.dataset.adminUserId);
+    if (button.dataset.adminAction === "save") {
+      const getField = (name) => row.querySelector(`[data-admin-field="${name}"]`);
+      const payload = {
+        userId,
+        role: getField("role").value,
+        plan: getField("plan").value,
+        subscriptionExpiresAt: getField("subscriptionExpiresAt").value,
+        isActive: getField("isActive").checked,
+      };
+      button.disabled = true;
+      try {
+        await apiFetch("/api/admin/users/update-plan", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        await loadAdminUsers();
+      } catch (error) {
+        window.alert(error.message || "保存失败");
+      } finally {
+        button.disabled = false;
+      }
+    }
+    if (button.dataset.adminAction === "reset-password") {
+      const password = window.prompt("输入新密码，至少 8 位");
+      if (!password) return;
+      try {
+        await apiFetch("/api/admin/users/reset-password", {
+          method: "POST",
+          body: JSON.stringify({ userId, password }),
+        });
+        window.alert("密码已更新");
+      } catch (error) {
+        window.alert(error.message || "改密失败");
+      }
+    }
+  });
+
+  document.querySelectorAll("[data-gated-action='trade-records']").forEach((item) => {
+    item.addEventListener("click", (event) => {
+      event.preventDefault();
+      unlockTradeRecords();
+    });
+  });
+
+  const clearWatchlistButton = document.querySelector("#clearWatchlistButton");
+  if (clearWatchlistButton) {
+    clearWatchlistButton.addEventListener("click", () => {
+      if (!state.watchlist.length) return;
+      if (window.confirm("确定清空观察池吗？")) clearWatchlist();
+    });
+  }
+
+  const watchlistSearchInput = document.querySelector("#watchlistSearchInput");
+  if (watchlistSearchInput) watchlistSearchInput.addEventListener("input", (event) => {
+    state.watchlistQuery = event.target.value;
+    renderWatchlist();
+  });
+
+  const watchlistViewFilter = document.querySelector("#watchlistViewFilter");
+  if (watchlistViewFilter) watchlistViewFilter.addEventListener("change", (event) => {
+    state.watchlistViewFilter = event.target.value;
+    renderWatchlist();
+  });
+
+  const watchlistSourceFilter = document.querySelector("#watchlistSourceFilter");
+  if (watchlistSourceFilter) watchlistSourceFilter.addEventListener("change", (event) => {
+    state.watchlistSourceFilter = event.target.value;
+    renderWatchlist();
+  });
+
+  document.querySelectorAll(".board-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      if (tab.classList.contains("strength-tab") || tab.classList.contains("quality-tab") || tab.classList.contains("event-tab")) return;
+      state.activeBoard = tab.dataset.board;
+      state.rows = state.boards[state.activeBoard];
+      state.selectedMarketSymbol = state.rows[0] ? state.rows[0].symbol : "";
+      state.sectorFilter = "all";
+      state.capFilter = "all";
+      state.riskFilter = "all";
+      state.directionFilter = "all";
+      state.macroFilter = "all";
+      document.querySelector("#sectorFilter").value = "all";
+      document.querySelector("#capFilter").value = "all";
+      document.querySelector("#riskFilter").value = "all";
+      document.querySelector("#directionFilter").value = "all";
+      document.querySelectorAll(".board-tab").forEach((item) => {
+        item.classList.toggle("is-active", item === tab);
+        item.setAttribute("aria-pressed", item === tab ? "true" : "false");
+      });
+      renderSectorOptions();
+      renderStats();
+      renderLeader(state.rows[0], state.meta[state.activeBoard].updatedAt);
+      renderTable();
+    });
+  });
+
+  document.querySelector("#searchInput").addEventListener("input", (event) => {
+    state.query = event.target.value;
+    renderTable();
+  });
+
+  document.querySelector("#capFilter").addEventListener("change", (event) => {
+    state.capFilter = event.target.value;
+    renderTable();
+  });
+
+  document.querySelector("#sectorFilter").addEventListener("change", (event) => {
+    state.sectorFilter = event.target.value;
+    renderTable();
+  });
+
+  document.querySelector("#riskFilter").addEventListener("change", (event) => {
+    state.riskFilter = event.target.value;
+    renderTable();
+  });
+
+  document.querySelector("#directionFilter").addEventListener("change", (event) => {
+    state.directionFilter = event.target.value;
+    renderTable();
+  });
+
+  const gainersBody = document.querySelector("#gainersBody");
+  if (gainersBody) {
+    gainersBody.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      const row = event.target.closest("[data-market-symbol]");
+      if (!row) return;
+      state.selectedMarketSymbol = row.dataset.marketSymbol;
+      renderTable();
+    });
+  }
+
+  const marketCardGrid = document.querySelector("#marketCardGrid");
+  if (marketCardGrid) {
+    marketCardGrid.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      const row = event.target.closest("[data-market-symbol]");
+      if (!row) return;
+      state.selectedMarketSymbol = row.dataset.marketSymbol;
+      renderTable();
+    });
+  }
+
+  document.querySelectorAll(".strength-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.strengthBucket = tab.dataset.strengthBucket;
+      document.querySelectorAll(".strength-tab").forEach((item) => {
+        item.classList.toggle("is-active", item === tab);
+        item.setAttribute("aria-pressed", item === tab ? "true" : "false");
+      });
+      const leader = state.strength && state.strength.rows.find((row) => row.bucket === state.strengthBucket);
+      renderStrengthHero(leader);
+      renderStrengthTable();
+    });
+  });
+
+  const strengthSearchInput = document.querySelector("#strengthSearchInput");
+  if (strengthSearchInput) strengthSearchInput.addEventListener("input", (event) => {
+    state.strengthQuery = event.target.value;
+    renderStrengthTable();
+  });
+
+  const strengthLabelFilter = document.querySelector("#strengthLabelFilter");
+  if (strengthLabelFilter) strengthLabelFilter.addEventListener("change", (event) => {
+    state.strengthLabelFilter = event.target.value;
+    renderStrengthTable();
+  });
+
+  const strengthFactorFilter = document.querySelector("#strengthFactorFilter");
+  if (strengthFactorFilter) strengthFactorFilter.addEventListener("change", (event) => {
+    state.strengthFactorFilter = event.target.value;
+    renderStrengthTable();
+  });
+
+  document.querySelectorAll(".quality-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.qualityBoard = tab.dataset.qualityBoard;
+      state.qualityQuery = "";
+      const input = document.querySelector("#qualitySearchInput");
+      if (input) input.value = "";
+      document.querySelectorAll(".quality-tab").forEach((item) => {
+        item.classList.toggle("is-active", item === tab);
+        item.setAttribute("aria-pressed", item === tab ? "true" : "false");
+      });
+      const rows = getQualityRows();
+      state.selectedQualitySymbol = rows[0] ? rows[0].ticker : "";
+      renderQualityTable();
+    });
+  });
+
+  const qualitySearchInput = document.querySelector("#qualitySearchInput");
+  if (qualitySearchInput) qualitySearchInput.addEventListener("input", (event) => {
+    state.qualityQuery = event.target.value;
+    renderQualityTable();
+  });
+
+  const qualityBody = document.querySelector("#qualityBody");
+  if (qualityBody) {
+    qualityBody.addEventListener("click", (event) => {
+      const row = event.target.closest("[data-quality-symbol]");
+      if (!row) return;
+      state.selectedQualitySymbol = row.dataset.qualitySymbol;
+      renderQualityTable();
+    });
+  }
+
+  document.querySelectorAll(".event-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.eventBoard = tab.dataset.eventBoard;
+      document.querySelectorAll(".event-tab").forEach((item) => {
+        item.classList.toggle("is-active", item === tab);
+        item.setAttribute("aria-pressed", item === tab ? "true" : "false");
+      });
+      const rows = getEventRows();
+      state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
+      renderEventTable();
+    });
+  });
+
+  const eventSearchInput = document.querySelector("#eventSearchInput");
+  if (eventSearchInput) {
+    eventSearchInput.addEventListener("input", () => {
+      state.eventQuery = eventSearchInput.value.trim();
+      const rows = getEventRows();
+      state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
+      renderEventTable();
+    });
+  }
+
+  const eventScoreFilter = document.querySelector("#eventScoreFilter");
+  if (eventScoreFilter) {
+    eventScoreFilter.addEventListener("change", () => {
+      state.eventScoreFilter = eventScoreFilter.value;
+      const rows = getEventRows();
+      state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
+      renderEventTable();
+    });
+  }
+
+  const eventRiskFilter = document.querySelector("#eventRiskFilter");
+  if (eventRiskFilter) {
+    eventRiskFilter.addEventListener("change", () => {
+      state.eventRiskFilter = eventRiskFilter.value;
+      const rows = getEventRows();
+      state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
+      renderEventTable();
+    });
+  }
+
+  const eventStyleFilter = document.querySelector("#eventStyleFilter");
+  if (eventStyleFilter) {
+    eventStyleFilter.addEventListener("change", () => {
+      state.eventStyleFilter = eventStyleFilter.value;
+      const rows = getEventRows();
+      state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
+      renderEventTable();
+    });
+  }
+
+  const eventBody = document.querySelector("#eventBody");
+  if (eventBody) {
+    eventBody.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      const row = event.target.closest("[data-event-symbol]");
+      if (!row) return;
+      state.selectedEventSymbol = row.dataset.eventSymbol;
+      renderEventTable();
+    });
+  }
+
+  const eventCardGrid = document.querySelector("#eventCardGrid");
+  if (eventCardGrid) {
+    eventCardGrid.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      const row = event.target.closest("[data-event-symbol]");
+      if (!row) return;
+      state.selectedEventSymbol = row.dataset.eventSymbol;
+      renderEventTable();
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeAuthModal();
+  });
+};
+
+const init = async () => {
+  const [
+    ytdResponse,
+    moversResponse,
+    coreData,
+    strengthData,
+    strengthReviewData,
+    marketTemperatureData,
+  ] = await Promise.all([
+    fetch(DATA_URL),
+    fetch(MOVERS_URL),
+    fetchOptionalJson(CORE_URL),
+    fetchOptionalJson(STRENGTH_URL),
+    fetchOptionalJson(STRENGTH_REVIEW_URL),
+    fetchOptionalJson(MARKET_TEMPERATURE_URL),
+  ]);
+  const ytdData = await ytdResponse.json();
+  const moversData = await moversResponse.json();
+  state.watchlist = safeReadJson(WATCHLIST_STORAGE_KEY, []);
+  state.core = coreData;
+  state.strength = strengthData;
+  state.strengthReview = strengthReviewData;
+  state.marketTemperature = marketTemperatureData;
+  const knownRows = [...ytdData.rows, ...moversData.boards.day.rows, ...moversData.boards.week.rows];
+  const nameMap = Object.fromEntries(knownRows.map((row) => [row.symbol, row]));
+  const strengthRows = state.strength && Array.isArray(state.strength.rows) ? state.strength.rows : [];
+  const monthRows = strengthRows
+    .map((row) => enrichMarketRow(row, nameMap))
+    .sort((a, b) => getChange(b) - getChange(a));
+  const uniqueMonthRows = uniqueBySymbol(monthRows)
+    .slice(0, 80)
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+  const volumeRows = strengthRows
+    .map((row) => ({ ...enrichMarketRow(row, nameMap), change: parseSignedPercent(row.periods && row.periods["1d"]) }))
+    .sort((a, b) => parseRatio(b.volumeRatio) - parseRatio(a.volumeRatio));
+  const uniqueVolumeRows = uniqueBySymbol(volumeRows)
+    .slice(0, 80)
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+  state.boards = {
+    ytd: ytdData.rows.map((row) => ({ ...row, change: row.changeYtd })),
+    day: moversData.boards.day.rows,
+    week: moversData.boards.week.rows,
+    month: uniqueMonthRows,
+    volume: uniqueVolumeRows,
+  };
+  state.meta = {
+    ytd: {
+      title: "美股年内涨幅榜",
+      subtitle: "按今年以来累计涨幅排序，适合快速找强势股、高波动股和风险释放后的候选。",
+      badge: "年内涨幅第一",
+      periodLabel: "年内",
+      referenceLabel: "年初估算价",
+      updatedAt: ytdData.updatedAt,
+    },
+    day: {
+      ...moversData.boards.day,
+      subtitle: "同时看 24h 大涨和大跌，快速识别日内异动、风险释放和短线情绪。",
+      badge: "24h 最大上涨",
+      updatedAt: moversData.updatedAt,
+    },
+    week: {
+      ...moversData.boards.week,
+      subtitle: "按近一周涨跌幅排序，适合发现连续走强、连续杀跌和反转候选。",
+      badge: "周涨幅第一",
+      updatedAt: moversData.updatedAt,
+    },
+    month: {
+      title: "美股近一月涨跌幅榜",
+      subtitle: "按近 20 个交易日涨跌幅排序，适合观察中短期趋势是否已经走出来。",
+      badge: "近一月涨幅第一",
+      periodLabel: "近一月",
+      referenceLabel: "月初估算价",
+      updatedAt: state.strength?.asOf || moversData.updatedAt,
+    },
+    volume: {
+      title: "美股成交额异动榜",
+      subtitle: "按成交额相对平时的放大倍数排序，适合发现资金突然聚集的标的。",
+      badge: "成交额异动第一",
+      periodLabel: "24h",
+      referenceLabel: "成交额",
+      volumeLabel: "成交额倍数",
+      multipleLabel: "成交额倍数",
+      referenceMode: "volume",
+      multipleMode: "volumeRatio",
+      updatedAt: state.strength?.asOf || moversData.updatedAt,
+    },
+  };
+  state.rows = state.boards[state.activeBoard];
+  renderSectorOptions();
+  renderStats();
+  renderLeader(state.rows[0], state.meta[state.activeBoard].updatedAt);
+  renderTable();
+  renderCoreSignals(state.core);
+  renderMarketTemperature(state.marketTemperature);
+  renderDashboardVisualBoard();
+  renderDashboardRegimeRadar();
+  renderLeader(state.rows[0], state.meta[state.activeBoard].updatedAt);
+  renderTable();
+  renderStrengthScanner(state.strength);
+  renderWatchlist();
+  renderModuleGrid();
+  renderDataStatus();
+  bindEvents();
+  await refreshAuth();
+  showPage(getPageFromHash(), { syncHash: false });
+  window.setTimeout(() => {
+    loadLazyDataset("eventOpportunities");
+  }, 300);
+};
+
+init().catch((error) => {
+  document.querySelector("#gainersBody").innerHTML = `
+    <tr>
+      <td colspan="11">数据加载失败：${error.message}</td>
+    </tr>
+  `;
+});

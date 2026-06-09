@@ -1,0 +1,250 @@
+{
+  "generatedAt": "2026-06-09T09:25:44.854802+00:00",
+  "summary": "已验证 1800 条历史记录，重点看后续是否强于 SPY。",
+  "horizons": [
+    {
+      "name": "全部清单",
+      "horizon": "T+1",
+      "count": 600,
+      "hitRate": "+45%",
+      "avgReturn": "-0.5%",
+      "vsSpy": "-0.8%"
+    },
+    {
+      "name": "全部清单",
+      "horizon": "T+3",
+      "count": 600,
+      "hitRate": "+48%",
+      "avgReturn": "+1.0%",
+      "vsSpy": "+0.3%"
+    },
+    {
+      "name": "全部清单",
+      "horizon": "T+5",
+      "count": 600,
+      "hitRate": "+46%",
+      "avgReturn": "-0.1%",
+      "vsSpy": "-0.3%"
+    }
+  ],
+  "labels": [
+    {
+      "name": "弱势增仓确认",
+      "horizon": "T+5",
+      "count": 11,
+      "hitRate": "+36%",
+      "avgReturn": "-4.4%",
+      "vsSpy": "-4.3%"
+    },
+    {
+      "name": "强但偏热",
+      "horizon": "T+5",
+      "count": 358,
+      "hitRate": "+46%",
+      "avgReturn": "-0.8%",
+      "vsSpy": "-1.0%"
+    },
+    {
+      "name": "明显强于主线",
+      "horizon": "T+5",
+      "count": 15,
+      "hitRate": "+60%",
+      "avgReturn": "+4.9%",
+      "vsSpy": "+3.7%"
+    },
+    {
+      "name": "弱势放量确认",
+      "horizon": "T+5",
+      "count": 21,
+      "hitRate": "+52%",
+      "avgReturn": "+3.5%",
+      "vsSpy": "+3.3%"
+    },
+    {
+      "name": "突破型强股",
+      "horizon": "T+5",
+      "count": 27,
+      "hitRate": "+52%",
+      "avgReturn": "+3.5%",
+      "vsSpy": "+3.0%"
+    },
+    {
+      "name": "弱势风险预警",
+      "horizon": "T+5",
+      "count": 168,
+      "hitRate": "+44%",
+      "avgReturn": "+0.3%",
+      "vsSpy": "+0.1%"
+    },
+    {
+      "name": "弱势增仓确认",
+      "horizon": "T+3",
+      "count": 11,
+      "hitRate": "+9%",
+      "avgReturn": "-1.8%",
+      "vsSpy": "-3.0%"
+    },
+    {
+      "name": "明显强于主线",
+      "horizon": "T+3",
+      "count": 15,
+      "hitRate": "+40%",
+      "avgReturn": "-0.8%",
+      "vsSpy": "-1.3%"
+    },
+    {
+      "name": "弱势风险预警",
+      "horizon": "T+3",
+      "count": 168,
+      "hitRate": "+40%",
+      "avgReturn": "-0.1%",
+      "vsSpy": "-0.7%"
+    },
+    {
+      "name": "突破型强股",
+      "horizon": "T+3",
+      "count": 27,
+      "hitRate": "+56%",
+      "avgReturn": "+3.5%",
+      "vsSpy": "+2.7%"
+    },
+    {
+      "name": "强但偏热",
+      "horizon": "T+3",
+      "count": 358,
+      "hitRate": "+52%",
+      "avgReturn": "+1.5%",
+      "vsSpy": "+0.8%"
+    },
+    {
+      "name": "弱势放量确认",
+      "horizon": "T+3",
+      "count": 21,
+      "hitRate": "+52%",
+      "avgReturn": "+0.6%",
+      "vsSpy": "+0.1%"
+    },
+    {
+      "name": "明显强于主线",
+      "horizon": "T+1",
+      "count": 15,
+      "hitRate": "+20%",
+      "avgReturn": "-3.7%",
+      "vsSpy": "-3.8%"
+    },
+    {
+      "name": "弱势增仓确认",
+      "horizon": "T+1",
+      "count": 11,
+      "hitRate": "+64%",
+      "avgReturn": "-1.4%",
+      "vsSpy": "-1.2%"
+    },
+    {
+      "name": "强但偏热",
+      "horizon": "T+1",
+      "count": 358,
+      "hitRate": "+43%",
+      "avgReturn": "-0.7%",
+      "vsSpy": "-1.0%"
+    },
+    {
+      "name": "弱势风险预警",
+      "horizon": "T+1",
+      "count": 168,
+      "hitRate": "+51%",
+      "avgReturn": "-0.2%",
+      "vsSpy": "-0.5%"
+    },
+    {
+      "name": "弱势放量确认",
+      "horizon": "T+1",
+      "count": 21,
+      "hitRate": "+43%",
+      "avgReturn": "+0.2%",
+      "vsSpy": "-0.2%"
+    },
+    {
+      "name": "突破型强股",
+      "horizon": "T+1",
+      "count": 27,
+      "hitRate": "+48%",
+      "avgReturn": "+2.5%",
+      "vsSpy": "+2.2%"
+    }
+  ],
+  "buckets": [
+    {
+      "name": "等回踩",
+      "horizon": "T+5",
+      "count": 200,
+      "hitRate": "+46%",
+      "avgReturn": "-0.4%",
+      "vsSpy": "-0.6%"
+    },
+    {
+      "name": "优先研究",
+      "horizon": "T+5",
+      "count": 200,
+      "hitRate": "+47%",
+      "avgReturn": "-0.2%",
+      "vsSpy": "-0.4%"
+    },
+    {
+      "name": "风险回避",
+      "horizon": "T+5",
+      "count": 200,
+      "hitRate": "+44%",
+      "avgReturn": "+0.3%",
+      "vsSpy": "+0.2%"
+    },
+    {
+      "name": "风险回避",
+      "horizon": "T+3",
+      "count": 200,
+      "hitRate": "+40%",
+      "avgReturn": "-0.1%",
+      "vsSpy": "-0.8%"
+    },
+    {
+      "name": "等回踩",
+      "horizon": "T+3",
+      "count": 200,
+      "hitRate": "+52%",
+      "avgReturn": "+1.7%",
+      "vsSpy": "+1.1%"
+    },
+    {
+      "name": "优先研究",
+      "horizon": "T+3",
+      "count": 200,
+      "hitRate": "+51%",
+      "avgReturn": "+1.4%",
+      "vsSpy": "+0.7%"
+    },
+    {
+      "name": "优先研究",
+      "horizon": "T+1",
+      "count": 200,
+      "hitRate": "+40%",
+      "avgReturn": "-0.7%",
+      "vsSpy": "-1.0%"
+    },
+    {
+      "name": "等回踩",
+      "horizon": "T+1",
+      "count": 200,
+      "hitRate": "+44%",
+      "avgReturn": "-0.5%",
+      "vsSpy": "-0.8%"
+    },
+    {
+      "name": "风险回避",
+      "horizon": "T+1",
+      "count": 200,
+      "hitRate": "+50%",
+      "avgReturn": "-0.2%",
+      "vsSpy": "-0.5%"
+    }
+  ]
+}

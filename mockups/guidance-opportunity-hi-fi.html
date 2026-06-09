@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>预期改善观察 - 高保真稿</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-soft: #f9fbfd;
+      --line: #dce4ee;
+      --text: #1f2a3a;
+      --muted: #66758a;
+      --soft: #eef3f8;
+      --blue: #2b6cb0;
+      --blue-strong: #245a96;
+      --teal: #13866f;
+      --amber: #9b6a18;
+      --red: #b54b4b;
+      --shadow: 0 18px 42px rgba(31, 42, 58, .08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select { font: inherit; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 8px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(135deg, #2b6cb0, #13866f);
+      font-weight: 900;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 16px;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-item {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 10px;
+      border-radius: 8px;
+      cursor: default;
+    }
+
+    .nav-item svg {
+      width: 19px;
+      height: 19px;
+      stroke-width: 2;
+    }
+
+    .nav-item strong {
+      display: block;
+      font-size: 14px;
+      color: inherit;
+    }
+
+    .nav-item span {
+      display: block;
+      font-size: 11px;
+      color: #92a0b2;
+      margin-top: 2px;
+    }
+
+    .nav-item.active {
+      background: #eaf2fb;
+      color: var(--blue-strong);
+    }
+
+    .nav-item.disabled {
+      opacity: .48;
+    }
+
+    .member-box {
+      margin-top: auto;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .member-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .member-box strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .member-box button {
+      width: 100%;
+      border: 0;
+      background: var(--blue);
+      color: white;
+      height: 36px;
+      border-radius: 7px;
+      font-weight: 700;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 26px 30px 38px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .title-block h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.18;
+      font-weight: 850;
+    }
+
+    .title-block p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .search {
+      width: 340px;
+      height: 42px;
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      color: var(--muted);
+    }
+
+    .search input {
+      border: 0;
+      outline: 0;
+      width: 100%;
+      color: var(--text);
+      background: transparent;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.46fr) minmax(320px, .72fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .hero, .panel, .stock-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 248px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .hero-eyebrow {
+      color: var(--blue-strong);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .hero h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .hero p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+      max-width: 680px;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .hero-metrics div {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .hero-metrics span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .hero-metrics strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 20px;
+    }
+
+    .thermo {
+      background: #f2f7fb;
+      border: 1px solid #d8e5f0;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .thermo span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .thermo strong {
+      font-size: 38px;
+      margin-top: 8px;
+      color: var(--blue-strong);
+    }
+
+    .thermo p {
+      margin: 8px 0 0;
+      color: var(--text);
+      font-weight: 800;
+      line-height: 1.5;
+    }
+
+    .scale {
+      position: relative;
+      height: 8px;
+      background: linear-gradient(90deg, #d66a6a, #d8aa4c, #13866f);
+      border-radius: 999px;
+      margin-top: 18px;
+    }
+
+    .scale i {
+      position: absolute;
+      top: -5px;
+      left: 82%;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 4px solid var(--blue);
+      box-shadow: 0 4px 10px rgba(31, 42, 58, .2);
+    }
+
+    .side-panel {
+      padding: 18px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-title span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .section-title h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .section-title button {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--blue-strong);
+      height: 34px;
+      border-radius: 7px;
+      padding: 0 12px;
+      font-weight: 800;
+    }
+
+    .decision-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .decision {
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .decision-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .decision b {
+      font-size: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 26px;
+      border-radius: 999px;
+      padding: 0 9px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--blue-strong);
+      background: #eaf2fb;
+      white-space: nowrap;
+    }
+
+    .pill.good {
+      color: var(--teal);
+      background: #e7f5f1;
+    }
+
+    .pill.warn {
+      color: var(--amber);
+      background: #fff5df;
+    }
+
+    .decision p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .filters {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--muted);
+      height: 36px;
+      border-radius: 7px;
+      padding: 0 12px;
+      font-weight: 750;
+    }
+
+    .tab.active {
+      border-color: #b9d2eb;
+      background: #eaf2fb;
+      color: var(--blue-strong);
+    }
+
+    .selects {
+      display: flex;
+      gap: 8px;
+    }
+
+    select {
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: white;
+      color: var(--text);
+      padding: 0 10px;
+      font-weight: 700;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+    }
+
+    .stock-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stock-card {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr) 460px;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .rank {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: #eef4fa;
+      color: var(--blue-strong);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      font-weight: 850;
+    }
+
+    .stock-main {
+      min-width: 0;
+    }
+
+    .symbol-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .symbol-row strong {
+      font-size: 22px;
+    }
+
+    .symbol-row span {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reason {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 7px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stock-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stock-metrics div {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 78px;
+    }
+
+    .stock-metrics span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stock-metrics strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    .stock-metrics em {
+      display: block;
+      margin-top: 4px;
+      font-style: normal;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .right-col {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .panel {
+      padding: 16px;
+    }
+
+    .watch-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .watch-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 11px;
+    }
+
+    .watch-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .watch-row strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .watch-row span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .scoreline {
+      display: grid;
+      gap: 9px;
+    }
+
+    .scoreline div {
+      display: grid;
+      grid-template-columns: 80px 1fr 48px;
+      gap: 9px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--soft);
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: var(--blue);
+      border-radius: inherit;
+    }
+
+    .lock-preview {
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px dashed #b9c8d9;
+      background: #f8fbff;
+    }
+
+    .lock-preview strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .lock-preview p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    @media (max-width: 1180px) {
+      .app { grid-template-columns: 86px minmax(0, 1fr); }
+      .brand div, .nav-item div, .member-box { display: none; }
+      .sidebar { padding: 22px 14px; }
+      .brand { justify-content: center; padding: 0 0 14px; }
+      .nav-item { grid-template-columns: 1fr; justify-items: center; }
+      .hero, .hero-grid, .content-grid { grid-template-columns: 1fr; }
+      .stock-card { grid-template-columns: 58px minmax(0, 1fr); }
+      .stock-metrics { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">M</div>
+        <div>
+          <strong>美股研究台</strong>
+          <span>把复杂数据整理成观察线索</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+          <div><strong>总览</strong><span>市场温度</span></div>
+        </button>
+        <button class="nav-item active" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3-4 3 2 5-7"/></svg>
+          <div><strong>预期改善观察</strong><span>重点线索</span></div>
+        </button>
+        <button class="nav-item" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+          <div><strong>观察池</strong><span>跟踪复盘</span></div>
+        </button>
+        <button class="nav-item disabled" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h18"/><path d="M12 3v18"/></svg>
+          <div><strong>策略合集</strong><span>即将开放</span></div>
+        </button>
+        <button class="nav-item disabled" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg>
+          <div><strong>课程</strong><span>即将开放</span></div>
+        </button>
+      </nav>
+
+      <div class="member-box">
+        <span>会员权益</span>
+        <strong>查看最新观察名单和完整复盘</strong>
+        <button type="button">查看会员权益</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title-block">
+          <h1>预期改善观察</h1>
+          <p>关注公司未来预期改善后，市场是否继续给出价格和成交确认。</p>
+        </div>
+        <label class="search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input value="" placeholder="搜索股票代码 / 公司名">
+        </label>
+      </header>
+
+      <section class="hero-grid">
+        <article class="hero">
+          <div>
+            <div class="hero-eyebrow">经过历史样本检验后保留的重点线索</div>
+            <h2>公司预期改善只是起点，真正要看后续价格、成交和大盘环境是否配合。</h2>
+            <p>这不是单纯看新闻热度，也不代表一定上涨。系统会把同类事件的历史样本、相对 SPY 的表现、当前市场温度和流动性一起放进筛选，帮助用户更快判断哪些股票值得进一步研究。</p>
+            <div class="hero-metrics">
+              <div><span>历史样本</span><strong>3,855</strong></div>
+              <div><span>20日正向占比</span><strong>56.96%</strong></div>
+              <div><span>强于 SPY 占比</span><strong>53.51%</strong></div>
+              <div><span>稳健均值</span><strong>+4.10%</strong></div>
+            </div>
+          </div>
+          <aside class="thermo">
+            <div>
+              <span>市场温度计</span>
+              <strong>82</strong>
+              <p>进攻环境<br>可适当提高观察频率</p>
+            </div>
+            <div class="scale"><i></i></div>
+          </aside>
+        </article>
+
+        <article class="panel side-panel">
+          <div class="section-title">
+            <div>
+                  <span>样本判断</span>
+                  <h3>哪些更适合展示</h3>
+            </div>
+          </div>
+          <div class="decision-list">
+            <div class="decision">
+              <div class="decision-top"><b>预期改善</b><span class="pill good">重点观察</span></div>
+              <p>历史正向占比、相对指数表现和中位数同时较稳，适合放到前台重点解释。</p>
+            </div>
+            <div class="decision">
+              <div class="decision-top"><b>财报超预期</b><span class="pill warn">辅助参考</span></div>
+              <p>适合和价格趋势、市场温度一起看，单独不作为结论。</p>
+            </div>
+            <div class="decision">
+              <div class="decision-top"><b>分析师正面</b><span class="pill">参考信息</span></div>
+              <p>更适合解释市场关注度，不作为独立买点。</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="filters">
+        <div class="tabs">
+          <button class="tab active" type="button">重点观察</button>
+          <button class="tab" type="button">高分名单</button>
+          <button class="tab" type="button">刚触发</button>
+          <button class="tab" type="button">已加入观察</button>
+        </div>
+        <div class="selects">
+          <select><option>按综合分排序</option></select>
+          <select><option>风险：全部</option></select>
+          <select><option>市值：全部</option></select>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <div class="stock-list">
+          <article class="stock-card">
+            <div class="rank">1</div>
+            <div class="stock-main">
+              <div class="symbol-row">
+                <strong>INTC</strong>
+                <span>Intel Corp · 半导体</span>
+                <em class="pill good">值得复盘</em>
+              </div>
+              <p class="reason">公司上调下一季度 EPS 和收入预期，当前 20 日趋势继续向上；同类历史样本显示，后续 20 日正向占比为 56.96%。</p>
+              <div class="card-tags">
+                <span class="pill">预期改善</span>
+                <span class="pill">成交额充足</span>
+                <span class="pill warn">短期涨幅偏高</span>
+              </div>
+            </div>
+            <div class="stock-metrics">
+              <div><span>综合分</span><strong>92</strong><em>前 5%</em></div>
+              <div><span>上调幅度</span><strong>+233%</strong><em>EPS 预期</em></div>
+              <div><span>20日表现</span><strong>+98.6%</strong><em>强于大盘</em></div>
+              <div><span>复盘节点</span><strong>5日后</strong><em>检查承接</em></div>
+            </div>
+          </article>
+
+          <article class="stock-card">
+            <div class="rank">2</div>
+            <div class="stock-main">
+              <div class="symbol-row">
+                <strong>DDOG</strong>
+                <span>Datadog Inc · 云计算</span>
+                <em class="pill good">机构共振</em>
+              </div>
+              <p class="reason">财报超预期叠加指引上修，分析师关注度升温；需要观察高位后是否能继续放量站稳。</p>
+              <div class="card-tags">
+                <span class="pill">预期改善</span>
+                <span class="pill">财报超预期</span>
+                <span class="pill warn">追高风险</span>
+              </div>
+            </div>
+            <div class="stock-metrics">
+              <div><span>综合分</span><strong>89</strong><em>前 8%</em></div>
+              <div><span>上调幅度</span><strong>+41.5%</strong><em>EPS 预期</em></div>
+              <div><span>20日表现</span><strong>+83.8%</strong><em>趋势很强</em></div>
+              <div><span>复盘节点</span><strong>3日后</strong><em>看回撤</em></div>
+            </div>
+          </article>
+
+          <article class="stock-card">
+            <div class="rank">3</div>
+            <div class="stock-main">
+              <div class="symbol-row">
+                <strong>AMZN</strong>
+                <span>Amazon.com Inc · 大型科技</span>
+                <em class="pill">稳健观察</em>
+              </div>
+              <p class="reason">公司预期改善，财报质量和趋势同时支持；适合放入观察池，等待更好的价格位置。</p>
+              <div class="card-tags">
+                <span class="pill">预期改善</span>
+                <span class="pill">大型科技</span>
+                <span class="pill">流动性好</span>
+              </div>
+            </div>
+            <div class="stock-metrics">
+              <div><span>综合分</span><strong>84</strong><em>前 12%</em></div>
+              <div><span>上调幅度</span><strong>+4.1%</strong><em>收入预期</em></div>
+              <div><span>20日表现</span><strong>+12.1%</strong><em>强于指数</em></div>
+              <div><span>复盘节点</span><strong>7日后</strong><em>看延续</em></div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="right-col">
+          <article class="panel">
+            <div class="section-title">
+              <div>
+                <span>观察池</span>
+                <h3>待复盘名单</h3>
+              </div>
+              <button type="button">查看全部</button>
+            </div>
+            <div class="watch-card">
+              <div class="watch-row"><div><strong>INTC</strong><span>加入后 +14.2% · 2日后复盘</span></div><span class="pill good">领先</span></div>
+              <div class="watch-row"><div><strong>DDOG</strong><span>加入后 -1.8% · 看承接</span></div><span class="pill warn">观察</span></div>
+              <div class="watch-row"><div><strong>AMZN</strong><span>加入后 +3.4% · 等放量</span></div><span class="pill">稳定</span></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="section-title">
+              <div>
+                <span>筛选依据</span>
+                <h3>当前权重</h3>
+              </div>
+            </div>
+            <div class="scoreline">
+              <div><span>事件质量</span><b class="bar"><i style="width: 86%"></i></b><strong>86</strong></div>
+              <div><span>趋势确认</span><b class="bar"><i style="width: 78%"></i></b><strong>78</strong></div>
+              <div><span>流动性</span><b class="bar"><i style="width: 91%"></i></b><strong>91</strong></div>
+              <div><span>风险控制</span><b class="bar"><i style="width: 64%"></i></b><strong>64</strong></div>
+            </div>
+          </article>
+
+          <article class="lock-preview">
+            <strong>会员可查看完整复盘</strong>
+            <p>包含触发日价格、后续 5 / 20 / 60 日跟踪、同类历史样本、相对指数表现和观察池提醒。</p>
+          </article>
+        </aside>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

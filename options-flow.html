@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>期权流向截图</title>
+    <link rel="stylesheet" href="./options-flow.css" />
+  </head>
+  <body>
+    <main class="flow-shell">
+      <section class="flow-board" aria-label="离线期权流向截图">
+        <header class="flow-header">
+          <div class="tabbar">
+            <span class="tab is-active">Net Drift</span>
+            <span class="tab">Net Flow</span>
+            <span class="tab">Mag7 Net Drift</span>
+            <span class="tab">Consolidated Order</span>
+          </div>
+          <div class="controls">
+            <strong id="symbolPill">MU</strong>
+            <span id="expirationPill">Expiration</span>
+            <span id="datePill">May 27, 2026</span>
+            <span>Moneyness</span>
+          </div>
+        </header>
+
+        <div class="story-strip">
+          <div>
+            <span>Offline Options Snapshot</span>
+            <strong id="headline">加载中</strong>
+          </div>
+          <dl>
+            <div><dt>Call Premium</dt><dd id="callMetric">--</dd></div>
+            <div><dt>Put Premium</dt><dd id="putMetric">--</dd></div>
+            <div><dt>Net Drift</dt><dd id="netMetric">--</dd></div>
+            <div><dt>Spot</dt><dd id="spotMetric">--</dd></div>
+          </dl>
+        </div>
+
+        <section class="main-grid">
+          <article class="chart-panel">
+            <div class="panel-title">
+              <span></span>
+              <div>
+                <h1 id="chartTitle">Net Drift (Premium)</h1>
+                <p id="legendText">Calls / Puts / Spot</p>
+              </div>
+            </div>
+            <svg id="flowChart" viewBox="0 0 760 510" role="img" aria-label="期权净流向图"></svg>
+          </article>
+
+          <article class="rank-panel">
+            <div class="rank-head"><span></span><strong>Gainers / Losers</strong><button type="button">+</button></div>
+            <div class="rank-filter">Sector <b>May 27</b></div>
+            <div class="rank-track"></div>
+            <table>
+              <thead><tr><th>Rank</th><th>Ticker</th><th>Bullish Premium</th></tr></thead>
+              <tbody id="bullishRows"></tbody>
+            </table>
+          </article>
+
+          <article class="rank-panel">
+            <div class="rank-head"><span></span><strong>Gainers / Losers</strong><button type="button">+</button></div>
+            <div class="rank-filter">Sector <b>May 27</b></div>
+            <div class="rank-track"></div>
+            <table>
+              <thead><tr><th>Rank</th><th>Ticker</th><th>Bearish Premium</th></tr></thead>
+              <tbody id="bearishRows"></tbody>
+            </table>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="./options-flow.js"></script>
+  </body>
+</html>

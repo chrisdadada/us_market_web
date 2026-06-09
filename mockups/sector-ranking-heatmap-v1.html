@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美股策略库 · 板块排行榜与热力图</title>
+    <style>
+      :root {
+        --page: #f8f8f5;
+        --paper: #fcfcf9;
+        --ink: #20252c;
+        --muted: #6f7782;
+        --faint: #9aa2ad;
+        --rule: #d9d9d2;
+        --rule-soft: #ecece5;
+        --blue: #315f7d;
+        --green: #2d7c5f;
+        --green2: #37a169;
+        --red: #b44b46;
+        --red2: #d8574f;
+        --amber: #8f6a2d;
+        font-family: "Inter", "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--page); color: var(--ink); font-size: 14px; line-height: 1.55; font-weight: 400; }
+      .shell { min-height: 100vh; display: grid; grid-template-columns: 216px minmax(0,1fr); }
+      aside { border-right: 1px solid var(--rule); background: #fbfbf7; padding: 22px 18px; }
+      .brand { padding-bottom: 26px; border-bottom: 1px solid var(--rule-soft); margin-bottom: 22px; }
+      .brand .name { display: block; font-size: 17px; font-weight: 520; }
+      .brand .sub { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+      .nav-title { color: var(--faint); font-size: 11px; font-weight: 520; margin: 0 0 8px; }
+      .nav-group { margin-bottom: 24px; }
+      nav { display: grid; gap: 2px; }
+      nav a { display: flex; align-items: center; height: 34px; border-left: 2px solid transparent; color: #4f5965; text-decoration: none; padding-left: 10px; font-size: 14px; font-weight: 430; }
+      nav a.active { border-left-color: var(--blue); color: #17354a; background: #f1f3f4; }
+      main { min-width: 0; padding: 0 34px 48px; }
+      .topbar { height: 58px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--rule); color: var(--muted); font-size: 13px; }
+      .topbar .current { color: var(--ink); font-weight: 520; }
+      .topbar button { height: 30px; border: 1px solid var(--rule); background: transparent; color: var(--ink); padding: 0 10px; font: inherit; }
+      .page { max-width: 1240px; margin: 0 auto; padding-top: 26px; }
+      .intro { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 34px; padding-bottom: 22px; border-bottom: 1px solid var(--rule); }
+      .eyebrow { color: var(--blue); font-size: 12px; font-weight: 520; }
+      h1 { margin: 9px 0 0; max-width: 840px; font-size: 31px; line-height: 1.32; letter-spacing: 0; font-weight: 520; }
+      .lead { max-width: 790px; margin: 14px 0 0; color: var(--muted); font-size: 15px; line-height: 1.85; }
+      .meta-line { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 18px; color: var(--muted); font-size: 12px; }
+      .meta-line span::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--rule); margin-right: 7px; vertical-align: 1px; }
+      .meta-line .good::before { background: var(--green); }
+      .meta-line .bad::before { background: var(--red); }
+      .summary-rail { border-left: 1px solid var(--rule); padding-left: 24px; }
+      .section-title { margin: 0 0 12px; color: var(--faint); font-size: 12px; font-weight: 520; }
+      .mini-row { display: grid; grid-template-columns: 1fr 74px; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--rule-soft); }
+      .mini-row:last-child { border-bottom: 0; }
+      .mini-row strong { font-size: 14px; font-weight: 520; }
+      .mini-row span { color: var(--muted); display: block; margin-top: 3px; font-size: 12px; }
+      .mini-row b { text-align: right; font-weight: 520; }
+      .green { color: var(--green); } .red { color: var(--red); } .amber { color: var(--amber); }
+      .filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+      .filters button { height: 30px; border: 1px solid var(--rule); background: transparent; color: #45505c; padding: 0 10px; font: inherit; font-size: 13px; }
+      .filters button.active { border-color: #b9c6cf; background: #f0f3f4; color: var(--blue); }
+      .content { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 26px; padding-top: 24px; }
+      .block { padding-bottom: 22px; border-bottom: 1px solid var(--rule); margin-bottom: 22px; }
+      .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 10px; }
+      .block-head h2 { margin: 0; font-size: 17px; font-weight: 520; }
+      .block-head span { color: var(--muted); font-size: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { height: 40px; border-bottom: 1px solid var(--rule-soft); padding: 0 8px; text-align: left; font-weight: 400; }
+      th { color: var(--faint); font-size: 12px; font-weight: 480; }
+      td:last-child, th:last-child { text-align: right; }
+      .rank { color: var(--faint); width: 30px; }
+      .barcell { width: 82px; }
+      .bar { height: 6px; background: #ecece5; overflow: hidden; }
+      .bar i { display: block; height: 100%; background: var(--green); }
+      .bar.redbar i { background: var(--red); }
+      .heatmap-wrap { border-left: 1px solid var(--rule); padding-left: 24px; }
+      .heatmap-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 12px; }
+      .heatmap-head h2 { margin: 0; font-size: 17px; font-weight: 520; }
+      .legend { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+      .swatch { width: 18px; height: 8px; display: inline-block; }
+      .swatch.red { background: var(--red2); } .swatch.mid { background: #c8c8be; } .swatch.green { background: var(--green2); }
+      .heatmap {
+        height: 548px;
+        display: grid;
+        grid-template-columns: 1.08fr .9fr .95fr .6fr;
+        grid-template-rows: 1fr .78fr .55fr;
+        gap: 3px;
+        background: var(--rule);
+        border: 1px solid var(--rule);
+      }
+      .tile {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        background: #d8d8d0;
+        padding: 9px;
+        color: #fff;
+      }
+      .tile.g1 { background: #2e7d5c; }
+      .tile.g2 { background: #34a364; }
+      .tile.g3 { background: #27814f; }
+      .tile.r1 { background: #a54849; }
+      .tile.r2 { background: #d94b49; }
+      .tile.n { background: #4d555b; }
+      .tile .sector { position: absolute; top: 6px; left: 8px; right: 8px; color: rgba(255,255,255,.72); font-size: 10px; text-transform: uppercase; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .tile .ticker { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -53%); text-align: center; font-size: 30px; line-height: 1.1; font-weight: 520; letter-spacing: 0; }
+      .tile .ticker span { display: block; margin-top: 5px; font-size: 15px; font-weight: 430; }
+      .tile.small .ticker { font-size: 17px; }
+      .tile.small .ticker span { font-size: 11px; }
+      .tile.tiny { padding: 5px; }
+      .tile.tiny .sector { display: none; }
+      .tile.tiny .ticker { font-size: 12px; }
+      .tile.tiny .ticker span { display: none; }
+      .nvda { grid-column: 1; grid-row: 1 / span 2; }
+      .aapl { grid-column: 2; grid-row: 1; }
+      .msft { grid-column: 2; grid-row: 2; }
+      .meta { grid-column: 3; grid-row: 1; }
+      .amzn { grid-column: 3; grid-row: 2; }
+      .tsla { grid-column: 3; grid-row: 3; }
+      .side { grid-column: 4; grid-row: 1 / span 3; display: grid; grid-template-rows: 1.1fr .9fr .8fr .7fr .65fr .55fr; gap: 3px; background: var(--rule); padding: 0; }
+      .bottom { grid-column: 1 / span 2; grid-row: 3; display: grid; grid-template-columns: 1.1fr 1fr .8fr .7fr .7fr; gap: 3px; background: var(--rule); padding: 0; }
+      .note { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+      @media (max-width: 1100px) {
+        .shell, .intro, .content { grid-template-columns: 1fr; }
+        aside { display: none; }
+        main { padding: 0 18px 34px; }
+        .summary-rail, .heatmap-wrap { border-left: 0; padding-left: 0; }
+        .heatmap { height: 620px; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, 1fr); }
+        .nvda,.aapl,.msft,.meta,.amzn,.tsla,.side,.bottom { grid-column: auto; grid-row: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand"><span class="name">美股策略库</span><span class="sub">Market Research Desk</span></div>
+        <div class="nav-group"><div class="nav-title">Daily</div><nav><a href="#">今日总览</a><a class="active" href="#">市场</a><a href="#">机会</a><a href="#">风险</a></nav></div>
+        <div class="nav-group"><div class="nav-title">Research</div><nav><a href="#">股票库</a><a href="#">财报</a><a href="#">估值</a><a href="#">事件中心</a></nav></div>
+        <div class="nav-group"><div class="nav-title">System</div><nav><a href="#">数据状态</a><a href="#">导入管理</a><a href="#">截图生成</a></nav></div>
+      </aside>
+      <main>
+        <div class="topbar"><div><span class="current">市场 / 板块排行榜</span> / 2026-05-26 close / market cap weighted</div><button>Export image</button></div>
+        <div class="page">
+          <section class="intro">
+            <div>
+              <div class="eyebrow">Sector ranking & market heatmap</div>
+              <h1>今天不是全面上涨，科技权重支撑指数，半导体内部明显分化。</h1>
+              <p class="lead">板块排行榜用于回答“哪条主线强”，热力图用于回答“强势来自哪里”。面积代表市值权重，颜色代表当日涨跌或区间强弱。</p>
+              <div class="meta-line">
+                <span class="good">Communication Services +1.1%</span>
+                <span class="good">Consumer Cyclical +0.7%</span>
+                <span class="bad">Semiconductors -2.4%</span>
+                <span>覆盖 Nasdaq 100 / 可切换 S&P 500</span>
+              </div>
+            </div>
+            <div class="summary-rail">
+              <div class="section-title">Top sector moves</div>
+              <div class="mini-row"><div><strong>通信服务</strong><span>META、GOOGL 支撑</span></div><b class="green">+1.1%</b></div>
+              <div class="mini-row"><div><strong>可选消费</strong><span>AMZN 走强，TSLA 拖累</span></div><b class="green">+0.7%</b></div>
+              <div class="mini-row"><div><strong>半导体</strong><span>NVDA 强，AVGO/MU 弱</span></div><b class="red">-2.4%</b></div>
+            </div>
+          </section>
+
+          <div class="filters">
+            <button class="active">Nasdaq 100</button>
+            <button>S&P 500</button>
+            <button>今日涨跌</button>
+            <button>5 日强弱</button>
+            <button>市值权重</button>
+            <button>行业</button>
+            <button>个股</button>
+          </div>
+
+          <div class="content">
+            <div>
+              <section class="block">
+                <div class="block-head"><h2>板块排行榜</h2><span>按市值加权涨跌</span></div>
+                <table>
+                  <thead><tr><th></th><th>板块</th><th>强度</th><th>涨跌</th></tr></thead>
+                  <tbody>
+                    <tr><td class="rank">01</td><td>通信服务</td><td class="barcell"><div class="bar"><i style="width:82%"></i></div></td><td class="green">+1.10%</td></tr>
+                    <tr><td class="rank">02</td><td>可选消费</td><td class="barcell"><div class="bar"><i style="width:68%"></i></div></td><td class="green">+0.72%</td></tr>
+                    <tr><td class="rank">03</td><td>软件</td><td class="barcell"><div class="bar"><i style="width:57%"></i></div></td><td class="green">+0.28%</td></tr>
+                    <tr><td class="rank">04</td><td>医疗</td><td class="barcell"><div class="bar"><i style="width:49%"></i></div></td><td class="green">+0.12%</td></tr>
+                    <tr><td class="rank">05</td><td>消费防御</td><td class="barcell"><div class="bar"><i style="width:44%"></i></div></td><td>-0.05%</td></tr>
+                    <tr><td class="rank">06</td><td>工业</td><td class="barcell"><div class="bar redbar"><i style="width:36%"></i></div></td><td class="red">-0.42%</td></tr>
+                    <tr><td class="rank">07</td><td>半导体</td><td class="barcell"><div class="bar redbar"><i style="width:74%"></i></div></td><td class="red">-2.40%</td></tr>
+                  </tbody>
+                </table>
+              </section>
+              <section class="block">
+                <div class="block-head"><h2>解释</h2><span>同步到今日总览</span></div>
+                <table>
+                  <tbody>
+                    <tr><td>市场主线</td><td>指数由大型科技和通信服务支撑，不是全市场普涨。</td><td class="green">偏强</td></tr>
+                    <tr><td>内部风险</td><td>半导体内部分化，NVDA 强势无法代表整个板块。</td><td class="amber">需确认</td></tr>
+                    <tr><td>操作含义</td><td>优先观察权重强势股，避免追逐弱势补涨。</td><td>筛选</td></tr>
+                  </tbody>
+                </table>
+              </section>
+            </div>
+
+            <div class="heatmap-wrap">
+              <div class="heatmap-head">
+                <h2>板块热力图</h2>
+                <div class="legend"><span class="swatch red"></span><span>-3%</span><span class="swatch mid"></span><span>0</span><span class="swatch green"></span><span>+3%</span></div>
+              </div>
+              <div class="heatmap">
+                <div class="tile g1 nvda"><div class="sector">Technology / Semiconductors</div><div class="ticker">NVDA<span>+1.82%</span></div></div>
+                <div class="tile g1 aapl"><div class="sector">Technology / Consumer Electronics</div><div class="ticker">AAPL<span>+0.31%</span></div></div>
+                <div class="tile n msft"><div class="sector">Software / Infrastructure</div><div class="ticker">MSFT<span>+0.17%</span></div></div>
+                <div class="tile g2 meta"><div class="sector">Communication Services</div><div class="ticker">META<span>+1.74%</span></div></div>
+                <div class="tile g1 amzn"><div class="sector">Consumer Cyclical / Internet Retail</div><div class="ticker">AMZN<span>+1.51%</span></div></div>
+                <div class="tile r1 tsla"><div class="sector">Consumer Cyclical / Auto</div><div class="ticker">TSLA<span>-1.24%</span></div></div>
+                <div class="side">
+                  <div class="tile n small"><div class="ticker">NFLX<span>+0.05%</span></div></div>
+                  <div class="tile r2 small"><div class="ticker">TMUS<span>-2.44%</span></div></div>
+                  <div class="tile g1 small"><div class="ticker">WMT<span>+0.73%</span></div></div>
+                  <div class="tile g1 small"><div class="ticker">COST<span>+1.09%</span></div></div>
+                  <div class="tile n small"><div class="ticker">LIN<span>-0.02%</span></div></div>
+                  <div class="tile g2 small"><div class="ticker">APP<span>+2.18%</span></div></div>
+                </div>
+                <div class="bottom">
+                  <div class="tile r2 small"><div class="ticker">AVGO<span>-12.59%</span></div></div>
+                  <div class="tile r2 small"><div class="ticker">MU<span>-7.74%</span></div></div>
+                  <div class="tile r2 small"><div class="ticker">AMD<span>-3.56%</span></div></div>
+                  <div class="tile r1 small"><div class="ticker">ARM<span>-4.46%</span></div></div>
+                  <div class="tile g2 small"><div class="ticker">MRVL<span>+4.90%</span></div></div>
+                </div>
+              </div>
+              <p class="note">产品落地时可以用本地 Polygon 日线 + 成分股行业分类 + 市值近似权重生成。Treemap 第一版可先按 Nasdaq 100/S&P 500 成分股做静态快照，后续再加入悬浮详情和截图导出。</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

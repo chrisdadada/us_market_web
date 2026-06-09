@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1180" viewBox="0 0 1440 1180">
+  <rect width="1440" height="1180" fill="#f4f6f8"/>
+  <rect x="48" y="42" width="1344" height="1068" rx="10" fill="#fff" stroke="#dbe3ed"/>
+  <text x="92" y="104" fill="#121a2a" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="28" font-weight="900">纳指100估值观察</text>
+  <text x="92" y="136" fill="#657184" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700">用 PE、PB、ROE、股息率和 PEG 观察当前位置相对历史区间，不代表未来方向。</text>
+  <g transform="translate(1040 82)">
+    <rect x="0" y="0" width="78" height="34" rx="17" fill="#111827"/>
+    <text x="39" y="22" text-anchor="middle" fill="#fff" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="900">近5年</text>
+    <rect x="88" y="0" width="78" height="34" rx="17" fill="#f6f8fb" stroke="#d5dee9"/>
+    <text x="127" y="22" text-anchor="middle" fill="#657184" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="900">近10年</text>
+    <rect x="176" y="0" width="100" height="34" rx="17" fill="#f6f8fb" stroke="#d5dee9"/>
+    <text x="226" y="22" text-anchor="middle" fill="#657184" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="900">全部历史</text>
+  </g>
+
+  <line x1="48" x2="1392" y1="172" y2="172" stroke="#dbe3ed"/>
+
+  <g transform="translate(92 218)">
+    <text x="0" y="0" fill="#657184" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="900">当前结论</text>
+    <text x="0" y="64" fill="#b56b1f" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="46" font-weight="900">估值偏高</text>
+    <text x="0" y="106" fill="#657184" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700">PE 与 PB 均处在较高历史位置，需结合盈利增速和利率环境一起观察。</text>
+  </g>
+
+  <g transform="translate(520 212)" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <g>
+      <text x="0" y="0" fill="#657184" font-size="14" font-weight="900">PE 2026-05-15</text>
+      <text x="0" y="46" fill="#111827" font-size="34" font-weight="900">36.51</text>
+    </g>
+    <g transform="translate(180 0)">
+      <text x="0" y="0" fill="#657184" font-size="14" font-weight="900">PE 历史分位</text>
+      <text x="0" y="46" fill="#111827" font-size="34" font-weight="900">87.00%</text>
+    </g>
+    <g transform="translate(390 0)">
+      <text x="0" y="0" fill="#657184" font-size="14" font-weight="900">PB</text>
+      <text x="0" y="46" fill="#111827" font-size="34" font-weight="900">10.44</text>
+    </g>
+    <g transform="translate(540 0)">
+      <text x="0" y="0" fill="#657184" font-size="14" font-weight="900">PB 分位</text>
+      <text x="0" y="46" fill="#111827" font-size="34" font-weight="900">99.68%</text>
+    </g>
+  </g>
+
+  <g transform="translate(92 366)" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <g>
+      <rect x="0" y="0" width="206" height="90" rx="8" fill="#f8fafc" stroke="#dbe3ed"/>
+      <text x="22" y="32" fill="#657184" font-size="13" font-weight="900">ROE</text>
+      <text x="22" y="66" fill="#111827" font-size="26" font-weight="900">28.59%</text>
+    </g>
+    <g transform="translate(230 0)">
+      <rect x="0" y="0" width="206" height="90" rx="8" fill="#f8fafc" stroke="#dbe3ed"/>
+      <text x="22" y="32" fill="#657184" font-size="13" font-weight="900">股息率</text>
+      <text x="22" y="66" fill="#111827" font-size="26" font-weight="900">0.42%</text>
+    </g>
+    <g transform="translate(460 0)">
+      <rect x="0" y="0" width="206" height="90" rx="8" fill="#f8fafc" stroke="#dbe3ed"/>
+      <text x="22" y="32" fill="#657184" font-size="13" font-weight="900">预测 PEG</text>
+      <text x="22" y="66" fill="#111827" font-size="26" font-weight="900">1.81</text>
+    </g>
+    <g transform="translate(690 0)">
+      <rect x="0" y="0" width="206" height="90" rx="8" fill="#f8fafc" stroke="#dbe3ed"/>
+      <text x="22" y="32" fill="#657184" font-size="13" font-weight="900">样本区间</text>
+      <text x="22" y="66" fill="#111827" font-size="20" font-weight="900">2021-05 至 2026-05</text>
+    </g>
+    <g transform="translate(920 0)">
+      <rect x="0" y="0" width="206" height="90" rx="8" fill="#f8fafc" stroke="#dbe3ed"/>
+      <text x="22" y="32" fill="#657184" font-size="13" font-weight="900">估值状态</text>
+      <text x="22" y="66" fill="#b56b1f" font-size="26" font-weight="900">偏高区间</text>
+    </g>
+  </g>
+
+  <g transform="translate(92 520)" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <rect x="0" y="0" width="1256" height="470" rx="10" fill="#fff" stroke="#dbe3ed"/>
+    <g transform="translate(32 28)">
+      <text x="0" y="0" fill="#111827" font-size="22" font-weight="900">PE 历史走势</text>
+      <text x="0" y="30" fill="#657184" font-size="14" font-weight="800">分位线用于观察当前位置，不代表未来方向。</text>
+      <g transform="translate(830 -4)">
+        <circle cx="0" cy="0" r="5" fill="#2f6796"/>
+        <text x="14" y="5" fill="#657184" font-size="13" font-weight="900">PE</text>
+        <line x1="74" x2="104" y1="0" y2="0" stroke="#c7d2df" stroke-dasharray="6 7"/>
+        <text x="114" y="5" fill="#657184" font-size="13" font-weight="900">历史分位参考</text>
+      </g>
+    </g>
+    <g transform="translate(70 112)">
+      <rect x="0" y="0" width="930" height="285" fill="#fff" stroke="#dfe6ef"/>
+      <line x1="0" x2="930" y1="44" y2="44" stroke="#e8eef5"/>
+      <line x1="0" x2="930" y1="103" y2="103" stroke="#e8eef5"/>
+      <line x1="0" x2="930" y1="162" y2="162" stroke="#e8eef5"/>
+      <line x1="0" x2="930" y1="221" y2="221" stroke="#e8eef5"/>
+      <line x1="0" x2="930" y1="84" y2="84" stroke="#c5d1df" stroke-dasharray="7 8"/>
+      <line x1="0" x2="930" y1="128" y2="128" stroke="#c5d1df" stroke-dasharray="7 8"/>
+      <line x1="0" x2="930" y1="171" y2="171" stroke="#c5d1df" stroke-dasharray="7 8"/>
+      <path d="M0 170 L34 144 L68 126 L102 158 L136 182 L170 176 L204 164 L238 210 L272 236 L306 262 L340 228 L374 248 L408 202 L442 170 L476 126 L510 80 L544 114 L578 150 L612 112 L646 88 L680 132 L714 84 L748 62 L782 92 L816 118 L850 154 L884 92 L930 74 L930 285 L0 285 Z" fill="#edf4f9"/>
+      <path d="M0 170 L34 144 L68 126 L102 158 L136 182 L170 176 L204 164 L238 210 L272 236 L306 262 L340 228 L374 248 L408 202 L442 170 L476 126 L510 80 L544 114 L578 150 L612 112 L646 88 L680 132 L714 84 L748 62 L782 92 L816 118 L850 154 L884 92 L930 74" fill="none" stroke="#2f6796" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="930" cy="74" r="6.5" fill="#2f6796" stroke="#fff" stroke-width="4"/>
+      <text x="0" y="330" fill="#778397" font-size="13" font-weight="800">2021-05</text>
+      <text x="438" y="330" fill="#778397" font-size="13" font-weight="800">2023-11</text>
+      <text x="876" y="330" fill="#778397" font-size="13" font-weight="800">2026-05</text>
+      <text x="958" y="48" fill="#778397" font-size="13" font-weight="800">39.8</text>
+      <text x="958" y="107" fill="#778397" font-size="13" font-weight="800">34.2</text>
+      <text x="958" y="166" fill="#778397" font-size="13" font-weight="800">28.6</text>
+      <text x="958" y="225" fill="#778397" font-size="13" font-weight="800">23.0</text>
+      <g transform="translate(1036 50)">
+        <rect x="0" y="0" width="146" height="42" rx="6" fill="#fff" stroke="#cbd7e6"/>
+        <text x="14" y="26" fill="#657184" font-size="13" font-weight="900">70%分位 35.55</text>
+        <rect x="0" y="72" width="146" height="42" rx="6" fill="#fff" stroke="#cbd7e6"/>
+        <text x="14" y="98" fill="#657184" font-size="13" font-weight="900">中位值 34.24</text>
+        <rect x="0" y="144" width="146" height="42" rx="6" fill="#fff" stroke="#cbd7e6"/>
+        <text x="14" y="170" fill="#657184" font-size="13" font-weight="900">30%分位 32.39</text>
+        <rect x="0" y="214" width="146" height="58" rx="7" fill="#fff" stroke="#b9cada"/>
+        <text x="14" y="235" fill="#657184" font-size="12" font-weight="900">当前 PE</text>
+        <text x="14" y="262" fill="#2f6796" font-size="26" font-weight="900">36.51</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(92 1028)" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <rect x="0" y="0" width="390" height="58" rx="8" fill="#f8fafc" stroke="#dbe3ed"/>
+    <text x="24" y="36" fill="#657184" font-size="15" font-weight="800">可切换：PE走势 / PB走势 / ROE走势 / 股息率走势 / PEG走势</text>
+    <rect x="420" y="0" width="476" height="58" rx="8" fill="#f8fafc" stroke="#dbe3ed"/>
+    <text x="444" y="36" fill="#657184" font-size="15" font-weight="800">后续可支持：纳指100、标普500、七姐妹、半导体、AI板块</text>
+  </g>
+</svg>

@@ -1,0 +1,1686 @@
+{
+  "asOf": "2026-05-12",
+  "generatedAt": "2026-05-16T07:12:35.397091+00:00",
+  "rows": [
+    {
+      "symbol": "WOLF",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "RXT",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "MRAM",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DGXX",
+      "bucket": "strongest",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "HUM",
+      "bucket": "strongest",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "AMBQ",
+      "bucket": "strongest",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "CNC",
+      "bucket": "strongest",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "FCEL",
+      "bucket": "strongest",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "UMC",
+      "bucket": "strongest",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "OSCR",
+      "bucket": "strongest",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CRWD",
+      "bucket": "strongest",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DDOG",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "LQDA",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "XMTR",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "UNH",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "FLEX",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DVA",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "SITM",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PANW",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STRL",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ELV",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "GTX",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "COCO",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "MTSI",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CVS",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "TXN",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "MU",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SNDK",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "AKAM",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AXTI",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PENG",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "POET",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "INTC",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RKLB",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RAL",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "MXL",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AMD",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QURE",
+      "bucket": "strongest",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "DOCN",
+      "bucket": "strongest",
+      "score": 92,
+      "label": "明显强于主线",
+      "primaryFactor": "强于大盘",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "NVTS",
+      "bucket": "strongest",
+      "score": 92,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CABO",
+      "bucket": "weakest",
+      "score": 1,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "LBRDA",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "WNC",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FWRD",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CSTL",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "IIIN",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SBS",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "CCOI",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PAHC",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "BNAI",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "GPCR",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RHLD",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ERII",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SUPV",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FBRX",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "TLRY",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "OPTX",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "BRBR",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "TNDM",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "DOO",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AZTA",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ASTE",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "TMDX",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "VITL",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CAR",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "ANGI",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "TATT",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "LBRDK",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "WGS",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "PLAY",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QDEL",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RVLV",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "NRDS",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "OI",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ERAS",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STNE",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AORT",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势放量确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "BMI",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "WING",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "GLIBK",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "RXT",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "WOLF",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "MRAM",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FCEL",
+      "bucket": "watchlist",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AMBQ",
+      "bucket": "watchlist",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "CNC",
+      "bucket": "watchlist",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "HUM",
+      "bucket": "watchlist",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "DGXX",
+      "bucket": "watchlist",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "OSCR",
+      "bucket": "watchlist",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CRWD",
+      "bucket": "watchlist",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "UMC",
+      "bucket": "watchlist",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "XMTR",
+      "bucket": "watchlist",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "LQDA",
+      "bucket": "watchlist",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DDOG",
+      "bucket": "watchlist",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "UNH",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "PANW",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "GTX",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "COCO",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "DVA",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "FLEX",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STRL",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SITM",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CVS",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "MTSI",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MU",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RAL",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "QURE",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "PENG",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "RKLB",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AKAM",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "INTC",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MXL",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AMD",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AXTI",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "POET",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "VPG",
+      "bucket": "watchlist",
+      "score": 92,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "HUT",
+      "bucket": "watchlist",
+      "score": 92,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "SMTC",
+      "bucket": "watchlist",
+      "score": 92,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FROG",
+      "bucket": "watchlist",
+      "score": 92,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-12"
+      }
+    },
+    {
+      "symbol": "IONQ",
+      "bucket": "watchlist",
+      "score": 92,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "连续 2 天",
+        "days": 2,
+        "streak": 2,
+        "totalDays": 2,
+        "firstSeen": "2026-05-11"
+      }
+    }
+  ]
+}

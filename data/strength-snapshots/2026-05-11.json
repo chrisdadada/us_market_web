@@ -1,0 +1,1686 @@
+{
+  "asOf": "2026-05-11",
+  "generatedAt": "2026-05-12T14:27:48.187103+00:00",
+  "rows": [
+    {
+      "symbol": "SITM",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DXYZ",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DOCN",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DDOG",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MXL",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FLEX",
+      "bucket": "strongest",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STX",
+      "bucket": "strongest",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CRDO",
+      "bucket": "strongest",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FTNT",
+      "bucket": "strongest",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "VICR",
+      "bucket": "strongest",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "NXPI",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SMTC",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "NVTS",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "INTC",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "IONQ",
+      "bucket": "strongest",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CEVA",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AKAM",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STRL",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "NOK",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AXTI",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "WDC",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "LQDA",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "INOD",
+      "bucket": "strongest",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MU",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RKLB",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PWR",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QBTS",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AMD",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "HIMX",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "POET",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "UMC",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STM",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MSTR",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CRWD",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SIMO",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FCEL",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PANW",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "OSCR",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ON",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "突破型强股",
+      "primaryFactor": "接近新高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QCOM",
+      "bucket": "strongest",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SMX",
+      "bucket": "weakest",
+      "score": 1,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "WNC",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AIXI",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CABO",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "LBRDA",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QDEL",
+      "bucket": "weakest",
+      "score": 2,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "GPCR",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ATEC",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "IIIN",
+      "bucket": "weakest",
+      "score": 3,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CCOI",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ANGI",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RHLD",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RVLV",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "TATT",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PLAY",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "BRBR",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "TLRY",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AZTA",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ERII",
+      "bucket": "weakest",
+      "score": 4,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "OIS",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "USLM",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "OPTX",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "BNAI",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DOO",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "BSAC",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "VITL",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STNE",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FMC",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ERAS",
+      "bucket": "weakest",
+      "score": 5,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "INSP",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PAHC",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "KRMN",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "USPH",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "OI",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "LBRDK",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CSTL",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ADMA",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SUPV",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QGEN",
+      "bucket": "weakest",
+      "score": 6,
+      "label": "弱势风险预警",
+      "primaryFactor": "相对弱势",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FWRD",
+      "bucket": "weakest",
+      "score": 7,
+      "label": "弱势增仓确认",
+      "primaryFactor": "弱势放量",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DXYZ",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SITM",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FLEX",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DDOG",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "DOCN",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MXL",
+      "bucket": "watchlist",
+      "score": 99,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STX",
+      "bucket": "watchlist",
+      "score": 98,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FTNT",
+      "bucket": "watchlist",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "VICR",
+      "bucket": "watchlist",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CRDO",
+      "bucket": "watchlist",
+      "score": 97,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SMTC",
+      "bucket": "watchlist",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "INTC",
+      "bucket": "watchlist",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "IONQ",
+      "bucket": "watchlist",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "NVTS",
+      "bucket": "watchlist",
+      "score": 96,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CEVA",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "LQDA",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "WDC",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STRL",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AKAM",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AXTI",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "INOD",
+      "bucket": "watchlist",
+      "score": 95,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "OSCR",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "PANW",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "GTX",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "UMC",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "CRWD",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "STM",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QBTS",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "HIMX",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "FCEL",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "RKLB",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "POET",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AMD",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MU",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "SIMO",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "QCOM",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MRAM",
+      "bucket": "watchlist",
+      "score": 94,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "AIP",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "MTSI",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    },
+    {
+      "symbol": "ASST",
+      "bucket": "watchlist",
+      "score": 93,
+      "label": "强但偏热",
+      "primaryFactor": "热度偏高",
+      "onBoard": {
+        "label": "今日新上榜",
+        "days": 1,
+        "streak": 1,
+        "totalDays": 1,
+        "firstSeen": "2026-05-11"
+      }
+    }
+  ]
+}

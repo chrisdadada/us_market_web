@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美股策略库 · 资讯与财经日历</title>
+    <style>
+      :root {
+        --page: #f6f8fb;
+        --panel: #fff;
+        --ink: #182231;
+        --muted: #697586;
+        --line: #dce4ee;
+        --nav: #111827;
+        --blue: #28628d;
+        --green: #16745a;
+        --red: #b9463f;
+        --amber: #9b6b1a;
+        --soft: #f1f5f9;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--page); color: var(--ink); font-size: 14px; }
+      .shell { min-height: 100vh; display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+      aside { border-right: 1px solid var(--line); background: rgba(255,255,255,.94); padding: 18px 14px; }
+      .brand { display: flex; align-items: center; gap: 10px; padding: 0 6px 22px; }
+      .mark { width: 34px; height: 34px; border-radius: 8px; background: var(--nav); color: #fff; display: grid; place-items: center; font-weight: 900; }
+      .brand strong, .brand span { display: block; }
+      .brand strong { font-size: 16px; }
+      .brand span { color: var(--muted); font-size: 11px; }
+      nav { display: grid; gap: 6px; }
+      nav button { min-height: 46px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #4b5563; padding: 0 12px; text-align: left; font-weight: 820; }
+      nav button.active { background: #eef5fb; border-color: #cbdceb; color: var(--blue); }
+      main { min-width: 0; padding: 0 30px 42px; }
+      .topbar { height: 62px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); color: var(--muted); }
+      .topbar strong { color: var(--ink); font-size: 18px; }
+      .topbar button { height: 34px; border: 1px solid #c8d4e2; border-radius: 7px; background: #fff; padding: 0 12px; font-weight: 850; color: var(--ink); }
+      .page { max-width: 1240px; margin: 0 auto; padding-top: 22px; }
+      .hero { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 12px; }
+      .panel { border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+      .summary { padding: 24px; }
+      .kicker { color: var(--blue); font-size: 12px; font-weight: 900; }
+      h1 { margin: 10px 0 0; font-size: 34px; line-height: 1.24; letter-spacing: 0; color: var(--nav); }
+      .lead { max-width: 820px; margin: 14px 0 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+      .chip { display: inline-flex; align-items: center; min-height: 28px; border: 1px solid var(--line); border-radius: 99px; background: #f8fafc; color: #506174; padding: 0 10px; font-size: 12px; font-weight: 850; }
+      .chip.green { color: var(--green); background: #edf8f3; border-color: #cae9dc; }
+      .chip.amber { color: var(--amber); background: #fff7e8; border-color: #f0dfbd; }
+      .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+      .head strong { font-size: 16px; }
+      .head span { color: var(--muted); font-size: 12px; font-weight: 760; }
+      .week { padding: 18px; }
+      .event-mini { display: grid; grid-template-columns: 46px 1fr; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+      .event-mini:last-child { border-bottom: 0; }
+      .date { width: 46px; height: 46px; border-radius: 8px; background: var(--soft); display: grid; place-items: center; color: var(--blue); font-weight: 900; }
+      .event-mini strong { display: block; font-size: 14px; }
+      .event-mini span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .event-mini b { display: inline-flex; margin-top: 7px; color: var(--amber); font-size: 12px; }
+      .modules { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 12px; }
+      .module { padding: 16px; min-height: 138px; }
+      .module small { color: var(--muted); font-weight: 850; }
+      .module h2 { margin: 10px 0 8px; font-size: 24px; letter-spacing: 0; }
+      .module p { margin: 0; color: var(--muted); line-height: 1.55; }
+      .module b { display: block; margin-top: 12px; font-size: 12px; }
+      .green { color: var(--green); } .red { color: var(--red); } .amber { color: var(--amber); }
+      .content { display: grid; grid-template-columns: 1fr 400px; gap: 12px; margin-top: 12px; }
+      .section { padding: 18px; }
+      .timeline { display: grid; gap: 10px; }
+      .event-card { display: grid; grid-template-columns: 82px minmax(0,1fr) 140px; gap: 14px; align-items: start; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfe; padding: 14px; }
+      .event-card .day { color: var(--blue); font-weight: 900; }
+      .event-card h3 { margin: 0; font-size: 15px; }
+      .event-card p { margin: 6px 0 0; color: var(--muted); line-height: 1.55; }
+      .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+      .tag { border-radius: 99px; background: #eef2f6; color: #526174; padding: 4px 8px; font-size: 11px; font-weight: 850; }
+      .impact { text-align: right; }
+      .impact strong { display: block; font-size: 13px; }
+      .impact span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+      .news-list { display: grid; gap: 11px; }
+      .news { border-bottom: 1px solid var(--line); padding-bottom: 11px; }
+      .news:last-child { border-bottom: 0; padding-bottom: 0; }
+      .news strong { display: block; font-size: 14px; line-height: 1.45; }
+      .news p { margin: 5px 0 0; color: var(--muted); line-height: 1.5; font-size: 12px; }
+      .source { display: flex; justify-content: space-between; margin-top: 8px; color: #7b8794; font-size: 11px; font-weight: 760; }
+      .workflow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+      .step { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 12px; }
+      .step strong { display: block; }
+      .step span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+      @media (max-width: 1100px) { .shell, .hero, .content { grid-template-columns: 1fr; } aside { display: none; } main { padding: 0 16px 30px; } .modules, .workflow { grid-template-columns: 1fr 1fr; } .event-card { grid-template-columns: 1fr; } .impact { text-align: left; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand"><div class="mark">M</div><div><strong>美股策略库</strong><span>Global Market Desk</span></div></div>
+        <nav>
+          <button>今日总览</button>
+          <button>市场雷达</button>
+          <button>股票观察池</button>
+          <button>财报与预期</button>
+          <button>估值与持仓</button>
+          <button class="active">资讯与日历</button>
+          <button>风险监控</button>
+          <button>数据状态</button>
+        </nav>
+      </aside>
+      <main>
+        <div class="topbar"><div><strong>资讯与财经日历</strong> · 人工上传 + 数据关联</div><button>上传本周事件</button></div>
+        <div class="page">
+          <section class="hero">
+            <div class="panel summary">
+              <div class="kicker">本周事件判断</div>
+              <h1>本周风险不在新闻数量，而在 CPI、FOMC 与大型科技财报的同周共振。</h1>
+              <p class="lead">资讯模块不只展示新闻，而是把人工上传的大事件映射到市场、板块、股票池和风险监控，让用户知道“这件事会影响什么”。</p>
+              <div class="chips">
+                <span class="chip amber">高影响事件：3 个</span>
+                <span class="chip">关联股票：NVDA / MSFT / AAPL</span>
+                <span class="chip green">已进入本周判断台</span>
+                <span class="chip">人工维护：支持 CSV / 表单</span>
+              </div>
+            </div>
+            <div class="panel week">
+              <div class="head"><strong>本周重点</strong><span>按影响排序</span></div>
+              <div class="event-mini"><div class="date">周三</div><div><strong>美国 CPI</strong><span>影响利率、成长股估值和风险偏好。</span><b>高影响</b></div></div>
+              <div class="event-mini"><div class="date">周四</div><div><strong>FOMC 纪要</strong><span>关注降息路径和长端利率压力。</span><b>高影响</b></div></div>
+              <div class="event-mini"><div class="date">周五</div><div><strong>大型科技财报</strong><span>验证 AI 与软件盈利预期。</span><b>中高影响</b></div></div>
+            </div>
+          </section>
+
+          <section class="modules">
+            <div class="panel module"><small>宏观事件</small><h2>5</h2><p>CPI、PPI、FOMC、就业、零售销售。</p><b class="amber">2 个高影响</b></div>
+            <div class="panel module"><small>财报事件</small><h2>18</h2><p>覆盖观察池和重点行业龙头。</p><b class="green">7 个已关联股票</b></div>
+            <div class="panel module"><small>政策事件</small><h2>3</h2><p>监管、关税、行业政策更新。</p><b>人工确认</b></div>
+            <div class="panel module"><small>新闻摘要</small><h2>24</h2><p>按主题归档，避免信息流刷屏。</p><b>可追溯来源</b></div>
+            <div class="panel module"><small>影响映射</small><h2>9</h2><p>已关联市场模块、板块和股票池。</p><b class="green">进入判断台</b></div>
+          </section>
+
+          <div class="content">
+            <section class="panel section">
+              <div class="head"><strong>财经日历</strong><span>事件 -> 影响 -> 关联模块</span></div>
+              <div class="timeline">
+                <article class="event-card">
+                  <div class="day">06/10<br />周三</div>
+                  <div>
+                    <h3>美国 CPI 发布</h3>
+                    <p>如果核心 CPI 高于预期，风险监控中的利率压力上调，成长股估值模块进入黄色预警。</p>
+                    <div class="tags"><span class="tag">宏观</span><span class="tag">利率</span><span class="tag">QQQ</span><span class="tag">估值</span></div>
+                  </div>
+                  <div class="impact"><strong class="amber">影响：高</strong><span>关联：市场雷达 / 风险监控</span></div>
+                </article>
+                <article class="event-card">
+                  <div class="day">06/12<br />周五</div>
+                  <div>
+                    <h3>大型科技财报集中披露</h3>
+                    <p>财报后自动更新预期变化，若营收指引上修，则观察池优先级提高。</p>
+                    <div class="tags"><span class="tag">财报</span><span class="tag">AI</span><span class="tag">NVDA</span><span class="tag">MSFT</span></div>
+                  </div>
+                  <div class="impact"><strong class="green">影响：中高</strong><span>关联：财报与预期 / 股票池</span></div>
+                </article>
+                <article class="event-card">
+                  <div class="day">06/13<br />周六</div>
+                  <div>
+                    <h3>行业监管更新</h3>
+                    <p>人工上传后进入政策事件库，影响医疗、平台经济或新能源相关股票标签。</p>
+                    <div class="tags"><span class="tag">政策</span><span class="tag">行业</span><span class="tag">人工维护</span></div>
+                  </div>
+                  <div class="impact"><strong>影响：待确认</strong><span>关联：股票标签 / 风险提示</span></div>
+                </article>
+              </div>
+              <div class="workflow">
+                <div class="step"><strong>1. 人工上传</strong><span>表格或后台表单录入事件。</span></div>
+                <div class="step"><strong>2. 标注影响</strong><span>选择宏观、财报、政策、行业。</span></div>
+                <div class="step"><strong>3. 关联资产</strong><span>绑定指数、板块、股票池。</span></div>
+                <div class="step"><strong>4. 进入判断</strong><span>首页和风险模块自动引用。</span></div>
+              </div>
+            </section>
+
+            <section class="panel section">
+              <div class="head"><strong>财经资讯</strong><span>精选摘要</span></div>
+              <div class="news-list">
+                <article class="news">
+                  <strong>美债收益率回升，成长股估值压力重新被市场讨论</strong>
+                  <p>归入“利率压力”主题，自动关联风险监控和估值分位。</p>
+                  <div class="source"><span>主题：宏观 / 利率</span><span>影响：中</span></div>
+                </article>
+                <article class="news">
+                  <strong>云厂商资本开支预期继续上修，AI 基建链条受关注</strong>
+                  <p>归入“AI 资本开支”主题，关联 NVDA、AVGO、MSFT。</p>
+                  <div class="source"><span>主题：AI / 财报</span><span>影响：中高</span></div>
+                </article>
+                <article class="news">
+                  <strong>医疗板块出现防御性资金回流，UNH 修复仍需确认</strong>
+                  <p>进入观察池备注，不直接改变全局判断。</p>
+                  <div class="source"><span>主题：行业轮动</span><span>影响：低</span></div>
+                </article>
+                <article class="news">
+                  <strong>本周重点事件已更新，CPI 与 FOMC 纪要为主要风险点</strong>
+                  <p>由人工日历生成，显示在今日总览的风险提示中。</p>
+                  <div class="source"><span>来源：人工上传</span><span>影响：高</span></div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

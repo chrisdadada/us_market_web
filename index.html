@@ -1,0 +1,2500 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美股策略库</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-size='28' font-family='Arial' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-product1" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="app-sidebar" aria-label="主导航">
+        <a class="brand" href="/" aria-label="美股策略库首页">
+          <span class="brand-mark">M</span>
+          <span>
+            <strong>美股策略库</strong>
+            <small>美股研究工具</small>
+          </span>
+        </a>
+
+        <nav class="side-nav">
+          <button class="nav-item is-active" type="button" data-page="dashboard">
+            <span>总览</span>
+            <strong>策略驾驶舱</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="risk">
+            <span>温度</span>
+            <strong>市场温度计</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="events">
+            <span>观察</span>
+            <strong>预期改善观察</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="strength">
+            <span>强弱</span>
+            <strong>全市场强弱</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="mag7">
+            <span>七姐</span>
+            <strong>七姐妹雷达</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="watchlist">
+            <span>自选</span>
+            <strong>观察池</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="earnings">
+            <span>财报</span>
+            <strong>财报观察</strong>
+          </button>
+          <button class="nav-item nav-item-waiting" type="button" data-page="valuation" data-valuation-nav>
+            <span>估值</span>
+            <strong>指数估值</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="market">
+            <span>行情</span>
+            <strong>涨跌幅榜</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="options">
+            <span>流向</span>
+            <strong>期权流向</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="signals">
+            <span>信号</span>
+            <strong>趋势信号</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="live">
+            <span>实盘</span>
+            <strong>懂币猫实盘</strong>
+          </button>
+          <button class="nav-item" type="button" data-page="subscription">
+            <span>订阅</span>
+            <strong>工具订阅</strong>
+          </button>
+          <button class="nav-item is-hidden" type="button" data-page="validation" data-admin-only>
+            <span>验证</span>
+            <strong>验证中心</strong>
+          </button>
+          <button class="nav-item is-hidden" type="button" data-page="admin" data-admin-only>
+            <span>后台</span>
+            <strong>会员管理</strong>
+          </button>
+        </nav>
+
+        <div class="sidebar-group">
+          <p>更多内容</p>
+          <a href="#" data-page-link="courses">课程</a>
+          <a href="#" data-page-link="strategies">策略合集</a>
+          <a href="#" data-page-link="market">盘前盘后</a>
+          <a href="#" data-page-link="options">期权流向</a>
+          <a href="#" data-page-link="strength">行业强弱</a>
+          <a href="#" data-page-link="earnings">财报观察</a>
+          <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
+          <a href="#" data-page-link="events">预期改善观察</a>
+        </div>
+
+        <div class="sidebar-pro">
+          <span>付费</span>
+          <strong>策略工具包</strong>
+          <p>解锁回测、异动原因和组合风控。</p>
+        </div>
+      </aside>
+
+      <main class="app-main">
+        <header class="workspace-topbar">
+          <div>
+            <span id="workspaceKicker">策略总览</span>
+            <strong id="workspaceTitle">策略驾驶舱</strong>
+          </div>
+          <div class="global-search" role="search">
+            <input
+              id="globalSearchInput"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="搜索股票代码、公司名或页面"
+              aria-label="全局搜索"
+              aria-controls="globalSearchResults"
+              aria-expanded="false"
+            />
+            <div id="globalSearchResults" class="global-search-results" role="listbox" hidden></div>
+          </div>
+          <div class="topbar-actions">
+            <button id="authButton" type="button">登录</button>
+            <button class="primary-action" type="button" data-page-link="subscription">升级付费</button>
+          </div>
+        </header>
+
+        <section class="page-view is-active" data-view="dashboard">
+          <div class="cockpit-hero">
+            <div>
+              <p class="eyebrow">市场总览</p>
+              <h1>美股策略驾驶舱</h1>
+              <p class="subtitle">趋势、广度、波动、事件的盘面快照。</p>
+            </div>
+            <div class="market-regime-card market-radar-card">
+              <span>当前结构</span>
+              <strong id="marketRegimeLabel">偏强但谨慎</strong>
+              <p id="marketRegimeSummary">QQQ 强于 SPY，科技主线仍在趋势区；小盘异动升温，高热度线索需要风控。</p>
+              <div class="dashboard-radar-bars" id="dashboardRegimeRadar" aria-label="市场结构雷达">
+                <div><b>趋势</b><i style="--level:68%"></i><em>68</em></div>
+                <div><b>广度</b><i style="--level:52%"></i><em>52</em></div>
+                <div><b>波动</b><i style="--level:44%"></i><em>44</em></div>
+                <div><b>热度</b><i style="--level:58%"></i><em>58</em></div>
+              </div>
+            </div>
+          </div>
+
+          <section class="dashboard-snapshot-board" id="dashboardSnapshotBoard" aria-label="市场图形化快照">
+            <article class="dashboard-snapshot-card">
+              <span>市场快照</span>
+              <strong>等待数据</strong>
+            </article>
+          </section>
+
+          <section class="dashboard-focus-grid" aria-label="当前先看">
+            <article>
+              <span>01 · 先看环境</span>
+              <strong id="dashboardFocusTemperature">市场温度加载中</strong>
+              <p id="dashboardFocusTemperatureNote">先看当前环境偏强、偏中性还是偏防守。</p>
+              <button type="button" data-page-link="risk">看温度</button>
+            </article>
+            <article>
+              <span>02 · 再看异动</span>
+              <strong id="dashboardFocusMover">涨跌异动加载中</strong>
+              <p id="dashboardFocusMoverNote">看当前最明显的涨跌、成交额和风险标签。</p>
+              <button type="button" data-page-link="market">看涨跌幅榜</button>
+            </article>
+            <article>
+              <span>03 · 找强势</span>
+              <strong id="dashboardFocusStrength">强弱扫描加载中</strong>
+              <p id="dashboardFocusStrengthNote">优先从强于大盘和行业的股票里找线索。</p>
+              <button type="button" data-page-link="strength">看强弱榜</button>
+            </article>
+            <article>
+              <span>04 · 看理由</span>
+              <strong id="dashboardFocusEvent">研究线索加载中</strong>
+              <p id="dashboardFocusEventNote">用财报、预期改善和机构观点解释为什么需要继续跟踪。</p>
+              <button type="button" data-page-link="events">看预期改善</button>
+            </article>
+          </section>
+
+          <section class="cockpit-grid">
+            <article class="cockpit-card live-card">
+              <div class="card-head">
+                <div>
+                  <span>懂币猫实盘</span>
+                  <h2>趋势策略组合</h2>
+                </div>
+                <button type="button" data-page-link="live">查看详情</button>
+              </div>
+              <div class="hero-return">
+                <span>近 1 年策略收益</span>
+                <strong id="strategyOneYear">+38.6%</strong>
+                <small id="strategyBenchmark">对比 QQQ +29.4%</small>
+              </div>
+              <div class="equity-chart" aria-label="资金曲线预览">
+                <svg viewBox="0 0 520 190" role="img">
+                  <defs>
+                    <linearGradient id="curveFill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#14805e" stop-opacity="0.16" />
+                      <stop offset="100%" stop-color="#14805e" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M10 158 C65 155, 82 136, 122 139 C168 143, 172 103, 220 108 C263 112, 278 82, 322 77 C372 71, 386 91, 427 61 C462 36, 486 45, 510 24 L510 180 L10 180 Z" fill="url(#curveFill)" />
+                  <path d="M10 158 C65 155, 82 136, 122 139 C168 143, 172 103, 220 108 C263 112, 278 82, 322 77 C372 71, 386 91, 427 61 C462 36, 486 45, 510 24" fill="none" stroke="#14805e" stroke-width="4" stroke-linecap="round" />
+                  <path d="M10 160 C72 150, 106 148, 156 132 C219 112, 254 120, 306 94 C359 68, 404 84, 510 52" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="6 8" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="mini-stats">
+                <div><span>最大回撤</span><strong id="strategyDrawdown">-8.9%</strong></div>
+                <div><span>观察强度</span><strong id="strategyPosition">70%</strong></div>
+                <div><span>复盘节奏</span><strong>月度</strong></div>
+              </div>
+            </article>
+
+            <article class="cockpit-card">
+              <div class="card-head">
+                <div>
+                  <span>免费工具</span>
+                  <h2>市场温度计</h2>
+                </div>
+                <button type="button" data-page-link="risk">查看温度</button>
+              </div>
+              <div class="temperature-mini">
+                <div>
+                  <span>当前环境</span>
+                  <strong id="dashboardTemperatureLabel">防守观察</strong>
+                  <p id="dashboardTemperatureCopy">先少做决定，多看确认。</p>
+                </div>
+                <b id="dashboardTemperatureScore">49</b>
+              </div>
+              <div class="risk-lights">
+                <div class="light-row positive">
+                  <span>大盘</span>
+                  <strong id="dashboardSpyState">趋势区</strong>
+                  <i></i>
+                </div>
+                <div class="light-row positive">
+                  <span>科技</span>
+                  <strong id="dashboardQqqState">强趋势</strong>
+                  <i></i>
+                </div>
+                <div class="light-row neutral">
+                  <span>观察强度</span>
+                  <strong id="dashboardRiskBudget">中高</strong>
+                  <i></i>
+                </div>
+              </div>
+              <p class="card-note" id="dashboardRiskNote">风险信号增多时，高波动线索降级观察。</p>
+            </article>
+
+            <article class="cockpit-card">
+              <div class="card-head">
+                <div>
+                  <span>今日观察</span>
+                  <h2>预期改善观察</h2>
+                </div>
+                <button type="button" data-page-link="events">打开榜单</button>
+              </div>
+              <div class="event-mini">
+                <div>
+                  <span>榜首候选</span>
+                  <strong id="dashboardEventLeader">等待数据</strong>
+                  <p id="dashboardEventCopy">分析师、指引、财报和空头挤压事件会集中展示。</p>
+                </div>
+                <b id="dashboardEventCount">--</b>
+              </div>
+              <p class="card-note" id="dashboardEventNote">适合先加入观察池，再看价格是否确认。</p>
+            </article>
+
+            <article class="cockpit-card locked-card" data-requires-plan="paid">
+              <div class="card-head">
+                <div>
+                  <span>付费权益</span>
+                  <h2>交割记录</h2>
+                </div>
+                <b>付费</b>
+              </div>
+              <div class="locked-preview">
+                <div><span>最近</span><strong>强势股复盘</strong><em>锁定</em></div>
+                <div><span>上次</span><strong>风险节奏调整</strong><em>锁定</em></div>
+                <div><span>复盘</span><strong>ETF 防守记录</strong><em>锁定</em></div>
+              </div>
+              <button class="wide-action" type="button" data-gated-action="trade-records">查看订阅权益</button>
+            </article>
+          </section>
+
+          <section class="data-status-section">
+            <div class="section-title">
+              <div>
+                <span>模块状态</span>
+                <h2>数据可用状态</h2>
+              </div>
+              <button type="button" data-page-link="valuation">查看待接入模块</button>
+            </div>
+            <div class="data-status-grid" id="dashboardDataStatusGrid">
+              <article><span>等待数据</span><strong>--</strong><p>加载后显示各模块数据日期。</p></article>
+            </div>
+          </section>
+
+          <section class="radar-section">
+            <div class="section-title">
+              <div>
+                <span>科技七姐妹</span>
+                <h2>科技七姐妹趋势雷达</h2>
+              </div>
+              <button type="button" data-page-link="mag7">打开雷达</button>
+            </div>
+            <div class="mega-grid" id="dashboardMag7Grid">
+              <article><strong>NVDA</strong><span>趋势状态</span><b>领跑</b><i style="width:96%"></i></article>
+              <article><strong>MSFT</strong><span>趋势状态</span><b>强势</b><i style="width:88%"></i></article>
+              <article><strong>META</strong><span>趋势状态</span><b>强势</b><i style="width:84%"></i></article>
+              <article><strong>AMZN</strong><span>趋势状态</span><b>延续</b><i style="width:78%"></i></article>
+              <article><strong>GOOGL</strong><span>趋势状态</span><b>修复</b><i style="width:74%"></i></article>
+              <article><strong>AAPL</strong><span>趋势状态</span><b>观察</b><i style="width:63%"></i></article>
+              <article><strong>TSLA</strong><span>趋势状态</span><b>波动</b><i style="width:51%"></i></article>
+            </div>
+          </section>
+
+          <section class="operator-plan">
+            <div class="section-title">
+              <div>
+                <span>每日流程</span>
+                <h2>每日看盘顺序</h2>
+              </div>
+            </div>
+            <div class="plan-grid">
+              <article>
+                <span>01</span>
+                <h3>先看市场风控</h3>
+                <p>判断市场偏积极、中性，还是偏防守观察。</p>
+              </article>
+              <article>
+                <span>02</span>
+                <h3>再看七姐妹强弱</h3>
+                <p>只跟踪趋势更强、相对 QQQ 更稳的股票。</p>
+              </article>
+              <article>
+                <span>03</span>
+                <h3>最后看交易记录</h3>
+                <p>用实盘记录和回测结果校验策略是否仍然有效。</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="module-section">
+            <div class="section-title">
+              <div>
+                <span>功能模块</span>
+                <h2>按模块进入页面</h2>
+              </div>
+            </div>
+            <div class="module-grid" id="dashboardModuleGrid">
+              <button class="module-card" type="button" data-page-link="risk">
+                <span>免费</span>
+                <strong>市场温度计</strong>
+                <p>用几项公开指标看当前市场偏强、偏中性还是偏防守。</p>
+                <em>已上线</em>
+              </button>
+              <button class="module-card" type="button" data-page-link="strength">
+                <span>强弱</span>
+                <strong>全市场强弱</strong>
+                <p>把候选股票压缩成重点观察、风险回避和等回踩。</p>
+                <em>已上线</em>
+              </button>
+              <button class="module-card" type="button" data-page-link="watchlist">
+                <span>自选</span>
+                <strong>观察池</strong>
+                <p>集中跟踪从各模块加入的股票。</p>
+                <em>已上线</em>
+              </button>
+            </div>
+          </section>
+        </section>
+
+        <section class="page-view valuation-view" data-view="valuation" data-lockable-module="index-valuation">
+          <div class="page-heading valuation-heading">
+            <div>
+              <p class="eyebrow">指数估值</p>
+              <h1 id="valuationPageTitle">纳指 100 估值</h1>
+              <p class="subtitle" id="valuationPageSubtitle">用 PE、PB、ROE、股息率和 PEG 观察指数当前所处的位置。</p>
+              <div class="valuation-index-tabs" aria-label="选择指数">
+                <button class="is-active" type="button" data-valuation-index="QQQ">
+                  <strong>QQQ</strong>
+                  <span>纳指 100</span>
+                </button>
+                <button type="button" data-valuation-index="SPY">
+                  <strong>SPY</strong>
+                  <span>标普 500</span>
+                </button>
+              </div>
+            </div>
+            <div class="source valuation-source">
+              <span>数据状态</span>
+              <strong id="valuationStatusLabel">等待估值数据</strong>
+            </div>
+          </div>
+
+          <section class="valuation-shell" aria-label="指数估值观察">
+            <div class="valuation-hero">
+              <div>
+                <span id="valuationIndexLabel">Nasdaq 100</span>
+                <h2 id="valuationTitle">等待估值数据</h2>
+                <p id="valuationSummary">数据未接入前，不展示 PE、PB、ROE 等估值数字。</p>
+              </div>
+              <div class="valuation-asof">
+                <span>更新至</span>
+                <strong id="valuationAsOf">--</strong>
+                <p id="valuationCoverage">等待指数估值样本接入</p>
+              </div>
+            </div>
+
+            <section class="valuation-chart-panel">
+              <div class="valuation-chart-head">
+                <div>
+                  <span id="valuationChartKicker">趋势图</span>
+                  <h2 id="valuationChartTitle">等待估值数据</h2>
+                </div>
+                <div class="valuation-chart-tools">
+                  <p><i></i>估值轨迹 <b></b>参考线</p>
+                  <div class="valuation-range" aria-label="选择估值图时间范围">
+                    <button class="is-active" type="button" data-valuation-range="3m">近3月</button>
+                    <button type="button" data-valuation-range="6m">近6月</button>
+                    <button type="button" data-valuation-range="1y">近1年</button>
+                    <button type="button" data-valuation-range="all">全部</button>
+                  </div>
+                </div>
+              </div>
+              <div class="valuation-tabs" role="tablist" aria-label="选择估值指标">
+                <button class="is-active" type="button" role="tab" aria-selected="true" data-valuation-metric="pe">PE</button>
+                <button type="button" role="tab" aria-selected="false" data-valuation-metric="pb">PB</button>
+                <button type="button" role="tab" aria-selected="false" data-valuation-metric="roe">ROE</button>
+                <button type="button" role="tab" aria-selected="false" data-valuation-metric="dividendYield">股息率</button>
+                <button type="button" role="tab" aria-selected="false" data-valuation-metric="peg">PEG</button>
+              </div>
+              <div class="valuation-chart-wrap" id="valuationChartWrap">
+                <div class="valuation-empty-chart">
+                  <span>等待估值数据</span>
+                  <strong>趋势图将在数据接入后显示</strong>
+                  <p>接入同口径数据后，会显示估值轨迹、当前值和参考线。</p>
+                </div>
+              </div>
+              <div class="valuation-percentile-note" id="valuationPercentileNote">
+                轨迹用于观察近期价格变化对估值读数的影响，不代表未来方向。
+              </div>
+            </section>
+
+            <div class="valuation-metrics" id="valuationMetricSummary">
+              <article>
+                <span>PE <button class="info-tip" type="button" aria-label="PE解释" data-tip="市盈率，常用来观察价格相对盈利的水平。">?</button></span>
+                <strong>--</strong>
+                <p>等待数据</p>
+              </article>
+              <article>
+                <span>PB <button class="info-tip" type="button" aria-label="PB解释" data-tip="市净率，常用来观察价格相对净资产的水平。">?</button></span>
+                <strong>--</strong>
+                <p>等待数据</p>
+              </article>
+              <article>
+                <span>ROE <button class="info-tip" type="button" aria-label="ROE解释" data-tip="净资产收益率，观察企业使用股东权益创造利润的效率。">?</button></span>
+                <strong>--</strong>
+                <p>等待数据</p>
+              </article>
+              <article>
+                <span>股息率 <button class="info-tip" type="button" aria-label="股息率解释" data-tip="年度股息相对价格的比例，用于观察现金分红水平。">?</button></span>
+                <strong>--</strong>
+                <p>等待数据</p>
+              </article>
+              <article>
+                <span>PEG <button class="info-tip" type="button" aria-label="PEG解释" data-tip="市盈率相对盈利增速的比例，用于把估值和增长放在一起观察。">?</button></span>
+                <strong>--</strong>
+                <p>等待数据</p>
+              </article>
+            </div>
+
+            <section class="valuation-holdings-panel" id="valuationHoldingsPanel" aria-label="QQQ 持仓结构">
+              <div class="valuation-holdings-head">
+                <div>
+                  <span>持仓结构</span>
+                  <h2>等待持仓数据</h2>
+                </div>
+                <p>成分权重接入后，会显示前十大持仓和当前覆盖情况。</p>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <section class="page-view" data-view="risk">
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">市场温度</p>
+              <h1>市场温度计</h1>
+              <p class="subtitle">用波动率、利率、通胀、美元和原油环境判断当前复盘强度，以及哪些线索需要降级观察。</p>
+            </div>
+            <div class="source">
+              <span>更新至</span>
+              <strong id="temperatureAsOf">--</strong>
+            </div>
+          </div>
+
+          <div class="risk-dashboard">
+            <section class="temperature-hero">
+              <div class="temperature-copy">
+                <span>当前市场温度</span>
+                <h2 id="temperatureTitle">偏冷，先防守</h2>
+                <p id="temperatureSummary">风险信号增多，先控制观察节奏和回撤。</p>
+                <div class="temperature-actions">
+                  <strong id="temperatureAction">降低观察频率</strong>
+                  <span>辅助判断</span>
+                </div>
+              </div>
+              <div class="thermometer-card" aria-label="市场温度分数">
+                <div class="thermometer-scale">
+                  <i id="temperatureNeedle" style="left: 49%"></i>
+                </div>
+                <div class="thermometer-labels">
+                  <span>防守</span>
+                  <span>观察</span>
+                  <span>偏强</span>
+                </div>
+                <strong id="temperatureScore">49</strong>
+                <p id="temperatureScoreLabel">满分 100，越高代表市场越友好。</p>
+              </div>
+            </section>
+
+            <section class="macro-monitor-board" data-lockable-module="macro-monitor" aria-label="宏观监控台">
+              <div class="macro-monitor-head">
+                <div>
+                  <span>宏观监控台</span>
+                  <h2>压力曲线、因子拆解和资产影响</h2>
+                </div>
+                <p id="macroMonitorSummary">读取宏观历史数据后，会把利率、美元、油价、通胀和波动率合成一张观察图。</p>
+              </div>
+              <div class="macro-monitor-layout">
+                <article class="macro-composite-card">
+                  <div class="macro-composite-copy">
+                    <span>综合压力指数</span>
+                    <strong id="macroCompositeScore">--</strong>
+                    <p id="macroCompositeVerdict">等待历史数据</p>
+                  </div>
+                  <div class="macro-composite-chart" id="macroCompositeChart">
+                    <div class="macro-chart-empty">等待图表</div>
+                  </div>
+                </article>
+                <article class="macro-factor-board">
+                  <span>因子拆解</span>
+                  <div id="macroFactorBoard" class="macro-factor-bars">
+                    <div><b>等待数据</b><i><em style="width: 0%"></em></i><strong>--</strong></div>
+                  </div>
+                </article>
+                <article class="macro-asset-board">
+                  <span>资产影响</span>
+                  <div id="macroAssetImpact" class="macro-asset-list">
+                    <div><b>等待数据</b><strong>--</strong><em>--</em></div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="risk-scoreboard">
+              <div>
+                <span>观察强度 <button class="info-tip" type="button" aria-label="观察强度解释" data-tip="不是交易指令，而是提示当前研究和复盘可以放多少精力。">?</button></span>
+                <strong id="riskBudgetValue">70%</strong>
+                <p id="riskBudgetNote">强趋势可以继续跟踪，但不把短线大涨当成直接行动理由。</p>
+              </div>
+              <div>
+                <span>市场状态 <button class="info-tip" type="button" aria-label="市场状态解释" data-tip="把多项指标合成一句话，帮助判断市场环境偏积极、中性还是偏防守。">?</button></span>
+                <strong id="riskRegimeValue">偏强但谨慎</strong>
+                <p id="riskRegimeNote">纳指趋势更强，小盘波动偏高，观察节奏需要分层。</p>
+              </div>
+              <div>
+                <span>观察重点 <button class="info-tip" type="button" aria-label="观察重点解释" data-tip="把指标翻译成复盘顺序，帮助你少被情绪最热或最慌的时候带偏。">?</button></span>
+                <strong id="riskActionValue">只加强者</strong>
+                <p id="riskActionNote">优先看 QQQ、XLK 和七姐妹中的强相对收益标的。</p>
+              </div>
+            </section>
+
+            <section class="macro-pressure-panel" data-lockable-module="macro-pressure">
+              <div class="section-title">
+                <div>
+                  <span>宏观压力</span>
+                  <h2>利率、美元、原油和通胀</h2>
+                </div>
+                <p id="macroPressureSummary">读取最新宏观数据后，会显示对成长股、能源、黄金和风险偏好的影响。</p>
+              </div>
+              <div class="macro-pressure-grid" id="macroPressureGrid">
+                <article>
+                  <span>10Y 美债</span>
+                  <strong>--</strong>
+                  <p>观察成长股估值压力。</p>
+                </article>
+                <article>
+                  <span>30Y 美债</span>
+                  <strong>--</strong>
+                  <p>观察长期利率压力。</p>
+                </article>
+                <article>
+                  <span>美元指数</span>
+                  <strong>--</strong>
+                  <p>观察全球资金偏好。</p>
+                </article>
+                <article>
+                  <span>原油</span>
+                  <strong>--</strong>
+                  <p>观察通胀和成本压力。</p>
+                </article>
+                <article>
+                  <span>CPI 同比</span>
+                  <strong>--</strong>
+                  <p>观察通胀趋势和利率预期。</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="macro-series-panel" data-lockable-module="macro-series" aria-label="宏观指标历史走势图">
+              <div class="section-title">
+                <div>
+                  <span>指标走势</span>
+                  <h2>宏观指标历史走势</h2>
+                </div>
+                <div class="macro-series-range" role="group" aria-label="选择指标走势时间范围">
+                  <button class="is-active" type="button" data-macro-series-range="1y" aria-pressed="true">1年</button>
+                  <button type="button" data-macro-series-range="3y" aria-pressed="false">3年</button>
+                  <button type="button" data-macro-series-range="5y" aria-pressed="false">5年</button>
+                </div>
+              </div>
+              <p class="macro-series-summary" id="macroSeriesSummary">等待历史数据</p>
+              <div class="macro-series-grid" id="macroSeriesGrid">
+                <article class="macro-series-empty">
+                  <span>等待历史数据</span>
+                  <strong>指标走势生成后会显示在这里</strong>
+                  <p>页面会继续保持可用。</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="macro-stock-panel" data-lockable-module="macro-stock-pool">
+              <div class="section-title">
+                <div>
+                  <span>受影响股票池</span>
+                  <h2>从宏观因子回到股票</h2>
+                </div>
+                <p id="macroStockSummary">根据利率、美元、原油和通胀，把相关板块里的强弱线索整理成复盘池。</p>
+              </div>
+              <div class="macro-stock-grid" id="macroStockGrid">
+                <article>
+                  <span>利率敏感</span>
+                  <strong>等待数据</strong>
+                  <p>会显示科技、地产、公用事业等相关股票。</p>
+                </article>
+                <article>
+                  <span>美元敏感</span>
+                  <strong>等待数据</strong>
+                  <p>会显示黄金、材料、海外收入相关股票。</p>
+                </article>
+                <article>
+                  <span>原油敏感</span>
+                  <strong>等待数据</strong>
+                  <p>会显示能源、运输和消费成本相关股票。</p>
+                </article>
+                <article>
+                  <span>通胀敏感</span>
+                  <strong>等待数据</strong>
+                  <p>会显示消费、能源和利率敏感股票。</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="signal-grid" id="riskSignalGrid">
+              <article class="signal-card is-positive">
+                <span>大盘 <button class="info-tip" type="button" aria-label="大盘解释" data-tip="用 SPY 代表美股整体。如果它走弱，很多个股会更难赚钱。">?</button></span>
+                <strong>趋势线之上</strong>
+                <p>代表大盘风险偏好仍可接受。</p>
+              </article>
+              <article class="signal-card is-positive">
+                <span>科技股 <button class="info-tip" type="button" aria-label="科技股解释" data-tip="用 QQQ 观察科技股。科技股强，通常说明市场风险偏好更好。">?</button></span>
+                <strong>强于 SPY</strong>
+                <p>科技主线仍是资金最集中的方向。</p>
+              </article>
+              <article class="signal-card is-neutral">
+                <span>小盘股 <button class="info-tip" type="button" aria-label="小盘股解释" data-tip="用 IWM 看小公司股票。如果小盘也活跃，市场情绪通常更好。">?</button></span>
+                <strong>弹性升温</strong>
+                <p>适合做观察，不适合把风险预算全部给小盘。</p>
+              </article>
+              <article class="signal-card is-watch">
+                <span>波动 <button class="info-tip" type="button" aria-label="波动解释" data-tip="用 VIX 看市场紧张程度。它上升时，价格来回扫的概率更高。">?</button></span>
+                <strong>低位回升</strong>
+                <p>若继续抬头，系统会减少新增线索权重。</p>
+              </article>
+              <article class="signal-card is-neutral">
+                <span>利率 <button class="info-tip" type="button" aria-label="利率解释" data-tip="用美国 10 年期国债收益率观察资金成本。利率高时，成长股更容易承压。">?</button></span>
+                <strong>利率约束</strong>
+                <p>长端利率高位会压制高估值成长股。</p>
+              </article>
+              <article class="signal-card is-positive">
+                <span>信用 <button class="info-tip" type="button" aria-label="信用解释" data-tip="看公司借钱是否变难。信用变差时，市场更容易进入防守。">?</button></span>
+                <strong>信用稳定</strong>
+                <p>信用利差未明显恶化，暂不触发防守。</p>
+              </article>
+            </section>
+
+            <section class="model-card">
+              <div class="section-title">
+                <div>
+                  <span>复盘顺序</span>
+                  <h2>先看什么，再复盘什么</h2>
+                </div>
+              </div>
+              <div class="rule-timeline" id="riskRuleTimeline">
+                <div class="is-done"><span>01</span><strong>SPY / QQQ 趋势确认</strong><p>两者均在趋势线上方，市场基础状态较稳。</p></div>
+                <div class="is-done"><span>02</span><strong>QQQ 相对强弱确认</strong><p>QQQ 强于 SPY 时，科技线索优先级可高于市场基准。</p></div>
+                <div><span>03</span><strong>VIX 与利率压力监控</strong><p>波动率或利率走高时，新增线索需要降低优先级。</p></div>
+                <div><span>04</span><strong>信用利差触发防守</strong><p>信用快速恶化时，优先关注 ETF 或现金类防守观察。</p></div>
+              </div>
+            </section>
+
+            <section class="temperature-reminder">
+              <div>
+                <span>温度变化</span>
+                <h2>市场环境变化提醒</h2>
+                <p>当市场状态切换时，提醒你重新检查观察强度和复盘名单。</p>
+              </div>
+              <button type="button" data-page-link="watchlist">查看观察池</button>
+            </section>
+          </div>
+        </section>
+
+        <section class="page-view" data-view="mag7">
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">七姐妹跟踪</p>
+              <h1>七姐妹雷达</h1>
+              <p class="subtitle">围绕 AAPL、MSFT、NVDA、AMZN、META、GOOGL、TSLA 看谁在领跑、谁在掉队、谁需要降低观察优先级。</p>
+            </div>
+          </div>
+
+          <div class="mag7-layout">
+            <section class="mag7-leader">
+              <div>
+                <span>当前主线</span>
+                <h2 id="mag7LeaderSymbol">NVDA</h2>
+                <p id="mag7LeaderNote">NVDA 仍是七姐妹中最强的趋势锚点。</p>
+              </div>
+              <div class="leader-ring">
+                <strong id="mag7LeaderScore">领先</strong>
+                <span>当前状态</span>
+              </div>
+            </section>
+
+            <section class="mag7-table-card">
+              <div class="section-title">
+                <div>
+                  <span>强弱排序</span>
+                  <h2>强弱排序</h2>
+                </div>
+              </div>
+              <div class="mag7-table" id="mag7Table">
+                <div class="mag7-row is-top">
+                  <span>1</span><strong>NVDA 英伟达</strong><em>强趋势</em><b>+8.4%</b><i style="width:96%"></i>
+                </div>
+                <div class="mag7-row">
+                  <span>2</span><strong>MSFT 微软</strong><em>趋势延续</em><b>+4.6%</b><i style="width:88%"></i>
+                </div>
+                <div class="mag7-row">
+                  <span>3</span><strong>META Meta</strong><em>高位稳态</em><b>+3.9%</b><i style="width:84%"></i>
+                </div>
+                <div class="mag7-row">
+                  <span>4</span><strong>AMZN 亚马逊</strong><em>回踩观察</em><b>+2.1%</b><i style="width:78%"></i>
+                </div>
+                <div class="mag7-row">
+                  <span>5</span><strong>GOOGL 谷歌</strong><em>中性偏强</em><b>+1.6%</b><i style="width:74%"></i>
+                </div>
+                <div class="mag7-row">
+                  <span>6</span><strong>AAPL 苹果</strong><em>等待确认</em><b>-0.8%</b><i style="width:63%"></i>
+                </div>
+                <div class="mag7-row">
+                  <span>7</span><strong>TSLA 特斯拉</strong><em>高波动</em><b>-3.2%</b><i style="width:51%"></i>
+                </div>
+              </div>
+            </section>
+
+            <section class="allocation-card">
+              <div class="section-title">
+                <div>
+                  <span>关注层级</span>
+                  <h2>关注层级框架</h2>
+                </div>
+              </div>
+              <div class="allocation-list" id="allocationList">
+                <div><span>重点观察</span><strong>NVDA / MSFT / META</strong><em>高</em></div>
+                <div><span>趋势观察</span><strong>AMZN / GOOGL</strong><em>中</em></div>
+                <div><span>低频跟踪</span><strong>AAPL / TSLA</strong><em>低</em></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page-view" data-view="live">
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">策略实盘</p>
+              <h1>懂币猫实盘</h1>
+              <p class="subtitle">跟踪实盘账户曲线、月度收益、盈利主线和风控特征，用真实波动复盘高弹性趋势策略。</p>
+            </div>
+          </div>
+
+          <section class="live-hero">
+            <div>
+              <span>实盘账户</span>
+              <h2>年初不到 200 万，到接近 1000 万</h2>
+              <p>收益主要来自 AI、稳定币和加密相关美股的趋势行情。页面展示账户结果、月度表现和主线分布，具体买卖逻辑进入付费复盘。</p>
+            </div>
+            <div class="live-hero-number">
+              <strong>+253.9%</strong>
+              <span>时间加权收益率</span>
+            </div>
+          </section>
+
+          <section class="live-metric-grid">
+            <article>
+              <span>账户资产</span>
+              <strong>约 943 万 CNH</strong>
+              <p>账户规模已接近千万级别。</p>
+            </article>
+            <article>
+              <span>累计收益</span>
+              <strong>约 +670 万 CNH</strong>
+              <p>2025 年初至 10 月下旬账户收益。</p>
+            </article>
+            <article>
+              <span>收益率走势</span>
+              <strong>+301.9%</strong>
+              <p>账户收益走势页显示的累计收益率。</p>
+            </article>
+            <article>
+              <span>当日盈亏</span>
+              <strong>约 +12 万 CNH</strong>
+              <p>当日表现约 +1.4% 至 +1.5%。</p>
+            </article>
+            <article>
+              <span>当前持仓</span>
+              <strong>TSLA / NBIS</strong>
+              <p>当前重点跟踪的两只高弹性持仓。</p>
+            </article>
+            <article>
+              <span>风控状态</span>
+              <strong>适中</strong>
+              <p>融资账户，仍保留较大剩余流动性。</p>
+            </article>
+          </section>
+
+          <div class="live-layout live-layout-wide">
+            <section class="cockpit-card">
+              <div class="section-title">
+                <div>
+                  <span>月度表现</span>
+                  <h2>2025 月度收益热力图</h2>
+                </div>
+              </div>
+              <div class="month-heatmap">
+                <div class="is-loss"><span>1月</span><strong>-40.29万</strong><em>-19.37%</em></div>
+                <div class="is-loss"><span>2月</span><strong>-34.85万</strong><em>-14.94%</em></div>
+                <div><span>3月</span><strong>+4.19万</strong><em>+2.11%</em></div>
+                <div class="is-loss"><span>4月</span><strong>-6.44万</strong><em>-3.18%</em></div>
+                <div class="is-gain"><span>5月</span><strong>+68.68万</strong><em>+35.01%</em></div>
+                <div class="is-hot"><span>6月</span><strong>+302.58万</strong><em>+114.25%</em></div>
+                <div class="is-gain"><span>7月</span><strong>+57万+</strong><em>+6.65%</em></div>
+                <div class="is-gain"><span>8月</span><strong>+103.07万</strong><em>+17.06%</em></div>
+                <div class="is-hot"><span>9月</span><strong>+206.46万</strong><em>+29.19%</em></div>
+                <div><span>10月</span><strong>+29.58万</strong><em>+3.24%</em></div>
+                <div><span>11月</span><strong>未更新</strong><em>--</em></div>
+                <div><span>12月</span><strong>未更新</strong><em>--</em></div>
+              </div>
+              <p class="live-footnote">月度记录会随账户复盘持续更新。</p>
+            </section>
+
+            <section class="cockpit-card locked-card" data-requires-plan="paid">
+              <div class="section-title">
+                <div>
+                  <span>交易明细</span>
+                  <h2>交割记录</h2>
+                </div>
+                <b>付费</b>
+              </div>
+              <div class="locked-records">
+                <div><span>CRCL</span><strong>稳定币主线买卖点</strong><em>锁定</em></div>
+                <div><span>BMNR</span><strong>加密美股波动变化</strong><em>锁定</em></div>
+                <div><span>TSLA</span><strong>关键支撑位复盘</strong><em>锁定</em></div>
+                <div><span>NBIS</span><strong>AI 算力持仓复盘</strong><em>锁定</em></div>
+              </div>
+              <button class="wide-action" type="button" data-gated-action="trade-records">解锁交割记录</button>
+            </section>
+          </div>
+
+          <section class="profit-section">
+            <div class="section-title">
+              <div>
+                <span>盈利拆解</span>
+                <h2>盈利 Top5 与主线拆解</h2>
+              </div>
+            </div>
+            <div class="profit-grid">
+              <article>
+                <span>TSLA</span>
+                <strong>+334,641 USD</strong>
+                <p>特斯拉 / 马斯克叙事，趋势确认后提高权重。</p>
+                <em data-pro-plus-copy>关键逻辑锁定</em>
+              </article>
+              <article>
+                <span>BMNR</span>
+                <strong>+302,824 USD</strong>
+                <p>加密资产代理，偏以太坊相关弹性方向。</p>
+                <em data-pro-plus-copy>交割记录锁定</em>
+              </article>
+              <article>
+                <span>CRCL</span>
+                <strong>+264,992 USD</strong>
+                <p>稳定币主线，是今年收益贡献较大的方向之一。</p>
+                <em data-pro-plus-copy>买点复盘锁定</em>
+              </article>
+              <article>
+                <span>CRWV</span>
+                <strong>+114,000 USD</strong>
+                <p>AI 算力 / 云基础设施方向，高弹性趋势股。</p>
+                <em data-pro-plus-copy>风险回撤锁定</em>
+              </article>
+              <article>
+                <span>PLTR</span>
+                <strong>+106,950 USD</strong>
+                <p>AI 软件和数据方向，属于科技主线扩散。</p>
+                <em data-pro-plus-copy>持仓周期锁定</em>
+              </article>
+            </div>
+          </section>
+
+          <section class="theme-radar-section">
+            <div class="section-title">
+              <div>
+                <span>主线雷达</span>
+                <h2>实盘主线雷达</h2>
+              </div>
+            </div>
+            <div class="theme-radar-grid">
+              <article><span>AI 算力</span><strong>NBIS / CRWV</strong><p>跟踪云算力、AI 基建和高弹性成长股。</p></article>
+              <article><span>稳定币</span><strong>CRCL</strong><p>稳定币上市公司和支付网络叙事。</p></article>
+              <article><span>加密美股</span><strong>BMNR</strong><p>币圈行情映射到美股的代理标的。</p></article>
+              <article><span>特斯拉</span><strong>TSLA</strong><p>科技、机器人、能源和马斯克叙事共振。</p></article>
+            </div>
+          </section>
+
+        </section>
+
+        <section class="page-view signal-workspace" data-view="signals">
+          <div class="page-heading signal-heading">
+            <div>
+              <p class="eyebrow">信号观察</p>
+              <h1>多市场趋势信号中心</h1>
+              <p class="subtitle">只展示已经接入信号的标的，记录方向变化、复盘节奏和出现后的价格表现，帮助你判断一条信号是否需要继续跟踪。</p>
+            </div>
+            <div class="signal-value-card">
+              <span>已捕捉行情幅度 <button class="info-tip" type="button" aria-label="已捕捉行情幅度解释" data-tip="信号出现后，价格沿观察方向走出的最佳幅度；用于衡量信号是否抓到行情，不等于账户实际收益。">?</button></span>
+              <strong id="signalCapturedHero">--</strong>
+              <p>衡量信号出现后曾经抓到的顺向波动，不等于账户实际收益。</p>
+            </div>
+          </div>
+
+          <section class="signal-overview-grid">
+            <article>
+              <span>当前观察</span>
+              <strong id="signalActiveCount">--</strong>
+              <p>已接入并正在跟踪的标的数量。</p>
+            </article>
+            <article>
+              <span>捕捉幅度</span>
+              <strong id="signalCapturePct">--</strong>
+              <p>当前记录中的最佳顺向波动。</p>
+            </article>
+            <article>
+              <span>方向切换</span>
+              <strong id="signalSwitchCount">--</strong>
+              <p>近期由上行观察转下行观察，或反向切换的记录。</p>
+            </article>
+            <article>
+              <span>待复盘</span>
+              <strong id="signalReviewCount">--</strong>
+              <p>已到复盘节奏、需要继续观察表现的标的。</p>
+            </article>
+            <article class="locked-card" data-requires-plan="paid">
+              <span>订阅价值</span>
+              <strong>近期提醒</strong>
+              <p>付费用户查看近期信号、完整复盘和单标的过往表现。</p>
+            </article>
+          </section>
+
+          <section class="signal-layout">
+            <div class="signal-main">
+              <section class="signal-panel signal-state-panel">
+                <div class="section-title">
+                  <div>
+                    <span>当前观察</span>
+                    <h2>方向状态</h2>
+                  </div>
+                </div>
+                <div class="signal-state-table" id="signalStateTable">
+                  <div><span>暂无记录</span><strong>有新信号后会显示方向、价格和表现。</strong></div>
+                </div>
+              </section>
+
+              <section class="signal-panel">
+                <div class="section-title">
+                  <div>
+                    <span>单标的详情</span>
+                    <h2>信号复盘</h2>
+                  </div>
+                  <b id="signalDetailTag">选择标的</b>
+                </div>
+                <div class="signal-detail-panel" id="signalDetailPanel">
+                  <div class="empty-detail">
+                    <strong>点击上方任一标的</strong>
+                    <p>查看首发、历次复盘、方向变化、最佳表现和最大反向波动。</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="signal-panel">
+                <div class="section-title">
+                  <div>
+                    <span>历史记录</span>
+                    <h2>信号动态</h2>
+                  </div>
+                  <b>持续跟踪</b>
+                </div>
+                <div class="signal-feed" id="signalFeed">
+                  <article>
+                    <span>等待记录</span>
+                    <strong>接入后显示信号动态</strong>
+                    <p>收到信号、复盘或方向切换后，会按时间顺序显示。</p>
+                    <em>等待接入</em>
+                  </article>
+                </div>
+              </section>
+            </div>
+
+            <aside class="signal-side">
+              <section class="signal-panel">
+                <div class="section-title">
+                  <div>
+                    <span>完整路径</span>
+                    <h2>从首发到表现</h2>
+                  </div>
+                </div>
+                <div class="signal-life-card locked-card" data-requires-plan="paid" id="signalLifeCard">
+                  <div>
+                    <span>观察标的</span>
+                    <strong>等待信号</strong>
+                  </div>
+                  <ol>
+                    <li><b>首发</b><span>收到首条信号后显示触发价和周期。</span></li>
+                    <li><b>复盘</b><span>有复盘记录后显示持续时间和方向变化。</span></li>
+                    <li><b>表现</b><span>有价格表现后显示当前和最佳表现。</span></li>
+                  </ol>
+                </div>
+              </section>
+
+              <section class="signal-panel">
+                <div class="section-title">
+                  <div>
+                    <span>主题强弱</span>
+                    <h2>板块观察</h2>
+                  </div>
+                </div>
+                <div class="sector-board" id="signalSectorBoard">
+                  <article>
+                    <span>等待主题</span>
+                    <strong>等待更多信号</strong>
+                    <p>多只标的进入观察后，会自动形成板块强弱。</p>
+                  </article>
+                </div>
+                <div class="sector-pack-list" id="signalSectorList">
+                  <article>
+                    <span>板块观察</span>
+                    <strong>等待更多记录</strong>
+                    <p>有多只标的进入观察后，会显示主题强弱。</p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="signal-panel">
+                <div class="section-title">
+                  <div>
+                    <span>跟踪节奏</span>
+                    <h2>复盘队列</h2>
+                  </div>
+                </div>
+                <div class="review-queue" id="signalReviewQueue">
+                  <div><span>等待记录</span><strong>有复盘任务后会显示队列</strong></div>
+                </div>
+              </section>
+            </aside>
+          </section>
+        </section>
+
+        <section class="page-view" data-view="strength">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">全市场扫描</p>
+              <h1>今日强弱观察池</h1>
+              <p class="subtitle">每天把几千只美股压缩成三张清单：重点观察、风险回避、等回踩。你先看结论，再看理由。</p>
+            </div>
+            <div class="source">
+              <span>扫描日期</span>
+              <strong id="strengthAsOf">--</strong>
+            </div>
+          </div>
+
+          <section class="strength-overview" aria-label="强弱扫描摘要">
+            <article>
+              <span>已替你扫描</span>
+              <strong id="strengthUniverse">--</strong>
+              <p id="strengthUniverseNote">先过滤成交额不足、价格过低和历史太短的股票。</p>
+            </article>
+            <article>
+              <span>重点观察</span>
+              <strong id="strengthLeader">--</strong>
+              <p id="strengthLeaderNote">当前先从这批股票里找研究线索。</p>
+            </article>
+            <article>
+              <span>风险回避</span>
+              <strong id="strengthWeakest">--</strong>
+              <p>走势明显落后，先降低观察优先级。</p>
+            </article>
+            <article>
+              <span>别急着追</span>
+              <strong id="strengthCrowdingCount">--</strong>
+              <p>短线已经偏热，等分歧或回踩后再复盘。</p>
+            </article>
+          </section>
+
+          <section class="product-insight-grid" id="strengthInsightGrid" aria-label="强弱观察说明">
+            <article><span>当前怎么看</span><strong>先看相对强弱</strong><p>优先从强于大盘、强于行业的股票里找研究线索。</p></article>
+            <article><span>为什么入选</span><strong>看价格和成交</strong><p>短线太热时不急着下结论，等待分歧或回踩后再复盘。</p></article>
+            <article><span>风险提醒</span><strong>避开明显落后</strong><p>走势持续落后的股票，先从观察池里降级。</p></article>
+            <article><span>下一步</span><strong>加入观察池</strong><p>只把熟悉、流动性好的股票加入观察，再等确认。</p></article>
+          </section>
+
+          <div class="strength-layout">
+            <section class="strength-leader-panel">
+              <div>
+                <span>当前先看</span>
+                <h2 id="strengthHeroSymbol">--</h2>
+                <p id="strengthHeroName">--</p>
+                <div class="strength-tags" id="strengthHeroTags"></div>
+              </div>
+              <div class="strength-score-ring">
+                <strong id="strengthHeroScore">--</strong>
+                <span>当前状态</span>
+              </div>
+              <div class="strength-relative-grid">
+                <div><span>相对大盘</span><strong id="strengthHeroSpy">--</strong></div>
+                <div><span>相对纳指</span><strong id="strengthHeroQqq">--</strong></div>
+                <div><span>相对行业</span><strong id="strengthHeroSector">--</strong></div>
+                <div><span>高热度风险</span><strong id="strengthHeroCrowding">--</strong></div>
+              </div>
+            </section>
+
+            <section class="strength-theme-section" data-module="strength-themes">
+              <div class="section-title">
+                <div>
+                  <span>主线观察</span>
+                  <h2>资金更集中的方向</h2>
+                </div>
+                <b id="strengthThemeSummary">主线扫描中</b>
+              </div>
+              <div class="theme-leader-grid" id="strengthThemeGrid">
+                <article><span>等待数据</span><strong>--</strong><p>刷新后显示最强方向。</p></article>
+              </div>
+              <div class="theme-paid-row" data-lockable-module="strength-theme-extra">
+                <div class="theme-paid-head">
+                  <span>深度观察</span>
+                  <strong>行业避坑、过热方向和扩散名单</strong>
+                </div>
+                <div class="theme-premium-grid" id="strengthPremiumThemes">
+                  <article>
+                    <span>行业避坑</span>
+                    <strong>当前偏弱的方向</strong>
+                    <p>帮助你识别需要降低观察优先级的位置。</p>
+                  </article>
+                  <article>
+                    <span>过热提醒</span>
+                    <strong>短线已经太热的方向</strong>
+                    <p>适合等分歧、等回踩，而不是情绪最高时追。</p>
+                  </article>
+                </div>
+                <button class="theme-paid-action" id="strengthPremiumAction" type="button" disabled>今日已更新</button>
+              </div>
+            </section>
+
+            <section class="strength-panel" data-module="strength-lists">
+              <div class="panel-head">
+                <div class="board-tabs" aria-label="强弱榜单切换">
+                  <button class="board-tab strength-tab is-active" type="button" data-strength-bucket="strongest">重点观察</button>
+                  <button class="board-tab strength-tab" type="button" data-strength-bucket="weakest">风险回避</button>
+                  <button class="board-tab strength-tab" type="button" data-strength-bucket="watchlist">等回踩</button>
+                </div>
+                <div class="summary" id="strengthResultSummary">--</div>
+              </div>
+
+              <div class="strength-toolbar">
+                <label class="search-box">
+                  <span>搜索</span>
+                  <input id="strengthSearchInput" type="search" placeholder="代码、公司名或标签" />
+                </label>
+                <label class="select-box">
+                  <span>标签</span>
+                  <select id="strengthLabelFilter">
+                    <option value="all">全部标签</option>
+                  </select>
+                </label>
+                <label class="select-box">
+                  <span>入选原因</span>
+                  <select id="strengthFactorFilter">
+                    <option value="all">全部原因</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table class="strength-table">
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>在榜时间</th>
+                      <th>股票</th>
+                      <th>结论 / 下一步</th>
+                      <th>相对表现</th>
+                      <th>近期表现</th>
+                      <th>位置</th>
+                      <th>高热度风险</th>
+                      <th>流动性</th>
+                    </tr>
+                  </thead>
+                  <tbody id="strengthBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="strength-side">
+              <section class="rail-card strength-pro-card" data-lockable-module="strength-toolkit">
+                <h2>后续工具包</h2>
+                <div class="locked-preview">
+                  <div><span>盘中</span><strong>强弱变化提醒</strong><em>规划中</em></div>
+                  <div><span>验证</span><strong>名单后续表现</strong><em>规划中</em></div>
+                  <div><span>名单</span><strong>一键加入观察池</strong><em>规划中</em></div>
+                </div>
+                <button class="wide-action" type="button" disabled>后续接入</button>
+              </section>
+              <section class="rail-card strength-review-card" data-module="strength-review" data-lockable-module="strength-review">
+                <h2>历史表现</h2>
+                <p id="strengthReviewSummary">有足够记录后，会显示这些名单之后的真实表现。</p>
+                <div class="review-list" id="strengthReviewList"></div>
+              </section>
+              <section class="rail-card strength-method-card">
+                <h2>今日怎么用</h2>
+                <div class="method-list" id="strengthMethodList"></div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="page-view" data-view="earnings">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">财报季观察</p>
+              <h1>财报观察</h1>
+              <p class="subtitle">把财报超预期、预期上修、价格表现和成交额放在一起，筛出值得复盘的财报线索。</p>
+            </div>
+            <div class="source">
+              <span>数据日期</span>
+              <strong id="earningsAsOf">--</strong>
+            </div>
+          </div>
+
+          <section class="quality-overview" aria-label="财报观察摘要">
+            <article>
+              <span>当前候选</span>
+              <strong id="qualityCoreCount">--</strong>
+              <p>财报、未来预期、股价和成交额同时过筛。</p>
+            </article>
+            <article>
+              <span>财报榜首</span>
+              <strong id="qualityCoreLeader">--</strong>
+              <p id="qualityCoreReason">等待数据加载。</p>
+            </article>
+            <article>
+              <span>机构也在看</span>
+              <strong id="qualityConfluenceLeader">--</strong>
+              <p>财报不错，同时分析师覆盖和目标价也更有看点。</p>
+            </article>
+            <article>
+              <span>适合场景</span>
+              <strong id="qualityUserAngle">--</strong>
+              <p>财报季做观察名单、重点复盘和股票详情入口。</p>
+            </article>
+          </section>
+
+          <section class="quality-visual-board" id="qualityInsightGrid" aria-label="财报观察图表">
+            <article class="quality-chart-card">
+              <span>财报线索分布</span>
+              <strong>等待数据</strong>
+            </article>
+          </section>
+
+          <section class="quality-focus-grid" aria-label="今日财报观察怎么选">
+            <article>
+              <span>当前榜首</span>
+              <strong id="qualityFocusLeader">等待候选</strong>
+              <p id="qualityFocusLeaderNote">先看财报、预期和价格同时改善的股票。</p>
+            </article>
+            <article>
+              <span>主要依据</span>
+              <strong id="qualityFocusReason">等待理由</strong>
+              <p id="qualityFocusReasonNote">这里会把财报、预期和价格变化翻译成容易理解的观察理由。</p>
+            </article>
+            <article>
+              <span>风险提示</span>
+              <strong id="qualityFocusRisk">先看确认</strong>
+              <p id="qualityFocusRiskNote">短线涨幅太大、成交不够或理由不清楚时，先降低观察频率。</p>
+            </article>
+            <article>
+              <span>详情关注</span>
+              <strong id="qualityFocusDetail">依据汇总</strong>
+              <p id="qualityFocusDetailNote">股票详情会把财报、行情、强弱和观察池状态放在一起看。</p>
+            </article>
+          </section>
+
+          <div class="quality-layout">
+            <section class="quality-main-panel">
+              <div class="panel-head">
+                <div class="board-tabs" aria-label="财报榜单切换">
+                  <button class="board-tab quality-tab is-active" type="button" data-quality-board="quality">财报观察</button>
+                  <button class="board-tab quality-tab" type="button" data-quality-board="confluence">机构也在看</button>
+                </div>
+                <div class="summary" id="qualityResultSummary">--</div>
+              </div>
+
+              <div class="quality-toolbar">
+                <label class="search-box">
+                  <span>搜索</span>
+                  <input id="qualitySearchInput" type="search" placeholder="代码、公司名、上榜理由" />
+                </label>
+                <div class="quality-board-copy">
+                  <strong id="qualityBoardTitle">--</strong>
+                  <span id="qualityBoardSubtitle">--</span>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="quality-table">
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>股票</th>
+                      <th>观察类型</th>
+                      <th>上榜理由</th>
+                      <th>复盘分 <button class="info-tip" type="button" aria-label="复盘分解释" data-tip="把财报、价格、成交额、强弱、风险等信息合成一个复盘优先级，只用于排序，不构成交易建议。">?</button></th>
+                      <th>20日表现</th>
+                      <th>分析师热度</th>
+                      <th>风险</th>
+                    </tr>
+                  </thead>
+                  <tbody id="qualityBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="quality-detail-panel" id="qualityDetailPanel" aria-label="财报观察详情">
+              <div class="empty-detail">
+                <strong>点击榜单股票查看详情</strong>
+                <p>这里会集中显示上榜理由、财报日期、预期上调幅度、目标价空间和主要风险。</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="page-view" data-view="events">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">研究线索</p>
+              <h1>预期改善观察</h1>
+              <p class="subtitle">关注公司未来预期改善后，市场是否继续给出价格和成交确认。这里展示的是研究线索，不构成交易建议。</p>
+            </div>
+            <div class="source">
+              <span>数据日期</span>
+              <strong id="eventsAsOf">--</strong>
+            </div>
+          </div>
+
+          <section class="event-research-hero">
+            <div class="event-research-copy">
+              <span>当前观察</span>
+              <h2 id="expectationHeroTitle">当前先看：预期改善 + 股价已确认的股票</h2>
+              <p id="expectationHeroLead">先看公司预期有没有变好，再看价格、成交和市场环境是否配合。这里帮助你把线索翻译成可复盘的观察清单。</p>
+              <div class="event-evidence-grid">
+                <article><span>当前候选</span><strong id="expectationCandidateCount">--</strong><p id="expectationCandidateNote">按当前筛选显示</p></article>
+                <article><span>历史样本</span><strong id="expectationSampleCount">--</strong><p id="expectationSampleRange">--</p></article>
+                <article><span>20日正向占比</span><strong id="expectationPositiveRate">--</strong><p>样本不足时不展示百分比</p></article>
+                <article><span>数据日期</span><strong id="expectationDataDate">--</strong><p>所有判断先看数据是否新鲜</p></article>
+              </div>
+            </div>
+            <aside class="event-temperature-card">
+              <span>市场温度计</span>
+              <strong id="expectationTemperatureScore">--</strong>
+              <p id="expectationTemperatureLabel">等待数据</p>
+              <em id="expectationTemperatureAction">市场环境只用于辅助判断观察频率。</em>
+            </aside>
+          </section>
+
+          <section class="event-overview" aria-label="观察线索摘要">
+            <article>
+              <span>观察名单</span>
+              <strong id="eventTotalCount">--</strong>
+              <p>优先看分数、流动性和价格确认都更清晰的股票。</p>
+            </article>
+            <article>
+              <span>当前榜单</span>
+              <strong id="eventActiveTitle">--</strong>
+              <p id="eventActiveSubtitle">等待数据加载。</p>
+            </article>
+            <article>
+              <span>榜首股票</span>
+              <strong id="eventTopSymbol">--</strong>
+              <p id="eventTopReason">有数据后显示当前更需要进一步研究的线索。</p>
+            </article>
+            <article data-lockable-module="event-forward-stats">
+              <span>观察节奏</span>
+              <strong id="eventDecisionValue">先筛选</strong>
+              <p id="eventDecisionNote">先过滤低分和高风险，再看价格是否确认。</p>
+            </article>
+          </section>
+
+          <section class="event-focus-grid" aria-label="当前怎么选">
+            <article>
+              <span>当前先看</span>
+              <strong id="eventFocusLeader">等待线索</strong>
+              <p id="eventFocusLeaderNote">先看理由清楚、价格已经确认、流动性够用的股票。</p>
+            </article>
+            <article>
+              <span>为什么进入观察</span>
+              <strong id="eventFocusReason">等待理由</strong>
+              <p id="eventFocusReasonNote">这里会把专业事件翻译成普通投资者能看懂的观察理由。</p>
+            </article>
+            <article>
+              <span>风险节奏</span>
+              <strong id="eventFocusRisk">先看确认</strong>
+              <p id="eventFocusRiskNote">短线涨幅、流动性和空头压力会影响观察频率。</p>
+            </article>
+            <article>
+              <span>点进详情看什么</span>
+              <strong id="eventFocusDetail">依据汇总</strong>
+              <p id="eventFocusDetailNote">股票详情会把事件、行情、强弱、财报和观察池状态放在一起看。</p>
+            </article>
+          </section>
+
+          <div class="event-layout">
+            <section class="event-main-panel">
+              <div class="panel-head">
+                <div class="board-tabs" aria-label="事件榜单切换">
+                  <button class="board-tab event-tab is-active" type="button" data-event-board="guidance_up">预期改善</button>
+                  <button class="board-tab event-tab" type="button" data-event-board="earnings_beat">财报超预期</button>
+                  <button class="board-tab event-tab" type="button" data-event-board="analyst_positive">机构观点变化</button>
+                  <button class="board-tab event-tab" type="button" data-event-board="short_squeeze">空头压力变化</button>
+                </div>
+                <div class="summary" id="eventResultSummary">--</div>
+              </div>
+
+              <div class="event-board-copy">
+                <strong id="eventBoardTitle">--</strong>
+                <span id="eventBoardSubtitle">数据生成后会显示这张榜单的筛选口径。</span>
+              </div>
+
+              <div class="event-toolbar" aria-label="观察线索筛选">
+                <label class="search-box">
+                  <span>搜索股票 / 公司 / 理由</span>
+                  <input id="eventSearchInput" type="search" placeholder="例如 NVDA、财报、空头" autocomplete="off" />
+                </label>
+                <label class="select-box">
+                  <span>线索分 <button class="info-tip" type="button" aria-label="线索分解释" data-tip="线索分来自当前榜单本身，用来筛选事件强度；复盘分会再结合价格、成交额、强弱和风险。">?</button></span>
+                  <select id="eventScoreFilter">
+                    <option value="all">全部分数</option>
+                    <option value="high">优先看高分</option>
+                    <option value="mid">中等分数</option>
+                    <option value="low">低分观察</option>
+                  </select>
+                </label>
+                <label class="select-box">
+                  <span>风险 <button class="info-tip" type="button" aria-label="风险解释" data-tip="风险不是说不能看，而是提醒你波动和确认条件要更严格。">?</button></span>
+                  <select id="eventRiskFilter">
+                    <option value="all">全部风险</option>
+                    <option value="normal">先看相对稳的</option>
+                    <option value="watch">只看需谨慎的</option>
+                  </select>
+                </label>
+                <label class="select-box">
+                  <span>适合我看什么 <button class="info-tip" type="button" aria-label="筛选解释" data-tip="把专业指标翻译成普通筛选：稳一点、弹性大、机构关注或小盘高波动。">?</button></span>
+                  <select id="eventStyleFilter">
+                    <option value="all">全部观察风格</option>
+                    <option value="steady">稳一点</option>
+                    <option value="elastic">弹性大</option>
+                    <option value="institutional">机构关注</option>
+                    <option value="speculative">小盘高波动</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="event-card-grid" id="eventCardGrid" aria-label="观察线索卡片"></div>
+
+              <div class="event-table-title">
+                <span>数据明细</span>
+                <strong>完整字段对照</strong>
+              </div>
+
+              <div class="table-wrap">
+                <table class="event-table">
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>股票</th>
+                      <th>线索 <button class="info-tip" type="button" aria-label="线索解释" data-tip="线索指股票被重新关注的原因，比如预期改善、财报超预期、机构观点变化或空头压力变化。">?</button></th>
+                      <th>进入原因</th>
+                      <th>复盘分 <button class="info-tip" type="button" aria-label="复盘分解释" data-tip="把线索、价格、成交额、强弱、风险等信息合成一个复盘优先级，只用于排序，不构成交易建议。">?</button></th>
+                      <th>20日表现 <button class="info-tip" type="button" aria-label="20日表现解释" data-tip="过去约一个月的价格表现，用来判断事件之后资金有没有继续确认。">?</button></th>
+                      <th>流动性 <button class="info-tip" type="button" aria-label="流动性解释" data-tip="成交额越高，通常越容易买卖；成交额太低时，价格容易被小资金推来推去。">?</button></th>
+                      <th>风险 <button class="info-tip" type="button" aria-label="风险解释" data-tip="主要提醒可能的波动、估值、流动性或事件失效风险。">?</button></th>
+                    </tr>
+                  </thead>
+                  <tbody id="eventBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="event-detail-panel" id="eventDetailPanel" aria-label="观察线索详情">
+              <div class="empty-detail">
+                <strong>点击榜单股票查看详情</strong>
+                <p>这里会显示事件日期、事件类型、核心理由、主要风险和后续观察窗口。</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="page-view options-view" data-view="options">
+          <div class="page-heading options-heading">
+            <div>
+              <p class="eyebrow">衍生品线索</p>
+              <h1>期权流向复盘</h1>
+              <p class="subtitle">把异常期权成交、净流向、价格变化和市场环境放在一起，辅助判断哪些异动值得继续观察。</p>
+            </div>
+            <div class="source">
+              <span>数据日期</span>
+              <strong id="optionsAsOf">--</strong>
+            </div>
+          </div>
+
+          <section class="options-summary-grid" aria-label="期权流向摘要">
+            <article>
+              <span>今日重点流向</span>
+              <strong id="optionsFocusSymbol">--</strong>
+              <p id="optionsFocusCompany">等待离线期权数据。</p>
+            </article>
+            <article>
+              <span>偏多权利金</span>
+              <strong id="optionsBullishPremium">--</strong>
+              <p>Call 侧权利金聚集度。</p>
+            </article>
+            <article>
+              <span>偏空权利金</span>
+              <strong id="optionsBearishPremium">--</strong>
+              <p>Put 侧权利金聚集度。</p>
+            </article>
+            <article>
+              <span>净流向状态</span>
+              <strong id="optionsFlowState">--</strong>
+              <p id="optionsFlowStateNote">等待数据判断。</p>
+            </article>
+          </section>
+
+          <section class="options-lead-card" aria-label="当前怎么看">
+            <div>
+              <span>当前怎么看</span>
+              <strong id="optionsHeadline">等待离线流向快照</strong>
+              <p id="optionsLeadNote">接入后会展示单股期权权利金、价格走势和偏多偏空榜单。</p>
+            </div>
+            <div class="options-actions">
+              <button type="button" data-options-add-watch>加入观察池</button>
+              <button type="button" data-page-link="market">看行情异动</button>
+            </div>
+          </section>
+
+          <section class="options-workspace" aria-label="期权流向工作区">
+            <article class="options-chart-card">
+              <div class="options-card-head">
+                <div>
+                  <span>净权利金走势</span>
+                  <strong id="optionsChartTitle">--</strong>
+                </div>
+                <div class="options-filter-pills">
+                  <span id="optionsExpiration">到期日 --</span>
+                  <span>价内价外：全部</span>
+                </div>
+              </div>
+              <svg id="optionsFlowChart" viewBox="0 0 760 500" role="img" aria-label="期权净流向走势"></svg>
+            </article>
+
+            <article class="options-rank-card">
+              <div class="options-card-head">
+                <div>
+                  <span>流向榜单</span>
+                  <strong>偏多流向榜</strong>
+                </div>
+              </div>
+              <div class="options-rank-list" id="optionsBullishRows"></div>
+            </article>
+
+            <article class="options-rank-card">
+              <div class="options-card-head">
+                <div>
+                  <span>流向榜单</span>
+                  <strong>偏空流向榜</strong>
+                </div>
+              </div>
+              <div class="options-rank-list" id="optionsBearishRows"></div>
+            </article>
+          </section>
+
+          <section class="options-note-board" aria-label="数据说明">
+            <article>
+              <span>数据口径</span>
+              <strong>离线复盘，不做实时监控</strong>
+              <p>第一版读取本地 JSON 快照；后续由 market-data-lab 脚本把 Polygon 期权合约与聚合行情产出为同一结构。</p>
+            </article>
+            <article>
+              <span>方向解释</span>
+              <strong>缺少逐笔 bid/ask 时标注为估算</strong>
+              <p>可以稳定展示 Call / Put 权利金、成交量、到期日、行权价和价内价外；主动买卖方向需要逐笔成交增强。</p>
+            </article>
+          </section>
+        </section>
+
+        <section class="page-view" data-view="market">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">行情异动</p>
+              <h1 id="pageTitle">美股年内涨幅榜</h1>
+              <p class="subtitle" id="pageSubtitle">按今年以来累计涨幅排序，适合快速观察强势股、高波动股和风险释放后的候选。</p>
+            </div>
+            <div class="source">
+              <span>数据日期</span>
+              <strong id="updatedAt">--</strong>
+            </div>
+          </div>
+
+          <div class="content-layout">
+            <div class="main-column">
+              <section class="market-strip" aria-label="榜单摘要">
+                <div>
+                  <span>上榜股票</span>
+                  <strong id="statCount">--</strong>
+                </div>
+                <div>
+                  <span>最高涨幅</span>
+                  <strong id="statTopGain">--</strong>
+                </div>
+                <div>
+                  <span id="statThirdLabel">十倍股数量</span>
+                  <strong id="statTenBaggers">--</strong>
+                </div>
+                <div>
+                  <span id="statFourthLabel">小市值占比</span>
+                  <strong id="statSmallCap">--</strong>
+                </div>
+              </section>
+
+              <section class="market-board-brief" aria-label="榜单解读">
+                <article>
+                  <span>榜单结论</span>
+                  <strong id="marketBriefConclusion">--</strong>
+                  <p id="marketBriefConclusionNote">加载后显示当前榜单该怎么看。</p>
+                </article>
+                <article>
+                  <span>异动结构</span>
+                  <strong id="marketBriefStructure">--</strong>
+                  <p id="marketBriefStructureNote">看上涨、下跌、成交额和高波动股票的比例。</p>
+                </article>
+                <article>
+                  <span>风险提醒</span>
+                  <strong id="marketBriefRisk">--</strong>
+                  <p id="marketBriefRiskNote">极高风险和低流动性股票需要更严格确认。</p>
+                </article>
+                <article>
+                  <span>下一步</span>
+                  <strong id="marketBriefNext">--</strong>
+                  <p id="marketBriefNextNote">先看异动原因，再进入股票详情页复盘。</p>
+                </article>
+              </section>
+
+              <section class="market-visual-board" id="marketVisualBoard" aria-label="行情雷达">
+                <article class="market-chart-card">
+                  <span>行情雷达</span>
+                  <strong>等待数据</strong>
+                </article>
+              </section>
+
+              <section class="market-macro-filter" id="marketMacroFilter" hidden>
+                <div>
+                  <span>宏观筛选</span>
+                  <strong id="marketMacroFilterTitle">--</strong>
+                  <p id="marketMacroFilterNote">--</p>
+                </div>
+                <button type="button" data-clear-macro-filter>清除筛选</button>
+              </section>
+
+              <section class="leader-panel" aria-labelledby="leader-title">
+                <div class="leader-copy">
+                  <span class="rank-pill" id="leaderBadge">年内涨幅第一</span>
+                  <div class="leader-heading">
+                    <h2 id="leader-title">--</h2>
+                    <div>
+                      <strong id="leader-cn-name">--</strong>
+                      <p id="leader-name">--</p>
+                    </div>
+                  </div>
+                  <div class="tag-row">
+                    <span id="leader-sector">--</span>
+                    <span id="leader-risk">--</span>
+                  </div>
+                </div>
+                <div class="leader-metrics">
+                  <div>
+                    <span id="leaderChangeLabel">年内累计涨跌幅</span>
+                    <strong id="leader-change">--</strong>
+                  </div>
+                  <div>
+                    <span>最近价</span>
+                    <strong id="leader-price">--</strong>
+                  </div>
+                  <div>
+                    <span id="leaderReferenceLabel">年初估算价</span>
+                    <strong id="leader-start">--</strong>
+                  </div>
+                  <div>
+                    <span id="leaderMultipleLabel">年初至今价格倍数</span>
+                    <strong id="leaderMultiple">--</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="market-detail-panel" id="marketDetailPanel" aria-label="单股详情">
+                <div class="empty-detail">
+                  <strong>点击榜单股票查看详情</strong>
+                  <p>集中查看 24h、周、月、年内表现、成交额异动、风险标签和同板块对比。</p>
+                </div>
+              </section>
+
+              <section class="ranking-panel" aria-label="涨跌幅榜">
+                <div class="panel-head">
+                  <div class="board-tabs" aria-label="榜单切换">
+                    <button class="board-tab is-active" type="button" data-board="ytd">今年以来</button>
+                    <button class="board-tab" type="button" data-board="day">24h 涨跌幅</button>
+                    <button class="board-tab" type="button" data-board="week">近一周涨跌幅</button>
+                    <button class="board-tab" type="button" data-board="month">近一月涨跌幅</button>
+                    <button class="board-tab" type="button" data-board="volume">成交额异动</button>
+                  </div>
+                  <div class="summary" id="resultSummary">--</div>
+                </div>
+
+                <div class="market-card-grid" id="marketCardGrid" aria-label="行情异动卡片"></div>
+
+                <div class="toolbar" aria-label="榜单筛选">
+                  <label class="search-box">
+                    <span>搜索</span>
+                    <input id="searchInput" type="search" placeholder="代码、中文名、公司名或板块" />
+                  </label>
+                  <label class="select-box">
+                    <span>板块</span>
+                    <select id="sectorFilter">
+                      <option value="all">全部板块</option>
+                    </select>
+                  </label>
+                  <label class="select-box">
+                    <span>市值</span>
+                    <select id="capFilter">
+                      <option value="all">全部</option>
+                      <option value="large">100 亿美元以上</option>
+                      <option value="mid">10 亿至 100 亿美元</option>
+                      <option value="small">10 亿美元以下</option>
+                    </select>
+                  </label>
+                  <label class="select-box">
+                    <span>方向</span>
+                    <select id="directionFilter">
+                      <option value="all">全部</option>
+                      <option value="up">上涨</option>
+                      <option value="down">下跌</option>
+                    </select>
+                  </label>
+                  <label class="select-box">
+                    <span>风险</span>
+                    <select id="riskFilter">
+                      <option value="all">全部</option>
+                      <option value="extreme">极高风险</option>
+                      <option value="high">高风险</option>
+                      <option value="watch">可观察</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="market-table-title">
+                  <span>数据明细</span>
+                  <strong>完整榜单字段</strong>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="market-table">
+                    <thead>
+                      <tr>
+                        <th>排名</th>
+                        <th>股票</th>
+                        <th>中文简称 / 公司</th>
+                        <th>板块</th>
+                        <th id="changeHeader">年内涨跌幅</th>
+                        <th>最近价</th>
+                        <th id="referenceHeader">年初估算价</th>
+                        <th>市值</th>
+                        <th id="volumeHeader">成交量</th>
+                        <th>风险提示</th>
+                        <th>详情</th>
+                      </tr>
+                    </thead>
+                    <tbody id="gainersBody"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <aside class="side-rail" aria-label="侧边栏">
+              <section class="rail-card">
+                <h2>策略工具</h2>
+                <a href="#" data-page-link="options">期权流向复盘</a>
+                <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">高热度表现回看</a>
+                <a href="#" data-page-link="earnings">财报观察</a>
+                <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">风险控制</a>
+              </section>
+
+              <section class="rail-card">
+                <h2>会员内容</h2>
+                <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">本周强势行业</a>
+                <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">小盘股风险名单</a>
+                <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">美股宏观周报</a>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="page-view stock-hub-view" data-view="stock">
+          <div class="page-heading stock-hub-heading">
+            <div>
+              <p class="eyebrow">股票详情</p>
+              <h1 id="stockHubSymbol">--</h1>
+              <p class="subtitle" id="stockHubSubtitle">集中查看研究结论、触发来源、价格位置、历史依据、风险和下一步复盘。</p>
+            </div>
+            <button class="ghost-action" type="button" data-stock-back>返回</button>
+          </div>
+
+          <section class="stock-hub-content" id="stockHubContent" aria-label="股票详情">
+            <div class="empty-detail">
+              <strong>选择一只股票</strong>
+              <p>从涨跌幅榜、预期改善观察、全市场强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="page-view watchlist-view" data-view="watchlist">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">观察池</p>
+              <h1>我的观察池</h1>
+              <p class="subtitle">把需要继续跟踪的股票集中成一张跟踪台，按复盘分、数据覆盖和复盘时间整理顺序。</p>
+            </div>
+            <div class="source">
+              <span>已加入</span>
+              <strong id="watchlistCount">0只</strong>
+            </div>
+          </div>
+
+          <section class="watchlist-overview">
+            <article>
+              <span>待复盘</span>
+              <strong id="watchlistReviewCount">--</strong>
+              <p>到达复盘时间的股票，适合优先重新检查。</p>
+            </article>
+            <article>
+              <span>复盘分高</span>
+              <strong id="watchlistPriorityCount">--</strong>
+              <p>综合价格、强弱、事件、财报、信号和风险后的高分对象。</p>
+            </article>
+            <article>
+              <span>数据覆盖</span>
+              <strong id="watchlistCoverageCount">--</strong>
+              <p>已接入至少一种可复盘数据的股票占比。</p>
+            </article>
+            <article data-lockable-module="watchlist-alerts">
+              <span>数据日期</span>
+              <strong id="watchlistDataAsOf">--</strong>
+              <p>观察池会按已接入模块显示最近可用数据日期。</p>
+            </article>
+          </section>
+
+          <section class="watchlist-daily-plan" aria-label="今日观察池建议">
+            <div>
+              <span>今日复盘顺序</span>
+              <strong id="watchlistTodayFocus">先加入观察对象</strong>
+              <p id="watchlistTodayReason">观察池会根据复盘分、到期时间和数据覆盖自动排序。</p>
+            </div>
+            <div>
+              <span>复盘安排</span>
+              <strong id="watchlistTodayAction">等待观察对象</strong>
+              <p id="watchlistTodayNext">从涨跌幅榜、强弱、财报或预期改善观察加入股票后，这里会给出下一步。</p>
+            </div>
+          </section>
+
+          <section class="watchlist-panel">
+            <div class="panel-head">
+              <div>
+                <span>股票列表</span>
+                <strong>跟踪清单</strong>
+              </div>
+              <div class="summary" id="watchlistResultSummary">--</div>
+              <button class="ghost-action" type="button" id="clearWatchlistButton">清空</button>
+            </div>
+            <div class="watchlist-toolbar" aria-label="观察池筛选">
+              <label class="search-box">
+                <span>搜索</span>
+                <input id="watchlistSearchInput" type="search" placeholder="代码、公司名、来源或理由" />
+              </label>
+              <label class="select-box">
+                <span>复盘状态</span>
+                <select id="watchlistViewFilter">
+                  <option value="all">全部观察</option>
+                  <option value="due">今天复盘</option>
+                  <option value="priority">复盘分高</option>
+                  <option value="signal">有趋势信号</option>
+                  <option value="event">有事件线索</option>
+                  <option value="earnings">有财报线索</option>
+                  <option value="strength">有强弱线索</option>
+                  <option value="market">只有行情异动</option>
+                  <option value="no-data">等待数据</option>
+                </select>
+              </label>
+              <label class="select-box">
+                <span>加入来源</span>
+                <select id="watchlistSourceFilter">
+                  <option value="all">全部来源</option>
+                </select>
+              </label>
+            </div>
+            <div class="watchlist-grid" id="watchlistBody"></div>
+            <div class="empty-detail" id="watchlistEmpty">
+              <strong>还没有加入观察池</strong>
+              <p>在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入观察池”。</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="page-view" data-view="courses">
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">课程</p>
+              <h1>课程</h1>
+              <p class="subtitle">从开户、财报、估值到策略回测，给普通投资者一条可执行的学习路径。</p>
+            </div>
+          </div>
+
+          <div class="course-grid">
+            <article class="course-card is-featured">
+              <span>入门必修</span>
+              <h2>美股新手体系课</h2>
+              <p>市场规则、订单类型、财报季节奏、ETF 与个股选择。</p>
+              <div class="card-meta">
+                <strong>12 讲</strong>
+                <strong>适合新手</strong>
+              </div>
+            </article>
+            <article class="course-card">
+              <span>财报进阶</span>
+              <h2>读懂美股财报</h2>
+              <p>收入、毛利率、现金流、指引和估值倍数的实战解读。</p>
+              <div class="card-meta">
+                <strong>8 讲</strong>
+                <strong>案例课</strong>
+              </div>
+            </article>
+            <article class="course-card">
+              <span>交易纪律</span>
+              <h2>趋势与风控</h2>
+              <p>强势股跟踪、回撤控制、风险管理和退出规则。</p>
+              <div class="card-meta">
+                <strong>10 讲</strong>
+                <strong>策略基础</strong>
+              </div>
+            </article>
+            <article class="course-card">
+              <span>工具训练</span>
+              <h2>用工具做选股</h2>
+              <p>从涨跌幅榜、财报观察、行业热度到回测验证。</p>
+              <div class="card-meta">
+                <strong>6 讲</strong>
+                <strong>付费用户</strong>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page-view" data-view="strategies">
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">策略研究</p>
+              <h1>策略合集</h1>
+              <p class="subtitle">把行情异动、基本面、资金行为和风险控制整理成可复用的策略模板。</p>
+            </div>
+          </div>
+
+          <div class="strategy-list">
+            <article class="strategy-card">
+              <div>
+                <span>强势回踩</span>
+                <h2>强势股回踩策略</h2>
+                <p>筛选 20 日强势、成交额放大、回踩关键均线不破的个股。</p>
+              </div>
+              <strong>适合波段</strong>
+            </article>
+            <article class="strategy-card">
+              <div>
+                <span>事件驱动</span>
+                <h2>财报后趋势策略</h2>
+                <p>聚焦超预期财报后 3-10 个交易日的延续观察。</p>
+              </div>
+              <strong>财报季</strong>
+            </article>
+            <article class="strategy-card">
+              <div>
+                <span>风险过滤</span>
+                <h2>小盘异动过滤器</h2>
+                <p>过滤低流动性、超高波动、极端跳空后的高热度风险。</p>
+              </div>
+              <strong>防踩坑</strong>
+            </article>
+            <article class="strategy-card">
+              <div>
+                <span>ETF 轮动</span>
+                <h2>行业轮动策略</h2>
+                <p>用 ETF 相对强弱和行业热度识别资金正在切换的方向。</p>
+              </div>
+              <strong>中低频</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="page-view" data-view="subscription">
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">工具订阅</p>
+              <h1>把行情提醒变成可复盘的投资工具</h1>
+              <p class="subtitle">免费用户可以先看基础行情，付费用户获得更完整的信号过程、主题强弱、复盘记录和工具数据。</p>
+            </div>
+          </div>
+
+          <div class="subscription-layout">
+            <section class="subscription-offer">
+              <div>
+                  <span>付费方案</span>
+                <h2>付费版</h2>
+                <strong>$199/年</strong>
+                <p>适合想持续跟踪趋势信号、主题强弱和复盘表现的用户。</p>
+              </div>
+              <button type="button">升级付费</button>
+            </section>
+
+            <section class="value-grid">
+              <article>
+                <span>01</span>
+                <h3>近期信号</h3>
+                <p>查看上行观察、下行观察、方向切换和定时复盘，不用在零散消息里翻记录。</p>
+              </article>
+              <article>
+                <span>02</span>
+                <h3>单标的复盘</h3>
+                <p>每个标的保留从首发到复盘的全过程，直接看是否抓到行情、有没有反向波动。</p>
+              </article>
+              <article>
+                <span>03</span>
+                <h3>板块观察</h3>
+                <p>把 AI、半导体、航天、贵金属等主题合并观察，判断线索是单点异动还是板块共振。</p>
+              </article>
+              <article>
+                <span>04</span>
+                <h3>涨跌幅与强弱工具</h3>
+                <p>用年内涨幅、24 小时变化、周涨跌、强弱排行辅助筛选标的。</p>
+              </article>
+            </section>
+
+            <section class="plan-compare">
+              <div class="compare-head">
+                <span>权益对比</span>
+                <strong>免费版 vs 付费版</strong>
+              </div>
+              <div class="compare-row">
+                <span>基础涨跌幅榜</span>
+                <b>免费可看</b>
+                <strong>完整可看</strong>
+              </div>
+              <div class="compare-row">
+                <span>趋势信号动态</span>
+                <b>部分可看</b>
+                <strong>近期完整</strong>
+              </div>
+              <div class="compare-row">
+                <span>单标的复盘</span>
+                <b>预览</b>
+                <strong>完整过程</strong>
+              </div>
+              <div class="compare-row">
+                <span>主题强弱与板块包</span>
+                <b>预览</b>
+                <strong>完整统计</strong>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page-view" data-view="validation">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">验证中心</p>
+              <h1>模块有效性验证</h1>
+              <p class="subtitle">用历史样本判断哪些数据更适合展示，哪些只能作为辅助参考。</p>
+            </div>
+            <div class="source">
+              <span>样本更新至</span>
+              <strong id="validationAsOf">--</strong>
+            </div>
+          </div>
+
+          <section class="validation-hero">
+            <article>
+              <span>当前结论</span>
+              <strong id="validationVerdict">--</strong>
+              <p id="validationConclusion">等待数据生成。</p>
+            </article>
+            <article>
+              <span>优先卖点</span>
+              <strong id="validationBestSignal">--</strong>
+              <p id="validationBestNote">先找样本量、正向占比和相对指数表现都更稳的方向。</p>
+            </article>
+            <article>
+              <span>历史样本</span>
+              <strong id="validationSampleSize">--</strong>
+              <p id="validationSampleNote">已接入事件级历史样本、指数对照和市场环境分层。</p>
+            </article>
+          </section>
+
+          <section class="validation-grid">
+            <article class="validation-panel">
+              <div class="section-title">
+                <div>
+                  <span>产品判断</span>
+                  <h2>哪些信号更适合前台展示</h2>
+                </div>
+              </div>
+              <div class="validation-table-wrap">
+                <table class="validation-table">
+                  <thead>
+                    <tr>
+                      <th>信号</th>
+                      <th>结论</th>
+                      <th>样本</th>
+                      <th>20日正向占比</th>
+                      <th>强于SPY占比</th>
+                      <th>稳健平均</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validationDecisionBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="validation-panel">
+              <div class="section-title">
+                <div>
+                  <span>滚动名单</span>
+                  <h2>每日 Top 信号持有 20 日</h2>
+                </div>
+              </div>
+              <div class="validation-table-wrap">
+                <table class="validation-table">
+                  <thead>
+                    <tr>
+                      <th>信号</th>
+                      <th>交易日</th>
+                      <th>平均入选</th>
+                      <th>中位数</th>
+                      <th>正向占比</th>
+                      <th>强于SPY占比</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validationBasketBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="validation-panel">
+            <div class="section-title">
+              <div>
+                <span>全历史指数对照</span>
+                <h2>单个信号出现后，相对 SPY / QQQ 的表现</h2>
+              </div>
+            </div>
+            <div class="validation-table-wrap">
+              <table class="validation-table">
+                <thead>
+                  <tr>
+                    <th>类型</th>
+                    <th>周期</th>
+                    <th>样本</th>
+                    <th>中位数</th>
+                    <th>正向占比</th>
+                    <th>强于SPY占比</th>
+                    <th>超额SPY</th>
+                    <th>强于QQQ占比</th>
+                  </tr>
+                </thead>
+                <tbody id="validationHistoryBenchmarkBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="validation-grid">
+            <article class="validation-panel">
+              <div class="section-title">
+                <div>
+                  <span>事件类型</span>
+                  <h2>5 / 20 / 60 日历史表现</h2>
+                </div>
+              </div>
+              <div class="validation-table-wrap">
+                <table class="validation-table">
+                  <thead>
+                    <tr>
+                      <th>类型</th>
+                      <th>周期</th>
+                      <th>样本</th>
+                      <th>平均</th>
+                      <th>中位数</th>
+                      <th>正向占比</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validationEventBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="validation-panel">
+              <div class="section-title">
+                <div>
+                  <span>分数有效性</span>
+                  <h2>高分是否更有效</h2>
+                </div>
+              </div>
+              <div class="validation-table-wrap">
+                <table class="validation-table">
+                  <thead>
+                    <tr>
+                      <th>榜单</th>
+                      <th>分组</th>
+                      <th>样本</th>
+                      <th>均分</th>
+                      <th>5日平均</th>
+                      <th>5日正向占比</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validationScoreBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="validation-grid">
+            <article class="validation-panel">
+              <div class="section-title">
+                <div>
+                  <span>当前榜单</span>
+                  <h2>最近候选相对 SPY / QQQ 的表现</h2>
+                </div>
+              </div>
+              <div class="validation-table-wrap">
+                <table class="validation-table">
+                  <thead>
+                    <tr>
+                      <th>榜单</th>
+                      <th>周期</th>
+                      <th>SPY样本</th>
+                      <th>强于SPY占比</th>
+                      <th>超额SPY</th>
+                      <th>强于QQQ占比</th>
+                      <th>超额QQQ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validationBenchmarkBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="validation-panel">
+              <div class="section-title">
+                <div>
+                  <span>市场温度</span>
+                  <h2>不同环境下是否更有效</h2>
+                </div>
+              </div>
+              <div class="validation-table-wrap">
+                <table class="validation-table">
+                  <thead>
+                    <tr>
+                      <th>环境</th>
+                      <th>周期</th>
+                      <th>样本</th>
+                      <th>平均</th>
+                      <th>正向占比</th>
+                      <th>强于SPY占比</th>
+                      <th>超额SPY</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validationTemperatureBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="validation-panel">
+            <div class="section-title">
+              <div>
+                <span>当前候选</span>
+                <h2>现有榜单快速体检</h2>
+              </div>
+            </div>
+            <div class="validation-current-grid" id="validationCurrentGrid"></div>
+          </section>
+        </section>
+
+        <section class="page-view" data-view="admin">
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">管理</p>
+              <h1>会员管理</h1>
+              <p class="subtitle">管理会员账号、套餐权限和到期时间，并统计每个管理员创建用户的业绩归属。</p>
+            </div>
+          </div>
+
+          <div class="admin-summary-grid">
+            <article>
+              <span>总用户</span>
+              <strong id="adminTotalUsers">--</strong>
+            </article>
+            <article>
+              <span>有效用户</span>
+              <strong id="adminActiveUsers">--</strong>
+            </article>
+            <article>
+              <span>付费用户</span>
+              <strong id="adminPaidUsers">--</strong>
+            </article>
+            <article>
+              <span>管理员</span>
+              <strong id="adminManagerUsers">--</strong>
+            </article>
+          </div>
+
+          <section class="admin-panel">
+            <div class="section-title">
+              <div>
+                <span>业绩统计</span>
+                <h2>管理员业绩归属</h2>
+              </div>
+            </div>
+            <div class="admin-performance-list" id="adminPerformanceList">
+              <p>登录管理员后显示业绩统计。</p>
+            </div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="section-title">
+              <div>
+                <span>创建用户</span>
+                <h2>新增会员</h2>
+              </div>
+            </div>
+            <form class="admin-create-form" id="adminCreateForm">
+              <label>
+                <span>邮箱</span>
+                <input name="email" type="email" placeholder="user@example.com" required />
+              </label>
+              <label>
+                <span>初始密码</span>
+                <input name="password" type="text" minlength="8" placeholder="至少 8 位" required />
+              </label>
+              <label>
+                <span>角色</span>
+                <select name="role">
+                  <option value="user">普通用户</option>
+                  <option value="admin">普通管理员</option>
+                </select>
+              </label>
+              <label>
+                <span>套餐</span>
+                <select name="plan">
+                  <option value="free">免费</option>
+                  <option value="paid">付费</option>
+                </select>
+              </label>
+              <label>
+                <span>到期日</span>
+                <input name="subscriptionExpiresAt" type="date" />
+              </label>
+              <label class="admin-check">
+                <input name="isActive" type="checkbox" checked />
+                <span>启用账号</span>
+              </label>
+              <button type="submit">创建用户</button>
+            </form>
+            <p class="admin-message" id="adminCreateMsg"></p>
+          </section>
+
+          <section class="admin-panel">
+            <div class="section-title">
+              <div>
+                <span>用户列表</span>
+                <h2>用户列表</h2>
+              </div>
+              <button type="button" id="adminRefreshUsers">刷新</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>账号</th>
+                    <th>创建人</th>
+                    <th>角色</th>
+                    <th>套餐</th>
+                    <th>到期日</th>
+                    <th>状态</th>
+                    <th>最近登录</th>
+                    <th>管理</th>
+                  </tr>
+                </thead>
+                <tbody id="adminUsersBody">
+                  <tr>
+                    <td colspan="8">登录管理员后显示用户列表。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="auth-modal" id="authModal" aria-hidden="true">
+      <div class="auth-backdrop" data-auth-close></div>
+      <section class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button class="auth-close" type="button" data-auth-close aria-label="关闭">×</button>
+        <span>会员权限</span>
+        <h2 id="authTitle">登录会员账号</h2>
+        <p id="authPrompt">登录后可查看订阅状态。付费用户可解锁交割记录和完整复盘。</p>
+        <form id="authForm" class="auth-form">
+          <label>
+            <span>邮箱</span>
+            <input id="authEmail" type="email" autocomplete="username" placeholder="admin@example.com" required />
+          </label>
+          <label>
+            <span>密码</span>
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+          </label>
+          <button type="submit">登录</button>
+        </form>
+        <p class="auth-error" id="authError"></p>
+      </section>
+    </div>
+
+    <script src="./app.js?v=20260609-product1"></script>
+  </body>
+</html>

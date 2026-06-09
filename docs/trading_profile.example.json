@@ -1,0 +1,8 @@
+{
+  "accountSizeUsd": 10000,
+  "riskPerTradePct": 0.5,
+  "maxPositionPct": 12,
+  "maxNewPlansAggressive": 3,
+  "maxNewPlansSelective": 2,
+  "maxNewPlansDefensive": 0
+}

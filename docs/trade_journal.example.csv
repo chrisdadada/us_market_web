@@ -1,0 +1,3 @@
+date,symbol,side,plan,entry,stop,exit,pnl,followed_plan,notes
+2026-05-18,ELV,long,回踩不破前低后试仓,410,398,418,120,yes,按计划执行
+2026-05-18,WOLF,long,追突破,53,49,50,-180,no,过热强股追高

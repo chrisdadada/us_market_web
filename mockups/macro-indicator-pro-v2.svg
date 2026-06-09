@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1720" viewBox="0 0 1440 1720">
+  <defs>
+    <style>
+      *{box-sizing:border-box}
+      text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif}
+      .bg{fill:#f4f6f8}.sheet{fill:#fff;stroke:#d9e0e8;stroke-width:1}.band{fill:#f8fafc}
+      .ink{fill:#111827}.sub{fill:#5f6b7a}.muted{fill:#8290a3}.faint{fill:#a0acba}
+      .title{font-size:26px;font-weight:800}.smallTitle{font-size:20px;font-weight:800}.body{font-size:14px;font-weight:600}
+      .tiny{font-size:12px;font-weight:650}.micro{font-size:11px;font-weight:650}
+      .metric{font-size:38px;font-weight:850}.value{font-size:30px;font-weight:850}
+      .axis{stroke:#d9e0e8;stroke-width:1}.grid{stroke:#e6ebf1;stroke-width:1}.ref{stroke:#aeb9c7;stroke-width:1.2;stroke-dasharray:5 6}
+      .lineBlue{fill:none;stroke:#245f9f;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+      .lineTeal{fill:none;stroke:#16846f;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+      .lineAmber{fill:none;stroke:#b46b24;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+      .areaBlue{fill:url(#blueArea)}.areaTeal{fill:url(#tealArea)}
+      .blue{fill:#245f9f}.teal{fill:#16846f}.amber{fill:#9a5b18}.red{fill:#a23a3a}
+      .chip{fill:#f3f6f9;stroke:#d9e0e8;stroke-width:1}.chipOn{fill:#1f2937}.chipText{fill:#475569;font-size:12px;font-weight:750}.chipOnText{fill:#fff;font-size:12px;font-weight:750}
+      .labelBox{fill:#fff;stroke:#cfd8e3;stroke-width:1}.callout{fill:#fff;stroke:#b9c6d6;stroke-width:1.2}.shadow{filter:drop-shadow(0 16px 34px rgba(23,42,69,.08))}
+    </style>
+    <linearGradient id="blueArea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#245f9f" stop-opacity=".16"/>
+      <stop offset="100%" stop-color="#245f9f" stop-opacity=".02"/>
+    </linearGradient>
+    <linearGradient id="tealArea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16846f" stop-opacity=".14"/>
+      <stop offset="100%" stop-color="#16846f" stop-opacity=".02"/>
+    </linearGradient>
+    <clipPath id="plotClip"><rect x="438" y="238" width="688" height="326"/></clipPath>
+    <clipPath id="plotClip2"><rect x="438" y="826" width="688" height="326"/></clipPath>
+    <clipPath id="mobilePlot"><rect x="832" y="1326" width="392" height="206"/></clipPath>
+  </defs>
+
+  <rect class="bg" width="1440" height="1720"/>
+
+  <text x="72" y="72" class="title ink">宏观指标历史走势图 · 专业版 V2</text>
+  <text x="72" y="102" class="body sub">参考 FRED、TradingView、Koyfin 与机构研究报告图表语法：完整坐标、清晰图例、分位线独立标注、当前值不压线。</text>
+  <text x="1124" y="76" class="tiny muted">Design mockup only</text>
+  <text x="1124" y="98" class="tiny muted">Do not deploy</text>
+
+  <!-- Chart 1 -->
+  <g class="shadow">
+    <rect x="64" y="142" width="1312" height="510" rx="8" class="sheet"/>
+    <rect x="64" y="142" width="1312" height="56" rx="8" class="band"/>
+    <line x1="64" y1="198" x2="1376" y2="198" class="axis"/>
+    <text x="96" y="177" class="smallTitle ink">VIX 波动率</text>
+    <text x="224" y="177" class="body sub">CBOE Volatility Index · 日频 · 近3年</text>
+    <circle cx="855" cy="172" r="5" class="blue"/><text x="868" y="177" class="tiny sub">收盘值</text>
+    <line x1="940" y1="172" x2="974" y2="172" class="ref"/><text x="984" y="177" class="tiny sub">历史分位参考</text>
+    <rect x="1170" y="154" width="52" height="28" rx="14" class="chip"/><text x="1187" y="173" class="chipText">1年</text>
+    <rect x="1230" y="154" width="52" height="28" rx="14" class="chipOn"/><text x="1247" y="173" class="chipOnText">3年</text>
+    <rect x="1290" y="154" width="52" height="28" rx="14" class="chip"/><text x="1307" y="173" class="chipText">5年</text>
+
+    <line x1="398" y1="198" x2="398" y2="652" class="axis"/>
+    <text x="96" y="246" class="tiny muted">当前读数</text>
+    <text x="96" y="292" class="metric ink">17.26</text>
+    <text x="220" y="292" class="body sub">45%分位</text>
+    <text x="96" y="338" class="tiny muted">克制结论</text>
+    <text x="96" y="367" class="value teal">波动处于中性偏低</text>
+    <text x="96" y="405" class="body sub">低于中位值但未接近极低区间；作为风险环境观察项。</text>
+    <line x1="96" y1="444" x2="350" y2="444" class="axis"/>
+    <text x="96" y="478" class="tiny muted">样本区间</text>
+    <text x="194" y="478" class="tiny ink">2023-05 至 2026-05</text>
+    <text x="96" y="510" class="tiny muted">更新日期</text>
+    <text x="194" y="510" class="tiny ink">2026-05-14</text>
+    <text x="96" y="542" class="tiny muted">单位</text>
+    <text x="194" y="542" class="tiny ink">指数点</text>
+    <text x="96" y="592" class="micro faint">注：结论只描述当前历史位置，不包含操作建议。</text>
+
+    <!-- plot grid -->
+    <rect x="438" y="238" width="688" height="326" fill="#fff"/>
+    <line x1="438" y1="238" x2="1126" y2="238" class="grid"/><line x1="438" y1="303" x2="1126" y2="303" class="grid"/><line x1="438" y1="368" x2="1126" y2="368" class="grid"/><line x1="438" y1="433" x2="1126" y2="433" class="grid"/><line x1="438" y1="498" x2="1126" y2="498" class="grid"/><line x1="438" y1="564" x2="1126" y2="564" class="axis"/>
+    <line x1="438" y1="238" x2="438" y2="564" class="axis"/><line x1="1126" y1="238" x2="1126" y2="564" class="axis"/>
+    <line x1="438" y1="286" x2="1126" y2="286" class="ref"/><line x1="438" y1="358" x2="1126" y2="358" class="ref"/><line x1="438" y1="431" x2="1126" y2="431" class="ref"/>
+    <g clip-path="url(#plotClip)">
+      <path class="areaBlue" d="M438 408 C480 370 510 386 540 326 C572 412 610 394 644 430 C690 462 726 392 766 436 C812 472 852 420 890 358 C928 286 966 250 1002 312 C1040 234 1080 212 1116 328 C1122 348 1125 356 1126 360 L1126 564 L438 564 Z"/>
+      <path class="lineBlue" d="M438 408 C480 370 510 386 540 326 C572 412 610 394 644 430 C690 462 726 392 766 436 C812 472 852 420 890 358 C928 286 966 250 1002 312 C1040 234 1080 212 1116 328 C1122 348 1125 356 1126 360"/>
+    </g>
+    <circle cx="1126" cy="360" r="5.5" fill="#245f9f" stroke="#fff" stroke-width="3"/>
+
+    <!-- x axis labels -->
+    <text x="438" y="594" class="tiny muted">2023-05</text><text x="620" y="594" class="tiny muted">2024-01</text><text x="800" y="594" class="tiny muted">2024-09</text><text x="980" y="594" class="tiny muted">2025-05</text><text x="1072" y="594" class="tiny muted">2026-05</text>
+
+    <!-- right y axis scale -->
+    <line x1="1152" y1="238" x2="1152" y2="564" class="axis"/>
+    <text x="1164" y="242" class="tiny muted">36</text><text x="1164" y="307" class="tiny muted">30</text><text x="1164" y="372" class="tiny muted">24</text><text x="1164" y="437" class="tiny muted">18</text><text x="1164" y="502" class="tiny muted">12</text><text x="1164" y="568" class="tiny muted">6</text>
+    <rect x="1202" y="273" width="98" height="26" rx="4" class="labelBox"/><text x="1215" y="291" class="tiny sub">70%分位 28.4</text>
+    <rect x="1202" y="345" width="98" height="26" rx="4" class="labelBox"/><text x="1219" y="363" class="tiny sub">中位值 23.1</text>
+    <rect x="1202" y="418" width="98" height="26" rx="4" class="labelBox"/><text x="1215" y="436" class="tiny sub">30%分位 18.2</text>
+
+    <!-- current callout in independent lane -->
+    <path d="M1135 360 H1188 V508 H1198" fill="none" stroke="#245f9f" stroke-width="1.2" stroke-dasharray="3 4"/>
+    <rect x="1198" y="475" width="130" height="66" rx="6" class="callout"/>
+    <text x="1214" y="500" class="tiny muted">当前值</text>
+    <text x="1214" y="528" class="value blue">17.26</text>
+  </g>
+
+  <!-- Chart 2 -->
+  <g class="shadow">
+    <rect x="64" y="730" width="1312" height="510" rx="8" class="sheet"/>
+    <rect x="64" y="730" width="1312" height="56" rx="8" class="band"/>
+    <line x1="64" y1="786" x2="1376" y2="786" class="axis"/>
+    <text x="96" y="765" class="smallTitle ink">10年期美债收益率</text>
+    <text x="280" y="765" class="body sub">US Treasury Constant Maturity · 日频 · 近5年</text>
+    <circle cx="855" cy="760" r="5" class="amber"/><text x="868" y="765" class="tiny sub">收益率</text>
+    <line x1="940" y1="760" x2="974" y2="760" class="ref"/><text x="984" y="765" class="tiny sub">历史分位参考</text>
+    <rect x="1170" y="742" width="52" height="28" rx="14" class="chip"/><text x="1187" y="761" class="chipText">1年</text>
+    <rect x="1230" y="742" width="52" height="28" rx="14" class="chip"/><text x="1247" y="761" class="chipText">3年</text>
+    <rect x="1290" y="742" width="52" height="28" rx="14" class="chipOn"/><text x="1307" y="761" class="chipOnText">5年</text>
+
+    <line x1="398" y1="786" x2="398" y2="1240" class="axis"/>
+    <text x="96" y="834" class="tiny muted">当前读数</text>
+    <text x="96" y="880" class="metric ink">4.47%</text>
+    <text x="234" y="880" class="body sub">91%分位</text>
+    <text x="96" y="926" class="tiny muted">克制结论</text>
+    <text x="96" y="955" class="value amber">利率位于高位区间</text>
+    <text x="96" y="993" class="body sub">长期资金成本仍处历史高位；需与美元、CPI 共同阅读。</text>
+    <line x1="96" y1="1032" x2="350" y2="1032" class="axis"/>
+    <text x="96" y="1066" class="tiny muted">样本区间</text>
+    <text x="194" y="1066" class="tiny ink">2021-05 至 2026-05</text>
+    <text x="96" y="1098" class="tiny muted">更新日期</text>
+    <text x="194" y="1098" class="tiny ink">2026-05-14</text>
+    <text x="96" y="1130" class="tiny muted">单位</text>
+    <text x="194" y="1130" class="tiny ink">百分比</text>
+    <text x="96" y="1180" class="micro faint">注：高分位代表相对历史位置较高，不等于方向判断。</text>
+
+    <rect x="438" y="826" width="688" height="326" fill="#fff"/>
+    <line x1="438" y1="826" x2="1126" y2="826" class="grid"/><line x1="438" y1="891" x2="1126" y2="891" class="grid"/><line x1="438" y1="956" x2="1126" y2="956" class="grid"/><line x1="438" y1="1021" x2="1126" y2="1021" class="grid"/><line x1="438" y1="1086" x2="1126" y2="1086" class="grid"/><line x1="438" y1="1152" x2="1126" y2="1152" class="axis"/>
+    <line x1="438" y1="826" x2="438" y2="1152" class="axis"/><line x1="1126" y1="826" x2="1126" y2="1152" class="axis"/>
+    <line x1="438" y1="890" x2="1126" y2="890" class="ref"/><line x1="438" y1="979" x2="1126" y2="979" class="ref"/><line x1="438" y1="1072" x2="1126" y2="1072" class="ref"/>
+    <g clip-path="url(#plotClip2)">
+      <path class="areaTeal" d="M438 1126 C500 1108 548 1070 604 1030 C662 984 710 928 766 908 C826 884 878 928 928 878 C982 824 1058 810 1106 858 C1116 868 1124 862 1126 856 L1126 1152 L438 1152 Z"/>
+      <path class="lineAmber" d="M438 1126 C500 1108 548 1070 604 1030 C662 984 710 928 766 908 C826 884 878 928 928 878 C982 824 1058 810 1106 858 C1116 868 1124 862 1126 856"/>
+    </g>
+    <circle cx="1126" cy="856" r="5.5" fill="#b46b24" stroke="#fff" stroke-width="3"/>
+    <text x="438" y="1182" class="tiny muted">2021-05</text><text x="620" y="1182" class="tiny muted">2022-05</text><text x="800" y="1182" class="tiny muted">2023-05</text><text x="980" y="1182" class="tiny muted">2025-05</text><text x="1072" y="1182" class="tiny muted">2026-05</text>
+
+    <line x1="1152" y1="826" x2="1152" y2="1152" class="axis"/>
+    <text x="1164" y="830" class="tiny muted">5.2%</text><text x="1164" y="895" class="tiny muted">4.4%</text><text x="1164" y="960" class="tiny muted">3.6%</text><text x="1164" y="1025" class="tiny muted">2.8%</text><text x="1164" y="1090" class="tiny muted">2.0%</text><text x="1164" y="1156" class="tiny muted">1.2%</text>
+    <rect x="1202" y="877" width="106" height="26" rx="4" class="labelBox"/><text x="1214" y="895" class="tiny sub">70%分位 4.12%</text>
+    <rect x="1202" y="966" width="106" height="26" rx="4" class="labelBox"/><text x="1218" y="984" class="tiny sub">中位值 3.14%</text>
+    <rect x="1202" y="1059" width="106" height="26" rx="4" class="labelBox"/><text x="1214" y="1077" class="tiny sub">30%分位 2.27%</text>
+    <path d="M1135 856 H1188 V1125 H1198" fill="none" stroke="#b46b24" stroke-width="1.2" stroke-dasharray="3 4"/>
+    <rect x="1198" y="1092" width="130" height="66" rx="6" class="callout"/>
+    <text x="1214" y="1117" class="tiny muted">当前值</text>
+    <text x="1214" y="1145" class="value amber">4.47%</text>
+  </g>
+
+  <!-- Mobile treatment -->
+  <g class="shadow">
+    <rect x="64" y="1310" width="1312" height="318" rx="8" class="sheet"/>
+    <text x="96" y="1362" class="smallTitle ink">移动端处理示意</text>
+    <text x="96" y="1394" class="body sub">左侧结论区上移为指标摘要；图表保留完整 x/y 坐标，右侧分位标签改为图下三行说明，当前值贴近右上角但在 plot 外。</text>
+    <rect x="96" y="1430" width="270" height="46" rx="4" fill="#f8fafc" stroke="#d9e0e8"/>
+    <text x="116" y="1458" class="body ink">1年 / 3年 / 5年</text>
+    <text x="96" y="1524" class="tiny muted">移动端原则</text>
+    <text x="96" y="1554" class="body sub">1. 不隐藏坐标；减少 tick 数量。</text>
+    <text x="96" y="1584" class="body sub">2. 分位线标签离开折线区，避免遮挡。</text>
+    <text x="96" y="1614" class="body sub">3. 当前值 callout 固定在图外信息栏。</text>
+
+    <rect x="780" y="1276" width="496" height="310" rx="18" fill="#111827"/>
+    <rect x="804" y="1302" width="448" height="258" rx="6" fill="#fff"/>
+    <text x="832" y="1352" class="body ink">VIX 波动率</text>
+    <text x="832" y="1377" class="tiny sub">当前 17.26 · 45%分位</text>
+    <rect x="1138" y="1328" width="70" height="42" rx="5" class="callout"/><text x="1150" y="1353" class="tiny muted">当前</text><text x="1150" y="1368" class="tiny blue">17.26</text>
+    <line x1="832" y1="1326" x2="832" y2="1532" class="axis"/><line x1="1224" y1="1326" x2="1224" y2="1532" class="axis"/>
+    <line x1="832" y1="1370" x2="1224" y2="1370" class="grid"/><line x1="832" y1="1424" x2="1224" y2="1424" class="grid"/><line x1="832" y1="1478" x2="1224" y2="1478" class="grid"/><line x1="832" y1="1532" x2="1224" y2="1532" class="axis"/>
+    <g clip-path="url(#mobilePlot)">
+      <path class="lineBlue" d="M832 1448 C874 1418 900 1438 930 1394 C960 1452 1000 1438 1030 1466 C1070 1494 1100 1444 1132 1470 C1160 1492 1188 1432 1224 1440"/>
+    </g>
+    <text x="832" y="1550" class="micro muted">30%分位 18.2 · 中位值 23.1 · 70%分位 28.4</text>
+  </g>
+</svg>

@@ -1,0 +1,2979 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-09T09:25:37.851034+00:00",
+  "asOf": "2026-06-08",
+  "module": "index-valuation",
+  "title": "指数估值观察",
+  "status": "partial_data",
+  "summary": "已接入 QQQ 与 SPY 当前持仓权重、最新本地价格和可覆盖财务样本；历史分位和 PEG 仍等待完整财务口径。",
+  "index": {
+    "symbol": "QQQ",
+    "name": "Nasdaq 100 / QQQ",
+    "currency": "USD",
+    "weighting": "constituent_weighted"
+  },
+  "frontendHints": {
+    "showWaitingState": false,
+    "emptyStateTitle": "等待估值数据",
+    "emptyStateBody": "数据未接入前，不展示 PE、PB、ROE 等估值数字。",
+    "hideMetricNumbers": false
+  },
+  "availableIndices": [
+    {
+      "symbol": "QQQ",
+      "name": "纳指 100",
+      "status": "partial_data"
+    },
+    {
+      "symbol": "SPY",
+      "name": "标普 500",
+      "status": "partial_data"
+    }
+  ],
+  "indices": [
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-06-09T09:25:30.453062+00:00",
+      "asOf": "2026-06-08",
+      "module": "index-valuation",
+      "title": "QQQ 估值观察",
+      "status": "partial_data",
+      "summary": "已接入 QQQ 当前持仓权重、最新本地价格和可覆盖财务样本；历史分位和 PEG 仍等待完整财务口径。",
+      "index": {
+        "symbol": "QQQ",
+        "name": "Nasdaq 100 / QQQ",
+        "currency": "USD",
+        "weighting": "constituent_weighted"
+      },
+      "weightAsOf": "2026-06-07",
+      "priceAsOf": "2026-06-08",
+      "coverage": "QQQ 权重 2026-06-07；价格 2026-06-08；估值样本覆盖约 27.25%；当前权重价格覆盖 100.0%。",
+      "officialValuationSnapshot": {
+        "asOf": "2026-03-31",
+        "period": "Q1 2026",
+        "sourceName": "Invesco QQQ Trust, Series 1 Fact Sheet",
+        "sourceUrl": "https://www.invesco.com/us-rest/contentdetail?contentId=3a48e01e98630410VgnVCM10000046f1bf0aRCRD",
+        "methodNote": "Invesco 官方季度 fact sheet。P/E 与 P/B 为加权调和平均，ROE 为加权平均。",
+        "metrics": {
+          "pe": 36.52,
+          "pb": 15.73,
+          "roe": 38.97
+        }
+      },
+      "holdingsCoverage": {
+        "weightAsOf": "2026-06-07",
+        "effectiveBusinessDate": "2026-06-05",
+        "priceAsOf": "2026-06-08",
+        "totalNumberOfHoldings": 105,
+        "holdingsWithTicker": 104,
+        "valuationHoldings": 101,
+        "valuationWeightPct": 99.9238,
+        "priceCoveredHoldings": 101,
+        "priceCoveredWeightPct": 99.9238,
+        "priceCoveragePctOfValuationWeight": 100.0,
+        "dividendPayerHoldings": 60,
+        "dividendPayerWeightPct": 70.8288,
+        "dividendYieldMetric": {
+          "value": 0.5986,
+          "coverage": {
+            "holdingsCovered": 101,
+            "holdingsTotal": 101,
+            "weightCoveragePct": 100.0,
+            "priceAsOf": "2026-06-08",
+            "dividendWindowDays": 365,
+            "ordinaryCashDividendsOnly": true
+          }
+        },
+        "fundamentalCoverage": {
+          "financialFiles": 20,
+          "rowsRead": 11199,
+          "holdingsWithAnyFinancials": 72,
+          "holdingsWithAnyFinancialsWeightPct": 77.49,
+          "holdingsWithAnnualFinancials": 7,
+          "holdingsWithAnnualFinancialsWeightPct": 7.35,
+          "holdingsWithFourQuarterTtm": 0,
+          "holdingsWithFourQuarterTtmWeightPct": 0,
+          "holdingsWithEpsField": 69,
+          "holdingsWithEquityField": 72,
+          "holdingsWithNetIncomeField": 72,
+          "canComputePe": false,
+          "canComputePb": false,
+          "canComputeRoe": false,
+          "reason": "financial_coverage_or_fields_insufficient_for_index_level_metrics"
+        }
+      },
+      "topHoldings": [
+        {
+          "ticker": "NVDA",
+          "issuerName": "NVIDIA Corp",
+          "weightPct": 8.3057,
+          "units": 190601606.0,
+          "price": 208.64,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.04,
+          "dividendYieldPct": 0.0192
+        },
+        {
+          "ticker": "AAPL",
+          "issuerName": "Apple Inc",
+          "weightPct": 7.5103,
+          "units": 115153962.0,
+          "price": 301.54,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 1.05,
+          "dividendYieldPct": 0.3482
+        },
+        {
+          "ticker": "MSFT",
+          "issuerName": "Microsoft Corp",
+          "weightPct": 5.1607,
+          "units": 58239945.0,
+          "price": 411.74,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 2.65,
+          "dividendYieldPct": 0.6436
+        },
+        {
+          "ticker": "MU",
+          "issuerName": "Micron Technology Inc",
+          "weightPct": 4.4679,
+          "units": 24368413.0,
+          "price": 949.28,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.495,
+          "dividendYieldPct": 0.0521
+        },
+        {
+          "ticker": "AMZN",
+          "issuerName": "Amazon.com Inc",
+          "weightPct": 4.396,
+          "units": 84199541.0,
+          "price": 245.22,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.0,
+          "dividendYieldPct": 0.0
+        },
+        {
+          "ticker": "GOOGL",
+          "issuerName": "Alphabet Inc Class A",
+          "weightPct": 3.5707,
+          "units": 45658436.0,
+          "price": 363.31,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.84,
+          "dividendYieldPct": 0.2312
+        },
+        {
+          "ticker": "AMD",
+          "issuerName": "Advanced Micro Devices Inc",
+          "weightPct": 3.4935,
+          "units": 35299130.0,
+          "price": 490.33,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.0,
+          "dividendYieldPct": 0.0
+        },
+        {
+          "ticker": "GOOG",
+          "issuerName": "Alphabet Inc Class C",
+          "weightPct": 3.3109,
+          "units": 42656765.0,
+          "price": 361.17,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.84,
+          "dividendYieldPct": 0.2326
+        },
+        {
+          "ticker": "TSLA",
+          "issuerName": "Tesla Inc",
+          "weightPct": 3.248,
+          "units": 39144990.0,
+          "price": 408.95,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.0,
+          "dividendYieldPct": 0.0
+        },
+        {
+          "ticker": "AVGO",
+          "issuerName": "Broadcom Inc",
+          "weightPct": 3.0438,
+          "units": 37185856.0,
+          "price": 396.6,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 2.48,
+          "dividendYieldPct": 0.6253
+        }
+      ],
+      "dataReadiness": {
+        "canComputeCurrentMetrics": true,
+        "currentMetricStatus": "partial",
+        "computedMetrics": [
+          "pe",
+          "pb",
+          "roe",
+          "dividendYield"
+        ],
+        "waitingMetrics": [
+          "peg"
+        ],
+        "canComputeHistoricalPercentiles": false,
+        "canComputeTrendSeries": false,
+        "reason": "partial_current_inputs_available",
+        "blockingGaps": [
+          {
+            "dataset": "ttm_fundamentals",
+            "fields": [
+              "date",
+              "ticker",
+              "ttm_eps",
+              "book_value_per_share",
+              "ttm_net_income",
+              "shareholders_equity"
+            ],
+            "minimumScope": "Point-in-time panel aligned to valuation dates."
+          },
+          {
+            "dataset": "shares_or_market_cap",
+            "fields": [
+              "date",
+              "ticker",
+              "shares_outstanding"
+            ],
+            "minimumScope": "Needed for PB when book value per share is unavailable."
+          },
+          {
+            "dataset": "forward_growth",
+            "fields": [
+              "date",
+              "ticker",
+              "forward_eps_growth",
+              "growth_period"
+            ],
+            "minimumScope": "Needed only for PEG; one consistent period such as next fiscal year or long-term growth."
+          },
+          {
+            "dataset": "historical_holdings_weights",
+            "fields": [
+              "date",
+              "ticker",
+              "weight"
+            ],
+            "minimumScope": "Needed for valuation trend and historical percentiles."
+          },
+          {
+            "dataset": "valuation_history",
+            "fields": [
+              "date",
+              "pe",
+              "pb",
+              "roe",
+              "dividend_yield",
+              "peg"
+            ],
+            "minimumScope": "Same methodology as current metrics; at least five years preferred for percentiles."
+          }
+        ]
+      },
+      "metrics": [
+        {
+          "key": "pe",
+          "label": "市盈率",
+          "unit": "x",
+          "status": "estimated",
+          "value": 37.6101,
+          "display": "37.61x",
+          "asOf": "2026-06-08",
+          "note": "覆盖样本口径 · 权重27.25%",
+          "coverage": {
+            "method": "polygon_quarterly_annualized_estimate",
+            "methodNote": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。",
+            "weightCoveragePct": 27.25,
+            "componentCount": 33,
+            "latestFilingDate": "2026-06-04",
+            "officialFallback": 36.52,
+            "officialFallbackAsOf": "2026-03-31",
+            "annualFinancialsWeightPct": 7.35,
+            "fourQuarterTtmWeightPct": 0
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [
+            {
+              "date": "2026-03-10",
+              "value": 29.21,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-11",
+              "value": 29.4292,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-12",
+              "value": 28.7331,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-13",
+              "value": 28.9774,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-16",
+              "value": 29.5753,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-17",
+              "value": 29.9813,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-18",
+              "value": 29.7983,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-19",
+              "value": 30.0053,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-20",
+              "value": 29.1378,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-23",
+              "value": 29.3591,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-24",
+              "value": 29.3442,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-25",
+              "value": 29.4051,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-26",
+              "value": 28.3888,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-27",
+              "value": 28.2097,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-30",
+              "value": 27.5571,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-31",
+              "value": 28.6768,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-01",
+              "value": 29.4555,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-02",
+              "value": 29.5894,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-06",
+              "value": 30.0026,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-07",
+              "value": 29.7563,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-08",
+              "value": 30.818,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-09",
+              "value": 31.1841,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-10",
+              "value": 31.1181,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-13",
+              "value": 31.7787,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-14",
+              "value": 32.0071,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-15",
+              "value": 32.1682,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-16",
+              "value": 32.3461,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-17",
+              "value": 32.7719,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-20",
+              "value": 32.8023,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-21",
+              "value": 32.5362,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-22",
+              "value": 33.3239,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-23",
+              "value": 33.1479,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-24",
+              "value": 33.5641,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-27",
+              "value": 33.6111,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-28",
+              "value": 33.288,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-29",
+              "value": 33.6198,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-30",
+              "value": 34.1793,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-01",
+              "value": 34.8068,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-04",
+              "value": 34.8792,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-05",
+              "value": 35.6979,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-06",
+              "value": 36.142,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-07",
+              "value": 35.964,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-08",
+              "value": 36.7217,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-11",
+              "value": 36.8167,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-12",
+              "value": 36.638,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-13",
+              "value": 36.5212,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-14",
+              "value": 36.4953,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-15",
+              "value": 36.3131,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-18",
+              "value": 36.03,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-19",
+              "value": 36.1626,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-20",
+              "value": 36.6194,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-21",
+              "value": 37.2848,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-22",
+              "value": 37.5005,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-26",
+              "value": 38.0418,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-01",
+              "value": 38.4151,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-02",
+              "value": 38.6339,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-03",
+              "value": 38.788,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-04",
+              "value": 38.6917,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-05",
+              "value": 37.5794,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-08",
+              "value": 37.6101,
+              "coveragePct": 27.25,
+              "method": "price_driven_approximation"
+            }
+          ],
+          "method": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。"
+        },
+        {
+          "key": "pb",
+          "label": "市净率",
+          "unit": "x",
+          "status": "estimated",
+          "value": 9.8653,
+          "display": "9.87x",
+          "asOf": "2026-06-08",
+          "note": "覆盖样本口径 · 权重29.29%",
+          "coverage": {
+            "method": "polygon_quarterly_annualized_estimate",
+            "methodNote": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。",
+            "weightCoveragePct": 29.29,
+            "componentCount": 38,
+            "latestFilingDate": "2026-06-04",
+            "officialFallback": 15.73,
+            "officialFallbackAsOf": "2026-03-31",
+            "equityFieldHoldings": 72
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [
+            {
+              "date": "2026-03-10",
+              "value": 8.2394,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-11",
+              "value": 8.2359,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-12",
+              "value": 8.1084,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-13",
+              "value": 8.1114,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-16",
+              "value": 8.2185,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-17",
+              "value": 8.273,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-18",
+              "value": 8.2154,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-19",
+              "value": 8.2494,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-20",
+              "value": 8.0684,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-23",
+              "value": 8.122,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-24",
+              "value": 8.1023,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-25",
+              "value": 8.2188,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-26",
+              "value": 8.0462,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-27",
+              "value": 7.9422,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-30",
+              "value": 7.8952,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-31",
+              "value": 8.0717,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-01",
+              "value": 8.1496,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-02",
+              "value": 8.2325,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-06",
+              "value": 8.3077,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-07",
+              "value": 8.2925,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-08",
+              "value": 8.4814,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-09",
+              "value": 8.4893,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-10",
+              "value": 8.4484,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-13",
+              "value": 8.5666,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-14",
+              "value": 8.6336,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-15",
+              "value": 8.7123,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-16",
+              "value": 8.866,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-17",
+              "value": 8.9286,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-20",
+              "value": 8.9347,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-21",
+              "value": 8.9444,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-22",
+              "value": 9.1459,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-23",
+              "value": 9.1031,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-24",
+              "value": 9.3189,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-27",
+              "value": 9.2724,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-28",
+              "value": 9.2118,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-29",
+              "value": 9.2604,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-30",
+              "value": 9.387,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-01",
+              "value": 9.5072,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-04",
+              "value": 9.4799,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-05",
+              "value": 9.5298,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-06",
+              "value": 9.687,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-07",
+              "value": 9.6857,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-08",
+              "value": 9.8587,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-11",
+              "value": 9.8795,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-12",
+              "value": 9.8455,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-13",
+              "value": 9.7939,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-14",
+              "value": 9.8583,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-15",
+              "value": 9.7433,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-18",
+              "value": 9.764,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-19",
+              "value": 9.7328,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-20",
+              "value": 9.9062,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-21",
+              "value": 9.9602,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-22",
+              "value": 10.0585,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-26",
+              "value": 10.1212,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-01",
+              "value": 10.2062,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-02",
+              "value": 10.1651,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-03",
+              "value": 10.1245,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-04",
+              "value": 10.0917,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-05",
+              "value": 9.7918,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-08",
+              "value": 9.8654,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            }
+          ],
+          "method": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。"
+        },
+        {
+          "key": "roe",
+          "label": "ROE",
+          "unit": "%",
+          "status": "estimated",
+          "value": 55.9636,
+          "display": "55.96%",
+          "asOf": "2026-06-08",
+          "note": "覆盖样本口径 · 权重29.29%",
+          "coverage": {
+            "method": "polygon_quarterly_annualized_estimate",
+            "methodNote": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。",
+            "weightCoveragePct": 29.29,
+            "componentCount": 38,
+            "latestFilingDate": "2026-06-04",
+            "officialFallback": 38.97,
+            "officialFallbackAsOf": "2026-03-31",
+            "netIncomeFieldHoldings": 72,
+            "equityFieldHoldings": 72,
+            "fourQuarterTtmWeightPct": 0
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [
+            {
+              "date": "2026-03-10",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-11",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-12",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-13",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-16",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-17",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-18",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-19",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-20",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-23",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-24",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-25",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-26",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-27",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-30",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-31",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-01",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-02",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-06",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-07",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-08",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-09",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-10",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-13",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-14",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-15",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-16",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-17",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-20",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-21",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-22",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-23",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-24",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-27",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-28",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-29",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-30",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-01",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-04",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-05",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-06",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-07",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-08",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-11",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-12",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-13",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-14",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-15",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-18",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-19",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-20",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-21",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-22",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-26",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-01",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-02",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-03",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-04",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-05",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-08",
+              "value": 55.9636,
+              "coveragePct": 29.29,
+              "method": "price_driven_approximation"
+            }
+          ],
+          "method": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。"
+        },
+        {
+          "key": "dividendYield",
+          "label": "股息率",
+          "unit": "%",
+          "status": "computed",
+          "value": 0.5986,
+          "display": "0.60%",
+          "asOf": "2026-06-08",
+          "coverage": {
+            "holdingsCovered": 101,
+            "holdingsTotal": 101,
+            "weightCoveragePct": 100.0,
+            "priceAsOf": "2026-06-08",
+            "dividendWindowDays": 365,
+            "ordinaryCashDividendsOnly": true
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [],
+          "method": "按 QQQ 当前成分权重聚合近 365 天普通现金分红与最新收盘价。"
+        },
+        {
+          "key": "peg",
+          "label": "PEG",
+          "unit": "x",
+          "status": "waiting_for_data",
+          "value": null,
+          "display": "等待估值数据",
+          "asOf": null,
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [],
+          "method": "需要统一周期的 forward EPS growth。",
+          "coverage": {
+            "forwardGrowthEstimates": "not_found"
+          }
+        }
+      ],
+      "historyPercentiles": {
+        "lookbackYears": null,
+        "status": "waiting_for_data",
+        "items": []
+      },
+      "frontendHints": {
+        "showWaitingState": false,
+        "emptyStateTitle": "等待估值数据",
+        "emptyStateBody": "数据未接入前，不展示 PE、PB、ROE 等估值数字。",
+        "hideMetricNumbers": false
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generatedAt": "2026-06-09T09:25:37.851004+00:00",
+      "asOf": "2026-06-08",
+      "module": "index-valuation",
+      "title": "SPY 估值观察",
+      "status": "partial_data",
+      "summary": "已接入 SPY 当前持仓权重、最新本地价格和可覆盖财务样本；历史分位和 PEG 仍等待完整财务口径。",
+      "index": {
+        "symbol": "SPY",
+        "name": "S&P 500 / SPY",
+        "currency": "USD",
+        "weighting": "constituent_weighted"
+      },
+      "weightAsOf": "05-Jun-2026",
+      "priceAsOf": "2026-06-08",
+      "coverage": "SPY 权重 05-Jun-2026；价格 2026-06-08；估值样本覆盖约 32.51%；当前权重价格覆盖 99.86%。",
+      "officialValuationSnapshot": {
+        "asOf": "2026-03-31",
+        "period": "Q1 2026",
+        "sourceName": "State Street SPDR S&P 500 ETF Trust Fact Sheet",
+        "sourceUrl": "https://www.ssga.com/library-content/products/factsheets/etfs/us/factsheet-us-en-spy.pdf",
+        "methodNote": "State Street 官方季度 fact sheet。P/E 与 P/B 为加权调和平均，ROE 为加权平均。",
+        "metrics": {
+          "pe": null,
+          "pb": null,
+          "roe": null
+        }
+      },
+      "holdingsCoverage": {
+        "weightAsOf": "05-Jun-2026",
+        "effectiveBusinessDate": "05-Jun-2026",
+        "priceAsOf": "2026-06-08",
+        "totalNumberOfHoldings": 505,
+        "holdingsWithTicker": 505,
+        "valuationHoldings": 505,
+        "valuationWeightPct": 99.9188,
+        "priceCoveredHoldings": 503,
+        "priceCoveredWeightPct": 99.7797,
+        "priceCoveragePctOfValuationWeight": 99.86,
+        "dividendPayerHoldings": 406,
+        "dividendPayerWeightPct": 83.0438,
+        "dividendYieldMetric": {
+          "value": 1.006,
+          "coverage": {
+            "holdingsCovered": 503,
+            "holdingsTotal": 505,
+            "weightCoveragePct": 99.86,
+            "priceAsOf": "2026-06-08",
+            "dividendWindowDays": 365,
+            "ordinaryCashDividendsOnly": true
+          }
+        },
+        "fundamentalCoverage": {
+          "financialFiles": 20,
+          "rowsRead": 11199,
+          "holdingsWithAnyFinancials": 410,
+          "holdingsWithAnyFinancialsWeightPct": 79.6,
+          "holdingsWithAnnualFinancials": 22,
+          "holdingsWithAnnualFinancialsWeightPct": 6.61,
+          "holdingsWithFourQuarterTtm": 0,
+          "holdingsWithFourQuarterTtmWeightPct": 0,
+          "holdingsWithEpsField": 394,
+          "holdingsWithEquityField": 410,
+          "holdingsWithNetIncomeField": 410,
+          "canComputePe": false,
+          "canComputePb": false,
+          "canComputeRoe": false,
+          "reason": "financial_coverage_or_fields_insufficient_for_index_level_metrics"
+        }
+      },
+      "topHoldings": [
+        {
+          "ticker": "NVDA",
+          "issuerName": "NVIDIA CORP",
+          "weightPct": 7.8574,
+          "units": 297702056.0,
+          "price": 208.64,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.04,
+          "dividendYieldPct": 0.0192
+        },
+        {
+          "ticker": "AAPL",
+          "issuerName": "APPLE INC",
+          "weightPct": 7.1135,
+          "units": 179859747.0,
+          "price": 301.54,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 1.05,
+          "dividendYieldPct": 0.3482
+        },
+        {
+          "ticker": "MSFT",
+          "issuerName": "MICROSOFT CORP",
+          "weightPct": 4.8778,
+          "units": 90970724.0,
+          "price": 411.74,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 2.65,
+          "dividendYieldPct": 0.6436
+        },
+        {
+          "ticker": "AMZN",
+          "issuerName": "AMAZON.COM INC",
+          "weightPct": 3.789,
+          "units": 119675146.0,
+          "price": 245.22,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.0,
+          "dividendYieldPct": 0.0
+        },
+        {
+          "ticker": "GOOGL",
+          "issuerName": "ALPHABET INC CL A",
+          "weightPct": 3.4049,
+          "units": 71838354.0,
+          "price": 363.31,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.84,
+          "dividendYieldPct": 0.2312
+        },
+        {
+          "ticker": "AVGO",
+          "issuerName": "BROADCOM INC",
+          "weightPct": 2.8832,
+          "units": 58084104.0,
+          "price": 396.6,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 2.48,
+          "dividendYieldPct": 0.6253
+        },
+        {
+          "ticker": "GOOG",
+          "issuerName": "ALPHABET INC CL C",
+          "weightPct": 2.7238,
+          "units": 57905193.0,
+          "price": 361.17,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.84,
+          "dividendYieldPct": 0.2326
+        },
+        {
+          "ticker": "META",
+          "issuerName": "META PLATFORMS INC CLASS A",
+          "weightPct": 2.0446,
+          "units": 26793551.0,
+          "price": 585.39,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 2.1,
+          "dividendYieldPct": 0.3587
+        },
+        {
+          "ticker": "TSLA",
+          "issuerName": "TESLA INC",
+          "weightPct": 1.7335,
+          "units": 34452644.0,
+          "price": 408.95,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.0,
+          "dividendYieldPct": 0.0
+        },
+        {
+          "ticker": "MU",
+          "issuerName": "MICRON TECHNOLOGY INC",
+          "weightPct": 1.533,
+          "units": 13787644.0,
+          "price": 949.28,
+          "priceAsOf": "2026-06-08",
+          "ttmDividendPerShare": 0.495,
+          "dividendYieldPct": 0.0521
+        }
+      ],
+      "dataReadiness": {
+        "canComputeCurrentMetrics": true,
+        "currentMetricStatus": "partial",
+        "computedMetrics": [
+          "pe",
+          "pb",
+          "roe",
+          "dividendYield"
+        ],
+        "waitingMetrics": [
+          "peg"
+        ],
+        "canComputeHistoricalPercentiles": false,
+        "canComputeTrendSeries": false,
+        "reason": "partial_current_inputs_available",
+        "blockingGaps": [
+          {
+            "dataset": "ttm_fundamentals",
+            "fields": [
+              "date",
+              "ticker",
+              "ttm_eps",
+              "book_value_per_share",
+              "ttm_net_income",
+              "shareholders_equity"
+            ],
+            "minimumScope": "Point-in-time panel aligned to valuation dates."
+          },
+          {
+            "dataset": "shares_or_market_cap",
+            "fields": [
+              "date",
+              "ticker",
+              "shares_outstanding"
+            ],
+            "minimumScope": "Needed for PB when book value per share is unavailable."
+          },
+          {
+            "dataset": "forward_growth",
+            "fields": [
+              "date",
+              "ticker",
+              "forward_eps_growth",
+              "growth_period"
+            ],
+            "minimumScope": "Needed only for PEG; one consistent period such as next fiscal year or long-term growth."
+          },
+          {
+            "dataset": "historical_holdings_weights",
+            "fields": [
+              "date",
+              "ticker",
+              "weight"
+            ],
+            "minimumScope": "Needed for valuation trend and historical percentiles."
+          },
+          {
+            "dataset": "valuation_history",
+            "fields": [
+              "date",
+              "pe",
+              "pb",
+              "roe",
+              "dividend_yield",
+              "peg"
+            ],
+            "minimumScope": "Same methodology as current metrics; at least five years preferred for percentiles."
+          }
+        ]
+      },
+      "metrics": [
+        {
+          "key": "pe",
+          "label": "市盈率",
+          "unit": "x",
+          "status": "estimated",
+          "value": 24.4821,
+          "display": "24.48x",
+          "asOf": "2026-06-08",
+          "note": "覆盖样本口径 · 权重32.51%",
+          "coverage": {
+            "method": "polygon_quarterly_annualized_estimate",
+            "methodNote": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。",
+            "weightCoveragePct": 32.51,
+            "componentCount": 219,
+            "latestFilingDate": "2026-06-05",
+            "officialFallback": null,
+            "officialFallbackAsOf": "2026-03-31",
+            "annualFinancialsWeightPct": 6.61,
+            "fourQuarterTtmWeightPct": 0
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [
+            {
+              "date": "2026-03-10",
+              "value": 21.9646,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-11",
+              "value": 21.9756,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-12",
+              "value": 21.5917,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-13",
+              "value": 21.5924,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-16",
+              "value": 21.815,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-17",
+              "value": 21.9542,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-18",
+              "value": 21.7734,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-19",
+              "value": 21.7903,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-20",
+              "value": 21.5421,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-23",
+              "value": 21.7394,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-24",
+              "value": 21.8725,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-25",
+              "value": 21.9385,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-26",
+              "value": 21.6514,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-27",
+              "value": 21.329,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-30",
+              "value": 21.2102,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-31",
+              "value": 21.7981,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-01",
+              "value": 21.9754,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-02",
+              "value": 22.0538,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-06",
+              "value": 22.1942,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-07",
+              "value": 22.2164,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-08",
+              "value": 22.7725,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-09",
+              "value": 22.8883,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-10",
+              "value": 22.7609,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-13",
+              "value": 23.0186,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-14",
+              "value": 23.0665,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-15",
+              "value": 23.1493,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-16",
+              "value": 23.202,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-17",
+              "value": 23.4396,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-20",
+              "value": 23.5311,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-21",
+              "value": 23.403,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-22",
+              "value": 23.5584,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-23",
+              "value": 23.5174,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-24",
+              "value": 23.4499,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-27",
+              "value": 23.4788,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-28",
+              "value": 23.4761,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-29",
+              "value": 23.4691,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-30",
+              "value": 23.7806,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-01",
+              "value": 23.8368,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-04",
+              "value": 23.6942,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-05",
+              "value": 23.9486,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-06",
+              "value": 24.0924,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-07",
+              "value": 23.8747,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-08",
+              "value": 23.9194,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-11",
+              "value": 23.9249,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-12",
+              "value": 24.0548,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-13",
+              "value": 23.9608,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-14",
+              "value": 24.026,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-15",
+              "value": 23.8905,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-18",
+              "value": 23.9572,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-19",
+              "value": 23.8868,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-20",
+              "value": 24.1381,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-21",
+              "value": 24.2904,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-22",
+              "value": 24.47,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-26",
+              "value": 24.4959,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-01",
+              "value": 24.3807,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-02",
+              "value": 24.6272,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-03",
+              "value": 24.5066,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-04",
+              "value": 24.8223,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-05",
+              "value": 24.5633,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-08",
+              "value": 24.4821,
+              "coveragePct": 32.51,
+              "method": "price_driven_approximation"
+            }
+          ],
+          "method": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。"
+        },
+        {
+          "key": "pb",
+          "label": "市净率",
+          "unit": "x",
+          "status": "estimated",
+          "value": 4.1695,
+          "display": "4.17x",
+          "asOf": "2026-06-08",
+          "note": "覆盖样本口径 · 权重32.82%",
+          "coverage": {
+            "method": "polygon_quarterly_annualized_estimate",
+            "methodNote": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。",
+            "weightCoveragePct": 32.82,
+            "componentCount": 228,
+            "latestFilingDate": "2026-06-05",
+            "officialFallback": null,
+            "officialFallbackAsOf": "2026-03-31",
+            "equityFieldHoldings": 410
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [
+            {
+              "date": "2026-03-10",
+              "value": 3.8384,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-11",
+              "value": 3.8372,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-12",
+              "value": 3.7777,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-13",
+              "value": 3.7776,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-16",
+              "value": 3.8062,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-17",
+              "value": 3.8295,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-18",
+              "value": 3.8005,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-19",
+              "value": 3.8022,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-20",
+              "value": 3.7712,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-23",
+              "value": 3.8101,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-24",
+              "value": 3.8406,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-25",
+              "value": 3.8616,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-26",
+              "value": 3.8264,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-27",
+              "value": 3.7663,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-30",
+              "value": 3.7667,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-31",
+              "value": 3.8555,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-01",
+              "value": 3.864,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-02",
+              "value": 3.8792,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-06",
+              "value": 3.8956,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-07",
+              "value": 3.9084,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-08",
+              "value": 3.9906,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-09",
+              "value": 4.0023,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-10",
+              "value": 3.9751,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-13",
+              "value": 4.0165,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-14",
+              "value": 4.0217,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-15",
+              "value": 4.0279,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-16",
+              "value": 4.0471,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-17",
+              "value": 4.0752,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-20",
+              "value": 4.0909,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-21",
+              "value": 4.0764,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-22",
+              "value": 4.0817,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-23",
+              "value": 4.074,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-24",
+              "value": 4.0595,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-27",
+              "value": 4.0679,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-28",
+              "value": 4.0676,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-29",
+              "value": 4.0667,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-30",
+              "value": 4.1166,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-01",
+              "value": 4.1081,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-04",
+              "value": 4.0768,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-05",
+              "value": 4.1041,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-06",
+              "value": 4.1314,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-07",
+              "value": 4.0921,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-08",
+              "value": 4.0843,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-11",
+              "value": 4.0849,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-12",
+              "value": 4.1083,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-13",
+              "value": 4.0832,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-14",
+              "value": 4.1031,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-15",
+              "value": 4.0731,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-18",
+              "value": 4.1005,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-19",
+              "value": 4.0785,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-20",
+              "value": 4.1221,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-21",
+              "value": 4.1345,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-22",
+              "value": 4.1634,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-26",
+              "value": 4.1574,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-01",
+              "value": 4.1356,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-02",
+              "value": 4.1721,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-03",
+              "value": 4.1498,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-04",
+              "value": 4.2137,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-05",
+              "value": 4.1753,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-08",
+              "value": 4.1695,
+              "coveragePct": 32.82,
+              "method": "price_driven_approximation"
+            }
+          ],
+          "method": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。"
+        },
+        {
+          "key": "roe",
+          "label": "ROE",
+          "unit": "%",
+          "status": "estimated",
+          "value": 48.9113,
+          "display": "48.91%",
+          "asOf": "2026-06-08",
+          "note": "覆盖样本口径 · 权重34.42%",
+          "coverage": {
+            "method": "polygon_quarterly_annualized_estimate",
+            "methodNote": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。",
+            "weightCoveragePct": 34.42,
+            "componentCount": 233,
+            "latestFilingDate": "2026-06-05",
+            "officialFallback": null,
+            "officialFallbackAsOf": "2026-03-31",
+            "netIncomeFieldHoldings": 410,
+            "equityFieldHoldings": 410,
+            "fourQuarterTtmWeightPct": 0
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [
+            {
+              "date": "2026-03-10",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-11",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-12",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-13",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-16",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-17",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-18",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-19",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-20",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-23",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-24",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-25",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-26",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-27",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-30",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-03-31",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-01",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-02",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-06",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-07",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-08",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-09",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-10",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-13",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-14",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-15",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-16",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-17",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-20",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-21",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-22",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-23",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-24",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-27",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-28",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-29",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-04-30",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-01",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-04",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-05",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-06",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-07",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-08",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-11",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-12",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-13",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-14",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-15",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-18",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-19",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-20",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-21",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-22",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-05-26",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-01",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-02",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-03",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-04",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-05",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            },
+            {
+              "date": "2026-06-08",
+              "value": 48.9113,
+              "coveragePct": 34.42,
+              "method": "price_driven_approximation"
+            }
+          ],
+          "method": "用当前可覆盖样本做近似估值。PE/PB 使用覆盖样本的加权调和平均，ROE 使用覆盖样本的加权平均；走势图仅反映近期价格变化对估值的影响。"
+        },
+        {
+          "key": "dividendYield",
+          "label": "股息率",
+          "unit": "%",
+          "status": "computed",
+          "value": 1.006,
+          "display": "1.01%",
+          "asOf": "2026-06-08",
+          "coverage": {
+            "holdingsCovered": 503,
+            "holdingsTotal": 505,
+            "weightCoveragePct": 99.86,
+            "priceAsOf": "2026-06-08",
+            "dividendWindowDays": 365,
+            "ordinaryCashDividendsOnly": true
+          },
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [],
+          "method": "按 SPY 当前成分权重聚合近 365 天普通现金分红与最新收盘价。"
+        },
+        {
+          "key": "peg",
+          "label": "PEG",
+          "unit": "x",
+          "status": "waiting_for_data",
+          "value": null,
+          "display": "等待估值数据",
+          "asOf": null,
+          "percentile": {
+            "oneYear": null,
+            "threeYear": null,
+            "fiveYear": null,
+            "tenYear": null
+          },
+          "trend": [],
+          "method": "需要统一周期的 forward EPS growth。",
+          "coverage": {
+            "forwardGrowthEstimates": "not_found"
+          }
+        }
+      ],
+      "historyPercentiles": {
+        "lookbackYears": null,
+        "status": "waiting_for_data",
+        "items": []
+      },
+      "frontendHints": {
+        "showWaitingState": false,
+        "emptyStateTitle": "等待估值数据",
+        "emptyStateBody": "数据未接入前，不展示 PE、PB、ROE 等估值数字。",
+        "hideMetricNumbers": false
+      }
+    }
+  ]
+}

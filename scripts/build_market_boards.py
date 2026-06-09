@@ -1,0 +1,313 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import math
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
+DEFAULT_YTD_OUTPUT = ROOT / "data" / "ytd-gainers.json"
+DEFAULT_MOVERS_OUTPUT = ROOT / "data" / "market-movers.json"
+
+
+def now_iso() -> str:
+    return datetime.now(UTC).isoformat()
+
+
+def clean_number(value: Any, digits: int = 2) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return round(number, digits)
+
+
+def compact_number(value: Any) -> str:
+    number = clean_number(value, 0)
+    if number is None:
+        return "--"
+    return f"{number:,.0f}"
+
+
+def compact_money(value: Any) -> str:
+    number = clean_number(value, 2)
+    if number is None:
+        return "--"
+    abs_value = abs(number)
+    if abs_value >= 1_000_000_000:
+        return f"{number / 1_000_000_000:.2f}B"
+    if abs_value >= 1_000_000:
+        return f"{number / 1_000_000:.2f}M"
+    if abs_value >= 1_000:
+        return f"{number / 1_000:.2f}K"
+    return f"{number:.0f}"
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def existing_name_map(*paths: Path) -> dict[str, dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for path in paths:
+        payload = read_json(path)
+        if isinstance(payload.get("rows"), list):
+            rows.extend(payload["rows"])
+        boards = payload.get("boards")
+        if isinstance(boards, dict):
+            for board in boards.values():
+                if isinstance(board, dict) and isinstance(board.get("rows"), list):
+                    rows.extend(board["rows"])
+    return {str(row.get("symbol", "")).upper(): row for row in rows if row.get("symbol")}
+
+
+def latest_trade_date(data_root: Path) -> str:
+    universe_dir = data_root / "features" / "polygon" / "universe" / "daily_tradable_universe_by_year"
+    files = sorted(universe_dir.glob("universe_*.parquet"))
+    if not files:
+        raise FileNotFoundError(f"No universe files found in {universe_dir}")
+    latest = pd.concat((pd.read_parquet(path, columns=["trade_date"]) for path in files[-2:]), ignore_index=True)
+    return str(latest["trade_date"].max())
+
+
+def load_universe(data_root: Path, as_of: str) -> pd.DataFrame:
+    year = int(as_of[:4])
+    path = data_root / "features" / "polygon" / "universe" / "daily_tradable_universe_by_year" / f"universe_{year}.parquet"
+    columns = [
+        "symbol",
+        "trade_date",
+        "close",
+        "volume",
+        "dollar_volume",
+        "median_dollar_volume_20d",
+        "name",
+        "type",
+        "primary_exchange",
+        "is_common_or_adr",
+        "tradable_core",
+    ]
+    df = pd.read_parquet(path, columns=columns)
+    df["trade_date"] = df["trade_date"].astype(str)
+    latest = df[df["trade_date"] == as_of].copy()
+    if latest.empty:
+        raise ValueError(f"No universe rows for {as_of}")
+    return latest
+
+
+def load_daily(data_root: Path, as_of: str) -> pd.DataFrame:
+    year = int(as_of[:4])
+    root = data_root / "processed" / "polygon" / "stocks_split_adjusted" / "1d"
+    paths = [root / f"daily_split_adjusted_{year - 1}.parquet", root / f"daily_split_adjusted_{year}.parquet"]
+    existing = [path for path in paths if path.exists()]
+    if not existing:
+        raise FileNotFoundError(f"No adjusted daily parquet files found in {root}")
+    columns = ["symbol", "trade_date", "adj_close", "adj_volume"]
+    daily = pd.concat((pd.read_parquet(path, columns=columns) for path in existing), ignore_index=True)
+    daily["trade_date"] = daily["trade_date"].astype(str)
+    daily = daily[daily["trade_date"] <= as_of].dropna(subset=["symbol", "trade_date", "adj_close"])
+    return daily.sort_values(["symbol", "trade_date"]).reset_index(drop=True)
+
+
+def infer_sector(name: str, ticker_type: str) -> str:
+    text = f"{name} {ticker_type}".lower()
+    if ticker_type == "ETF":
+        return "ETF"
+    if any(token in text for token in ["biotech", "therapeutics", "pharma", "medicine", "health"]):
+        return "生物医药"
+    if any(token in text for token in ["semiconductor", "chip", "micro", "technology", "software", "data", "ai"]):
+        return "科技"
+    if any(token in text for token in ["energy", "oil", "gas", "uranium", "solar"]):
+        return "能源"
+    if any(token in text for token in ["bank", "financial", "capital", "insurance"]):
+        return "金融"
+    if any(token in text for token in ["retail", "consumer", "restaurant", "food"]):
+        return "消费"
+    if any(token in text for token in ["industrial", "manufacturing", "construction", "machinery"]):
+        return "工业"
+    return "未分类"
+
+
+def risk_for(row: pd.Series, change: float) -> str:
+    price = float(row.get("price") or 0)
+    adv = float(row.get("median_dollar_volume_20d") or 0)
+    name = str(row.get("company") or "")
+    if price < 1:
+        return "低价股"
+    if abs(change) >= 100 or adv < 5_000_000:
+        return "小盘高波动"
+    if any(token in name.lower() for token in ["biotech", "therapeutics", "pharma"]):
+        return "临床事件驱动"
+    if abs(change) >= 30:
+        return "趋势剧震"
+    return "趋势观察"
+
+
+def action_for(risk: str, change: float) -> str:
+    if "低价" in risk:
+        return "低价股先看是否一日游，连续缩量反弹要谨慎。"
+    if "临床" in risk:
+        return "医药异动先核对临床或监管消息，落地后容易剧震。"
+    if abs(change) >= 100:
+        return "涨跌幅极端，先看是否有并股、融资、财报或公告催化。"
+    if change < -20:
+        return "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。"
+    if change > 20:
+        return "强势股先看成交额能否延续，回踩不破更有复盘价值。"
+    return "先观察成交额和价格是否能延续，再决定是否加入重点复盘。"
+
+
+def build_rows(frame: pd.DataFrame, change_col: str, old_map: dict[str, dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for rank, row in enumerate(frame.head(limit).itertuples(index=False), start=1):
+        item = pd.Series(row._asdict())
+        symbol = str(item["symbol"])
+        previous = old_map.get(symbol, {})
+        company = str(item.get("company") or previous.get("company") or symbol)
+        change = float(item[change_col])
+        sector = previous.get("sector") or infer_sector(company, str(item.get("type") or ""))
+        risk = previous.get("risk") or risk_for(item, change)
+        out.append(
+            {
+                "rank": rank,
+                "symbol": symbol,
+                "company": company,
+                "chineseName": previous.get("chineseName") or symbol,
+                "sector": sector,
+                "risk": risk,
+                "actionNote": previous.get("actionNote") or action_for(risk, change),
+                "change": clean_number(change, 2),
+                "price": clean_number(item.get("price"), 3),
+                "volume": compact_number(item.get("volume")),
+                "marketCap": previous.get("marketCap") or "--",
+            }
+        )
+    return out
+
+
+def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: float) -> tuple[dict[str, Any], dict[str, Any]]:
+    ytd_output = DEFAULT_YTD_OUTPUT
+    movers_output = DEFAULT_MOVERS_OUTPUT
+    old_map = existing_name_map(ytd_output, movers_output)
+
+    universe = load_universe(data_root, as_of)
+    daily = load_daily(data_root, as_of)
+    symbols = set(
+        universe[
+            universe["tradable_core"].fillna(False)
+            & universe["is_common_or_adr"].fillna(False)
+            & (universe["close"].fillna(0) >= 1)
+        ]["symbol"]
+    )
+    daily = daily[daily["symbol"].isin(symbols)]
+
+    close = daily.pivot(index="trade_date", columns="symbol", values="adj_close").ffill()
+    volume = daily.pivot(index="trade_date", columns="symbol", values="adj_volume").fillna(0)
+    current = close.iloc[-1]
+    latest_volume = volume.iloc[-1]
+    year_panel = close.loc[[idx for idx in close.index if str(idx).startswith(as_of[:4])]]
+
+    work = pd.DataFrame({"symbol": current.index, "price": current, "volume": latest_volume})
+    work["return1d"] = (current / close.shift(1).iloc[-1] - 1) * 100
+    work["return5d"] = (current / close.shift(5).iloc[-1] - 1) * 100
+    first_year_price = year_panel.apply(lambda col: col.dropna().iloc[0] if col.dropna().size else None)
+    work["firstYearPrice"] = work["symbol"].map(first_year_price)
+    work["returnYtd"] = (year_panel.iloc[-1] / first_year_price - 1) * 100
+    meta = universe.set_index("symbol")
+    work["company"] = work["symbol"].map(meta["name"]).fillna(work["symbol"])
+    work["type"] = work["symbol"].map(meta["type"]).fillna("")
+    work["median_dollar_volume_20d"] = work["symbol"].map(meta["median_dollar_volume_20d"]).fillna(0)
+    work = work.dropna(subset=["price", "return1d", "return5d", "returnYtd"])
+
+    ytd_work = work[
+        (work["firstYearPrice"].fillna(0) >= 1)
+        & (work["returnYtd"].abs() <= max_ytd_return)
+        & (work["median_dollar_volume_20d"].fillna(0) >= 1_000_000)
+    ].copy()
+    ytd_rows = build_rows(
+        ytd_work.sort_values("returnYtd", ascending=False).rename(columns={"returnYtd": "changeYtd"}),
+        "changeYtd",
+        old_map,
+        limit,
+    )
+    for row in ytd_rows:
+        row["changeYtd"] = row.pop("change")
+
+    day_rows = build_rows(
+        work.assign(abs_return=work["return1d"].abs()).sort_values("abs_return", ascending=False),
+        "return1d",
+        old_map,
+        limit,
+    )
+    week_rows = build_rows(
+        work.assign(abs_return=work["return5d"].abs()).sort_values("abs_return", ascending=False),
+        "return5d",
+        old_map,
+        limit,
+    )
+
+    ytd = {
+        "updatedAt": as_of,
+        "generatedAt": now_iso(),
+        "source": "Polygon split-adjusted daily bars + latest tradable universe",
+        "rows": ytd_rows,
+    }
+    movers = {
+        "updatedAt": as_of,
+        "generatedAt": now_iso(),
+        "source": "Polygon split-adjusted daily bars + latest tradable universe",
+        "boards": {
+            "day": {
+                "title": "24h 涨跌幅榜",
+                "periodLabel": "24h",
+                "referenceLabel": "前收估算价",
+                "rows": day_rows,
+            },
+            "week": {
+                "title": "近一周涨跌幅榜",
+                "periodLabel": "1周",
+                "referenceLabel": "周初估算价",
+                "rows": week_rows,
+            },
+        },
+    }
+    return ytd, movers
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build visible market board JSON from local adjusted daily bars.")
+    parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
+    parser.add_argument("--asof", default="")
+    parser.add_argument("--limit", type=int, default=80)
+    parser.add_argument("--max-ytd-return", type=float, default=3000.0)
+    parser.add_argument("--ytd-output", type=Path, default=DEFAULT_YTD_OUTPUT)
+    parser.add_argument("--movers-output", type=Path, default=DEFAULT_MOVERS_OUTPUT)
+    args = parser.parse_args()
+
+    as_of = args.asof or latest_trade_date(args.data_root)
+    ytd, movers = build_payloads(args.data_root, as_of, args.limit, args.max_ytd_return)
+    write_json(args.ytd_output, ytd)
+    write_json(args.movers_output, movers)
+    print(json.dumps({"asOf": as_of, "ytdRows": len(ytd["rows"]), "dayRows": len(movers["boards"]["day"]["rows"]), "weekRows": len(movers["boards"]["week"]["rows"])}, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

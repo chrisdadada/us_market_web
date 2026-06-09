@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美股策略库 · 今日判断台 V2</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f5f7fa;
+        --panel: #ffffff;
+        --panel-soft: #f9fbfd;
+        --ink: #172033;
+        --muted: #687486;
+        --line: #dde5ef;
+        --line-strong: #c6d2e1;
+        --blue: #2f6796;
+        --blue-soft: #edf5fb;
+        --green: #167b5d;
+        --green-soft: #edf8f3;
+        --red: #ba2f24;
+        --red-soft: #fff0ee;
+        --amber: #9b6816;
+        --amber-soft: #fff7e8;
+        --nav: #111827;
+        --shadow: 0 16px 42px rgba(17, 24, 39, 0.08);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(180deg, #fbfcfe 0, var(--page) 300px),
+          var(--page);
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 236px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        border-right: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+        padding: 18px 14px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 6px 20px;
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--nav);
+        color: #fff;
+        font-weight: 900;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand strong { font-size: 16px; }
+      .brand span { color: var(--muted); font-size: 11px; }
+
+      .nav {
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav button {
+        width: 100%;
+        min-height: 50px;
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        align-items: center;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: #3b4250;
+        padding: 6px 10px;
+        text-align: left;
+      }
+
+      .nav button.is-active {
+        border-color: #cbd9e8;
+        background: #f4f8fc;
+        color: var(--blue);
+      }
+
+      .nav span {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: #f3f5f8;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .nav strong { font-size: 15px; }
+
+      .main {
+        min-width: 0;
+        padding: 0 30px 44px;
+      }
+
+      .topbar {
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        background: rgba(251, 252, 254, 0.84);
+      }
+
+      .topbar span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .topbar strong { font-size: 18px; }
+
+      .topbar button {
+        height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        padding: 0 13px;
+        font-weight: 800;
+      }
+
+      .page {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding-top: 22px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) 390px;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .decision-card,
+      .today-card,
+      .evidence-card,
+      .module-card,
+      .watch-card,
+      .table-panel {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        box-shadow: 0 1px 0 rgba(17, 24, 39, 0.025);
+      }
+
+      .decision-card {
+        padding: 22px;
+      }
+
+      .kicker {
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      h1 {
+        max-width: 820px;
+        margin: 10px 0 0;
+        color: var(--nav);
+        font-size: 34px;
+        line-height: 1.25;
+        letter-spacing: 0;
+      }
+
+      .decision-card > p {
+        max-width: 820px;
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.75;
+      }
+
+      .decision-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .pill {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel-soft);
+        color: #526072;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .pill.positive { background: var(--green-soft); color: var(--green); border-color: #cdeade; }
+      .pill.watch { background: var(--amber-soft); color: var(--amber); border-color: #f1dfba; }
+
+      .decision-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 20px;
+      }
+
+      .decision-actions button {
+        height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        padding: 0 13px;
+        font-weight: 850;
+      }
+
+      .decision-actions button:first-child {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: #fff;
+      }
+
+      .today-card {
+        padding: 18px;
+      }
+
+      .card-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .card-head strong {
+        color: var(--nav);
+        font-size: 18px;
+      }
+
+      .card-head span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .todo-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .todo {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+        padding: 12px;
+      }
+
+      .todo header {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .todo strong {
+        color: var(--nav);
+        font-size: 15px;
+      }
+
+      .todo em {
+        color: var(--blue);
+        font-style: normal;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .todo p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .evidence-card {
+        min-width: 0;
+        padding: 14px;
+      }
+
+      .evidence-card span,
+      .module-card span,
+      .watch-card span,
+      .table-panel span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .evidence-card strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--nav);
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .evidence-card p {
+        margin: 9px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .module-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .module-card,
+      .watch-card,
+      .table-panel {
+        padding: 16px;
+      }
+
+      .signal-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .signal-row {
+        display: grid;
+        grid-template-columns: 110px minmax(0, 1fr) 82px;
+        gap: 10px;
+        align-items: center;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+      }
+
+      .signal-row b {
+        color: var(--nav);
+      }
+
+      .signal-row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .signal-row em {
+        border-radius: 999px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        padding: 5px 8px;
+        font-style: normal;
+        font-size: 12px;
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .watch-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .watch-card strong {
+        display: block;
+        margin-top: 9px;
+        color: var(--nav);
+        font-size: 20px;
+      }
+
+      .watch-card p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .watch-card button {
+        height: 32px;
+        margin-top: 12px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        padding: 0 11px;
+        font-weight: 820;
+      }
+
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 12px;
+      }
+
+      .table-list {
+        display: grid;
+        margin-top: 12px;
+      }
+
+      .table-row {
+        display: grid;
+        grid-template-columns: 70px minmax(0, 1fr) 120px 84px;
+        gap: 10px;
+        align-items: center;
+        min-height: 42px;
+        border-top: 1px solid var(--line);
+      }
+
+      .table-row b {
+        color: var(--nav);
+      }
+
+      .table-row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .bar {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf1f5;
+      }
+
+      .bar i {
+        display: block;
+        width: var(--level);
+        height: 100%;
+        border-radius: inherit;
+        background: var(--blue);
+      }
+
+      .next-links {
+        display: grid;
+        gap: 9px;
+        margin-top: 12px;
+      }
+
+      .next-links a {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+        color: var(--ink);
+        padding: 11px 12px;
+        text-decoration: none;
+        font-weight: 850;
+      }
+
+      .next-links em {
+        color: var(--muted);
+        font-style: normal;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="#">
+          <span class="brand-mark">M</span>
+          <span><strong>美股策略库</strong><span>美股研究工具</span></span>
+        </a>
+        <nav class="nav">
+          <button class="is-active"><span>总览</span><strong>今日判断台</strong></button>
+          <button><span>温度</span><strong>市场温度计</strong></button>
+          <button><span>观察</span><strong>预期改善观察</strong></button>
+          <button><span>强弱</span><strong>全市场强弱</strong></button>
+          <button><span>自选</span><strong>观察池</strong></button>
+          <button><span>财报</span><strong>财报观察</strong></button>
+          <button><span>行情</span><strong>涨跌幅榜</strong></button>
+          <button><span>流向</span><strong>期权流向</strong></button>
+          <button><span>信号</span><strong>趋势信号</strong></button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div><span>策略总览</span><strong>今日判断台</strong></div>
+          <div><button>登录</button> <button>升级付费</button></div>
+        </header>
+
+        <section class="page">
+          <section class="hero">
+            <article class="decision-card">
+              <span class="kicker">今日判断 · 2026-06-09</span>
+              <h1>科技主线仍在，但不是全面进攻；今天只跟踪 QQQ 期权确认、半导体强弱和利率压力。</h1>
+              <p>市场温度处在中性偏强，强弱榜仍由科技和半导体领跑；期权流向显示 QQQ 权利金领先，但利率没有明显缓解。今天适合把候选放进观察池，等价格确认，而不是追所有异动。</p>
+              <div class="decision-meta">
+                <span class="pill positive">市场温度 64 · 中性偏强</span>
+                <span class="pill positive">强弱主线：科技</span>
+                <span class="pill">期权焦点：QQQ</span>
+                <span class="pill watch">风险：10Y 高位</span>
+                <span class="pill">数据：日线非实时</span>
+              </div>
+              <div class="decision-actions">
+                <button>打开今日观察池</button>
+                <button>看期权流向</button>
+                <button>看强弱榜</button>
+              </div>
+            </article>
+
+            <aside class="today-card">
+              <div class="card-head"><strong>今天只看这 3 件事</strong><span>PRIORITY</span></div>
+              <div class="todo-list">
+                <article class="todo">
+                  <header><strong>QQQ 期权是否继续确认</strong><em>高</em></header>
+                  <p>ETF 期权样本里 QQQ 偏多权利金领先；若价格不确认，降级为噪音。</p>
+                </article>
+                <article class="todo">
+                  <header><strong>半导体强弱是否扩散</strong><em>中</em></header>
+                  <p>NVDA / AMD / AVGO 是观察核心；只看强势延续，不看低质补涨。</p>
+                </article>
+                <article class="todo">
+                  <header><strong>利率是否压制估值</strong><em>中</em></header>
+                  <p>10Y 仍在高位，指数估值和高 PE 股票需要更多价格确认。</p>
+                </article>
+              </div>
+            </aside>
+          </section>
+
+          <section class="evidence-grid">
+            <article class="evidence-card">
+              <span>市场温度计</span>
+              <strong>64</strong>
+              <p>环境可观察，但不是满仓进攻。</p>
+            </article>
+            <article class="evidence-card">
+              <span>期权流向</span>
+              <strong>QQQ</strong>
+              <p>6 日 ETF 样本中偏多权利金领先。</p>
+            </article>
+            <article class="evidence-card">
+              <span>全市场强弱</span>
+              <strong>科技</strong>
+              <p>强势集中在科技和半导体。</p>
+            </article>
+            <article class="evidence-card">
+              <span>观察池</span>
+              <strong>12 只</strong>
+              <p>今天优先复盘高确认候选。</p>
+            </article>
+          </section>
+
+          <section class="module-grid">
+            <article class="module-card">
+              <div class="card-head"><strong>证据链</strong><span>FACT / EVIDENCE / ACTION</span></div>
+              <div class="signal-list">
+                <div class="signal-row">
+                  <b>市场环境</b>
+                  <p>市场温度中性偏强，但利率压力没有解除。</p>
+                  <em>观察</em>
+                </div>
+                <div class="signal-row">
+                  <b>资金线索</b>
+                  <p>期权流向显示 QQQ 活跃度更高，SPY 次之。</p>
+                  <em>确认</em>
+                </div>
+                <div class="signal-row">
+                  <b>个股线索</b>
+                  <p>强弱榜优先看半导体与软件，避开无成交额确认的小票。</p>
+                  <em>筛选</em>
+                </div>
+                <div class="signal-row">
+                  <b>下一步</b>
+                  <p>把 QQQ、NVDA、AMD、AVGO 放进今日观察池，等待价格确认。</p>
+                  <em>行动</em>
+                </div>
+              </div>
+            </article>
+
+            <div class="watch-grid">
+              <article class="watch-card">
+                <span>期权流向</span>
+                <strong>QQQ 偏多权利金 $16.7M</strong>
+                <p>当前为 Call/Put 活跃度代理，不代表逐笔主动买入。</p>
+                <button>查看详情</button>
+              </article>
+              <article class="watch-card">
+                <span>财报观察</span>
+                <strong>预期改善候选</strong>
+                <p>只看财报后价格确认和机构预期改善重合的股票。</p>
+                <button>打开榜单</button>
+              </article>
+              <article class="watch-card">
+                <span>涨跌幅榜</span>
+                <strong>异动先解释原因</strong>
+                <p>涨幅、成交额、风险标签一起看，避免只追排名。</p>
+                <button>看行情</button>
+              </article>
+              <article class="watch-card">
+                <span>观察池</span>
+                <strong>今日复盘 4 只</strong>
+                <p>确认、继续观察、降低频率三种动作。</p>
+                <button>去复盘</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="bottom-grid">
+            <article class="table-panel">
+              <div class="card-head"><strong>今日候选</strong><span>按确认优先级排序</span></div>
+              <div class="table-list">
+                <div class="table-row"><b>QQQ</b><p>期权偏多 + 科技主线</p><div class="bar" style="--level:92%"><i></i></div><span>先看确认</span></div>
+                <div class="table-row"><b>NVDA</b><p>半导体强弱领先</p><div class="bar" style="--level:86%"><i></i></div><span>等回踩</span></div>
+                <div class="table-row"><b>AMD</b><p>强弱改善，成交额放大</p><div class="bar" style="--level:74%"><i></i></div><span>观察</span></div>
+                <div class="table-row"><b>AVGO</b><p>财报与趋势共振候选</p><div class="bar" style="--level:69%"><i></i></div><span>观察</span></div>
+              </div>
+            </article>
+            <article class="table-panel">
+              <div class="card-head"><strong>继续深入</strong><span>按问题进入</span></div>
+              <div class="next-links">
+                <a href="#">市场今天能不能做？ <em>市场温度</em></a>
+                <a href="#">资金在看哪里？ <em>期权流向</em></a>
+                <a href="#">谁真正强？ <em>全市场强弱</em></a>
+                <a href="#">为什么异动？ <em>财报 / 事件</em></a>
+                <a href="#">我今天做什么？ <em>观察池</em></a>
+              </div>
+            </article>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
