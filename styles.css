@@ -3669,20 +3669,25 @@ select:focus-visible {
 .temperature-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 16px;
+  gap: 0;
   align-items: stretch;
-}
-
-.temperature-copy,
-.thermometer-card,
-.temperature-reminder {
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--panel);
 }
 
+.temperature-copy,
+.thermometer-card,
+.temperature-reminder {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .temperature-copy {
-  padding: 22px;
+  border-right: 1px solid var(--line);
+  padding: 20px 22px;
 }
 
 .temperature-copy span,
@@ -3691,12 +3696,13 @@ select:focus-visible {
   display: block;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 620;
 }
 
 .temperature-copy h2 {
-  margin: 12px 0 0;
-  font-size: clamp(26px, 3vw, 38px);
+  margin: 10px 0 0;
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 560;
   letter-spacing: 0;
 }
 
@@ -3721,9 +3727,9 @@ select:focus-visible {
   display: inline-flex;
   min-height: 30px;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 560;
   padding: 0 10px;
 }
 
@@ -3740,26 +3746,26 @@ select:focus-visible {
 .thermometer-card {
   display: grid;
   align-content: center;
-  padding: 22px;
+  padding: 20px;
 }
 
 .thermometer-scale {
   position: relative;
-  height: 18px;
+  height: 12px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--blue) 0 38%, var(--amber) 38% 68%, var(--positive) 68% 100%);
+  background: linear-gradient(90deg, #7f9ab0 0 38%, #c9b26b 38% 68%, #7ba995 68% 100%);
 }
 
 .thermometer-scale i {
   position: absolute;
   top: 50%;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   transform: translate(-50%, -50%);
   border: 3px solid #fff;
   border-radius: 50%;
   background: var(--nav);
-  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.2);
+  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.18);
 }
 
 .thermometer-labels {
@@ -3779,8 +3785,9 @@ select:focus-visible {
 .thermometer-card strong {
   display: block;
   margin-top: 18px;
-  color: var(--blue);
-  font-size: 42px;
+  color: var(--nav);
+  font-size: 34px;
+  font-weight: 560;
   line-height: 1;
 }
 
@@ -3801,10 +3808,10 @@ select:focus-visible {
 
 .macro-monitor-board {
   overflow: hidden;
-  border: 1px solid #d9e2ec;
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
   background: #fff;
-  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.04);
+  box-shadow: none;
 }
 
 .macro-monitor-head {
@@ -3821,15 +3828,16 @@ select:focus-visible {
 .macro-factor-board > span,
 .macro-asset-board > span {
   display: block;
-  color: var(--blue);
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 620;
 }
 
 .macro-monitor-head h2 {
   margin: 6px 0 0;
   color: var(--nav);
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 560;
   line-height: 1.18;
 }
 
@@ -3872,8 +3880,8 @@ select:focus-visible {
 
 .macro-composite-copy strong {
   color: var(--nav);
-  font-size: 44px;
-  font-weight: 950;
+  font-size: 36px;
+  font-weight: 560;
   line-height: 0.95;
 }
 
@@ -3881,7 +3889,7 @@ select:focus-visible {
   margin: 0;
   color: #4b5563;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 520;
   line-height: 1.55;
 }
 
@@ -3917,7 +3925,7 @@ select:focus-visible {
 .macro-asset-list b {
   color: var(--nav);
   font-size: 13px;
-  font-weight: 950;
+  font-weight: 560;
   line-height: 1.25;
 }
 
@@ -3950,7 +3958,7 @@ select:focus-visible {
 .macro-factor-bars strong {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 560;
   text-align: right;
 }
 
@@ -3959,14 +3967,14 @@ select:focus-visible {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 7px 12px;
   align-items: start;
-  border: 1px solid #edf2f7;
-  border-radius: 8px;
-  background: #fbfdff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--panel-subtle);
   padding: 10px 11px;
 }
 
 .macro-asset-list div:last-child {
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid var(--line);
   padding-bottom: 10px;
 }
 
@@ -3978,7 +3986,7 @@ select:focus-visible {
   background: var(--blue-soft);
   color: var(--blue);
   font-size: 13px;
-  font-weight: 950;
+  font-weight: 560;
   padding: 0 8px;
   white-space: nowrap;
 }
@@ -3988,7 +3996,7 @@ select:focus-visible {
   color: var(--muted);
   font-size: 12px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 520;
   line-height: 1.35;
 }
 
@@ -4029,7 +4037,7 @@ select:focus-visible {
 .macro-monitor-x {
   fill: #7a8494;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 560;
 }
 
 .macro-monitor-area {
@@ -4038,7 +4046,7 @@ select:focus-visible {
 
 .macro-monitor-line {
   fill: none;
-  stroke: #245f99;
+  stroke: var(--chart-blue);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.4;
@@ -4064,19 +4072,19 @@ select:focus-visible {
 .macro-monitor-callout text {
   fill: #cbd5e1;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 560;
 }
 
 .macro-monitor-callout .macro-monitor-callout-value {
   fill: #fff;
-  font-size: 22px;
-  font-weight: 950;
+  font-size: 20px;
+  font-weight: 620;
 }
 
 .macro-monitor-callout .macro-monitor-callout-date {
   fill: #94a3b8;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 560;
 }
 
 .macro-chart-empty {
@@ -4084,13 +4092,17 @@ select:focus-visible {
   min-height: 240px;
   place-items: center;
   color: var(--muted);
-  font-weight: 900;
+  font-weight: 560;
 }
 
 .risk-scoreboard {
   display: grid;
   grid-template-columns: 0.8fr 1.1fr 1.1fr;
-  gap: 12px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
 }
 
 .risk-scoreboard div,
@@ -4108,7 +4120,14 @@ select:focus-visible {
 
 .risk-scoreboard div {
   min-height: 150px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
   padding: 18px;
+}
+
+.risk-scoreboard div:last-child {
+  border-right: 0;
 }
 
 .risk-scoreboard span,
@@ -4121,14 +4140,15 @@ select:focus-visible {
   display: block;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 620;
 }
 
 .risk-scoreboard strong {
   display: block;
-  margin-top: 12px;
-  color: var(--blue);
-  font-size: 28px;
+  margin-top: 10px;
+  color: var(--nav);
+  font-size: 24px;
+  font-weight: 560;
   line-height: 1;
 }
 
@@ -6910,14 +6930,22 @@ h1 {
 .market-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
   margin-bottom: 12px;
 }
 
 .market-board-brief {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
   margin-bottom: 12px;
 }
 
@@ -6940,13 +6968,27 @@ h1 {
 
 .market-strip div {
   min-width: 0;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
   padding: 12px 14px;
+}
+
+.market-strip div:last-child {
+  border-right: 0;
 }
 
 .market-board-brief article {
   min-width: 0;
   min-height: 126px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
   padding: 14px;
+}
+
+.market-board-brief article:last-child {
+  border-right: 0;
 }
 
 .market-board-brief span,
@@ -6957,14 +6999,15 @@ h1 {
   display: block;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 620;
 }
 
 .market-strip strong {
   display: block;
   margin-top: 6px;
   color: var(--ink);
-  font-size: 22px;
+  font-size: 20px;
+  font-weight: 560;
   line-height: 1;
 }
 
@@ -6972,7 +7015,8 @@ h1 {
   display: block;
   margin-top: 8px;
   color: var(--nav);
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 560;
   line-height: 1.3;
 }
 
@@ -7011,7 +7055,7 @@ h1 {
   color: #526072;
   cursor: pointer;
   padding: 0 10px;
-  font-weight: 800;
+  font-weight: 560;
 }
 
 .market-visual-tabs button.is-active {
@@ -8919,7 +8963,7 @@ h1 {
 .leader-copy {
   min-width: 0;
   border-right: 1px solid var(--line);
-  padding: 16px;
+  padding: 18px;
 }
 
 .market-macro-filter {
@@ -8980,11 +9024,11 @@ h1 {
   align-items: center;
   min-height: 26px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: #fafafa;
   color: var(--blue);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 560;
   padding: 0 10px;
 }
 
@@ -8998,14 +9042,16 @@ h1 {
 
 .leader-heading h2 {
   color: var(--nav);
-  font-size: clamp(34px, 4.5vw, 48px);
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 560;
   line-height: 1;
 }
 
 .leader-heading strong {
   display: block;
   max-width: 100%;
-  font-size: clamp(20px, 2.4vw, 26px);
+  font-size: clamp(18px, 2.2vw, 24px);
+  font-weight: 560;
   line-height: 1.12;
   overflow-wrap: anywhere;
   word-break: keep-all;
@@ -9031,11 +9077,11 @@ h1 {
   display: inline-flex;
   align-items: center;
   min-height: 26px;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--blue-soft);
   color: var(--blue);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 560;
   padding: 0 9px;
   white-space: nowrap;
 }
@@ -9069,6 +9115,7 @@ h1 {
   display: block;
   margin-top: 7px;
   font-size: clamp(19px, 2.4vw, 24px);
+  font-weight: 560;
   line-height: 1;
 }
 
@@ -9084,9 +9131,9 @@ h1 {
 .market-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-  gap: 12px;
+  gap: 10px;
   border-bottom: 1px solid var(--line);
-  background: #f7fafc;
+  background: var(--panel-subtle);
   padding: 14px;
 }
 
@@ -9103,12 +9150,12 @@ h1 {
 
 .market-observation-card:hover,
 .market-observation-card.is-selected {
-  border-color: rgba(47, 103, 150, 0.35);
-  box-shadow: 0 14px 32px rgba(42, 77, 112, 0.1);
+  border-color: rgba(59, 102, 134, 0.35);
+  box-shadow: none;
 }
 
 .market-observation-card.is-selected {
-  box-shadow: inset 3px 0 0 var(--blue), 0 14px 32px rgba(42, 77, 112, 0.1);
+  box-shadow: inset 3px 0 0 var(--blue);
 }
 
 .market-card-head {
@@ -9122,7 +9169,8 @@ h1 {
   display: block;
   margin-top: 6px;
   color: var(--nav);
-  font-size: 24px;
+  font-size: 21px;
+  font-weight: 560;
   line-height: 1;
 }
 
@@ -9143,7 +9191,7 @@ h1 {
   color: #4f5866;
   font-size: 12px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: 560;
   padding: 0 9px;
   white-space: nowrap;
 }
@@ -9218,6 +9266,7 @@ h1 {
 .market-table-title strong {
   color: var(--nav);
   font-size: 15px;
+  font-weight: 560;
 }
 
 .market-row {
@@ -9257,7 +9306,7 @@ h1 {
   background: transparent;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 560;
   padding: 0 12px;
   white-space: nowrap;
 }
@@ -9614,7 +9663,11 @@ tbody tr:last-child td {
 .leader-panel:hover,
 .market-detail-panel:hover,
 .ranking-panel:hover,
-.rail-card:hover,
+.rail-card:hover {
+  border-color: rgba(59, 102, 134, 0.17);
+  box-shadow: none;
+}
+
 .course-card:hover,
 .strategy-card:hover,
 .price-card:hover,
