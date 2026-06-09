@@ -10506,6 +10506,107 @@ tbody tr:last-child td {
   color: var(--ink);
 }
 
+/* Final visual pass for core product surfaces. */
+.page-view:not([data-view="subscription"]):not([data-view="admin"]) :where(
+  .section-title h2,
+  .card-head h2,
+  .panel-head strong,
+  .market-table-title strong,
+  .event-table-title strong,
+  .quality-chart-head strong,
+  .calendar-panel-head strong,
+  .module-head strong,
+  th
+) {
+  font-weight: 560;
+}
+
+.page-view:not([data-view="subscription"]):not([data-view="admin"]) :where(
+  .eyebrow,
+  .source span,
+  .section-title span,
+  .card-head span,
+  .panel-head span,
+  .market-table-title span,
+  .event-table-title span,
+  .quality-chart-head span,
+  .module-head span,
+  table th
+) {
+  font-weight: 620;
+}
+
+.page-view:not([data-view="subscription"]):not([data-view="admin"]) :where(
+  .rank-pill,
+  .risk-pill,
+  .tag-row span,
+  .sector-chip,
+  .watchlist-action,
+  .inline-stock-link,
+  .icon-action,
+  .market-card-head em,
+  .event-card-head em,
+  .stock-badge-row span,
+  .stock-reason-list b,
+  .watchlist-status-row b,
+  .watchlist-status-row span,
+  .watchlist-status-row em,
+  .watchlist-data-row span,
+  .signal-feed em,
+  .signal-theme-pill,
+  .options-rank-row em,
+  .calendar-impact,
+  .flow-signal
+) {
+  border-radius: var(--radius-control);
+  font-weight: 560;
+}
+
+.page-view:not([data-view="subscription"]):not([data-view="admin"]) :where(
+  .market-observation-card,
+  .event-observation-card,
+  .watchlist-card,
+  .stock-hub-card,
+  .quality-chart-card,
+  .market-chart-card,
+  .dashboard-snapshot-card,
+  .macro-composite-card,
+  .macro-factor-board,
+  .macro-asset-board,
+  .macro-series-card,
+  .valuation-chart-panel
+):hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.page-view:not([data-view="subscription"]):not([data-view="admin"]) :where(
+  .market-observation-card.is-selected,
+  .event-observation-card.is-selected,
+  .quality-row.is-selected,
+  .event-row.is-selected,
+  .market-row.is-selected,
+  .signal-state-row.is-selected
+) {
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+
+.page-view:not([data-view="subscription"]):not([data-view="admin"]) :where(
+  .dashboard-snapshot-card,
+  .market-chart-card,
+  .quality-chart-card,
+  .macro-composite-card,
+  .macro-factor-board,
+  .macro-asset-board,
+  .macro-series-card,
+  .valuation-chart-panel
+) {
+  border-color: var(--line);
+  border-radius: var(--radius-panel);
+  background: #fff;
+  box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
