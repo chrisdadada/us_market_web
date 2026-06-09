@@ -1,0 +1,21 @@
+{
+  "name": "us-market-web",
+  "version": "1.0.0",
+  "private": true,
+  "main": "app.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "bash scripts/run_release_gate.sh",
+    "test:routes": "node scripts/test_frontend_routes.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

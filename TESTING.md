@@ -7,10 +7,16 @@
 每次上线前在项目根目录运行：
 
 ```bash
-python3 -m unittest tests.test_release_gate -v
+bash scripts/run_release_gate.sh
 ```
 
-当前门禁会启动一套临时 API 服务和临时 SQLite 数据库，不会污染线上或本地正式数据。
+当前门禁会启动一套临时 API 服务和临时 SQLite 数据库，不会污染线上或本地正式数据。它也会启动本地静态前端服务，用无头浏览器检查关键页面路由。
+
+如果是第一次在本机运行前端浏览器回归，先安装 Node 依赖：
+
+```bash
+npm install
+```
 
 ## 用户矩阵
 
@@ -31,6 +37,9 @@ python3 -m unittest tests.test_release_gate -v
 - `/api/pro/trade-records` 免费/付费访问隔离。
 - `/api/admin/users/create` 管理员创建免费、付费、过期会员。
 - `/api/admin/users` 会员总数、有效付费统计、到期状态。
+- 前端路由只显示一个 `.page-view`，避免导航切换后串页。
+- 首页、市场与资金、资金流向工作台高度受控，避免异常内容把页面撑成长滚动。
+- 市场与资金二级导航覆盖 `行情异动`、`板块排行`、`资金流向`、`热力图`，其中资金流向必须切到独立资金页。
 
 ## 后续扩展顺序
 
