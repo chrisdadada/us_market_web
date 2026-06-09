@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>视觉方向 A · 研究简报</title>
+    <style>
+      :root {
+        --page: #fbfaf6;
+        --ink: #202328;
+        --muted: #747b84;
+        --faint: #a6abb1;
+        --rule: #dedbd2;
+        --rule-soft: #eeeae1;
+        --blue: #365f78;
+        --green: #49786a;
+        --red: #9b615e;
+        --amber: #8b7448;
+        font-family: "Inter", "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--page); color: var(--ink); font-size: 14px; line-height: 1.62; font-weight: 390; }
+      .shell { min-height: 100vh; display: grid; grid-template-columns: 214px minmax(0, 1fr); }
+      aside { border-right: 1px solid var(--rule); padding: 24px 18px; }
+      .brand { padding-bottom: 24px; border-bottom: 1px solid var(--rule-soft); margin-bottom: 22px; }
+      .brand strong { display: block; font-size: 17px; font-weight: 500; }
+      .brand span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+      .group { margin-bottom: 24px; }
+      .group-label { color: var(--faint); font-size: 11px; margin-bottom: 8px; }
+      nav a { display: block; height: 32px; border-left: 2px solid transparent; color: #505862; text-decoration: none; padding: 5px 0 0 10px; font-weight: 420; }
+      nav a.active { border-left-color: var(--blue); background: #f2f0e9; color: #244558; }
+      main { padding: 0 36px 52px; }
+      .topbar { height: 60px; display: grid; grid-template-columns: 260px minmax(360px, 520px) 1fr; align-items: center; gap: 24px; border-bottom: 1px solid var(--rule); color: var(--muted); font-size: 13px; }
+      .topbar strong { color: var(--ink); font-weight: 500; }
+      input { width: 100%; height: 32px; border: 1px solid var(--rule); background: rgba(255,255,255,.72); padding: 0 11px; color: var(--ink); font: inherit; }
+      .page { max-width: 1220px; margin: 0 auto; padding-top: 30px; }
+      .hero { display: grid; grid-template-columns: 1fr 330px; gap: 34px; padding-bottom: 28px; border-bottom: 1px solid var(--rule); }
+      .eyebrow { color: var(--blue); font-size: 12px; }
+      h1 { margin: 8px 0 0; max-width: 800px; font-size: 30px; line-height: 1.36; font-weight: 500; letter-spacing: 0; }
+      .lead { margin: 14px 0 0; max-width: 760px; color: var(--muted); font-size: 15px; line-height: 1.9; }
+      .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: var(--muted); font-size: 12px; }
+      .meta span:before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--rule); margin-right: 7px; vertical-align: 1px; }
+      .meta .ok:before { background: var(--green); }
+      .meta .warn:before { background: var(--amber); }
+      .rail { border-left: 1px solid var(--rule); padding-left: 24px; }
+      .section-title { color: var(--faint); font-size: 12px; margin-bottom: 12px; }
+      .focus { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-soft); }
+      .focus b { color: var(--blue); font-weight: 500; }
+      .focus strong { display: block; font-size: 14px; font-weight: 500; }
+      .focus span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+      .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--rule); }
+      .stat { min-height: 116px; padding: 18px; border-right: 1px solid var(--rule); }
+      .stat:last-child { border-right: 0; }
+      .stat span { color: var(--muted); font-size: 12px; }
+      .stat strong { display: block; margin-top: 10px; font-size: 26px; line-height: 1; font-weight: 460; }
+      .stat p { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .grid { display: grid; grid-template-columns: 1fr 360px; gap: 34px; padding-top: 24px; }
+      .block { border-bottom: 1px solid var(--rule); padding-bottom: 22px; margin-bottom: 22px; }
+      .block h2 { margin: 0 0 10px; font-size: 17px; font-weight: 500; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { height: 40px; border-bottom: 1px solid var(--rule-soft); padding: 0 8px; text-align: left; font-weight: 390; }
+      th { color: var(--faint); font-size: 12px; font-weight: 450; }
+      td:last-child, th:last-child { text-align: right; }
+      .green { color: var(--green); } .red { color: var(--red); } .amber { color: var(--amber); }
+      @media (max-width: 960px) { .shell,.hero,.grid { grid-template-columns: 1fr; } aside { display: none; } main { padding: 0 18px 36px; } .topbar { grid-template-columns: 1fr; height: auto; padding: 12px 0; } .rail { border-left: 0; padding-left: 0; } .stats { grid-template-columns: 1fr 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand"><strong>美股策略库</strong><span>Research note style</span></div>
+        <div class="group"><div class="group-label">Daily</div><nav><a class="active">今日总览</a><a>市场</a><a>机会</a><a>风险</a></nav></div>
+        <div class="group"><div class="group-label">Research</div><nav><a>股票库</a><a>事件中心</a><a>估值</a><a>财报</a></nav></div>
+      </aside>
+      <main>
+        <div class="topbar"><div><strong>今日总览</strong> / 2026-06-09</div><input value="NVDA" /><div></div></div>
+        <div class="page">
+          <section class="hero">
+            <div><div class="eyebrow">Daily market view</div><h1>市场偏强，但机会集中在少数高质量股票。</h1><p class="lead">页面像一份每日研究简报：先读结论，再看证据和下钻入口。色彩低饱和，主要依靠分隔线、表格和留白组织信息。</p><div class="meta"><span class="ok">环境偏强</span><span>科技仍是主线</span><span class="warn">估值限制追高</span><span>本周事件：CPI / FOMC</span></div></div>
+            <div class="rail"><div class="section-title">Today focus</div><div class="focus"><b>01</b><div><strong>市场温度维持 60 以上</strong><span>决定是否继续允许风险暴露。</span></div></div><div class="focus"><b>02</b><div><strong>强势股是否扩散</strong><span>只靠少数权重股上涨，趋势质量不足。</span></div></div><div class="focus"><b>03</b><div><strong>事件是否改变风险定价</strong><span>CPI 与 FOMC 影响利率和估值。</span></div></div></div>
+          </section>
+          <section class="stats"><div class="stat"><span>Market temperature</span><strong class="green">64</strong><p>偏强，未过热</p></div><div class="stat"><span>Covered stocks</span><strong>861</strong><p>可搜索覆盖池</p></div><div class="stat"><span>Events</span><strong class="amber">3</strong><p>本周高影响</p></div><div class="stat"><span>Risk</span><strong class="amber">中</strong><p>利率与估值压力</p></div></section>
+          <div class="grid"><section class="block"><h2>判断链</h2><table><tbody><tr><td>市场环境</td><td>科技和软件保持主线，但扩散不充分。</td><td class="green">支持风险</td></tr><tr><td>股票机会</td><td>优先观察 NVDA、MSFT、AMD 等强势股。</td><td>筛选</td></tr><tr><td>风险条件</td><td>若 CPI 超预期，成长股估值压力抬升。</td><td class="amber">限制追高</td></tr></tbody></table></section><aside class="rail"><section class="block"><h2>本周事件</h2><table><tbody><tr><td>06/10</td><td>CPI</td><td class="amber">高</td></tr><tr><td>06/16</td><td>FOMC</td><td class="amber">高</td></tr><tr><td>07/02</td><td>非农</td><td>高</td></tr></tbody></table></section></aside></div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

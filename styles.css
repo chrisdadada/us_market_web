@@ -498,6 +498,138 @@ select:focus-visible {
   line-height: 1.5;
 }
 
+.stocks-view {
+  color: var(--ink);
+}
+
+.stocks-heading {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+
+.stocks-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(150px, 0.6fr));
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.stocks-toolbar label {
+  display: grid;
+  gap: 6px;
+}
+
+.stocks-toolbar span,
+.stocks-table-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stocks-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 22px;
+  padding-top: 18px;
+}
+
+.stocks-main {
+  min-width: 0;
+}
+
+.stocks-table-head {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.stocks-table-head strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 15px;
+}
+
+.stocks-table-wrap {
+  border-top: 0;
+}
+
+.stocks-table-wrap table {
+  min-width: 900px;
+}
+
+.stocks-table-wrap td {
+  vertical-align: middle;
+}
+
+.stocks-change {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.stocks-change.is-positive {
+  color: var(--positive);
+}
+
+.stocks-change.is-negative {
+  color: var(--red);
+}
+
+.table-action {
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: #fff;
+  color: var(--ink);
+  padding: 0 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.stocks-rail {
+  border-left: 1px solid var(--line);
+  padding-left: 20px;
+}
+
+.stocks-rail section {
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 16px;
+  margin-bottom: 16px;
+}
+
+.stocks-rail h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.stocks-rail p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.stocks-rail button {
+  width: 100%;
+  height: 34px;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: #fff;
+  color: var(--ink);
+  margin-top: 8px;
+  text-align: left;
+  padding: 0 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -9317,6 +9449,16 @@ tbody tr:last-child td {
   .global-search-results {
     position: static;
     margin-top: 8px;
+  }
+
+  .stocks-toolbar,
+  .stocks-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .stocks-rail {
+    border-left: 0;
+    padding-left: 0;
   }
 
   .side-nav {

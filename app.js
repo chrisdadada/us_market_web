@@ -72,6 +72,10 @@ const state = {
   globalSearchQuery: "",
   globalSearchIndex: -1,
   searchUniverse: null,
+  stocksQuery: "",
+  stocksPresetFilter: "all",
+  stocksSectorFilter: "all",
+  stocksCapFilter: "all",
 };
 
 const escapeHtml = (value) =>
@@ -179,6 +183,7 @@ const ensurePageData = (page) => {
   if (page === "events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
   if (page === "stock") jobs.push(loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
+  if (page === "stocks") jobs.push(loadGlobalSearchUniverse().then(() => renderStocksPage()));
   return Promise.all(jobs).catch(() => []);
 };
 
@@ -1150,6 +1155,136 @@ const renderGlobalSearchResults = () => {
     ` : ""}
   `;
   setGlobalSearchActive(0);
+};
+
+const stockCapBucketFromItem = (item) => {
+  const cap = marketCapNumber(item.marketCap);
+  if (cap == null) return "unknown";
+  if (cap >= 10000) return "large";
+  if (cap >= 1000) return "mid";
+  return "small";
+};
+
+const normalizeStockLibraryItem = (item) => {
+  const symbol = normalizeStockSymbol(item.symbol);
+  const market = findMarketRow(symbol);
+  const strength = findStrengthRow(symbol);
+  const quality = findQualityRow(symbol);
+  const eventRow = findEventRow(symbol);
+  const signal = signalStateForSymbol(symbol);
+  const name = item.name || market?.company || market?.chineseName || strength?.name || quality?.companyName || "";
+  const sector = item.sector || market?.sector || strength?.sectorProxy || signal?.theme || "未分类";
+  const change = market ? getChange(market) : parseSignedPercent(item.change);
+  const marketCap = item.marketCap || market?.marketCap || "--";
+  const dollarVolume = Number(item.volume || market?.dollarVolume || market?.volumeDollar || 0);
+  const sources = new Set([...(item.sources || [])]);
+  if (market) sources.add("行情");
+  if (strength) sources.add("强弱");
+  if (quality) sources.add("财报");
+  if (eventRow) sources.add("事件");
+  if (isInWatchlist(symbol)) sources.add("观察池");
+  return {
+    symbol,
+    name,
+    sector,
+    change,
+    price: market?.price,
+    marketCap,
+    capBucket: stockCapBucketFromItem({ marketCap }),
+    dollarVolume,
+    hasEvent: Boolean(eventRow),
+    inWatchlist: isInWatchlist(symbol),
+    sources: [...sources],
+  };
+};
+
+const stockLibraryRows = () => {
+  const map = new Map();
+  (state.searchUniverse || []).forEach((row) => mergeSearchRow(map, row, "覆盖池"));
+  buildGlobalSearchItems().forEach((row) => mergeSearchRow(map, row, row.sources?.[0] || "搜索"));
+  return [...map.values()]
+    .map(normalizeStockLibraryItem)
+    .filter((item) => item.symbol)
+    .sort((a, b) => {
+      if (b.dollarVolume !== a.dollarVolume) return b.dollarVolume - a.dollarVolume;
+      return a.symbol.localeCompare(b.symbol);
+    });
+};
+
+const filteredStockLibraryRows = () => {
+  const query = state.stocksQuery.trim().toLowerCase();
+  return stockLibraryRows().filter((item) => {
+    const matchesQuery = !query || [item.symbol, item.name, item.sector].join(" ").toLowerCase().includes(query);
+    const matchesPreset =
+      state.stocksPresetFilter === "all" ||
+      (state.stocksPresetFilter === "liquid" && item.dollarVolume > 0) ||
+      (state.stocksPresetFilter === "watchlist" && item.inWatchlist) ||
+      (state.stocksPresetFilter === "event" && item.hasEvent);
+    const matchesSector = state.stocksSectorFilter === "all" || item.sector === state.stocksSectorFilter;
+    const matchesCap = state.stocksCapFilter === "all" || item.capBucket === state.stocksCapFilter;
+    return matchesQuery && matchesPreset && matchesSector && matchesCap;
+  });
+};
+
+const renderStocksSectorOptions = (rows) => {
+  const select = document.querySelector("#stocksSectorFilter");
+  if (!select) return;
+  const current = select.value || state.stocksSectorFilter;
+  const sectors = [...new Set(rows.map((item) => item.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN"));
+  select.innerHTML = '<option value="all">全部板块</option>' + sectors.map((sector) => `<option value="${escapeHtml(sector)}">${escapeHtml(sector)}</option>`).join("");
+  select.value = sectors.includes(current) ? current : "all";
+  state.stocksSectorFilter = select.value;
+};
+
+const renderStocksPage = () => {
+  const body = document.querySelector("#stocksTableBody");
+  if (!body) return;
+  const asOf = state.meta?.day?.updatedAt || state.marketTemperature?.asOf || "";
+  setText("#stocksAsOf", formatDisplayDate(asOf));
+  if (!state.searchUniverse && !state.loading.searchUniverse) {
+    loadGlobalSearchUniverse().then(renderStocksPage);
+  }
+  if (!state.searchUniverse) {
+    body.innerHTML = `<tr><td colspan="7">正在加载股票库。</td></tr>`;
+    return;
+  }
+  const allRows = stockLibraryRows();
+  renderStocksSectorOptions(allRows);
+  const rows = filteredStockLibraryRows().slice(0, 80);
+  const label = state.stocksQuery
+    ? `搜索：${state.stocksQuery}`
+    : state.stocksPresetFilter === "liquid"
+      ? "高流动性"
+      : state.stocksPresetFilter === "watchlist"
+        ? "观察池"
+        : state.stocksPresetFilter === "event"
+          ? "事件关联"
+          : "按当前筛选展示";
+  setText("#stocksResultLabel", label);
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="7">当前筛选下暂无结果。</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows
+    .map((item) => {
+      const changeClass = Number.isFinite(item.change) && item.change !== 0 ? (item.change > 0 ? "is-positive" : "is-negative") : "";
+      const sourceText = item.sources.filter((source) => source !== "覆盖池").slice(0, 3).join(" / ") || "基础资料";
+      return `
+        <tr>
+          <td><button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</button></td>
+          <td>${escapeHtml(item.name || "--")}</td>
+          <td>${escapeHtml(item.sector || "未分类")}</td>
+          <td>${escapeHtml(item.marketCap || "--")}</td>
+          <td>
+            <span>${escapeHtml(item.price ? formatMoney(Number(item.price)) : "--")}</span>
+            <em class="stocks-change ${escapeHtml(changeClass)}">${escapeHtml(Number.isFinite(item.change) ? formatSignedPct(item.change) : "--")}</em>
+          </td>
+          <td>${escapeHtml(sourceText)}</td>
+          <td><button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button></td>
+        </tr>
+      `;
+    })
+    .join("");
 };
 
 const stockMetric = (label, value, className = "") => `
@@ -2895,6 +3030,14 @@ const pageModules = [
     status: "数据驱动",
   },
   {
+    id: "stocks",
+    kicker: "股票库",
+    title: "股票库",
+    nav: "股票",
+    summary: "搜索和筛选可研究股票，进入个股详情继续复盘。",
+    status: "搜索入口",
+  },
+  {
     id: "mag7",
     kicker: "七姐妹雷达",
     title: "强弱排序",
@@ -3496,6 +3639,9 @@ const showPage = (page, options = {}) => {
   }
   if (page === "events") {
     renderEventTable();
+  }
+  if (page === "stocks") {
+    renderStocksPage();
   }
   if (page === "valuation") {
     renderIndexValuation(state.indexValuation);
@@ -7102,6 +7248,33 @@ const bindEvents = () => {
   });
 
   document.addEventListener("click", (event) => {
+    const stockPreset = event.target.closest("[data-stocks-preset]");
+    if (stockPreset) {
+      event.preventDefault();
+      state.stocksPresetFilter = stockPreset.dataset.stocksPreset || "all";
+      const select = document.querySelector("#stocksPresetFilter");
+      if (select) select.value = state.stocksPresetFilter;
+      renderStocksPage();
+      return;
+    }
+    const stockClear = event.target.closest("[data-stocks-clear]");
+    if (stockClear) {
+      event.preventDefault();
+      state.stocksQuery = "";
+      state.stocksPresetFilter = "all";
+      state.stocksSectorFilter = "all";
+      state.stocksCapFilter = "all";
+      const queryInput = document.querySelector("#stocksSearchInput");
+      const preset = document.querySelector("#stocksPresetFilter");
+      const sector = document.querySelector("#stocksSectorFilter");
+      const cap = document.querySelector("#stocksCapFilter");
+      if (queryInput) queryInput.value = "";
+      if (preset) preset.value = "all";
+      if (sector) sector.value = "all";
+      if (cap) cap.value = "all";
+      renderStocksPage();
+      return;
+    }
     const macroSeriesRange = event.target.closest("[data-macro-series-range]");
     if (macroSeriesRange) {
       event.preventDefault();
@@ -7442,6 +7615,30 @@ const bindEvents = () => {
   if (strengthFactorFilter) strengthFactorFilter.addEventListener("change", (event) => {
     state.strengthFactorFilter = event.target.value;
     renderStrengthTable();
+  });
+
+  const stocksSearchInput = document.querySelector("#stocksSearchInput");
+  if (stocksSearchInput) stocksSearchInput.addEventListener("input", (event) => {
+    state.stocksQuery = event.target.value;
+    renderStocksPage();
+  });
+
+  const stocksPresetFilter = document.querySelector("#stocksPresetFilter");
+  if (stocksPresetFilter) stocksPresetFilter.addEventListener("change", (event) => {
+    state.stocksPresetFilter = event.target.value;
+    renderStocksPage();
+  });
+
+  const stocksSectorFilter = document.querySelector("#stocksSectorFilter");
+  if (stocksSectorFilter) stocksSectorFilter.addEventListener("change", (event) => {
+    state.stocksSectorFilter = event.target.value;
+    renderStocksPage();
+  });
+
+  const stocksCapFilter = document.querySelector("#stocksCapFilter");
+  if (stocksCapFilter) stocksCapFilter.addEventListener("change", (event) => {
+    state.stocksCapFilter = event.target.value;
+    renderStocksPage();
   });
 
   document.querySelectorAll(".quality-tab").forEach((tab) => {

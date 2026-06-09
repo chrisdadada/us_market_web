@@ -35,6 +35,10 @@
             <span>强弱</span>
             <strong>全市场强弱</strong>
           </button>
+          <button class="nav-item" type="button" data-page="stocks">
+            <span>股票</span>
+            <strong>股票库</strong>
+          </button>
           <button class="nav-item" type="button" data-page="mag7">
             <span>七姐</span>
             <strong>七姐妹雷达</strong>
@@ -86,6 +90,7 @@
           <a href="#" data-page-link="courses">课程</a>
           <a href="#" data-page-link="strategies">策略合集</a>
           <a href="#" data-page-link="market">盘前盘后</a>
+          <a href="#" data-page-link="stocks">股票库</a>
           <a href="#" data-page-link="options">期权流向</a>
           <a href="#" data-page-link="strength">行业强弱</a>
           <a href="#" data-page-link="earnings">财报观察</a>
@@ -1855,6 +1860,99 @@
                 <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">本周强势行业</a>
                 <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">小盘股风险名单</a>
                 <a href="#" data-disabled="true" aria-disabled="true" tabindex="-1">美股宏观周报</a>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="page-view stocks-view" data-view="stocks">
+          <div class="page-heading stocks-heading">
+            <div>
+              <p class="eyebrow">股票库</p>
+              <h1>搜索和筛选美股研究标的</h1>
+              <p class="subtitle">按代码、公司名、板块、流动性和事件线索查找股票；具体判断进入个股详情页。</p>
+            </div>
+            <div class="source">
+              <span>数据日期</span>
+              <strong id="stocksAsOf">--</strong>
+            </div>
+          </div>
+
+          <section class="stocks-toolbar" aria-label="股票库筛选">
+            <label>
+              <span>搜索</span>
+              <input id="stocksSearchInput" type="search" placeholder="股票代码、公司名或板块" />
+            </label>
+            <label>
+              <span>分类</span>
+              <select id="stocksPresetFilter">
+                <option value="all">全部股票</option>
+                <option value="liquid">高流动性</option>
+                <option value="watchlist">观察池</option>
+                <option value="event">事件关联</option>
+              </select>
+            </label>
+            <label>
+              <span>板块</span>
+              <select id="stocksSectorFilter">
+                <option value="all">全部板块</option>
+              </select>
+            </label>
+            <label>
+              <span>市值</span>
+              <select id="stocksCapFilter">
+                <option value="all">全部市值</option>
+                <option value="large">大盘</option>
+                <option value="mid">中盘</option>
+                <option value="small">小盘</option>
+                <option value="unknown">待补充</option>
+              </select>
+            </label>
+          </section>
+
+          <div class="stocks-layout">
+            <section class="stocks-main" aria-label="股票列表">
+              <div class="stocks-table-head">
+                <div>
+                  <span>股票列表</span>
+                  <strong id="stocksResultLabel">按当前筛选展示</strong>
+                </div>
+                <button class="ghost-action" type="button" data-stocks-clear>清除筛选</button>
+              </div>
+              <div class="table-wrap stocks-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>代码</th>
+                      <th>公司</th>
+                      <th>板块</th>
+                      <th>市值</th>
+                      <th>价格/涨跌</th>
+                      <th>数据线索</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="stocksTableBody">
+                    <tr><td colspan="7">正在加载股票库。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="stocks-rail" aria-label="股票库说明">
+              <section>
+                <h2>使用方式</h2>
+                <p>先用搜索和筛选缩小范围，再进入个股详情查看价格、强弱、事件、财报和风险。</p>
+              </section>
+              <section>
+                <h2>常用入口</h2>
+                <button type="button" data-stocks-preset="liquid">高流动性</button>
+                <button type="button" data-stocks-preset="watchlist">观察池</button>
+                <button type="button" data-stocks-preset="event">事件关联</button>
+              </section>
+              <section>
+                <h2>字段说明</h2>
+                <p>市值和行业分类会逐步接入更稳定的数据源；待补充字段不会参与关键判断。</p>
               </section>
             </aside>
           </div>
