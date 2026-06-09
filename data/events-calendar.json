@@ -87,7 +87,7 @@
       "type": "manual",
       "impact": "medium",
       "sourceName": "manual placeholder",
-      "relatedModules": ["财报观察", "股票库", "观察池"],
+      "relatedModules": ["财报观察", "股票库", "自选"],
       "relatedAssets": ["MSFT", "AAPL", "AMZN", "META"],
       "summary": "示例内容：先建立财报前观察清单，记录一致预期、指引风险、估值位置和股价趋势；正式财报日期接入后替换为真实日程。"
     },
@@ -112,7 +112,7 @@
     },
     {
       "trigger": "FOMC 偏鹰",
-      "effect": "市场温度中的宏观项降权，观察池优先级向现金流稳定公司倾斜。",
+      "effect": "市场温度中的宏观项降权，自选优先级向现金流稳定公司倾斜。",
       "modules": ["市场", "风险", "股票库"],
       "state": "watch"
     },

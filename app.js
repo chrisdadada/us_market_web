@@ -411,6 +411,7 @@ const parseMoneyLabel = (value) => {
 const formatChangeValue = (row) => {
   if (!row) return "--";
   const change = getChange(row);
+  if (!Number.isFinite(change)) return "--";
   return `${change >= 0 ? "+" : ""}${formatPercent(change)}`;
 };
 
@@ -1033,7 +1034,7 @@ const buildGlobalSearchItems = () => {
   (state.searchUniverse || []).forEach((row) => mergeSearchRow(map, row, "覆盖池"));
   allMarketRows().forEach((row) => mergeSearchRow(map, row, "行情"));
   (state.strength?.rows || []).forEach((row) => mergeSearchRow(map, row, "强弱"));
-  (state.watchlist || []).forEach((row) => mergeSearchRow(map, row, "观察池"));
+  (state.watchlist || []).forEach((row) => mergeSearchRow(map, row, "自选"));
   const coreRows = Array.isArray(state.core?.mag7)
     ? state.core.mag7
     : Array.isArray(state.core?.rows)
@@ -1218,7 +1219,7 @@ const normalizeStockLibraryItem = (item) => {
   if (strength) sources.add("强弱");
   if (quality) sources.add("财报");
   if (eventRow) sources.add("事件");
-  if (isInWatchlist(symbol)) sources.add("观察池");
+  if (isInWatchlist(symbol)) sources.add("自选");
   return {
     symbol,
     name,
@@ -1288,7 +1289,7 @@ const renderStocksPage = () => {
     : state.stocksPresetFilter === "liquid"
       ? "高流动性"
       : state.stocksPresetFilter === "watchlist"
-        ? "观察池"
+        ? "自选"
         : state.stocksPresetFilter === "event"
           ? "事件关联"
           : "按当前筛选展示";
@@ -1528,7 +1529,7 @@ const stockResearchSummary = ({ target, market, strength, quality, eventRow, sig
     || market?.risk
     || "暂无独立风险标签，先看价格、成交额和大盘环境是否继续确认。";
   const nextStep = eventRow
-    ? "先加入观察池，后续看价格是否继续站稳、成交额是否放大，以及市场温度是否恶化。"
+    ? "先加入自选，后续看价格是否继续站稳、成交额是否放大，以及市场温度是否恶化。"
     : quality
       ? "先看财报后的价格承接，再观察后续几天是否继续强于大盘。"
       : "先保留观察，不急于下结论，等待更多数据确认。";
@@ -1700,8 +1701,8 @@ const stockWatchlistState = (symbol) => {
   if (!raw) {
     return {
       active: false,
-      title: "未加入观察池",
-      note: "如果这只股票需要继续跟踪，可以先加入观察池，后续按复盘节奏复盘。",
+      title: "未加入自选",
+      note: "如果这只股票需要继续跟踪，可以先加入自选，后续按复盘节奏复盘。",
       source: "未加入",
       review: "--",
     };
@@ -1710,9 +1711,9 @@ const stockWatchlistState = (symbol) => {
   const review = watchlistReviewPlan(item);
   return {
     active: true,
-    title: review.due ? "观察池待复盘" : "已在观察池",
+    title: review.due ? "自选待复盘" : "已在自选",
     note: watchlistNextStep(item),
-    source: raw.source || "观察池",
+    source: raw.source || "自选",
     review: watchlistReviewLabel(item),
   };
 };
@@ -1811,7 +1812,7 @@ const updateWatchlistReview = (symbol, action) => {
 const watchlistActionButton = (symbol, source = "手动加入") => {
   const target = normalizeStockSymbol(symbol);
   const active = isInWatchlist(target);
-  return `<button class="watchlist-action ${active ? "is-added" : ""}" type="button" data-watchlist-toggle="${escapeHtml(target)}" data-watchlist-source="${escapeHtml(source)}">${active ? "已加入观察池" : "加入观察池"}</button>`;
+  return `<button class="watchlist-action ${active ? "is-added" : ""}" type="button" data-watchlist-toggle="${escapeHtml(target)}" data-watchlist-source="${escapeHtml(source)}">${active ? "已加入自选" : "加入自选"}</button>`;
 };
 
 const watchlistDataSources = (item) => [
@@ -1987,7 +1988,7 @@ const getWatchlistRows = () => {
   return state.watchlist
     .map(enrichWatchlistItem)
     .filter((item) => {
-      if (state.watchlistSourceFilter !== "all" && (item.source || "观察池") !== state.watchlistSourceFilter) return false;
+      if (state.watchlistSourceFilter !== "all" && (item.source || "自选") !== state.watchlistSourceFilter) return false;
       if (!watchlistMatchesView(item)) return false;
       if (!query) return true;
       const haystack = [
@@ -2010,7 +2011,7 @@ const getWatchlistRows = () => {
 const renderWatchlistSourceOptions = (rows) => {
   const select = document.querySelector("#watchlistSourceFilter");
   if (!select) return;
-  const sources = Array.from(new Set(rows.map((item) => item.source || "观察池"))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const sources = Array.from(new Set(rows.map((item) => item.source || "自选"))).sort((a, b) => a.localeCompare(b, "zh-CN"));
   const current = state.watchlistSourceFilter;
   select.innerHTML = '<option value="all">全部来源</option>' + sources.map((source) => `<option value="${escapeHtml(source)}">${escapeHtml(source)}</option>`).join("");
   select.value = sources.includes(current) ? current : "all";
@@ -2025,8 +2026,8 @@ const renderWatchlistDailyPlan = (rows, reviewRows, priorityRows) => {
   if (!focus || !reason || !action || !next) return;
   const top = reviewRows[0] || priorityRows[0] || rows[0];
   if (!top) {
-    focus.textContent = "先加入观察对象";
-    reason.textContent = "观察池会根据复盘分、到期时间和数据覆盖自动排序。";
+    focus.textContent = "先加入自选对象";
+    reason.textContent = "自选会根据复盘分、到期时间和数据覆盖自动排序。";
     action.textContent = "等待观察对象";
     next.textContent = "从涨跌幅榜、强弱、财报或预期改善观察加入股票后，这里会给出下一步。";
     return;
@@ -2126,7 +2127,7 @@ const stockActionChecklist = (symbol) => {
   if (quality) items.push(`财报角度：${quality.userReason || quality.userAngle || "等待更多财报解释"}。`);
   if (eventRow) items.push(`观察线索：${eventRow.reason || eventRow.eventLabel || "先看线索是否继续被价格确认"}。`);
   if (signal) items.push(`趋势信号：${directionLabel(signal.direction, signal.directionText)}，当前表现 ${signal.marketChangePct || "--"}。`);
-  if (!items.length) items.push("先加入观察池，等待更多行情、强弱、财报或信号数据补充。");
+  if (!items.length) items.push("先加入自选，等待更多行情、强弱、财报或信号数据补充。");
   return items.slice(0, 4);
 };
 
@@ -2158,10 +2159,10 @@ const renderWatchlist = () => {
   );
   renderWatchlistDailyPlan(allRows, reviewRows, priorityRows);
   empty.classList.toggle("is-hidden", rows.length > 0);
-  empty.querySelector("strong").textContent = allRows.length ? "当前筛选没有结果" : "还没有加入观察池";
+  empty.querySelector("strong").textContent = allRows.length ? "当前筛选没有结果" : "还没有加入自选";
   empty.querySelector("p").textContent = allRows.length
     ? "换一个复盘状态、加入来源或搜索词再看。"
-    : "在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入观察池”。";
+    : "在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入自选”。";
 
   body.innerHTML = rows
     .map((item) => {
@@ -2189,7 +2190,7 @@ const renderWatchlist = () => {
         </div>
         <div class="watchlist-status-row">
           <b class="${status.className}">${escapeHtml(status.label)}</b>
-          <span>${escapeHtml(item.source || "观察池")}</span>
+          <span>${escapeHtml(item.source || "自选")}</span>
           <span>${escapeHtml(`复盘分 ${priority.score}`)}</span>
           <em>${escapeHtml(watchlistReviewLabel(item))}</em>
         </div>
@@ -2238,7 +2239,7 @@ const renderWatchlist = () => {
         </div>
         <div class="watchlist-card-actions">
           <button class="ghost-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">查看详情</button>
-          <span>${escapeHtml(item.addedAt ? `加入 ${formatDisplayDate(item.addedAt)}` : "观察池")}</span>
+          <span>${escapeHtml(item.addedAt ? `加入 ${formatDisplayDate(item.addedAt)}` : "自选")}</span>
         </div>
       </article>
     `;
@@ -2298,6 +2299,13 @@ const renderStockHub = (symbol) => {
   const sectorRankText = sectorRank > 0 ? `${sectorRank}/${sectorRankRows.length}` : "--";
   const volumeRatioText = volume?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio || "--";
   const marketCapText = market?.marketCap || quality?.marketCap || "--";
+  const peerRows = peers.slice(0, 5);
+  const eventSummary = eventRow
+    ? `${eventRow.eventLabel || eventTypeLabel(eventRow.eventType)} · ${eventRow.eventDate || "日期待补"}`
+    : "暂无事件线索";
+  const earningsSummary = quality
+    ? `${quality.userAngle || "财报观察"} · ${quality.latestEarningsDate || "日期待补"}`
+    : "暂无财报线索";
   const timelineItems = stockTimelineItems(target);
   const actionItems = stockActionChecklist(target);
   const research = stockResearchSummary({ target, market, strength, quality, eventRow, signal });
@@ -2444,6 +2452,41 @@ const renderStockHub = (symbol) => {
       <button type="button">估值</button>
     </section>
 
+    <section class="stock-research-strip" aria-label="单股研究摘要">
+      <article>
+        <div>
+          <span>同板块排行</span>
+          <strong>${escapeHtml(sectorRankText)}</strong>
+        </div>
+        <div class="stock-mini-list">
+          ${
+            peerRows.length
+              ? peerRows.map((peer) => `<b>${escapeHtml(peer.symbol)} <em class="${getChange(peer) >= 0 ? "is-positive" : "is-negative"}">${formatChangeValue(peer)}</em></b>`).join("")
+              : "<p>等待同板块样本。</p>"
+          }
+        </div>
+      </article>
+      <article>
+        <div>
+          <span>资金 / 成交</span>
+          <strong>${escapeHtml(volumeRatioText)}</strong>
+        </div>
+        <div class="stock-mini-grid">
+          <b>24h ${formatChangeValue(day)}</b>
+          <b>近周 ${formatChangeValue(week)}</b>
+          <b>近月 ${formatChangeValue(month)}</b>
+        </div>
+      </article>
+      <article>
+        <div>
+          <span>事件 / 财报</span>
+          <strong>${escapeHtml(eventRow || quality ? "有线索" : "等待线索")}</strong>
+        </div>
+        <p>${escapeHtml(eventSummary)}</p>
+        <p>${escapeHtml(earningsSummary)}${quality?.avgPriceTargetUpsidePct == null ? "" : ` · 目标价空间 ${escapeHtml(targetUpside)}`}</p>
+      </article>
+    </section>
+
     <section class="stock-macro-panel" data-lockable-module="stock-hub-macro" aria-label="单股宏观背景">
       <div class="stock-macro-copy">
         <span>宏观背景</span>
@@ -2482,7 +2525,7 @@ const renderStockHub = (symbol) => {
         <p>${escapeHtml(research.nextStep)}</p>
         <div class="stock-research-actions">
           ${watchlistActionButton(target, eventRow ? "预期改善观察" : "股票详情")}
-          <button class="ghost-action" type="button" data-page-link="watchlist">去观察池</button>
+          <button class="ghost-action" type="button" data-page-link="watchlist">去自选</button>
         </div>
       </article>
       <article class="stock-research-side">
@@ -2587,7 +2630,7 @@ const renderStockHub = (symbol) => {
               : "<b>等待更多行情和公告数据</b>"
           }
         </div>
-        <p class="stock-card-note">${escapeHtml(market?.actionNote || quality?.userRisk || strength?.action || "先看数据是否持续改善，再决定是否加入观察名单。")}</p>
+        <p class="stock-card-note">${escapeHtml(market?.actionNote || quality?.userRisk || strength?.action || "先看数据是否持续改善，再决定是否加入自选名单。")}</p>
       </article>
 
       <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-action-plan">
@@ -3215,7 +3258,7 @@ const pageModules = [
   {
     id: "strength",
     kicker: "全市场强弱",
-    title: "今日观察池",
+    title: "今日强弱榜",
     nav: "强弱",
     summary: "把全市场压缩为重点观察、风险回避和等回踩清单。",
     status: "数据驱动",
@@ -3238,8 +3281,8 @@ const pageModules = [
   },
   {
     id: "watchlist",
-    kicker: "观察池",
-    title: "我的观察池",
+    kicker: "自选",
+    title: "我的自选",
     nav: "自选",
     summary: "集中跟踪从涨跌幅、强弱、财报和信号加入的股票。",
     status: "本地保存",
@@ -3899,7 +3942,7 @@ const renderOptionsFlow = (payload) => {
   if (action) {
     action.dataset.watchlistToggle = symbol;
     action.dataset.watchlistSource = "期权流向";
-    action.textContent = isInWatchlist(symbol) ? "已加入观察池" : "加入观察池";
+    action.textContent = isInWatchlist(symbol) ? "已加入自选" : "加入自选";
   }
   renderOptionsChart(timeline);
   renderOptionsRank("#optionsBullishRows", bullish, "positive");
@@ -4734,7 +4777,7 @@ const renderTable = () => {
             <small class="macro-rank-reason">${escapeHtml(`复盘分 ${priority.score} · ${priority.reason || "等待更多数据"}`)}</small>
             <div class="inline-action-row">
               <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">详情</button>
-              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="涨跌幅榜">${isInWatchlist(row.symbol) ? "已观察" : "加入观察"}</button>
+              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="涨跌幅榜">${isInWatchlist(row.symbol) ? "已自选" : "加入自选"}</button>
             </div>
           </td>
         </tr>
@@ -6060,7 +6103,7 @@ const temperatureWatchPlan = (score, label, position) => {
   }
   if (score >= 50) {
     return [
-      ["先看确认", "只有价格、成交额和事件理由同时站得住，才进入观察池。", true],
+      ["先看确认", "只有价格、成交额和事件理由同时站得住，才进入自选。", true],
       ["少看弱势", "下跌趋势和低流动性股票先放后面，只做低频复盘。", true],
       ["节奏分层", `观察强度参考 ${position}，其余留给回踩确认后的线索。`, false],
       ["等待环境改善", "温度重新进入友好区后，再提升复盘覆盖范围。", false],
@@ -6068,7 +6111,7 @@ const temperatureWatchPlan = (score, label, position) => {
   }
   return [
     ["控制波动暴露", "市场偏防守时，高波动股票和短线追涨线索先降级。", true],
-    ["只看少数强者", "观察池只保留基本面或价格表现非常强的候选。", false],
+    ["只看少数强者", "自选只保留基本面或价格表现非常强的候选。", false],
     ["降低试错", `观察强度参考 ${position}，以等待和复盘为主。`, false],
     ["等温度回升", "VIX、利率和信用压力缓和后，再扩大复盘范围。", false],
   ];
@@ -6377,12 +6420,12 @@ const renderStrengthInsightGrid = () => {
     <article>
       <span>风险提醒</span>
       <strong>${escapeHtml(weakest ? `少看 ${weakest.symbol}` : "避开明显落后")}</strong>
-      <p>${escapeHtml(weakest?.action || "走势持续落后的股票，先从观察池里降级。")}</p>
+      <p>${escapeHtml(weakest?.action || "走势持续落后的股票，先从自选里降级。")}</p>
     </article>
     <article>
       <span>下一步</span>
-      <strong>${escapeHtml(theme ? `主线：${theme.name}` : "加入观察池")}</strong>
-      <p>${escapeHtml(watch ? `${watch.symbol} 更适合等回踩确认；观察池只放熟悉、流动性好的股票。` : "只把熟悉、流动性好的股票加入观察，再等确认。")}</p>
+      <strong>${escapeHtml(theme ? `主线：${theme.name}` : "加入自选")}</strong>
+      <p>${escapeHtml(watch ? `${watch.symbol} 更适合等回踩确认；自选只放熟悉、流动性好的股票。` : "只把熟悉、流动性好的股票加入自选，再等确认。")}</p>
     </article>
   `;
 };
@@ -6472,7 +6515,7 @@ const renderStrengthTable = () => {
             <span>${escapeHtml(row.name)}</span>
             <div class="inline-action-row">
               <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">完整画像</button>
-              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="强弱榜">${isInWatchlist(row.symbol) ? "已加入" : "加入观察"}</button>
+              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="强弱榜">${isInWatchlist(row.symbol) ? "已加入" : "加入自选"}</button>
             </div>
           </td>
           <td class="strength-action-cell">
@@ -6630,7 +6673,7 @@ const renderQualityFocusGrid = (rows) => {
   setText("#qualityFocusDetail", preview ? preview.title : "依据汇总");
   setText(
     "#qualityFocusDetailNote",
-    preview ? `详情页会汇总：${preview.sources}。` : "股票详情会把财报、行情、强弱和观察池状态放在一起看。",
+    preview ? `详情页会汇总：${preview.sources}。` : "股票详情会把财报、行情、强弱和自选状态放在一起看。",
   );
 };
 
@@ -6837,7 +6880,7 @@ const renderQualityTable = () => {
             <span>${escapeHtml(row.companyName || row.name || "")}</span>
             <div class="inline-action-row">
               <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.ticker)}">详情</button>
-              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.ticker)}" data-watchlist-source="财报观察">${isInWatchlist(row.ticker) ? "已观察" : "加入观察"}</button>
+              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.ticker)}" data-watchlist-source="财报观察">${isInWatchlist(row.ticker) ? "已自选" : "加入自选"}</button>
             </div>
           </td>
           <td class="quality-angle-cell" data-label="财报">
@@ -7068,7 +7111,7 @@ const eventDecisionCopy = (rows) => {
     return ["先看高分", `当前有 ${highScore} 只高分候选，优先检查价格和成交是否继续确认。`];
   }
   if (watchRisk >= Math.ceil(rows.length * 0.5)) {
-    return ["降低节奏", "当前波动提醒较多，适合先加入观察池，等待更多确认。"];
+    return ["降低节奏", "当前波动提醒较多，适合先加入自选，等待更多确认。"];
   }
   return ["逐只确认", "先看进入原因，再看20日表现和流动性是否支持继续跟踪。"];
 };
@@ -7181,7 +7224,7 @@ const renderEventFocusGrid = (rows) => {
   setText("#eventFocusDetail", preview ? preview.title : "依据汇总");
   setText(
     "#eventFocusDetailNote",
-    preview ? `详情页会汇总：${preview.sources}。` : "股票详情会把事件、行情、强弱、财报和观察池状态放在一起看。",
+    preview ? `详情页会汇总：${preview.sources}。` : "股票详情会把事件、行情、强弱、财报和自选状态放在一起看。",
   );
 };
 
@@ -7281,7 +7324,7 @@ const renderEventDetail = (row) => {
     <section class="event-report-box">
       <span>下一步复盘</span>
       <strong>${escapeHtml(eventNextReview(row))}</strong>
-      <p>加入观察池后，后续可以按价格确认、成交变化和市场温度变化继续复盘。</p>
+      <p>加入自选后，后续可以按价格确认、成交变化和市场温度变化继续复盘。</p>
     </section>
     <div class="event-detail-grid">
       ${eventMetric(eventDateLabel(row), row.eventDate || "--")}
@@ -7417,7 +7460,7 @@ const renderEventTable = () => {
               <span>${escapeHtml(row.companyName || row.name || "")}</span>
               <div class="inline-action-row">
                 <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(ticker)}">详情</button>
-                <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="预期改善观察">${isInWatchlist(ticker) ? "已观察" : "加入观察"}</button>
+                <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="预期改善观察">${isInWatchlist(ticker) ? "已自选" : "加入自选"}</button>
               </div>
             </div>
           </td>
@@ -7462,7 +7505,7 @@ const renderEventOpportunities = (payload) => {
   setText("#dashboardEventLeader", first ? normalizeStockSymbol(first.ticker || first.symbol) : "等待数据");
   setText("#dashboardEventCount", rows.length ? `${rows.length}` : "--");
   setText("#dashboardEventCopy", first ? eventReasonForUser(first) : "预期改善、财报和机构观点变化会集中展示。");
-  setText("#dashboardEventNote", first?.eventLabel || first?.eventType || "适合先加入观察池，再看价格是否确认。");
+  setText("#dashboardEventNote", first?.eventLabel || first?.eventType || "适合先加入自选，再看价格是否确认。");
   setText("#eventForwardSummary", stats.length ? `${stats.length}组记录` : "待接入");
   renderEventTable();
   renderDashboardFocus();
@@ -8097,7 +8140,7 @@ const bindEvents = () => {
   if (clearWatchlistButton) {
     clearWatchlistButton.addEventListener("click", () => {
       if (!state.watchlist.length) return;
-      if (window.confirm("确定清空观察池吗？")) clearWatchlist();
+      if (window.confirm("确定清空自选吗？")) clearWatchlist();
     });
   }
 

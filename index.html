@@ -49,7 +49,7 @@
             <p>研究</p>
             <a href="#" data-page-link="events">事件中心</a>
             <a href="#" data-page-link="earnings">财报观察</a>
-            <a href="#" data-page-link="watchlist">观察池</a>
+            <a href="#" data-page-link="watchlist">自选</a>
             <a href="#" data-page-link="strategies">策略合集</a>
             <a href="#" data-page-link="courses">课程</a>
           </section>
@@ -279,7 +279,7 @@
                 </div>
                 <b id="dashboardEventCount">--</b>
               </div>
-              <p class="card-note" id="dashboardEventNote">适合先加入观察池，再看价格是否确认。</p>
+              <p class="card-note" id="dashboardEventNote">适合先加入自选，再看价格是否确认。</p>
             </article>
 
             <article class="cockpit-card locked-card desk-panel" data-requires-plan="paid">
@@ -378,8 +378,8 @@
                 <em>已上线</em>
               </button>
               <button class="module-card" type="button" data-page-link="watchlist">
-                <span>自选</span>
-                <strong>观察池</strong>
+                <span>个股</span>
+                <strong>自选</strong>
                 <p>集中跟踪从各模块加入的股票。</p>
                 <em>已上线</em>
               </button>
@@ -734,7 +734,7 @@
                 <h2>市场环境变化提醒</h2>
                 <p>当市场状态切换时，提醒你重新检查观察强度和复盘名单。</p>
               </div>
-              <button type="button" data-page-link="watchlist">查看观察池</button>
+              <button type="button" data-page-link="watchlist">查看自选</button>
             </section>
           </div>
         </section>
@@ -1118,7 +1118,7 @@
           <div class="page-heading workspace-header">
             <div>
               <p class="eyebrow">全市场扫描</p>
-              <h1>今日强弱观察池</h1>
+              <h1>今日强弱榜</h1>
               <p class="subtitle">每天把几千只美股压缩成三张清单：重点观察、风险回避、等回踩。你先看结论，再看理由。</p>
             </div>
             <div class="source source-chip">
@@ -1153,8 +1153,8 @@
           <section class="product-insight-grid evidence-note-row" id="strengthInsightGrid" aria-label="强弱观察说明">
             <article><span>当前怎么看</span><strong>先看相对强弱</strong><p>优先从强于大盘、强于行业的股票里找研究线索。</p></article>
             <article><span>为什么入选</span><strong>看价格和成交</strong><p>短线太热时不急着下结论，等待分歧或回踩后再复盘。</p></article>
-            <article><span>风险提醒</span><strong>避开明显落后</strong><p>走势持续落后的股票，先从观察池里降级。</p></article>
-            <article><span>下一步</span><strong>加入观察池</strong><p>只把熟悉、流动性好的股票加入观察，再等确认。</p></article>
+            <article><span>风险提醒</span><strong>避开明显落后</strong><p>走势持续落后的股票，先从自选里降级。</p></article>
+            <article><span>下一步</span><strong>加入自选</strong><p>只把熟悉、流动性好的股票加入自选，再等确认。</p></article>
           </section>
 
           <div class="strength-layout workspace-main">
@@ -1264,7 +1264,7 @@
                 <div class="locked-preview">
                   <div><span>盘中</span><strong>强弱变化提醒</strong><em>规划中</em></div>
                   <div><span>验证</span><strong>名单后续表现</strong><em>规划中</em></div>
-                  <div><span>名单</span><strong>一键加入观察池</strong><em>规划中</em></div>
+                  <div><span>名单</span><strong>一键加入自选</strong><em>规划中</em></div>
                 </div>
                 <button class="wide-action" type="button" disabled>后续接入</button>
               </section>
@@ -1343,7 +1343,7 @@
             <article>
               <span>详情关注</span>
               <strong id="qualityFocusDetail">依据汇总</strong>
-              <p id="qualityFocusDetailNote">股票详情会把财报、行情、强弱和观察池状态放在一起看。</p>
+              <p id="qualityFocusDetailNote">股票详情会把财报、行情、强弱和自选状态放在一起看。</p>
             </article>
           </section>
 
@@ -1527,7 +1527,7 @@
             <article>
               <span>点进详情看什么</span>
               <strong id="eventFocusDetail">依据汇总</strong>
-              <p id="eventFocusDetailNote">股票详情会把事件、行情、强弱、财报和观察池状态放在一起看。</p>
+              <p id="eventFocusDetailNote">股票详情会把事件、行情、强弱、财报和自选状态放在一起看。</p>
             </article>
           </section>
 
@@ -1660,7 +1660,7 @@
               <p id="optionsLeadNote">接入后会展示单股期权权利金、价格走势和偏多偏空榜单。</p>
             </div>
             <div class="options-actions">
-              <button type="button" data-options-add-watch>加入观察池</button>
+              <button type="button" data-options-add-watch>加入自选</button>
               <button type="button" data-page-link="market">看行情异动</button>
             </div>
           </section>
@@ -1960,7 +1960,7 @@
               <select id="stocksPresetFilter">
                 <option value="all">全部股票</option>
                 <option value="liquid">高流动性</option>
-                <option value="watchlist">观察池</option>
+                <option value="watchlist">自选</option>
                 <option value="event">事件关联</option>
               </select>
             </label>
@@ -2019,7 +2019,7 @@
               <section>
                 <h2>常用入口</h2>
                 <button type="button" data-stocks-preset="liquid">高流动性</button>
-                <button type="button" data-stocks-preset="watchlist">观察池</button>
+                <button type="button" data-stocks-preset="watchlist">自选</button>
                 <button type="button" data-stocks-preset="event">事件关联</button>
               </section>
               <section>
@@ -2132,8 +2132,8 @@
         <section class="page-view watchlist-view" data-view="watchlist">
           <div class="page-heading">
             <div>
-              <p class="eyebrow">观察池</p>
-              <h1>我的观察池</h1>
+              <p class="eyebrow">自选</p>
+              <h1>我的自选</h1>
               <p class="subtitle">把需要继续跟踪的股票集中成一张跟踪台，按复盘分、数据覆盖和复盘时间整理顺序。</p>
             </div>
             <div class="source">
@@ -2161,15 +2161,15 @@
             <article data-lockable-module="watchlist-alerts">
               <span>数据日期</span>
               <strong id="watchlistDataAsOf">--</strong>
-              <p>观察池会按已接入模块显示最近可用数据日期。</p>
+              <p>自选会按已接入模块显示最近可用数据日期。</p>
             </article>
           </section>
 
-          <section class="watchlist-daily-plan" aria-label="今日观察池建议">
+          <section class="watchlist-daily-plan" aria-label="今日自选建议">
             <div>
               <span>今日复盘顺序</span>
-              <strong id="watchlistTodayFocus">先加入观察对象</strong>
-              <p id="watchlistTodayReason">观察池会根据复盘分、到期时间和数据覆盖自动排序。</p>
+              <strong id="watchlistTodayFocus">先加入自选对象</strong>
+              <p id="watchlistTodayReason">自选会根据复盘分、到期时间和数据覆盖自动排序。</p>
             </div>
             <div>
               <span>复盘安排</span>
@@ -2187,7 +2187,7 @@
               <div class="summary" id="watchlistResultSummary">--</div>
               <button class="ghost-action" type="button" id="clearWatchlistButton">清空</button>
             </div>
-            <div class="watchlist-toolbar" aria-label="观察池筛选">
+            <div class="watchlist-toolbar" aria-label="自选筛选">
               <label class="search-box">
                 <span>搜索</span>
                 <input id="watchlistSearchInput" type="search" placeholder="代码、公司名、来源或理由" />
@@ -2215,8 +2215,8 @@
             </div>
             <div class="watchlist-grid" id="watchlistBody"></div>
             <div class="empty-detail" id="watchlistEmpty">
-              <strong>还没有加入观察池</strong>
-              <p>在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入观察池”。</p>
+              <strong>还没有加入自选</strong>
+              <p>在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入自选”。</p>
             </div>
           </section>
         </section>

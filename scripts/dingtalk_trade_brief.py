@@ -134,7 +134,7 @@ def market_plan_label(score: int, profile: dict[str, Any]) -> tuple[str, str, st
         max_plans = int(profile.get("maxNewPlansSelective") or 2)
         return "选择性交易", "只看最强、最清楚的机会", f"单笔风险减半，最多 {max_plans} 个新计划", max_plans
     max_plans = int(profile.get("maxNewPlansDefensive") or 0)
-    return "防守优先", "不急着新开仓，先管理已有仓位", "不主动开新计划，只复盘持仓和观察池", max_plans
+    return "防守优先", "不急着新开仓，先管理已有仓位", "不主动开新计划，只复盘持仓和自选", max_plans
 
 
 def market_template(temp_status: dict[str, Any], overall: dict[str, Any], temp_score: int) -> tuple[str, str]:
@@ -918,7 +918,7 @@ def build_brief(mode: str) -> str:
         task = "复盘今天是否按计划交易，并更新明天观察名单。"
     else:
         title = "美股周末策略复盘"
-        task = "检查本周最有效的数据来源、最该回避的风险，以及下周观察池。"
+        task = "检查本周最有效的数据来源、最该回避的风险，以及下周自选。"
 
     lines = [
         f"## {title}",

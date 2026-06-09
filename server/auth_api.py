@@ -592,7 +592,7 @@ def read_signal_dashboard() -> dict[str, Any]:
 
 
 TRADE_RECORDS = [
-    {"symbol": "CRCL", "direction": "做多", "theme": "稳定币", "profit": "+264,992 USD", "period": "主升段", "reason": "稳定币主线确认后进入观察池，趋势延续时提高权重。"},
+    {"symbol": "CRCL", "direction": "做多", "theme": "稳定币", "profit": "+264,992 USD", "period": "主升段", "reason": "稳定币主线确认后进入自选，趋势延续时提高权重。"},
     {"symbol": "BMNR", "direction": "上行观察", "theme": "加密美股", "profit": "+302,824 USD", "period": "趋势段", "reason": "加密资产代理标的，波动放大时需要控制单一方向暴露。"},
     {"symbol": "TSLA", "direction": "做多", "theme": "特斯拉", "profit": "+334,641 USD", "period": "波段", "reason": "关键支撑位确认后跟随趋势，跌破规则线降低头寸。"},
     {"symbol": "NBIS", "direction": "做多", "theme": "AI 算力", "profit": "持仓中", "period": "跟踪中", "reason": "AI 云算力方向，高弹性持仓，按风险预算动态调整。"},

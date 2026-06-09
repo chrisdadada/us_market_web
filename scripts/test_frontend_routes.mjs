@@ -24,7 +24,8 @@ const routeCases = [
   { hash: "#flows", view: "flows", text: "资金流向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#events", view: "events", text: "财经日志" },
   { hash: "#stocks", view: "stocks", text: "股票库" },
-  { hash: "#strength", view: "strength", text: "今日强弱观察池" },
+  { hash: "#strength", view: "strength", text: "今日强弱榜" },
+  { hash: "#watchlist", view: "watchlist", text: "我的自选", absentText: "观察池" },
 ];
 
 const marketSectionCases = [
@@ -128,6 +129,9 @@ async function assertRoute(page, expected) {
   assert(state.visibleViews.length === 1, `${expected.hash || "/"} has visible views ${state.visibleViews.join(", ")}`);
   assert(state.visibleViews[0] === expected.view, `${expected.hash || "/"} visible view is ${state.visibleViews[0]}, expected ${expected.view}`);
   assert(state.activeViewText.includes(expected.text), `${expected.hash || "/"} active view missing text ${expected.text}`);
+  if (expected.absentText) {
+    assert(!state.activeViewText.includes(expected.absentText), `${expected.hash || "/"} active view still contains ${expected.absentText}`);
+  }
   const maxHeight = expected.maxHeight || defaultMaxDocumentHeight;
   assert(state.documentHeight <= maxHeight, `${expected.hash || "/"} document height ${state.documentHeight} exceeds ${maxHeight}`);
   return state;
