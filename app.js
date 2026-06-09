@@ -3545,8 +3545,15 @@ const parseEventDateValue = (value) => {
 
 const dashboardEventRows = () => {
   const events = state.eventsCalendar?.events || [];
-  return [...events]
+  const manualEvents = events
+    .filter((item) => item.type === "manual")
     .sort((a, b) => parseEventDateValue(a.date) - parseEventDateValue(b.date))
+    .slice(0, 2);
+  const scheduledEvents = events
+    .filter((item) => item.type !== "manual")
+    .sort((a, b) => parseEventDateValue(a.date) - parseEventDateValue(b.date))
+    .slice(0, 4);
+  return [...scheduledEvents.slice(0, 2), ...manualEvents, ...scheduledEvents.slice(2)]
     .slice(0, 4);
 };
 
@@ -6888,6 +6895,7 @@ const renderEventsCalendar = (payload) => {
   const rules = Array.isArray(data.impactRules) ? data.impactRules : [];
   const body = document.querySelector("#calendarEventBody");
   const impactList = document.querySelector("#calendarImpactList");
+  const manualList = document.querySelector("#calendarManualList");
   setText("#eventsAsOf", formatDisplayDate(data.asOf || data.generatedAt || state.eventOpportunities?.asOf));
   const highEvents = events.filter((item) => item.impact === "high");
   const first = highEvents[0] || events[0];
@@ -6934,6 +6942,18 @@ const renderEventsCalendar = (payload) => {
         </article>
       `).join("")
       : "<p>暂无影响映射。</p>";
+  }
+  if (manualList) {
+    const manualEvents = events.filter((item) => item.type === "manual").slice(0, 4);
+    manualList.innerHTML = manualEvents.length
+      ? manualEvents.map((item) => `
+        <article>
+          <strong>${escapeHtml(item.title || "--")}</strong>
+          <p>${escapeHtml(item.summary || "")}</p>
+          <span>${escapeHtml([item.date, item.time, ...(item.relatedAssets || []).slice(0, 3)].filter(Boolean).join(" / "))}</span>
+        </article>
+      `).join("")
+      : "<p>暂无人工财经日志。</p>";
   }
   renderDashboardVisualBoard();
   renderDashboardIntelligence();

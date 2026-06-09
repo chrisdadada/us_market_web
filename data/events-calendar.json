@@ -59,15 +59,48 @@
       "summary": "财报日期需要接入可靠 vendor 后确认；当前只作为待办入口。"
     },
     {
-      "date": "人工录入",
-      "time": "",
-      "title": "本周人工财经日志",
+      "date": "2026-06-09",
+      "time": "盘前",
+      "title": "人工日志：AI 服务器链继续作为本周主线观察",
       "type": "manual",
       "impact": "medium",
-      "sourceName": "manual",
-      "relatedModules": ["事件中心", "股票库"],
-      "relatedAssets": [],
-      "summary": "支持后续通过 CSV 或后台表单上传行业会议、政策变化和重点新闻。"
+      "sourceName": "manual placeholder",
+      "relatedModules": ["市场与资金", "股票库", "事件中心"],
+      "relatedAssets": ["NVDA", "MU", "AMD", "MRVL"],
+      "summary": "示例内容：观察 AI 服务器、存储和高速互联链条是否继续获得成交额确认；若板块资金扩散到二线标的，需要进入股票库做个股筛选。"
+    },
+    {
+      "date": "2026-06-10",
+      "time": "CPI 后",
+      "title": "人工日志：通胀数据后重新评估成长股风险预算",
+      "type": "manual",
+      "impact": "high",
+      "sourceName": "manual placeholder",
+      "relatedModules": ["市场温度计", "指数估值", "市场与资金"],
+      "relatedAssets": ["QQQ", "SPY", "TLT"],
+      "summary": "示例内容：CPI 后关注 10Y 美债和 QQQ 承接。若利率上行但科技龙头仍强，观察强势股优先级不降；若二者同时转弱，降低新增观察强度。"
+    },
+    {
+      "date": "2026-06-12",
+      "time": "盘后",
+      "title": "人工日志：财报季前准备重点科技公司观察清单",
+      "type": "manual",
+      "impact": "medium",
+      "sourceName": "manual placeholder",
+      "relatedModules": ["财报观察", "股票库", "观察池"],
+      "relatedAssets": ["MSFT", "AAPL", "AMZN", "META"],
+      "summary": "示例内容：先建立财报前观察清单，记录一致预期、指引风险、估值位置和股价趋势；正式财报日期接入后替换为真实日程。"
+    },
+    {
+      "date": "2026-06-13",
+      "time": "周复盘",
+      "title": "人工日志：周末复盘资金是否从科技扩散到工业和医疗",
+      "type": "manual",
+      "impact": "medium",
+      "sourceName": "manual placeholder",
+      "relatedModules": ["市场与资金", "全市场强弱"],
+      "relatedAssets": ["XLK", "XLI", "XLV"],
+      "summary": "示例内容：对照板块资金流向和强弱榜，确认上涨不是单一龙头拉动；若工业、医疗同时增强，首页资金摘要需要提示主线扩散。"
     }
   ],
   "impactRules": [
