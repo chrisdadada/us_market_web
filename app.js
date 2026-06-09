@@ -3471,7 +3471,7 @@ const renderDashboardVisualBoard = () => {
   board.innerHTML = `
     <article class="dashboard-snapshot-card dashboard-temperature-card">
       <div class="dashboard-snapshot-head">
-        <span>市场温度</span>
+        <span>市场快照</span>
         <strong>${escapeHtml(String(tempScore))}分</strong>
       </div>
       <div class="dashboard-ring" style="--score:${tempScore}%">
