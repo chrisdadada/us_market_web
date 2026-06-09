@@ -736,7 +736,7 @@ body :where(.is-negative) {
 }
 
 .stocks-table-wrap table {
-  min-width: 1060px;
+  min-width: 940px;
 }
 
 .stocks-table-wrap td {
@@ -800,11 +800,6 @@ body :where(.is-negative) {
 
 .stocks-terminal-table th:nth-child(9),
 .stocks-terminal-table td:nth-child(9) {
-  width: 138px;
-}
-
-.stocks-terminal-table th:nth-child(10),
-.stocks-terminal-table td:nth-child(10) {
   width: 72px;
   text-align: right;
 }

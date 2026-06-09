@@ -1305,17 +1305,13 @@ const renderStocksPage = () => {
           : "按当前筛选展示";
   setText("#stocksResultLabel", label);
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="10">当前筛选下暂无结果。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="9">当前筛选下暂无结果。</td></tr>`;
     return;
   }
   body.innerHTML = rows
     .map((item) => {
       const changeClass = Number.isFinite(item.change) && item.change !== 0 ? (item.change > 0 ? "is-positive" : "is-negative") : "";
       const price = Number(item.price);
-      const strengthText = item.strengthScore == null
-        ? "--"
-        : `${Math.round(Number(item.strengthScore))} / #${item.strengthRank || "--"}`;
-      const strengthSub = item.relativeStrength || item.strengthLabel || "";
       return `
         <tr>
           <td class="stocks-symbol-cell" data-label="代码">
@@ -1329,10 +1325,6 @@ const renderStocksPage = () => {
           <td class="stocks-num-cell ${escapeHtml(changeClass)}" data-label="涨跌幅">${escapeHtml(Number.isFinite(item.change) ? formatSignedPct(item.change) : "--")}</td>
           <td class="stocks-num-cell" data-label="成交额">${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")}</td>
           <td class="stocks-num-cell" data-label="成交异动">${escapeHtml(item.volumeRatio || "--")}</td>
-          <td class="stocks-signal-cell" data-label="强弱/排名">
-            <strong>${escapeHtml(strengthText)}</strong>
-            <span>${escapeHtml(strengthSub || "--")}</span>
-          </td>
           <td class="stocks-action-cell" data-label="操作"><button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button></td>
         </tr>
       `;
@@ -1503,6 +1495,51 @@ const stockSignedClass = (value) => {
   const parsed = parseSignedPercent(value);
   if (!Number.isFinite(parsed) || parsed === 0) return "";
   return parsed >= 0 ? "is-positive" : "is-negative";
+};
+
+const volumeRatioSummary = (value, change) => {
+  const ratio = parseRatio(value);
+  if (!Number.isFinite(ratio) || ratio <= 0) {
+    return {
+      label: "等待成交额数据",
+      note: "成交异动表示当前成交额相对平时成交额的倍数。",
+    };
+  }
+  const percent = Math.round((ratio - 1) * 100);
+  const direction = Number.isFinite(change) && change < 0 ? "下跌" : "上涨";
+  const label = ratio >= 5
+    ? "极端放量"
+    : ratio >= 2
+      ? "明显放量"
+      : ratio >= 1.2
+        ? "成交活跃"
+        : ratio >= 0.8
+          ? "接近平时"
+          : "低于平时";
+  const compare = percent >= 0 ? `高于平时约 ${percent}%` : `低于平时约 ${Math.abs(percent)}%`;
+  const action = ratio >= 1.2
+    ? `${direction}伴随放量，优先确认是否有公告、财报或板块共振。`
+    : "成交没有明显放大，先降低短线结论权重。";
+  return { label, note: `${compare}。${action}` };
+};
+
+const stockSectorFlowSummary = (rows) => {
+  if (!rows.length) {
+    return { label: "--", note: "等待板块成交额数据。", active: "--", breadth: "--" };
+  }
+  const upCount = rows.filter((row) => getChange(row) > 0).length;
+  const downCount = rows.filter((row) => getChange(row) < 0).length;
+  const activeRows = rows.filter((row) => parseRatio(row.volumeRatio) >= 1.2).length;
+  const activeRatio = Math.round((activeRows / rows.length) * 100);
+  const breadth = Math.round((upCount / rows.length) * 100);
+  const activeValue = rows.reduce((sum, row) => sum + Number(row.dollarVolume || 0), 0);
+  const label = upCount >= downCount ? "板块偏流入" : "板块偏流出";
+  return {
+    label,
+    note: `${upCount}涨/${downCount}跌，上涨广度 ${breadth}%。`,
+    active: `${activeRatio}% 活跃`,
+    breadth: activeValue ? formatCompactMoney(activeValue) : "--",
+  };
 };
 
 const signalToHistoryLabel = {
@@ -2319,6 +2356,16 @@ const renderStockHub = (symbol) => {
   const sectorRankText = sectorRank > 0 ? `${sectorRank}/${sectorRankRows.length}` : "--";
   const volumeRatioText = volume?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio || "--";
   const marketCapText = market?.marketCap || quality?.marketCap || "--";
+  const sectorFlow = stockSectorFlowSummary(sectorRankRows);
+  const volumeSummary = volumeRatioSummary(volumeRatioText, market ? getChange(market) : getChange(day || {}));
+  const sectorChanges = sectorRankRows.map(getChange).filter(Number.isFinite);
+  const sectorAverageChange = sectorChanges.length ? sectorChanges.reduce((sum, value) => sum + value, 0) / sectorChanges.length : null;
+  const sectorAverageText = sectorAverageChange == null ? "--" : formatSignedPct(sectorAverageChange);
+  const marketCapRankRows = sectorRankRows
+    .filter((row) => marketCapNumber(row.marketCap) != null)
+    .sort((a, b) => marketCapNumber(b.marketCap) - marketCapNumber(a.marketCap));
+  const marketCapRank = marketCapRankRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
+  const marketCapPosition = marketCapRank > 0 ? `板块市值 ${marketCapRank}/${marketCapRankRows.length}` : capLabel(market || { marketCap: marketCapText });
   const peerRows = peers.slice(0, 5);
   const eventSummary = eventRow
     ? `${eventRow.eventLabel || eventTypeLabel(eventRow.eventType)} · ${eventRow.eventDate || "日期待补"}`
@@ -2426,22 +2473,22 @@ const renderStockHub = (symbol) => {
       <article>
         <span>市值</span>
         <strong>${escapeHtml(marketCapText)}</strong>
-        <p>${escapeHtml(capLabel(market || { marketCap: marketCapText }))}</p>
+        <p>${escapeHtml(marketCapPosition)}</p>
       </article>
       <article>
         <span>板块</span>
         <strong>${escapeHtml(profile.sector)}</strong>
-        <p>板块内涨跌位置 ${escapeHtml(sectorRankText)}</p>
+        <p>涨跌位置 ${escapeHtml(sectorRankText)} · 均值 ${escapeHtml(sectorAverageText)}</p>
       </article>
       <article>
-        <span>成交额异动</span>
+        <span>成交额异动 <button class="info-tip" type="button" aria-label="成交额异动解释" data-tip="当前成交额相对平时成交额的倍数。1.00x 约等于平时水平，4.90x 表示成交额接近平时的 4.9 倍。">?</button></span>
         <strong>${escapeHtml(volumeRatioText)}</strong>
-        <p>${escapeHtml(volume?.volume || market?.volume || "等待成交额数据")}</p>
+        <p>${escapeHtml(`${volumeSummary.label} · ${volumeSummary.note}`)}</p>
       </article>
       <article>
-        <span>同板块对比</span>
-        <strong>${escapeHtml(strongestPeer ? `${strongestPeer.symbol} ${formatChangeValue(strongestPeer)}` : "--")}</strong>
-        <p>${escapeHtml(peers.length ? `可比标的 ${peers.map((item) => item.symbol).slice(0, 4).join(" / ")}` : "等待更多同板块数据")}</p>
+        <span>资金流向摘要</span>
+        <strong>${escapeHtml(sectorFlow.label)}</strong>
+        <p>${escapeHtml(`${sectorFlow.note} 活跃成交 ${sectorFlow.active}`)}</p>
       </article>
     </section>
 
@@ -2475,9 +2522,10 @@ const renderStockHub = (symbol) => {
     <section class="stock-research-strip" aria-label="单股研究摘要">
       <article>
         <div>
-          <span>同板块排行</span>
+          <span>同板块对比</span>
           <strong>${escapeHtml(sectorRankText)}</strong>
         </div>
+        <p>板块均值 ${escapeHtml(sectorAverageText)}，当前领先 ${escapeHtml(strongestPeer ? `${strongestPeer.symbol} ${formatChangeValue(strongestPeer)}` : "--")}。</p>
         <div class="stock-mini-list">
           ${
             peerRows.length
@@ -2488,9 +2536,10 @@ const renderStockHub = (symbol) => {
       </article>
       <article>
         <div>
-          <span>资金 / 成交</span>
+          <span>成交解释</span>
           <strong>${escapeHtml(volumeRatioText)}</strong>
         </div>
+        <p>${escapeHtml(volumeSummary.note)}</p>
         <div class="stock-mini-grid">
           <b>24h ${formatChangeValue(day)}</b>
           <b>近周 ${formatChangeValue(week)}</b>
