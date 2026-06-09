@@ -10018,6 +10018,236 @@ tbody tr:last-child td {
   }
 }
 
+/* Individual-stock section visual normalization. */
+.stocks-toolbar,
+.signal-overview-grid,
+.options-summary-grid,
+.options-note-board,
+.stock-decision-strip,
+.stock-retail-guide,
+.stock-evidence-grid {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+}
+
+.signal-overview-grid article,
+.options-summary-grid article,
+.options-note-board article,
+.stock-decision-strip article,
+.stock-retail-guide article,
+.stock-evidence-grid article {
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.signal-overview-grid article:last-child,
+.options-summary-grid article:last-child,
+.options-note-board article:last-child,
+.stock-decision-strip article:last-child,
+.stock-retail-guide article:last-child,
+.stock-evidence-grid article:last-child {
+  border-right: 0;
+}
+
+.stocks-toolbar {
+  padding: 14px;
+}
+
+.stocks-table-head,
+.stocks-rail section,
+.stock-card-head,
+.options-card-head,
+.panel-head {
+  padding-bottom: 10px;
+}
+
+.stocks-toolbar span,
+.stocks-table-head span,
+.stocks-rail h2,
+.signal-overview-grid span,
+.signal-panel span,
+.signal-value-card span,
+.signal-feed em,
+.signal-life-card em,
+.signal-state-head,
+.mag7-leader span,
+.mag7-row span,
+.options-summary-grid span,
+.options-lead-card span,
+.options-card-head span,
+.options-note-board span,
+.stock-identity-card span,
+.stock-price-card span,
+.stock-card-head span,
+.stock-metric-grid span,
+.stock-event-list span,
+.stock-macro-copy span,
+.stock-macro-grid span,
+.stock-decision-strip span,
+.stock-retail-guide span,
+.stock-research-main > span,
+.stock-research-side > span,
+.stock-evidence-grid span {
+  font-weight: 620;
+}
+
+.stocks-change,
+.table-action,
+.stocks-rail button,
+.signal-overview-grid strong,
+.signal-value-card strong,
+.signal-feed strong,
+.signal-life-card strong,
+.signal-theme-pill,
+.signal-state-row strong,
+.signal-state-row .is-long,
+.signal-state-row .is-short,
+.mag7-leader h2,
+.leader-ring strong,
+.mag7-row strong,
+.mag7-row em,
+.options-summary-grid strong,
+.options-lead-card strong,
+.options-note-board strong,
+.options-actions button,
+.options-filter-pills span,
+.options-card-head strong,
+.options-axis-label,
+.options-time-label,
+.options-chart-empty,
+.options-rank-row span,
+.options-rank-row strong,
+.stock-identity-card strong,
+.stock-price-card strong,
+.stock-badge-row span,
+.stock-reason-list b,
+.stock-card-head strong,
+.stock-card-head em,
+.stock-metric-grid strong,
+.stock-macro-copy h2,
+.stock-macro-grid strong,
+.stock-decision-strip strong,
+.stock-retail-guide strong,
+.stock-research-main h2,
+.stock-research-side strong,
+.stock-evidence-grid strong {
+  font-weight: 560;
+}
+
+.signal-overview-grid strong,
+.signal-value-card strong,
+.stock-identity-card strong,
+.mag7-leader h2 {
+  color: var(--nav);
+}
+
+.signal-overview-grid strong,
+.stock-evidence-grid strong,
+.stock-price-card strong,
+.options-summary-grid strong {
+  font-size: 21px;
+}
+
+.stock-identity-card strong {
+  font-size: 32px;
+}
+
+.signal-value-card strong,
+.leader-ring strong {
+  font-size: 26px;
+}
+
+.mag7-leader,
+.stock-hub-hero {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+}
+
+.mag7-leader {
+  min-height: 186px;
+  background: #fff;
+}
+
+.mag7-leader h2 {
+  font-size: clamp(32px, 4.5vw, 52px);
+}
+
+.leader-ring {
+  width: 126px;
+  height: 126px;
+  border-width: 8px;
+  border-color: rgba(59, 102, 134, 0.12);
+  border-top-color: var(--blue);
+}
+
+.stock-identity-card,
+.stock-price-card {
+  border: 0;
+  border-radius: 0;
+}
+
+.stock-identity-card {
+  border-right: 1px solid var(--line);
+}
+
+.stock-badge-row span,
+.stock-reason-list b,
+.stock-card-head em,
+.signal-panel > .section-title b,
+.signal-feed em,
+.signal-theme-pill,
+.options-rank-row em,
+.stock-macro-grid article::after {
+  border-radius: var(--radius-control);
+}
+
+.stock-research-main,
+.stock-research-side,
+.stock-macro-panel,
+.stock-hub-card,
+.signal-panel,
+.signal-value-card,
+.signal-life-card,
+.options-lead-card,
+.options-chart-card,
+.options-rank-card,
+.mag7-table-card,
+.allocation-card,
+.model-card {
+  box-shadow: none;
+}
+
+.mag7-row {
+  border-radius: 0;
+  background: #fff;
+}
+
+.mag7-row:hover {
+  transform: none;
+}
+
+#optionsFlowChart {
+  background: #fff;
+}
+
+.options-call-line,
+.options-put-line {
+  stroke-width: 2.8;
+}
+
+.options-net-line,
+.options-price-line {
+  stroke-width: 2.2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
