@@ -1,35 +1,35 @@
 {
   "asOf": "2026-06-08",
-  "generatedAt": "2026-06-09T17:50:43.550083+00:00",
+  "generatedAt": "2026-06-09T18:09:45.671351+00:00",
   "source": "Polygon tradable universe liquidity + one-day price direction",
   "method": "按全量可交易股票的成交额/流动性与涨跌方向聚合，生成板块资金流向代理；不等同于逐笔主买主卖或真实资金净流入。",
   "universeCount": 3454,
   "fallbackReason": "",
   "summary": {
     "leaderSector": "科技",
-    "leaderNetFlow": "+$146.40B",
-    "positiveSectors": 3,
-    "negativeSectors": 8,
+    "leaderNetFlow": "+$155.73B",
+    "positiveSectors": 5,
+    "negativeSectors": 7,
     "activeSector": "科技",
-    "avgBreadthPct": 44.4
+    "avgBreadthPct": 47.1
   },
   "rows": [
     {
       "sector": "科技",
       "status": "流入领先",
-      "count": 449,
-      "upCount": 251,
-      "downCount": 195,
-      "breadthPct": 55.9,
-      "avgChange": 0.76,
-      "activeValue": 353208724351.91,
-      "activeValueLabel": "$353.21B",
-      "inflowProxy": 249774308954.46,
-      "inflowProxyLabel": "$249.77B",
-      "outflowProxy": 103375311286.5,
-      "outflowProxyLabel": "$103.38B",
-      "netFlowProxy": 146398997667.96,
-      "netFlowLabel": "+$146.40B",
+      "count": 481,
+      "upCount": 273,
+      "downCount": 204,
+      "breadthPct": 56.8,
+      "avgChange": 0.84,
+      "activeValue": 363633676497.89,
+      "activeValueLabel": "$363.63B",
+      "inflowProxy": 259638805777.4,
+      "inflowProxyLabel": "$259.64B",
+      "outflowProxy": 103913761926.55,
+      "outflowProxyLabel": "$103.91B",
+      "netFlowProxy": 155725043850.85,
+      "netFlowLabel": "+$155.73B",
       "leaders": [
         {
           "symbol": "MU",
@@ -77,28 +77,20 @@
     {
       "sector": "未分类",
       "status": "活跃分歧",
-      "count": 1202,
-      "upCount": 611,
-      "downCount": 564,
-      "breadthPct": 50.8,
-      "avgChange": 0.45,
-      "activeValue": 194369708578.83,
-      "activeValueLabel": "$194.37B",
-      "inflowProxy": 119916841102.33,
-      "inflowProxyLabel": "$119.92B",
-      "outflowProxy": 73801884472.14,
-      "outflowProxyLabel": "$73.80B",
-      "netFlowProxy": 46114956630.19,
-      "netFlowLabel": "+$46.11B",
+      "count": 1013,
+      "upCount": 511,
+      "downCount": 481,
+      "breadthPct": 50.4,
+      "avgChange": 0.44,
+      "activeValue": 141710733306.74,
+      "activeValueLabel": "$141.71B",
+      "inflowProxy": 75695951338.61,
+      "inflowProxyLabel": "$75.70B",
+      "outflowProxy": 65415647371.88,
+      "outflowProxyLabel": "$65.42B",
+      "netFlowProxy": 10280303966.73,
+      "netFlowLabel": "+$10.28B",
       "leaders": [
-        {
-          "symbol": "TSLA",
-          "name": "Tesla, Inc. Common Stock",
-          "change": 4.59,
-          "liquidity": "$20.58B",
-          "marketCap": "$1567.11B",
-          "score": null
-        },
         {
           "symbol": "LITE",
           "name": "Lumentum Holdings Inc. Common Stock",
@@ -116,19 +108,27 @@
           "score": null
         },
         {
-          "symbol": "ASML",
-          "name": "ASML Holding NV",
-          "change": 6.54,
-          "liquidity": "$3.61B",
-          "marketCap": "$597.45B",
-          "score": null
-        },
-        {
           "symbol": "ARM",
           "name": "Arm Holdings plc American Depositary Shares",
           "change": 1.01,
           "liquidity": "$3.14B",
           "marketCap": "$273.16B",
+          "score": null
+        },
+        {
+          "symbol": "NBIS",
+          "name": "Nebius Group N.V. Class A Ordinary Shares",
+          "change": -4.31,
+          "liquidity": "$3.05B",
+          "marketCap": "$48.70B",
+          "score": null
+        },
+        {
+          "symbol": "NFLX",
+          "name": "NetFlix Inc",
+          "change": 0.56,
+          "liquidity": "$2.73B",
+          "marketCap": "$370.93B",
           "score": null
         }
       ],
@@ -137,19 +137,19 @@
     {
       "sector": "工业",
       "status": "流入领先",
-      "count": 143,
-      "upCount": 89,
-      "downCount": 54,
-      "breadthPct": 62.2,
-      "avgChange": 0.56,
-      "activeValue": 25532892089.87,
-      "activeValueLabel": "$25.53B",
-      "inflowProxy": 16020278596.25,
-      "inflowProxyLabel": "$16.02B",
-      "outflowProxy": 9512613493.62,
-      "outflowProxyLabel": "$9.51B",
-      "netFlowProxy": 6507665102.64,
-      "netFlowLabel": "+$6.51B",
+      "count": 153,
+      "upCount": 97,
+      "downCount": 56,
+      "breadthPct": 63.4,
+      "avgChange": 0.7,
+      "activeValue": 27691154907.07,
+      "activeValueLabel": "$27.69B",
+      "inflowProxy": 18052352991.69,
+      "inflowProxyLabel": "$18.05B",
+      "outflowProxy": 9638801915.38,
+      "outflowProxyLabel": "$9.64B",
+      "netFlowProxy": 8413551076.32,
+      "netFlowLabel": "+$8.41B",
       "leaders": [
         {
           "symbol": "LRCX",
@@ -168,6 +168,14 @@
           "score": null
         },
         {
+          "symbol": "RKLB",
+          "name": "Rocket Lab Corporation Common Stock",
+          "change": 3.24,
+          "liquidity": "$1.53B",
+          "marketCap": "$77.71B",
+          "score": null
+        },
+        {
           "symbol": "AAL",
           "name": "American Airlines Group Inc.",
           "change": 0.74,
@@ -182,61 +190,189 @@
           "liquidity": "$1.07B",
           "marketCap": "$121.62B",
           "score": null
-        },
-        {
-          "symbol": "DE",
-          "name": "Deere & Company",
-          "change": -1.68,
-          "liquidity": "$846.9M",
-          "marketCap": "$151.38B",
-          "score": null
         }
       ],
       "rank": 3
     },
     {
-      "sector": "生物医药",
-      "status": "流出压力",
-      "count": 3,
-      "upCount": 0,
-      "downCount": 3,
-      "breadthPct": 0.0,
-      "avgChange": -2.05,
-      "activeValue": 417276595.39,
-      "activeValueLabel": "$417.3M",
-      "inflowProxy": 0.0,
-      "inflowProxyLabel": "$0",
-      "outflowProxy": 417276595.39,
-      "outflowProxyLabel": "$417.3M",
-      "netFlowProxy": -417276595.39,
-      "netFlowLabel": "$-417.3M",
+      "sector": "消费",
+      "status": "流入领先",
+      "count": 235,
+      "upCount": 130,
+      "downCount": 103,
+      "breadthPct": 55.3,
+      "avgChange": 0.53,
+      "activeValue": 68883146345.76,
+      "activeValueLabel": "$68.88B",
+      "inflowProxy": 38346551477.97,
+      "inflowProxyLabel": "$38.35B",
+      "outflowProxy": 30530122373.68,
+      "outflowProxyLabel": "$30.53B",
+      "netFlowProxy": 7816429104.28,
+      "netFlowLabel": "+$7.82B",
       "leaders": [
         {
-          "symbol": "RVMD",
-          "name": "Revolution Medicines, Inc. Common Stock",
-          "change": -0.5,
-          "liquidity": "$406.1M",
-          "marketCap": "$31.96B",
+          "symbol": "TSLA",
+          "name": "Tesla, Inc. Common Stock",
+          "change": 4.59,
+          "liquidity": "$20.58B",
+          "marketCap": "$1567.11B",
           "score": null
         },
         {
-          "symbol": "PRME",
-          "name": "Prime Medicine, Inc. Common Stock",
-          "change": -3.27,
-          "liquidity": "$7.3M",
-          "marketCap": "$511.1M",
+          "symbol": "AMZN",
+          "name": "Amazon.Com Inc",
+          "change": -0.33,
+          "liquidity": "$8.31B",
+          "marketCap": "$2850.74B",
           "score": null
         },
         {
-          "symbol": "EDIT",
-          "name": "Editas Medicine, Inc. Common Stock",
-          "change": -2.4,
-          "liquidity": "$3.9M",
-          "marketCap": "$254.6M",
+          "symbol": "WMT",
+          "name": "Walmart Inc. Common Stock",
+          "change": 0.8,
+          "liquidity": "$2.34B",
+          "marketCap": "$1043.00B",
+          "score": null
+        },
+        {
+          "symbol": "AZO",
+          "name": "AutoZone, Inc.",
+          "change": -1.36,
+          "liquidity": "$2.21B",
+          "marketCap": "$56.34B",
+          "score": null
+        },
+        {
+          "symbol": "COST",
+          "name": "Costco Wholesale Corp",
+          "change": 0.3,
+          "liquidity": "$2.03B",
+          "marketCap": "$476.49B",
           "score": null
         }
       ],
       "rank": 4
+    },
+    {
+      "sector": "通信",
+      "status": "活跃分歧",
+      "count": 18,
+      "upCount": 9,
+      "downCount": 8,
+      "breadthPct": 50.0,
+      "avgChange": -0.63,
+      "activeValue": 5077929692.69,
+      "activeValueLabel": "$5.08B",
+      "inflowProxy": 3588989875.92,
+      "inflowProxyLabel": "$3.59B",
+      "outflowProxy": 1477663411.54,
+      "outflowProxyLabel": "$1.48B",
+      "netFlowProxy": 2111326464.38,
+      "netFlowLabel": "+$2.11B",
+      "leaders": [
+        {
+          "symbol": "NOK",
+          "name": "Nokia Corporation",
+          "change": 1.46,
+          "liquidity": "$1.50B",
+          "marketCap": "$76.03B",
+          "score": null
+        },
+        {
+          "symbol": "ASTS",
+          "name": "AST SpaceMobile, Inc. Class A Common Stock",
+          "change": -1.65,
+          "liquidity": "$1.26B",
+          "marketCap": "$26.76B",
+          "score": null
+        },
+        {
+          "symbol": "TMUS",
+          "name": "T-Mobile US, Inc.",
+          "change": 0.19,
+          "liquidity": "$941.0M",
+          "marketCap": "$205.79B",
+          "score": null
+        },
+        {
+          "symbol": "VZ",
+          "name": "Verizon Communications",
+          "change": 0.15,
+          "liquidity": "$863.1M",
+          "marketCap": "$199.68B",
+          "score": null
+        },
+        {
+          "symbol": "SKM",
+          "name": "SK Telecom Co., Ltd.  American Depositary Shares (Each representing 5/9th of a Ordinary Share of SK Telecom Co., LTD.)",
+          "change": 5.88,
+          "liquidity": "$114.2M",
+          "marketCap": "$14.57B",
+          "score": null
+        }
+      ],
+      "rank": 5
+    },
+    {
+      "sector": "材料",
+      "status": "活跃分歧",
+      "count": 169,
+      "upCount": 94,
+      "downCount": 72,
+      "breadthPct": 55.6,
+      "avgChange": 0.23,
+      "activeValue": 14426663806.39,
+      "activeValueLabel": "$14.43B",
+      "inflowProxy": 6849154240.74,
+      "inflowProxyLabel": "$6.85B",
+      "outflowProxy": 7557931812.74,
+      "outflowProxyLabel": "$7.56B",
+      "netFlowProxy": -708777572.01,
+      "netFlowLabel": "$-708.8M",
+      "leaders": [
+        {
+          "symbol": "GS",
+          "name": "Goldman Sachs Group Inc.",
+          "change": 0.61,
+          "liquidity": "$2.43B",
+          "marketCap": "$289.73B",
+          "score": null
+        },
+        {
+          "symbol": "LIN",
+          "name": "Linde plc Ordinary Share",
+          "change": -1.18,
+          "liquidity": "$948.9M",
+          "marketCap": "$234.24B",
+          "score": null
+        },
+        {
+          "symbol": "HWM",
+          "name": "Howmet Aerospace Inc.",
+          "change": -2.12,
+          "liquidity": "$592.5M",
+          "marketCap": "$104.51B",
+          "score": null
+        },
+        {
+          "symbol": "PH",
+          "name": "Parker-Hannifin Corporation",
+          "change": 0.09,
+          "liquidity": "$522.4M",
+          "marketCap": "$108.36B",
+          "score": null
+        },
+        {
+          "symbol": "ALB",
+          "name": "Albemarle Corporation",
+          "change": -3.6,
+          "liquidity": "$458.1M",
+          "marketCap": "$20.07B",
+          "score": null
+        }
+      ],
+      "rank": 6
     },
     {
       "sector": "公用事业",
@@ -296,67 +432,67 @@
           "score": null
         }
       ],
-      "rank": 5
+      "rank": 7
     },
     {
-      "sector": "材料",
-      "status": "活跃分歧",
-      "count": 127,
-      "upCount": 70,
-      "downCount": 56,
-      "breadthPct": 55.1,
-      "avgChange": 0.17,
-      "activeValue": 9443467104.92,
-      "activeValueLabel": "$9.44B",
-      "inflowProxy": 3098032147.31,
-      "inflowProxyLabel": "$3.10B",
-      "outflowProxy": 6340115382.77,
-      "outflowProxyLabel": "$6.34B",
-      "netFlowProxy": -3242083235.45,
-      "netFlowLabel": "$-3.24B",
+      "sector": "生物医药",
+      "status": "流出压力",
+      "count": 32,
+      "upCount": 8,
+      "downCount": 23,
+      "breadthPct": 25.0,
+      "avgChange": -1.44,
+      "activeValue": 3476317840.45,
+      "activeValueLabel": "$3.48B",
+      "inflowProxy": 467723761.23,
+      "inflowProxyLabel": "$467.7M",
+      "outflowProxy": 3006678763.98,
+      "outflowProxyLabel": "$3.01B",
+      "netFlowProxy": -2538955002.76,
+      "netFlowLabel": "$-2.54B",
       "leaders": [
         {
-          "symbol": "LIN",
-          "name": "Linde plc Ordinary Share",
-          "change": -1.18,
-          "liquidity": "$948.9M",
-          "marketCap": "$234.24B",
+          "symbol": "NVO",
+          "name": "Novo-Nordisk A/S",
+          "change": -4.52,
+          "liquidity": "$848.7M",
+          "marketCap": "$199.74B",
           "score": null
         },
         {
-          "symbol": "HWM",
-          "name": "Howmet Aerospace Inc.",
-          "change": -2.12,
-          "liquidity": "$592.5M",
-          "marketCap": "$104.51B",
+          "symbol": "RVMD",
+          "name": "Revolution Medicines, Inc. Common Stock",
+          "change": -0.5,
+          "liquidity": "$406.1M",
+          "marketCap": "$31.96B",
           "score": null
         },
         {
-          "symbol": "PH",
-          "name": "Parker-Hannifin Corporation",
-          "change": 0.09,
-          "liquidity": "$522.4M",
-          "marketCap": "$108.36B",
+          "symbol": "NVS",
+          "name": "Novartis AG",
+          "change": -1.84,
+          "liquidity": "$379.5M",
+          "marketCap": "$287.07B",
           "score": null
         },
         {
-          "symbol": "ALB",
-          "name": "Albemarle Corporation",
-          "change": -3.6,
-          "liquidity": "$458.1M",
-          "marketCap": "$20.07B",
+          "symbol": "AZN",
+          "name": "AstraZeneca PLC",
+          "change": -2.37,
+          "liquidity": "$370.4M",
+          "marketCap": "$290.72B",
           "score": null
         },
         {
-          "symbol": "KMB",
-          "name": "Kimberly-Clark Corp.",
-          "change": -1.3,
-          "liquidity": "$373.1M",
-          "marketCap": "$32.38B",
+          "symbol": "GSK",
+          "name": "GSK plc American Depositary Shares (Each representing two Ordinary Shares)",
+          "change": -1.71,
+          "liquidity": "$244.9M",
+          "marketCap": "$101.90B",
           "score": null
         }
       ],
-      "rank": 6
+      "rank": 8
     },
     {
       "sector": "能源",
@@ -416,7 +552,7 @@
           "score": null
         }
       ],
-      "rank": 7
+      "rank": 9
     },
     {
       "sector": "医疗",
@@ -476,7 +612,7 @@
           "score": null
         }
       ],
-      "rank": 8
+      "rank": 10
     },
     {
       "sector": "地产",
@@ -536,84 +672,24 @@
           "score": null
         }
       ],
-      "rank": 9
-    },
-    {
-      "sector": "消费",
-      "status": "活跃分歧",
-      "count": 197,
-      "upCount": 107,
-      "downCount": 88,
-      "breadthPct": 54.3,
-      "avgChange": 0.44,
-      "activeValue": 43188465156.06,
-      "activeValueLabel": "$43.19B",
-      "inflowProxy": 14590302615.25,
-      "inflowProxyLabel": "$14.59B",
-      "outflowProxy": 28591690046.7,
-      "outflowProxyLabel": "$28.59B",
-      "netFlowProxy": -14001387431.46,
-      "netFlowLabel": "$-14.00B",
-      "leaders": [
-        {
-          "symbol": "AMZN",
-          "name": "Amazon.Com Inc",
-          "change": -0.33,
-          "liquidity": "$8.31B",
-          "marketCap": "$2850.74B",
-          "score": null
-        },
-        {
-          "symbol": "WMT",
-          "name": "Walmart Inc. Common Stock",
-          "change": 0.8,
-          "liquidity": "$2.34B",
-          "marketCap": "$1043.00B",
-          "score": null
-        },
-        {
-          "symbol": "AZO",
-          "name": "AutoZone, Inc.",
-          "change": -1.36,
-          "liquidity": "$2.21B",
-          "marketCap": "$56.34B",
-          "score": null
-        },
-        {
-          "symbol": "COST",
-          "name": "Costco Wholesale Corp",
-          "change": 0.3,
-          "liquidity": "$2.03B",
-          "marketCap": "$476.49B",
-          "score": null
-        },
-        {
-          "symbol": "HD",
-          "name": "Home Depot, Inc.",
-          "change": -0.34,
-          "liquidity": "$1.36B",
-          "marketCap": "$309.35B",
-          "score": null
-        }
-      ],
-      "rank": 10
+      "rank": 11
     },
     {
       "sector": "金融",
       "status": "活跃分歧",
-      "count": 355,
-      "upCount": 165,
-      "downCount": 183,
-      "breadthPct": 46.5,
-      "avgChange": -0.26,
-      "activeValue": 34817446734.45,
-      "activeValueLabel": "$34.82B",
-      "inflowProxy": 9082591497.83,
-      "inflowProxyLabel": "$9.08B",
-      "outflowProxy": 25564431806.97,
-      "outflowProxyLabel": "$25.56B",
-      "netFlowProxy": -16481840309.14,
-      "netFlowLabel": "$-16.48B",
+      "count": 375,
+      "upCount": 171,
+      "downCount": 196,
+      "breadthPct": 45.6,
+      "avgChange": -0.24,
+      "activeValue": 36078358214.44,
+      "activeValueLabel": "$36.08B",
+      "inflowProxy": 9842825449.89,
+      "inflowProxyLabel": "$9.84B",
+      "outflowProxy": 26062715508.33,
+      "outflowProxyLabel": "$26.06B",
+      "netFlowProxy": -16219890058.44,
+      "netFlowLabel": "$-16.22B",
       "leaders": [
         {
           "symbol": "BRK.B",
@@ -656,7 +732,7 @@
           "score": null
         }
       ],
-      "rank": 11
+      "rank": 12
     }
   ]
 }

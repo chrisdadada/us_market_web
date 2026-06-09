@@ -131,19 +131,65 @@ def infer_sector(name: str, ticker_type: str) -> str:
     text = f"{name} {ticker_type}".lower()
     if ticker_type == "ETF":
         return "ETF"
-    if any(token in text for token in ["biotech", "therapeutics", "pharma", "medicine", "health"]):
+    if any(token in text for token in ["biotech", "therapeutics", "pharma", "medicine", "health", "bio", "bioscience", "medical", "surgical", "novo", "sanofi", "astrazeneca", "novartis", "gsk"]):
         return "生物医药"
-    if any(token in text for token in ["semiconductor", "chip", "micro", "technology", "software", "data", "ai"]):
+    if any(token in text for token in ["semiconductor", "chip", "micro", "technology", "software", "data", "ai", "cyber", "security", "cloud", "quantum", "digital", "systems", "electronics", "computer", "cerebras", "asml", "kla", "globalfoundries"]):
         return "科技"
+    if any(token in text for token in ["telecom", "telekom", "communications", "mobile", "telefonica", "telus", "vodafone", "nokia", "ericsson"]):
+        return "通信"
     if any(token in text for token in ["energy", "oil", "gas", "uranium", "solar"]):
         return "能源"
-    if any(token in text for token in ["bank", "financial", "capital", "insurance"]):
+    if any(token in text for token in ["bank", "financial", "capital", "insurance", "credit", "lending", "santander", "bradesco", "itau", "ubs", "hsbc", "barclays", "broker", "fintech"]):
         return "金融"
-    if any(token in text for token in ["retail", "consumer", "restaurant", "food"]):
+    if any(token in text for token in ["retail", "consumer", "restaurant", "food", "beverage", "apparel", "brands", "home", "travel", "hotel", "auto", "motor", "vehicle", "tesla", "toyota", "honda", "nio", "xpeng", "li auto"]):
         return "消费"
-    if any(token in text for token in ["industrial", "manufacturing", "construction", "machinery"]):
+    if any(token in text for token in ["industrial", "manufacturing", "construction", "machinery", "aerospace", "aviation", "transport", "logistics", "rail", "truck", "space", "rocket"]):
         return "工业"
+    if any(token in text for token in ["gold", "silver", "copper", "mining", "materials", "steel", "aluminum", "lithium"]):
+        return "材料"
     return "未分类"
+
+
+def infer_sector_from_sic(text: str) -> str | None:
+    lower = str(text or "").lower()
+    if not lower or lower == "nan":
+        return None
+    if any(token in lower for token in ["semiconductor", "computer", "software", "technology", "data", "electronic", "communications"]):
+        return "科技"
+    if any(token in lower for token in ["medical", "health", "hospital", "pharma", "biotech", "therapeutic", "surgical", "laboratory", "biological", "diagnostic", "dental", "ophthalmic", "x-ray"]):
+        return "医疗"
+    if any(token in lower for token in ["real estate", "reit"]):
+        return "地产"
+    if any(token in lower for token in ["bank", "financial", "insurance", "credit", "investment", "asset management", "brokers", "dealers"]):
+        return "金融"
+    if any(token in lower for token in ["retail", "consumer", "restaurant", "food", "beverage", "hotel", "apparel", "services", "garments", "footwear", "furniture", "appliances", "sporting", "soft drinks", "cosmetics", "cigarettes", "confectionery", "publishing"]):
+        return "消费"
+    if any(token in lower for token in ["oil", "gas", "energy", "mining", "coal", "solar", "petroleum"]):
+        return "能源"
+    if any(token in lower for token in ["utility", "electric", "water supply"]):
+        return "公用事业"
+    if any(token in lower for token in ["chemical", "metal", "paper", "material", "aluminum", "steel", "gold", "silver", "ores", "cement", "lumber", "wood", "glass", "rubber", "plastics"]):
+        return "材料"
+    if any(token in lower for token in ["transport", "machinery", "manufacturing", "construction", "aerospace", "industrial", "motor vehicle", "aircraft", "missiles", "space vehicles", "truck", "trucking", "railroad", "ship", "boat", "builders", "contractors", "homes", "pumps", "engines", "turbines", "bearings", "meters", "hardware", "equipment", "generators", "ordnance", "air-cond", "heatg", "refrig"]):
+        return "工业"
+    if any(token in lower for token in ["broadcasting", "television", "radio", "media", "telephone", "telegraph", "telecom"]):
+        return "通信"
+    return None
+
+
+def load_sector_map(data_root: Path) -> dict[str, str]:
+    path = data_root / "raw" / "polygon_rest" / "corporate_actions_full" / "ticker_details_full.parquet"
+    if not path.exists():
+        return {}
+    columns = ["ticker", "name", "sic_description", "type"]
+    details = pd.read_parquet(path, columns=columns)
+    out: dict[str, str] = {}
+    for row in details.itertuples(index=False):
+        symbol = str(row.ticker).upper()
+        sector = infer_sector_from_sic(row.sic_description) or infer_sector(str(row.name or ""), str(row.type or ""))
+        if sector and sector != "未分类":
+            out[symbol] = sector
+    return out
 
 
 def risk_for(row: pd.Series, change: float) -> str:
@@ -201,6 +247,7 @@ def build_rows(
     change_col: str,
     old_map: dict[str, dict[str, Any]],
     market_caps: dict[str, float],
+    sector_map: dict[str, str],
     limit: int,
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
@@ -210,7 +257,8 @@ def build_rows(
         previous = old_map.get(symbol, {})
         company = str(item.get("company") or previous.get("company") or symbol)
         change = float(item[change_col])
-        sector = previous.get("sector") or infer_sector(company, str(item.get("type") or ""))
+        previous_sector = previous.get("sector")
+        sector = sector_map.get(symbol) or (previous_sector if previous_sector and previous_sector != "未分类" else "") or infer_sector(company, str(item.get("type") or ""))
         risk = previous.get("risk") or risk_for(item, change)
         out.append(
             {
@@ -232,7 +280,7 @@ def build_rows(
     return out
 
 
-def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: float) -> tuple[dict[str, Any], dict[str, Any]]:
+def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: float, min_dollar_volume: float) -> tuple[dict[str, Any], dict[str, Any]]:
     ytd_output = DEFAULT_YTD_OUTPUT
     movers_output = DEFAULT_MOVERS_OUTPUT
     old_map = existing_name_map(ytd_output, movers_output)
@@ -268,8 +316,10 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     work["dollarVolume"] = work["symbol"].map(meta["dollar_volume"]).fillna(work["price"] * work["volume"])
     work["volumeRatio"] = work["dollarVolume"] / work["median_dollar_volume_20d"].replace(0, pd.NA)
     work = work.dropna(subset=["price", "return1d", "return5d", "returnYtd"])
+    work = work[work["median_dollar_volume_20d"].fillna(0) >= min_dollar_volume]
     universe_count = int(work["symbol"].nunique())
     market_caps = load_market_caps(data_root, work.set_index("symbol")["price"])
+    sector_map = load_sector_map(data_root)
 
     ytd_work = work[
         (work["firstYearPrice"].fillna(0) >= 1)
@@ -281,6 +331,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         "changeYtd",
         old_map,
         market_caps,
+        sector_map,
         limit,
     )
     for row in ytd_rows:
@@ -291,6 +342,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         "return1d",
         old_map,
         market_caps,
+        sector_map,
         limit,
     )
     week_rows = build_rows(
@@ -298,6 +350,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         "return5d",
         old_map,
         market_caps,
+        sector_map,
         limit,
     )
     month_rows = build_rows(
@@ -305,6 +358,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         "return21d",
         old_map,
         market_caps,
+        sector_map,
         limit,
     )
     volume_rows = build_rows(
@@ -312,6 +366,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         "return1d",
         old_map,
         market_caps,
+        sector_map,
         limit,
     )
 
@@ -365,14 +420,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build visible market board JSON from local adjusted daily bars.")
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--asof", default="")
-    parser.add_argument("--limit", type=int, default=1000)
+    parser.add_argument("--limit", type=int, default=5000)
+    parser.add_argument("--min-dollar-volume", type=float, default=5_000_000)
     parser.add_argument("--max-ytd-return", type=float, default=3000.0)
     parser.add_argument("--ytd-output", type=Path, default=DEFAULT_YTD_OUTPUT)
     parser.add_argument("--movers-output", type=Path, default=DEFAULT_MOVERS_OUTPUT)
     args = parser.parse_args()
 
     as_of = args.asof or latest_trade_date(args.data_root)
-    ytd, movers = build_payloads(args.data_root, as_of, args.limit, args.max_ytd_return)
+    ytd, movers = build_payloads(args.data_root, as_of, args.limit, args.max_ytd_return, args.min_dollar_volume)
     write_json(args.ytd_output, ytd)
     write_json(args.movers_output, movers)
     print(json.dumps({

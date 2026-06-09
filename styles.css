@@ -13349,9 +13349,9 @@ body {
 }
 
 .stock-research-workspace .stock-core-row,
+.stock-research-workspace .stock-market-strip,
 .stock-research-workspace .stock-evidence-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -13361,7 +13361,17 @@ body {
   box-shadow: none;
 }
 
+.stock-research-workspace .stock-core-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stock-research-workspace .stock-market-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
 .stock-research-workspace .stock-core-row .metric-cell,
+.stock-research-workspace .stock-market-strip article,
 .stock-research-workspace .stock-evidence-grid .metric-cell {
   min-height: 86px;
   border: 0;
@@ -13371,11 +13381,13 @@ body {
 }
 
 .stock-research-workspace .stock-core-row .metric-cell:last-child,
+.stock-research-workspace .stock-market-strip article:last-child,
 .stock-research-workspace .stock-evidence-grid .metric-cell:last-child {
   border-right: 0;
 }
 
 .stock-research-workspace .stock-core-row strong,
+.stock-research-workspace .stock-market-strip strong,
 .stock-research-workspace .stock-evidence-grid strong {
   display: block;
   margin-top: 5px;
@@ -13386,6 +13398,7 @@ body {
 }
 
 .stock-research-workspace .stock-core-row p,
+.stock-research-workspace .stock-market-strip p,
 .stock-research-workspace .stock-evidence-grid p {
   display: -webkit-box;
   margin-top: 5px;
@@ -13395,6 +13408,11 @@ body {
   line-height: 1.42;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.stock-research-workspace .stock-market-strip span {
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .stock-research-workspace .stock-evidence-tabs {

@@ -1722,7 +1722,7 @@ const stockPrimarySource = ({ market, strength, quality, eventRow, signal }) => 
   if (quality) return quality.userAngle || "财报观察";
   if (signal) return "趋势信号";
   if (strength) return "全市场强弱";
-  if (market) return "行情异动";
+  if (market) return "涨跌幅榜";
   return "等待数据";
 };
 
@@ -1908,7 +1908,7 @@ const watchlistStatus = (item) => {
   if (item.eventRow) return { label: "事件确认", className: "is-event" };
   if (item.quality) return { label: "财报跟踪", className: "is-event" };
   if (item.strength) return { label: item.strength.label || "强弱跟踪", className: "is-ready" };
-  if (item.market) return { label: "行情异动", className: "is-muted" };
+  if (item.market) return { label: "涨跌幅榜", className: "is-muted" };
   return { label: "等待数据", className: "is-muted" };
 };
 
@@ -2291,6 +2291,13 @@ const renderStockHub = (symbol) => {
   const targetUpside = quality?.avgPriceTargetUpsidePct == null ? "--" : formatSignedPct(quality.avgPriceTargetUpsidePct);
   const signalPerformance = signal?.marketChangePct || signal?.directionalChangePct || "--";
   const peers = stockPeerRows(target, 6);
+  const strongestPeer = peers.slice().sort((a, b) => getChange(b) - getChange(a))[0];
+  const sectorRankRows = uniqueBySymbol(allMarketRows().filter((row) => row.sector === profile.sector))
+    .sort((a, b) => getChange(b) - getChange(a));
+  const sectorRank = sectorRankRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
+  const sectorRankText = sectorRank > 0 ? `${sectorRank}/${sectorRankRows.length}` : "--";
+  const volumeRatioText = volume?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio || "--";
+  const marketCapText = market?.marketCap || quality?.marketCap || "--";
   const timelineItems = stockTimelineItems(target);
   const actionItems = stockActionChecklist(target);
   const research = stockResearchSummary({ target, market, strength, quality, eventRow, signal });
@@ -2385,6 +2392,29 @@ const renderStockHub = (symbol) => {
         <strong>${escapeHtml(typeof currentPrice === "number" ? formatMoney(currentPrice) : currentPrice)}</strong>
         <p>${priceMeta}</p>
       </div>
+    </section>
+
+    <section class="stock-market-strip" aria-label="单股行情摘要">
+      <article>
+        <span>市值</span>
+        <strong>${escapeHtml(marketCapText)}</strong>
+        <p>${escapeHtml(capLabel(market || { marketCap: marketCapText }))}</p>
+      </article>
+      <article>
+        <span>板块</span>
+        <strong>${escapeHtml(profile.sector)}</strong>
+        <p>板块内涨跌位置 ${escapeHtml(sectorRankText)}</p>
+      </article>
+      <article>
+        <span>成交额异动</span>
+        <strong>${escapeHtml(volumeRatioText)}</strong>
+        <p>${escapeHtml(volume?.volume || market?.volume || "等待成交额数据")}</p>
+      </article>
+      <article>
+        <span>同板块对比</span>
+        <strong>${escapeHtml(strongestPeer ? `${strongestPeer.symbol} ${formatChangeValue(strongestPeer)}` : "--")}</strong>
+        <p>${escapeHtml(peers.length ? `可比标的 ${peers.map((item) => item.symbol).slice(0, 4).join(" / ")}` : "等待更多同板块数据")}</p>
+      </article>
     </section>
 
     <section class="stock-core-row metric-row" aria-label="单股核心判断">
@@ -3232,7 +3262,7 @@ const pageModules = [
   },
   {
     id: "market",
-    kicker: "行情异动",
+    kicker: "涨跌幅榜",
     title: "涨跌幅榜",
     nav: "行情",
     summary: "按年内、日、周、月和成交额异动查看市场热点。",
@@ -3355,7 +3385,7 @@ const renderDashboardFocus = () => {
   setText("#dashboardFocusTemperature", Number.isFinite(Number(tempScore)) ? `${tempScore}分 · ${tempLabel}` : tempLabel);
   setText("#dashboardFocusTemperatureNote", neutralCopy(temp.overall?.summary || "先看当前环境偏强、偏中性还是偏防守。"));
 
-  setText("#dashboardFocusMover", mover ? `${mover.symbol} ${formatChangeValue(mover)}` : "等待行情异动");
+  setText("#dashboardFocusMover", mover ? `${mover.symbol} ${formatChangeValue(mover)}` : "等待涨跌幅榜");
   setText(
     "#dashboardFocusMoverNote",
     mover
@@ -4064,7 +4094,7 @@ const renderStats = () => {
   const topUp = state.rows.filter((row) => getChange(row) >= 0)[0];
   const topDown = state.rows.filter((row) => getChange(row) < 0).sort((a, b) => getChange(a) - getChange(b))[0];
 
-  document.querySelector("#statCount").textContent = `${total}只`;
+  document.querySelector("#statCount").textContent = total ? "已过滤" : "--";
   document.querySelector("#statTopGain").textContent = topUp
     ? "+" + formatPercent(getChange(topUp))
     : "--";
@@ -4096,7 +4126,7 @@ const marketBoardBrief = (rows) => {
   const top = rows[0];
   const topChange = top ? formatChangeValue(top) : "--";
   const boardLabel = state.activeBoard === "day"
-    ? "24h异动"
+    ? "24h涨跌"
     : state.activeBoard === "week"
       ? "周度强弱"
       : state.activeBoard === "month"
@@ -4645,7 +4675,7 @@ const renderTable = () => {
   const body = document.querySelector("#gainersBody");
   const summary = document.querySelector("#resultSummary");
 
-  summary.textContent = `${state.meta[state.activeBoard].title} · ${rows.length} 只股票`;
+  summary.textContent = `${state.meta[state.activeBoard].title} · 当前筛选`;
   if (rows.length && (!state.selectedMarketSymbol || !rows.some((row) => row.symbol === state.selectedMarketSymbol))) {
     state.selectedMarketSymbol = rows[0].symbol;
   }
