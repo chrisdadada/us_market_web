@@ -18,90 +18,48 @@
           </span>
         </a>
 
-        <nav class="side-nav">
-          <button class="nav-item is-active" type="button" data-page="dashboard">
-            <span>总览</span>
-            <strong>策略驾驶舱</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="risk">
-            <span>温度</span>
-            <strong>市场温度计</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="events">
-            <span>事件</span>
-            <strong>事件中心</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="strength">
-            <span>强弱</span>
-            <strong>全市场强弱</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="stocks">
-            <span>股票</span>
-            <strong>股票库</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="mag7">
-            <span>七姐</span>
-            <strong>七姐妹雷达</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="watchlist">
-            <span>自选</span>
-            <strong>观察池</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="earnings">
-            <span>财报</span>
-            <strong>财报观察</strong>
-          </button>
-          <button class="nav-item nav-item-waiting" type="button" data-page="valuation" data-valuation-nav>
-            <span>估值</span>
-            <strong>指数估值</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="market">
-            <span>行情</span>
-            <strong>涨跌幅榜</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="flows">
-            <span>资金</span>
-            <strong>资金活跃度</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="options">
-            <span>流向</span>
-            <strong>期权流向</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="signals">
-            <span>信号</span>
-            <strong>趋势信号</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="live">
-            <span>实盘</span>
-            <strong>懂币猫实盘</strong>
-          </button>
-          <button class="nav-item" type="button" data-page="subscription">
-            <span>订阅</span>
-            <strong>工具订阅</strong>
-          </button>
-          <button class="nav-item is-hidden" type="button" data-page="validation" data-admin-only>
-            <span>验证</span>
-            <strong>验证中心</strong>
-          </button>
-          <button class="nav-item is-hidden" type="button" data-page="admin" data-admin-only>
-            <span>后台</span>
-            <strong>会员管理</strong>
-          </button>
-        </nav>
+        <nav class="side-nav" aria-label="产品导航">
+          <section class="nav-section">
+            <button class="nav-item is-active" type="button" data-page="dashboard">
+              <span>总览</span>
+              <strong>策略驾驶舱</strong>
+            </button>
+          </section>
 
-        <div class="sidebar-group">
-          <p>更多内容</p>
-          <a href="#" data-page-link="courses">课程</a>
-          <a href="#" data-page-link="strategies">策略合集</a>
-          <a href="#" data-page-link="market">盘前盘后</a>
-          <a href="#" data-page-link="stocks">股票库</a>
-          <a href="#" data-page-link="flows">资金活跃度</a>
-          <a href="#" data-page-link="options">期权流向</a>
-          <a href="#" data-page-link="strength">行业强弱</a>
-          <a href="#" data-page-link="earnings">财报观察</a>
-          <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
-          <a href="#" data-page-link="events">事件中心</a>
-        </div>
+          <section class="nav-section">
+            <p>市场</p>
+            <a href="#" data-page-link="risk">市场温度计</a>
+            <a href="#" data-page-link="market">涨跌幅榜</a>
+            <a href="#" data-page-link="strength">全市场强弱</a>
+            <a href="#" data-page-link="flows">资金活跃度</a>
+            <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
+          </section>
+
+          <section class="nav-section">
+            <p>个股</p>
+            <a href="#" data-page-link="stocks">股票库</a>
+            <a href="#" data-page-link="mag7">七姐妹雷达</a>
+            <a href="#" data-page-link="options">期权流向</a>
+            <a href="#" data-page-link="signals">趋势信号</a>
+          </section>
+
+          <section class="nav-section">
+            <p>研究</p>
+            <a href="#" data-page-link="events">事件中心</a>
+            <a href="#" data-page-link="earnings">财报观察</a>
+            <a href="#" data-page-link="watchlist">观察池</a>
+            <a href="#" data-page-link="strategies">策略合集</a>
+            <a href="#" data-page-link="courses">课程</a>
+          </section>
+
+          <section class="nav-section">
+            <p>账户</p>
+            <a href="#" data-page-link="live">懂币猫实盘</a>
+            <a href="#" data-page-link="subscription">工具订阅</a>
+            <a class="is-hidden" href="#" data-page-link="validation" data-admin-only>验证中心</a>
+            <a class="is-hidden" href="#" data-page-link="admin" data-admin-only>会员管理</a>
+          </section>
+        </nav>
 
         <div class="sidebar-pro">
           <span>付费</span>

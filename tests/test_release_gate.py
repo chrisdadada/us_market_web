@@ -129,8 +129,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             body = response.read().decode("utf-8")
         self.assertEqual(response.status, 200)
         self.assertIn("美股策略库", body)
-        self.assertIn('data-page="earnings"', body)
-        self.assertIn('data-page="options"', body)
+        self.assertIn('data-page-link="earnings"', body)
+        self.assertIn('data-page-link="options"', body)
 
         with urllib.request.urlopen(self.base_url + "/data/earnings-quality.json", timeout=5) as response:
             payload = json.loads(response.read().decode("utf-8"))
