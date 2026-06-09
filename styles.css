@@ -14567,3 +14567,156 @@ section.market-workspace .market-overview-grid > .market-chart-card {
     width: 100%;
   }
 }
+
+/* Risk workspace density: keep research depth without turning the page into a long report. */
+.page-view[data-view="risk"] .risk-dashboard {
+  gap: 14px;
+}
+
+.page-view[data-view="risk"] :where(.macro-monitor-board, .macro-pressure-panel, .macro-series-panel, .macro-stock-panel, .model-card, .temperature-reminder) {
+  box-shadow: none;
+}
+
+.page-view[data-view="risk"] .macro-composite-chart,
+.page-view[data-view="risk"] .macro-monitor-svg {
+  min-height: 220px;
+  height: 220px;
+}
+
+.page-view[data-view="risk"] .macro-factor-bars,
+.page-view[data-view="risk"] .macro-asset-list {
+  max-height: 260px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-view[data-view="risk"] .macro-stock-grid > article {
+  display: flex;
+  max-height: 360px;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.page-view[data-view="risk"] .macro-stock-list {
+  min-height: 0;
+  max-height: 220px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+
+.page-view[data-view="risk"] .signal-grid {
+  max-height: 560px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+
+@media (max-width: 980px) {
+  .page-view[data-view="risk"] .macro-pressure-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-view[data-view="risk"] .signal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-view[data-view="risk"] .rule-timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-view[data-view="risk"] .macro-monitor-board {
+    max-height: 720px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page-view[data-view="risk"] .macro-pressure-panel {
+    max-height: 540px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page-view[data-view="risk"] .macro-stock-grid {
+    max-height: 580px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-view[data-view="risk"] .macro-monitor-head,
+  .page-view[data-view="risk"] .section-title {
+    padding: 12px 14px;
+  }
+
+  .page-view[data-view="risk"] .macro-monitor-head h2,
+  .page-view[data-view="risk"] .section-title h2 {
+    font-size: 16px;
+  }
+
+  .page-view[data-view="risk"] .macro-composite-chart,
+  .page-view[data-view="risk"] .macro-monitor-svg {
+    min-height: 200px;
+    height: 200px;
+  }
+
+  .page-view[data-view="risk"] .macro-pressure-panel,
+  .page-view[data-view="risk"] .macro-stock-panel,
+  .page-view[data-view="risk"] .model-card {
+    padding: 12px;
+  }
+
+  .page-view[data-view="risk"] .macro-pressure-grid article,
+  .page-view[data-view="risk"] .signal-card,
+  .page-view[data-view="risk"] .rule-timeline div {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .page-view[data-view="risk"] .macro-pressure-grid strong,
+  .page-view[data-view="risk"] .signal-card strong,
+  .page-view[data-view="risk"] .rule-timeline strong {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .page-view[data-view="risk"] :where(.macro-pressure-grid p, .signal-card p, .rule-timeline p) {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .page-view[data-view="risk"] .macro-stock-grid {
+    grid-template-columns: 1fr;
+    max-height: 560px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
+  }
+
+  .page-view[data-view="risk"] .macro-stock-grid > article {
+    max-height: 320px;
+  }
+
+  .page-view[data-view="risk"] .signal-grid {
+    max-height: 460px;
+  }
+
+  .page-view[data-view="risk"] .temperature-reminder {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .evidence-workspace .strength-side {
+    max-height: 560px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .evidence-workspace .strength-theme-section {
+    max-height: 760px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
