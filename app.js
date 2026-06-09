@@ -1390,6 +1390,12 @@ const flowSectorRows = (rows) => {
     .slice(0, 8);
 };
 
+const sectorPeriodChange = (sector, board = "week") => {
+  const rows = (state.boards?.[board] || []).filter((row) => (row.sector || "未分类") === sector);
+  if (!rows.length) return null;
+  return rows.reduce((sum, row) => sum + getChange(row), 0) / rows.length;
+};
+
 const sectorFlowRows = () => {
   if (Array.isArray(state.sectorFlow?.rows) && state.sectorFlow.rows.length) return state.sectorFlow.rows;
   const map = new Map();
@@ -1456,19 +1462,25 @@ const renderFlowsPage = () => {
   setText("#flowsAccumulationCount", positiveSectors ? String(positiveSectors) : "--");
   setText("#flowsDistributionCount", negativeSectors ? String(negativeSectors) : "--");
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="6">等待板块资金流向数据。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10">等待板块资金流向数据。</td></tr>`;
   } else {
     body.innerHTML = rows.slice(0, 16).map((row) => {
       const changeClass = (row.netFlowProxy || 0) >= 0 ? "is-positive" : "is-negative";
-      const leaders = (row.leaders || []).slice(0, 4).map((item) => item.symbol).join(" / ") || "--";
+      const leaders = (row.leaders || []).slice(0, 4);
+      const leader = leaders[0];
+      const weekChange = sectorPeriodChange(row.sector, "week");
       return `
         <tr>
           <td><button class="inline-stock-link" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">${escapeHtml(row.sector)}</button></td>
           <td class="${changeClass}">${escapeHtml(row.netFlowLabel || formatCompactMoney(row.netFlowProxy || 0))}</td>
+          <td class="${Number(row.avgChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(row.avgChange == null ? "--" : formatSignedPct(row.avgChange))}</td>
+          <td class="${Number(weekChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(weekChange == null ? "--" : formatSignedPct(weekChange))}</td>
           <td>${escapeHtml(row.activeValueLabel || formatCompactMoney(row.activeValue || 0))}</td>
           <td>${escapeHtml(`${Math.round(row.breadthPct || 0)}% · ${row.upCount || 0}涨/${row.downCount || 0}跌`)}</td>
-          <td>${escapeHtml(leaders)}</td>
-          <td><button class="table-action" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">查看</button></td>
+          <td>${escapeHtml(leader?.symbol || "--")}</td>
+          <td class="${Number(leader?.change) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(leader?.change == null ? "--" : formatSignedPct(leader.change))}</td>
+          <td>${escapeHtml(leaders.map((item) => item.symbol).join(" / ") || "--")}</td>
+          <td><button class="table-action" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">筛选</button></td>
         </tr>
       `;
     }).join("");
@@ -1486,6 +1498,31 @@ const renderFlowsPage = () => {
         </button>
       `).join("")
       : "<p>等待个股活跃度数据。</p>";
+  }
+};
+
+const syncMarketWorkspacePanels = () => {
+  const section = state.marketWorkspaceSection || "movers";
+  const scanner = document.querySelector("#marketScannerPanel");
+  const flows = document.querySelector("#marketFlowsPanel");
+  const visual = document.querySelector("#marketVisualBoard");
+  const brief = document.querySelector(".market-workspace .market-board-brief");
+  const pageTitle = document.querySelector("#pageTitle");
+  const pageSubtitle = document.querySelector("#pageSubtitle");
+  const showFlows = section === "flows";
+  if (scanner) scanner.hidden = showFlows;
+  if (flows) flows.hidden = !showFlows;
+  if (visual) visual.hidden = !(section === "sectors" || section === "heatmap");
+  if (brief) brief.hidden = showFlows;
+  if (showFlows) {
+    if (pageTitle) pageTitle.textContent = "资金流向";
+    if (pageSubtitle) pageSubtitle.textContent = "按板块聚合成交额、涨跌扩散和领涨股票，观察资金正在流向哪些方向。";
+  } else if (section === "sectors") {
+    if (pageTitle) pageTitle.textContent = "板块排行";
+    if (pageSubtitle) pageSubtitle.textContent = "按板块涨跌、成交活跃度和领涨股票观察市场主线。";
+  } else if (section === "heatmap") {
+    if (pageTitle) pageTitle.textContent = "市场热力图";
+    if (pageSubtitle) pageSubtitle.textContent = "用市值和涨跌幅观察个股、板块与市场结构的相对强弱。";
   }
 };
 
@@ -4073,6 +4110,11 @@ const renderOptionsFlow = (payload) => {
 
 const showPage = (page, options = {}) => {
   const { syncHash = true, hash = "" } = options;
+  const requestedPage = page;
+  if (page === "flows") {
+    page = "market";
+    state.marketWorkspaceSection = "flows";
+  }
   if (!pageMeta[page]) page = "dashboard";
   if ((page === "admin" || page === "validation") && !state.auth.entitlements.admin) {
     openAuthModal("请先使用管理员账号登录。");
@@ -4099,7 +4141,7 @@ const showPage = (page, options = {}) => {
   document.querySelector("#workspaceKicker").textContent = meta[0];
   document.querySelector("#workspaceTitle").textContent = meta[1];
   document.title = `${meta[1]} - 懂币猫`;
-  const targetHash = hash || `#${page}`;
+  const targetHash = hash || `#${requestedPage === "flows" ? "flows" : page}`;
   if (syncHash && window.location.hash !== targetHash) {
     window.history.pushState(null, "", targetHash);
   }
@@ -4123,18 +4165,17 @@ const showPage = (page, options = {}) => {
     renderStocksPage();
   }
   if (page === "market") {
-    state.marketWorkspaceSection = state.marketVisualMode === "sectors"
-      ? "sectors"
-      : state.marketVisualMode === "heatmap"
-        ? "heatmap"
-        : "movers";
+    if (state.marketWorkspaceSection !== "flows") {
+      state.marketWorkspaceSection = state.marketVisualMode === "sectors"
+        ? "sectors"
+        : state.marketVisualMode === "heatmap"
+          ? "heatmap"
+          : "movers";
+    }
     syncMarketWorkspaceTabs();
+    syncMarketWorkspacePanels();
     if (state.rows?.length) renderTable();
-  }
-  if (page === "flows") {
-    state.marketWorkspaceSection = "flows";
-    syncMarketWorkspaceTabs();
-    renderFlowsPage();
+    if (state.marketWorkspaceSection === "flows") renderFlowsPage();
   }
   if (page === "valuation") {
     renderIndexValuation(state.indexValuation);
@@ -4152,9 +4193,7 @@ const showPage = (page, options = {}) => {
 };
 
 const syncMarketWorkspaceTabs = () => {
-  const active = document.querySelector('[data-view="flows"]')?.classList.contains("is-active")
-    ? "flows"
-    : state.marketWorkspaceSection || "movers";
+  const active = state.marketWorkspaceSection || "movers";
   const activeView = document.querySelector(".page-view.is-active");
   activeView?.querySelectorAll("[data-market-section]").forEach((item) => {
     const isActive = item.dataset.marketSection === active;
@@ -4223,9 +4262,7 @@ const renderLeader = (leader, updatedAt) => {
 
   const multiple = 1 + change / 100;
   document.querySelector("#leaderMultiple").textContent = multiple.toFixed(2) + "x";
-  document.querySelector("#changeHeader").textContent = `${meta.periodLabel}涨跌幅`;
-  document.querySelector("#referenceHeader").textContent = meta.referenceLabel;
-  document.querySelector("#volumeHeader").textContent = meta.volumeLabel || "成交量";
+  setText("#changeHeader", `${meta.periodLabel}涨跌幅`);
   document.querySelector("#leaderChangeLabel").textContent = `${meta.periodLabel}累计涨跌幅`;
   document.querySelector("#leaderReferenceLabel").textContent = meta.referenceLabel;
   document.querySelector("#leaderMultipleLabel").textContent = meta.multipleLabel || `${meta.periodLabel}价格倍数`;
@@ -4839,6 +4876,11 @@ const renderTable = () => {
   const body = document.querySelector("#gainersBody");
   const summary = document.querySelector("#resultSummary");
 
+  syncMarketWorkspacePanels();
+  if (state.marketWorkspaceSection === "flows") {
+    renderFlowsPage();
+    return;
+  }
   summary.textContent = `${state.meta[state.activeBoard].title} · 当前筛选`;
   if (rows.length && (!state.selectedMarketSymbol || !rows.some((row) => row.symbol === state.selectedMarketSymbol))) {
     state.selectedMarketSymbol = rows[0].symbol;
@@ -4846,14 +4888,13 @@ const renderTable = () => {
   renderMarketBrief(rows);
   renderMarketVisualBoard(rows);
   renderMarketMacroFilter(rows);
-  renderMarketCards(rows);
   renderDashboardFocus();
   renderDashboardVisualBoard();
 
   if (!rows.length) {
     body.innerHTML = `
       <tr>
-        <td colspan="11">没有符合条件的股票</td>
+        <td colspan="13">没有符合条件的股票</td>
       </tr>
     `;
     renderMarketDetail("");
@@ -4863,11 +4904,16 @@ const renderTable = () => {
   body.innerHTML = rows
     .map((row) => {
       const change = getChange(row);
+      const day = getBoardRow("day", row.symbol);
+      const week = getBoardRow("week", row.symbol);
+      const volume = getBoardRow("volume", row.symbol);
       const riskBucket = getRiskBucket(row);
       const riskScore = getRiskScore(row);
       const riskLabel = getRiskLabel(riskBucket);
       const preview = marketDetailPreview(row);
       const priority = state.macroFilter === "all" ? reviewPriorityForMarketRow(row) : { score: row.macroPriority, reason: row.macroPriorityReason };
+      const dollarVolume = Number(volume?.dollarVolume || row.dollarVolume);
+      const volumeRatio = volume?.volumeRatio || row.volumeRatio || "--";
       return `
         <tr class="market-row ${state.selectedMarketSymbol === row.symbol ? "is-selected" : ""}" data-market-symbol="${escapeHtml(row.symbol)}">
           <td class="rank-cell" data-label="排名">${row.displayRank || row.rank}</td>
@@ -4882,9 +4928,11 @@ const renderTable = () => {
           <td data-label="板块"><span class="sector-chip">${row.sector}</span></td>
           <td data-label="${escapeHtml(state.meta[state.activeBoard].changeLabel)}" class="${change >= 0 ? "gain-cell" : "loss-cell"}">${change >= 0 ? "+" : ""}${formatPercent(change)}</td>
           <td data-label="最近价">${formatMoney(row.price)}</td>
-          <td data-label="${escapeHtml(state.meta[state.activeBoard].referenceLabel)}">${state.meta[state.activeBoard].referenceMode === "volume" ? escapeHtml(row.volume || "--") : formatMoney(impliedReferencePrice(row))}</td>
-          <td data-label="市值">${row.marketCap}</td>
-          <td data-label="${escapeHtml(state.meta[state.activeBoard].volumeLabel)}">${state.meta[state.activeBoard].volumeLabel === "成交额倍数" ? escapeHtml(row.volumeRatio || "--") : escapeHtml(row.volume || "--")}</td>
+          <td data-label="1D" class="${day && getChange(day) < 0 ? "loss-cell" : "gain-cell"}">${escapeHtml(formatChangeValue(day))}</td>
+          <td data-label="5D" class="${week && getChange(week) < 0 ? "loss-cell" : "gain-cell"}">${escapeHtml(formatChangeValue(week))}</td>
+          <td data-label="成交额">${escapeHtml(Number.isFinite(dollarVolume) ? formatCompactMoney(dollarVolume) : row.volume || "--")}</td>
+          <td data-label="成交额倍数">${escapeHtml(volumeRatio)}</td>
+          <td data-label="市值">${escapeHtml(row.marketCap || "--")}</td>
           <td data-label="风险">
             <div class="risk-score risk-${riskBucket}">
               <strong>${riskLabel}</strong>
@@ -4892,9 +4940,9 @@ const renderTable = () => {
               <span>${row.risk}</span>
             </div>
           </td>
-          <td class="action-cell" data-label="详情">
+          <td class="action-cell" data-label="原因和动作">
             <strong>${escapeHtml(preview.title)}</strong>
-            <span>${escapeHtml(preview.note)}</span>
+            <span>${escapeHtml(row.actionNote || preview.note)}</span>
             <small class="macro-rank-reason">${escapeHtml(`复盘分 ${priority.score} · ${priority.reason || "等待更多数据"}`)}</small>
             <div class="inline-action-row">
               <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">详情</button>
@@ -8006,7 +8054,8 @@ const bindEvents = () => {
       const section = marketSection.dataset.marketSection || "movers";
       state.marketWorkspaceSection = section;
       if (section === "flows") {
-        showPage("flows");
+        state.marketVisualMode = "overview";
+        showPage("market", { hash: "#flows" });
         return;
       }
       state.marketVisualMode = section === "sectors" ? "sectors" : section === "heatmap" ? "heatmap" : "overview";
@@ -8015,7 +8064,9 @@ const bindEvents = () => {
         return;
       }
       syncMarketWorkspaceTabs();
+      syncMarketWorkspacePanels();
       renderMarketVisualBoard(getFilteredRows());
+      if (section === "movers") renderTable();
       return;
     }
     const sectorOpen = event.target.closest("[data-sector-open]");
@@ -8041,6 +8092,7 @@ const bindEvents = () => {
       const sector = document.querySelector("#sectorFilter");
       if (sector) sector.value = state.sectorFilter;
       state.marketVisualMode = "overview";
+      state.marketWorkspaceSection = "movers";
       showPage("market");
       renderTable();
       return;
@@ -8387,6 +8439,20 @@ const bindEvents = () => {
     renderStrengthTable();
   });
 
+  const strengthClear = document.querySelector("[data-strength-clear]");
+  if (strengthClear) strengthClear.addEventListener("click", () => {
+    state.strengthQuery = "";
+    state.strengthLabelFilter = "all";
+    state.strengthFactorFilter = "all";
+    const search = document.querySelector("#strengthSearchInput");
+    const label = document.querySelector("#strengthLabelFilter");
+    const factor = document.querySelector("#strengthFactorFilter");
+    if (search) search.value = "";
+    if (label) label.value = "all";
+    if (factor) factor.value = "all";
+    renderStrengthTable();
+  });
+
   const stocksSearchInput = document.querySelector("#stocksSearchInput");
   if (stocksSearchInput) stocksSearchInput.addEventListener("input", (event) => {
     state.stocksQuery = event.target.value;
@@ -8430,6 +8496,16 @@ const bindEvents = () => {
   const qualitySearchInput = document.querySelector("#qualitySearchInput");
   if (qualitySearchInput) qualitySearchInput.addEventListener("input", (event) => {
     state.qualityQuery = event.target.value;
+    renderQualityTable();
+  });
+
+  const qualityClear = document.querySelector("[data-quality-clear]");
+  if (qualityClear) qualityClear.addEventListener("click", () => {
+    state.qualityQuery = "";
+    const input = document.querySelector("#qualitySearchInput");
+    if (input) input.value = "";
+    const rows = getQualityRows();
+    state.selectedQualitySymbol = rows[0] ? rows[0].ticker : "";
     renderQualityTable();
   });
 
@@ -8490,6 +8566,27 @@ const bindEvents = () => {
   if (eventStyleFilter) {
     eventStyleFilter.addEventListener("change", () => {
       state.eventStyleFilter = eventStyleFilter.value;
+      const rows = getEventRows();
+      state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
+      renderEventTable();
+    });
+  }
+
+  const eventClear = document.querySelector("[data-event-clear]");
+  if (eventClear) {
+    eventClear.addEventListener("click", () => {
+      state.eventQuery = "";
+      state.eventScoreFilter = "all";
+      state.eventRiskFilter = "all";
+      state.eventStyleFilter = "all";
+      const search = document.querySelector("#eventSearchInput");
+      const score = document.querySelector("#eventScoreFilter");
+      const risk = document.querySelector("#eventRiskFilter");
+      const style = document.querySelector("#eventStyleFilter");
+      if (search) search.value = "";
+      if (score) score.value = "all";
+      if (risk) risk.value = "all";
+      if (style) style.value = "all";
       const rows = getEventRows();
       state.selectedEventSymbol = rows[0] ? normalizeStockSymbol(rows[0].ticker || rows[0].symbol) : "";
       renderEventTable();

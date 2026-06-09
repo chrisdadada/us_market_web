@@ -9956,7 +9956,7 @@ tbody tr:last-child td {
 }
 
 .market-table {
-  min-width: 1180px;
+  min-width: 1320px;
   table-layout: fixed;
 }
 
@@ -9966,22 +9966,22 @@ tbody tr:last-child td {
 
 .market-table th:nth-child(1),
 .market-table td:nth-child(1) {
-  width: 52px;
+  width: 48px;
 }
 
 .market-table th:nth-child(2),
 .market-table td:nth-child(2) {
-  width: 112px;
+  width: 92px;
 }
 
 .market-table th:nth-child(3),
 .market-table td:nth-child(3) {
-  width: 190px;
+  width: 170px;
 }
 
 .market-table th:nth-child(4),
 .market-table td:nth-child(4) {
-  width: 116px;
+  width: 98px;
 }
 
 .market-table th:nth-child(5),
@@ -9989,25 +9989,29 @@ tbody tr:last-child td {
 .market-table th:nth-child(6),
 .market-table td:nth-child(6),
 .market-table th:nth-child(7),
-.market-table td:nth-child(7) {
-  width: 106px;
-}
-
+.market-table td:nth-child(7),
 .market-table th:nth-child(8),
-.market-table td:nth-child(8),
+.market-table td:nth-child(8) {
+  width: 82px;
+}
+
 .market-table th:nth-child(9),
-.market-table td:nth-child(9) {
-  width: 112px;
-}
-
+.market-table td:nth-child(9),
 .market-table th:nth-child(10),
-.market-table td:nth-child(10) {
-  width: 172px;
-}
-
+.market-table td:nth-child(10),
 .market-table th:nth-child(11),
 .market-table td:nth-child(11) {
-  width: 222px;
+  width: 100px;
+}
+
+.market-table th:nth-child(12),
+.market-table td:nth-child(12) {
+  width: 150px;
+}
+
+.market-table th:nth-child(13),
+.market-table td:nth-child(13) {
+  width: 250px;
 }
 
 .gain-cell,
@@ -12579,6 +12583,12 @@ body {
   font-weight: 620;
 }
 
+.evidence-workspace .event-card-grid {
+  max-height: min(520px, 56vh);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .evidence-workspace .calendar-hero,
 .evidence-workspace .calendar-main-panel,
 .evidence-workspace .calendar-impact-panel {
@@ -13323,15 +13333,21 @@ body {
 }
 
 .evidence-workspace .strength-toolbar {
-  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(150px, 0.45fr));
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(150px, 0.45fr)) auto;
 }
 
 .evidence-workspace .quality-toolbar {
-  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1fr) auto;
 }
 
 .evidence-workspace .event-toolbar {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+}
+
+.evidence-workspace .filter-clear-action {
+  align-self: end;
+  min-height: 38px;
+  white-space: nowrap;
 }
 
 .evidence-workspace :where(.strength-toolbar label, .quality-toolbar label, .event-toolbar label, .search-box, .select-box) {
@@ -13365,6 +13381,10 @@ body {
   border-radius: var(--radius-panel);
   background: rgba(7, 12, 21, 0.72);
   margin: 0 14px 14px;
+  max-width: calc(100% - 28px);
+  max-height: min(560px, 58vh);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .evidence-workspace :where(.strength-table, .quality-table, .event-table, .calendar-table) {
@@ -14214,6 +14234,10 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   display: none;
 }
 
+.market-workspace .market-board-brief[hidden] {
+  display: none;
+}
+
 .market-workspace .ranking-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
@@ -14242,7 +14266,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 .market-workspace .market-table {
-  min-width: 980px;
+  min-width: 1320px;
 }
 
 .market-workspace .ranking-panel .table-wrap {
@@ -14283,31 +14307,54 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   grid-auto-rows: 66px;
 }
 
-.flows-view .flows-hero {
-  grid-template-columns: minmax(0, 1fr) 280px;
-  margin-top: 10px;
+#marketFlowsPanel {
+  margin-top: 0;
+  padding: 10px;
 }
 
-.flows-view .flows-summary-grid article {
+#marketFlowsPanel[hidden] {
+  display: none;
+}
+
+#marketFlowsPanel .flows-panel-head {
+  align-items: start;
+}
+
+#marketFlowsPanel .flows-panel-head p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#marketFlowsPanel .flows-summary-grid {
+  margin: 8px 0;
+}
+
+#marketFlowsPanel .flows-summary-grid article {
   min-height: 86px;
   padding: 12px;
 }
 
-.flows-view .flows-layout {
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 14px;
-  padding-top: 12px;
-}
-
-.flows-view .flows-table td,
-.flows-view .flows-table th {
+#marketFlowsPanel .flows-table td,
+#marketFlowsPanel .flows-table th {
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
-.flows-view .flows-table-wrap {
+#marketFlowsPanel .flows-table-wrap {
   max-height: 540px;
   overflow: auto;
+}
+
+#marketFlowsPanel .flows-table {
+  min-width: 1120px;
+  table-layout: fixed;
+}
+
+#marketFlowsPanel .flows-rail {
+  display: none;
 }
 
 /* Dense detail pass: reduce empty locked modules and oversized stock/market panels. */
@@ -14443,5 +14490,80 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   .market-workspace .market-sector-ranking,
   .market-workspace .market-heatmap-view {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .evidence-workspace :where(.strength-toolbar, .quality-toolbar, .event-toolbar) {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-workspace :where(.calendar-hero, .event-research-hero, .calendar-source-board) {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .evidence-workspace :where(.calendar-hero-copy, .calendar-source-board, .event-research-copy, .event-temperature-card) {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .evidence-workspace :where(.calendar-hero-copy p, .event-research-copy p) {
+    width: auto;
+    overflow-wrap: normal;
+  }
+
+  .evidence-workspace :where(.table-wrap) {
+    max-height: 58vh;
+    max-width: calc(100% - 24px);
+    margin-inline: 12px;
+    overflow: auto;
+  }
+
+  .evidence-workspace :where(.quality-table, .event-table) {
+    min-width: 860px;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .evidence-workspace :where(.quality-table thead, .event-table thead) {
+    display: table-header-group;
+  }
+
+  .evidence-workspace :where(.quality-table, .quality-table tbody, .event-table, .event-table tbody) {
+    display: table;
+    width: 100% !important;
+  }
+
+  .evidence-workspace :where(.quality-table tr, .event-table tr) {
+    display: table-row;
+    width: auto !important;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .evidence-workspace :where(.quality-table td, .event-table td) {
+    display: table-cell;
+    width: auto !important;
+    border-bottom: 1px solid rgba(128, 151, 183, 0.12);
+    padding: 9px 10px;
+    white-space: normal;
+  }
+
+  .evidence-workspace :where(.quality-table td::before, .event-table td::before) {
+    content: none;
+  }
+
+  .evidence-workspace .calendar-hero,
+  .evidence-workspace .event-research-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-workspace .calendar-hero-copy,
+  .evidence-workspace .calendar-source-board {
+    width: 100%;
   }
 }

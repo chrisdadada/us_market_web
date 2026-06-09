@@ -21,7 +21,7 @@ const mimeTypes = new Map([
 const routeCases = [
   { hash: "", view: "dashboard", text: "市场快照", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#market", view: "market", text: "涨跌幅榜", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#flows", view: "flows", text: "资金流向", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "#flows", view: "market", text: "Flow Scanner", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#events", view: "events", text: "财经日志" },
   { hash: "#stocks", view: "stocks", text: "股票库" },
   { hash: "#strength", view: "strength", text: "今日强弱榜" },
@@ -32,13 +32,14 @@ const marketSectionCases = [
   { section: "movers", view: "market", text: "涨跌幅榜", maxHeight: workspaceMaxDocumentHeight },
   { section: "sectors", view: "market", text: "板块排行", maxHeight: workspaceMaxDocumentHeight },
   { section: "heatmap", view: "market", text: "热力图", maxHeight: workspaceMaxDocumentHeight },
-  { section: "flows", view: "flows", text: "资金流向", maxHeight: workspaceMaxDocumentHeight },
+  { section: "flows", view: "market", text: "Flow Scanner", maxHeight: workspaceMaxDocumentHeight },
 ];
 
 const flowsToMarketSectionCases = [
   { section: "movers", view: "market", text: "涨跌幅榜", maxHeight: workspaceMaxDocumentHeight },
   { section: "sectors", view: "market", text: "板块排行", maxHeight: workspaceMaxDocumentHeight },
   { section: "heatmap", view: "market", text: "热力图", maxHeight: workspaceMaxDocumentHeight },
+  { section: "flows", view: "market", text: "Flow Scanner", maxHeight: workspaceMaxDocumentHeight },
 ];
 
 function startStaticServer() {
@@ -192,7 +193,7 @@ async function run() {
     }
 
     await page.goto(`${server.url}#flows`, { waitUntil: "networkidle" });
-    await page.waitForSelector('.page-view.is-active[data-view="flows"]');
+    await page.waitForSelector('.page-view.is-active[data-view="market"]');
     for (const sectionCase of flowsToMarketSectionCases) {
       await page.locator(`.page-view.is-active [data-market-section="${sectionCase.section}"]`).first().click();
       await page.waitForSelector(`.page-view.is-active[data-view="${sectionCase.view}"]`);

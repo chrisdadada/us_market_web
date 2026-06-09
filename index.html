@@ -1236,6 +1236,7 @@
                     <option value="all">全部原因</option>
                   </select>
                 </label>
+                <button class="ghost-action filter-clear-action" type="button" data-strength-clear>清除筛选</button>
               </div>
 
               <div class="table-wrap desk-panel-body">
@@ -1366,6 +1367,7 @@
                   <strong id="qualityBoardTitle">--</strong>
                   <span id="qualityBoardSubtitle">--</span>
                 </div>
+                <button class="ghost-action filter-clear-action" type="button" data-quality-clear>清除筛选</button>
               </div>
 
               <div class="table-wrap desk-panel-body">
@@ -1580,6 +1582,7 @@
                     <option value="speculative">小盘高波动</option>
                   </select>
                 </label>
+                <button class="ghost-action filter-clear-action" type="button" data-event-clear>清除筛选</button>
               </div>
 
               <div class="event-card-grid" id="eventCardGrid" aria-label="观察线索卡片"></div>
@@ -1779,7 +1782,7 @@
                 </article>
               </section>
 
-              <section class="market-visual-board" id="marketVisualBoard" aria-label="行情雷达">
+              <section class="market-visual-board" id="marketVisualBoard" aria-label="行情雷达" hidden>
                 <article class="market-chart-card">
                   <span>行情雷达</span>
                   <strong>等待数据</strong>
@@ -1795,7 +1798,7 @@
                 <button type="button" data-clear-macro-filter>清除筛选</button>
               </section>
 
-              <section class="leader-panel" aria-labelledby="leader-title">
+              <section class="leader-panel" aria-labelledby="leader-title" hidden>
                 <div class="leader-copy">
                   <span class="rank-pill" id="leaderBadge">年内涨幅第一</span>
                   <div class="leader-heading">
@@ -1830,14 +1833,14 @@
                 </div>
               </section>
 
-              <section class="market-detail-panel" id="marketDetailPanel" aria-label="单股详情">
+              <section class="market-detail-panel" id="marketDetailPanel" aria-label="单股详情" hidden>
                 <div class="empty-detail">
                   <strong>点击榜单股票查看详情</strong>
                   <p>集中查看 24h、周、月、年内表现、成交额异动、风险标签和同板块对比。</p>
                 </div>
               </section>
 
-              <section class="ranking-panel" aria-label="涨跌幅榜">
+              <section class="ranking-panel" id="marketScannerPanel" aria-label="市场扫描器">
                 <div class="panel-head">
                   <div class="board-tabs" aria-label="榜单切换">
                     <button class="board-tab is-active" type="button" data-board="ytd">今年以来</button>
@@ -1849,7 +1852,7 @@
                   <div class="summary" id="resultSummary">--</div>
                 </div>
 
-                <div class="market-card-grid" id="marketCardGrid" aria-label="涨跌幅榜卡片"></div>
+                <div class="market-card-grid" id="marketCardGrid" aria-label="涨跌幅榜卡片" hidden></div>
 
                 <div class="toolbar" aria-label="榜单筛选">
                   <label class="search-box">
@@ -1891,30 +1894,78 @@
                 </div>
 
                 <div class="market-table-title">
-                  <span>数据明细</span>
-                  <strong>完整榜单字段</strong>
+                  <span>Market Scanner</span>
+                  <strong>价格、成交额、风险和下一步动作</strong>
                 </div>
 
                 <div class="table-wrap">
                   <table class="market-table">
                     <thead>
                       <tr>
-                        <th>排名</th>
-                        <th>股票</th>
-                        <th>中文简称 / 公司</th>
+                        <th>Rank</th>
+                        <th>Ticker</th>
+                        <th>公司</th>
                         <th>板块</th>
-                        <th id="changeHeader">年内涨跌幅</th>
-                        <th>最近价</th>
-                        <th id="referenceHeader">年初估算价</th>
+                        <th id="changeHeader">Chg%</th>
+                        <th>Price</th>
+                        <th>1D</th>
+                        <th>5D</th>
+                        <th>成交额</th>
+                        <th>Vol Ratio</th>
                         <th>市值</th>
-                        <th id="volumeHeader">成交量</th>
-                        <th>风险提示</th>
-                        <th>详情</th>
+                        <th>Risk</th>
+                        <th>Reason / Action</th>
                       </tr>
                     </thead>
                     <tbody id="gainersBody"></tbody>
                   </table>
                 </div>
+              </section>
+
+              <section class="flows-terminal-panel desk-panel" id="marketFlowsPanel" aria-label="资金流向扫描器" hidden>
+                <div class="flows-panel-head desk-panel-header">
+                  <div>
+                    <span>Flow Scanner</span>
+                    <strong id="flowsHeroTitle">等待板块数据</strong>
+                  </div>
+                  <p id="flowsHeroLead">按板块聚合成交额、涨跌方向和上涨广度，和涨跌幅榜一起判断资金偏好。</p>
+                </div>
+
+                <section class="flows-summary-grid workspace-summary-row metric-row" aria-label="资金流向指标">
+                  <article class="metric-cell"><span>流入领先</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
+                  <article class="metric-cell"><span>活跃板块</span><strong id="flowsTopSector">--</strong><p>按成交额代理观察市场关注度。</p></article>
+                  <article class="metric-cell"><span>流入板块</span><strong id="flowsAccumulationCount">--</strong><p>净流向代理为正的板块数量。</p></article>
+                  <article class="metric-cell"><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>净流向代理为负的板块数量。</p></article>
+                </section>
+
+                <div class="table-wrap flows-table-wrap desk-panel-body">
+                  <table class="flows-table data-table">
+                    <thead>
+                      <tr>
+                        <th>板块</th>
+                        <th>净流向代理</th>
+                        <th>1D</th>
+                        <th>5D</th>
+                        <th>成交额</th>
+                        <th>上涨广度</th>
+                        <th>龙头</th>
+                        <th>龙头涨跌</th>
+                        <th>代表标的</th>
+                        <th>动作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="flowsSectorBody">
+                      <tr><td colspan="10">等待板块资金流向数据。</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <aside class="flows-rail workspace-side">
+                  <section>
+                    <h2>个股活跃度</h2>
+                    <div id="flowsSectorList" class="flows-sector-list"></div>
+                  </section>
+                </aside>
               </section>
             </div>
 
@@ -2012,87 +2063,6 @@
                 </table>
               </div>
             </section>
-          </div>
-        </section>
-
-        <section class="page-view flows-view workspace-page" data-view="flows">
-          <div class="page-heading flows-heading workspace-header">
-            <div>
-              <p class="eyebrow">市场与资金</p>
-              <h1>板块资金流向榜</h1>
-              <p class="subtitle">按板块聚合成交额、涨跌方向和上涨广度，和涨跌幅榜一起判断资金偏好。</p>
-            </div>
-            <div class="source source-chip">
-              <span>数据日期</span>
-              <strong id="flowsAsOf">--</strong>
-            </div>
-          </div>
-
-          <div class="market-workspace-tabs segmented-tabs" aria-label="市场与资金二级导航">
-            <button type="button" data-market-section="movers">涨跌幅榜</button>
-            <button type="button" data-market-section="sectors">板块排行</button>
-            <button class="is-active" type="button" data-market-section="flows">资金流向</button>
-            <button type="button" data-market-section="heatmap">热力图</button>
-          </div>
-
-          <section class="flows-hero desk-panel" aria-label="资金流向摘要">
-            <div>
-              <span>当前领先板块</span>
-              <strong id="flowsHeroTitle">等待板块数据</strong>
-              <p id="flowsHeroLead">用板块层面的成交活跃和涨跌广度判断资金偏好。</p>
-            </div>
-            <div class="flows-method-note">
-              <span>口径说明</span>
-              <strong>资金流向代理</strong>
-              <p>当前按成交额/流动性和涨跌方向聚合，不等同于逐笔主买主卖或真实净流入。</p>
-            </div>
-          </section>
-
-          <section class="flows-summary-grid workspace-summary-row metric-row" aria-label="资金流向指标">
-            <article class="metric-cell"><span>流入领先</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
-            <article class="metric-cell"><span>活跃板块</span><strong id="flowsTopSector">--</strong><p>按成交额代理观察市场关注度。</p></article>
-            <article class="metric-cell"><span>流入板块</span><strong id="flowsAccumulationCount">--</strong><p>净流向代理为正的板块数量。</p></article>
-            <article class="metric-cell"><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>净流向代理为负的板块数量。</p></article>
-          </section>
-
-          <div class="flows-layout workspace-main">
-            <section class="flows-main-panel desk-panel">
-              <div class="flows-panel-head desk-panel-header">
-                <div>
-                  <span>板块排行</span>
-                  <strong>按资金流向代理排序</strong>
-                </div>
-                <button class="ghost-action" type="button" data-page-link="market">查看行情榜</button>
-              </div>
-              <div class="table-wrap flows-table-wrap desk-panel-body">
-                <table class="flows-table data-table">
-                  <thead>
-                    <tr>
-                      <th>板块</th>
-                      <th>净流向代理</th>
-                      <th>成交活跃</th>
-                      <th>上涨广度</th>
-                      <th>代表标的</th>
-                      <th>详情</th>
-                    </tr>
-                  </thead>
-                  <tbody id="flowsSectorBody">
-                    <tr><td colspan="6">等待板块资金流向数据。</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <aside class="flows-rail workspace-side">
-              <section>
-                <h2>个股明细</h2>
-                <div id="flowsSectorList" class="flows-sector-list"></div>
-              </section>
-              <section>
-                <h2>怎么看</h2>
-                <p>绿色代表净流向代理为正，红色代表承压；再结合上涨广度和代表标的判断是否形成板块主线。</p>
-              </section>
-            </aside>
           </div>
         </section>
 
