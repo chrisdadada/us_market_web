@@ -217,15 +217,20 @@ body.is-sidebar-collapsed .app-sidebar {
 }
 
 .brand-mark {
-  width: 32px;
-  height: 32px;
-  display: inline-grid;
-  place-items: center;
+  width: 36px;
+  height: 36px;
+  display: block;
+  overflow: hidden;
   border-radius: 6px;
-  background: var(--nav);
-  color: #fff;
-  font-weight: 700;
+  background: rgba(255, 255, 255, 0.94);
   box-shadow: none;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .brand strong,
@@ -8871,7 +8876,7 @@ h1 {
 
 .stock-peer-table button {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr) 94px;
+  grid-template-columns: 70px minmax(0, 1fr) 82px 78px 62px;
   align-items: center;
   gap: 10px;
   min-height: 48px;
@@ -8906,6 +8911,57 @@ h1 {
   color: var(--blue);
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.stock-peer-table em,
+.stock-peer-table small {
+  color: #8ea0b8;
+  font-size: 12px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.stock-catalyst-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.stock-catalyst-grid div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: rgba(8, 13, 23, 0.72);
+  padding: 10px;
+}
+
+.stock-catalyst-grid span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stock-catalyst-grid strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-catalyst-grid p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 6px 0 0;
+  color: #7f8da2;
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .stock-event-list {
@@ -13503,6 +13559,10 @@ body {
   border-color: rgba(146, 166, 197, 0.22);
   background: rgba(146, 166, 197, 0.1);
   color: #9fb0c5;
+}
+
+.signal-status-chip {
+  max-width: 180px;
 }
 
 .stock-research-workspace .stock-core-row,

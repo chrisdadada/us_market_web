@@ -691,6 +691,8 @@ const signalPolarity = (signal) => {
   return { label: "中性", className: "is-neutral", note: "当前趋势方向不明确，先等待下一次信号更新。" };
 };
 
+const signalStatusText = (signalSide) => `当前趋势信号：${signalSide.label}`;
+
 const signalEventsForSymbol = (symbol) =>
   (state.signals?.feed || []).filter((item) => item.symbol === symbol);
 
@@ -2406,7 +2408,7 @@ const renderStockHub = (symbol) => {
         <div class="stock-card-head">
           <div>
             <span>趋势信号</span>
-            <strong><i class="signal-side-pill ${escapeHtml(signalSide.className)}">${escapeHtml(signalSide.label)}</i>${escapeHtml(directionLabel(signal.direction, signal.directionText))}</strong>
+            <strong><i class="signal-side-pill ${escapeHtml(signalSide.className)}">${escapeHtml(signalSide.label)}</i>${escapeHtml(signalStatusText(signalSide))}</strong>
           </div>
           <em>${escapeHtml(signal.intervalLabel || signal.interval || "基础")}</em>
         </div>
@@ -2427,7 +2429,7 @@ const renderStockHub = (symbol) => {
         <div class="stock-card-head">
           <div>
             <span>趋势信号</span>
-            <strong><i class="signal-side-pill is-neutral">无信号</i>暂无趋势方向</strong>
+            <strong><i class="signal-side-pill is-neutral">无信号</i>当前趋势信号：无信号</strong>
           </div>
           <em>待接入</em>
         </div>
@@ -2448,7 +2450,7 @@ const renderStockHub = (symbol) => {
             <span>信号生命周期</span>
             <strong>从首发到复盘</strong>
           </div>
-          <em>后续开放</em>
+          <em>信号记录</em>
         </div>
         <div class="stock-event-list">
           ${events.slice(0, 5).map((item) => `
@@ -2479,7 +2481,7 @@ const renderStockHub = (symbol) => {
         </div>
         <div class="stock-badge-row">
           <span>${escapeHtml(profile.sector)}</span>
-          <span class="signal-status-chip ${escapeHtml(signalSide.className)}">${escapeHtml(signalSide.label)}</span>
+          <span class="signal-status-chip ${escapeHtml(signalSide.className)}">${escapeHtml(signalStatusText(signalSide))}</span>
           ${watchlistActionButton(target, "股票详情")}
         </div>
       </div>
@@ -2708,19 +2710,23 @@ const renderStockHub = (symbol) => {
       <article class="stock-hub-card stock-hub-card-wide desk-panel" data-lockable-module="stock-hub-catalyst">
         <div class="stock-card-head">
           <div>
-            <span>为什么进入观察</span>
-            <strong>原因与下一步</strong>
+            <span>财报 / 事件摘要</span>
+            <strong>${escapeHtml(eventRow || quality ? "当前催化" : "等待催化")}</strong>
           </div>
-          <em>后续开放</em>
+          <em>研究</em>
         </div>
-        <div class="stock-reason-list">
-          ${
-            moveReasons.length
-              ? moveReasons.map((reason) => `<b>${escapeHtml(reason)}</b>`).join("")
-              : "<b>等待更多行情和公告数据</b>"
-          }
+        <div class="stock-catalyst-grid">
+          <div>
+            <span>事件</span>
+            <strong>${escapeHtml(eventSummary)}</strong>
+            <p>${escapeHtml(eventRow?.reason || "暂无明确事件，先以行情、成交额和板块共振观察。")}</p>
+          </div>
+          <div>
+            <span>财报</span>
+            <strong>${escapeHtml(earningsSummary)}</strong>
+            <p>${escapeHtml(quality?.userReason || "暂无财报摘要，后续接入后展示业绩、指引和分析师变化。")}</p>
+          </div>
         </div>
-        <p class="stock-card-note">${escapeHtml(market?.actionNote || quality?.userRisk || strength?.action || "先看数据是否持续改善，再决定是否加入自选名单。")}</p>
       </article>
 
       <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-action-plan">
@@ -2729,7 +2735,7 @@ const renderStockHub = (symbol) => {
             <span>下一步怎么跟</span>
             <strong>观察清单</strong>
           </div>
-          <em>后续开放</em>
+          <em>复盘动作</em>
         </div>
         <div class="stock-checklist">
           ${actionItems.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}
@@ -2742,7 +2748,7 @@ const renderStockHub = (symbol) => {
             <span>同方向对比</span>
             <strong>${escapeHtml(profile.sector)}</strong>
           </div>
-          <em>后续开放</em>
+          <em>同板块</em>
         </div>
         <div class="stock-peer-table">
           ${
@@ -2752,6 +2758,8 @@ const renderStockHub = (symbol) => {
                     <strong>${escapeHtml(peer.symbol)}</strong>
                     <span>${escapeHtml(peer.chineseName || peer.company || peer.symbol)}</span>
                     <b>${formatChangeValue(peer)}</b>
+                    <em>${escapeHtml(peer.marketCap || "--")}</em>
+                    <small>${escapeHtml(peer.volumeRatio || "--")}</small>
                   </button>
                 `).join("")
               : "<p class=\"stock-card-note\">暂无同板块对比，后续接入更多标的后会显示谁更强、谁更弱。</p>"
@@ -2765,7 +2773,7 @@ const renderStockHub = (symbol) => {
             <span>风险提示</span>
             <strong>${escapeHtml(market ? getRiskLabel(riskBucket) : quality?.userRisk || "等待数据")}</strong>
           </div>
-          <em>后续开放</em>
+          <em>风险</em>
         </div>
         ${
           market
@@ -2784,7 +2792,7 @@ const renderStockHub = (symbol) => {
             <span>观察记录</span>
             <strong>${timelineItems.length ? `${timelineItems.length} 条记录` : "等待记录"}</strong>
           </div>
-          <em>后续开放</em>
+          <em>记录</em>
         </div>
         <div class="stock-timeline">
           ${
@@ -4067,7 +4075,7 @@ const showPage = (page, options = {}) => {
   const meta = pageMeta[page] || pageMeta.market;
   document.querySelector("#workspaceKicker").textContent = meta[0];
   document.querySelector("#workspaceTitle").textContent = meta[1];
-  document.title = `${meta[1]} - 美股策略库`;
+  document.title = `${meta[1]} - 懂币猫`;
   const targetHash = hash || `#${page}`;
   if (syncHash && window.location.hash !== targetHash) {
     window.history.pushState(null, "", targetHash);
