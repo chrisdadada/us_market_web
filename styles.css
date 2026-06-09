@@ -10248,6 +10248,264 @@ tbody tr:last-child td {
   stroke-width: 2.2;
 }
 
+/* Research section visual normalization. */
+.calendar-hero,
+.calendar-layout,
+.quality-overview,
+.quality-focus-grid,
+.quality-visual-board,
+.event-research-hero,
+.event-evidence-grid,
+.event-overview,
+.event-focus-grid,
+.watchlist-overview,
+.watchlist-daily-plan,
+.value-grid {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+}
+
+.calendar-hero {
+  padding: 0;
+}
+
+.calendar-hero-copy,
+.event-research-copy {
+  border-right: 1px solid var(--line);
+  padding: 18px;
+}
+
+.calendar-source-board,
+.event-temperature-card,
+.watchlist-daily-plan > div {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.quality-overview article,
+.quality-focus-grid article,
+.event-evidence-grid article,
+.event-overview article,
+.event-focus-grid article,
+.watchlist-overview article,
+.value-grid article {
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.quality-overview article:last-child,
+.quality-focus-grid article:last-child,
+.event-evidence-grid article:last-child,
+.event-overview article:last-child,
+.event-focus-grid article:last-child,
+.watchlist-overview article:last-child,
+.value-grid article:last-child {
+  border-right: 0;
+}
+
+.quality-main-panel,
+.quality-detail-panel,
+.quality-chart-card,
+.event-main-panel,
+.event-detail-panel,
+.event-observation-card,
+.event-report-box,
+.watchlist-panel,
+.watchlist-card,
+.watchlist-daily-plan,
+.course-card,
+.strategy-card,
+.subscription-offer,
+.plan-compare,
+.calendar-impact-panel,
+.macro-pressure-panel,
+.macro-series-panel,
+.macro-stock-panel {
+  box-shadow: none;
+}
+
+.calendar-hero-copy span,
+.calendar-source-board span,
+.calendar-panel-head span,
+.calendar-impact-list span,
+.quality-overview span,
+.quality-focus-grid span,
+.quality-board-copy span,
+.quality-detail-head span,
+.quality-reason-box span,
+.quality-risk-box span,
+.quality-detail-grid span,
+.quality-mini-cell span,
+.quality-chart-head span,
+.quality-share-bars span,
+.quality-bucket-row span,
+.quality-confluence-list span,
+.event-research-copy > span,
+.event-temperature-card > span,
+.event-evidence-grid span,
+.event-evidence-grid p,
+.event-overview span,
+.event-focus-grid span,
+.event-board-copy span,
+.event-detail-head span,
+.event-detail-grid span,
+.event-mini-cell,
+.event-type-cell span,
+.event-lock-row span,
+.event-card-head span,
+.event-observation-card section span,
+.event-card-metrics span,
+.event-table-title span,
+.event-report-box span,
+.watchlist-overview span,
+.watchlist-card-head span,
+.watchlist-metrics span,
+.watchlist-card-actions span,
+.watchlist-daily-plan span,
+.watchlist-toolbar span,
+.course-card span,
+.strategy-card span,
+.subscription-offer span,
+.value-grid span,
+.plan-compare span {
+  font-weight: 620;
+}
+
+.calendar-hero-copy strong,
+.calendar-source-board strong,
+.calendar-panel-head strong,
+.calendar-impact-list strong,
+.quality-chart-head strong,
+.quality-overview strong,
+.quality-focus-grid strong,
+.quality-board-copy strong,
+.quality-angle-cell strong,
+.quality-mini-cell strong,
+.quality-score-stack strong,
+.quality-detail-head h2,
+.quality-score-block strong,
+.quality-detail-grid strong,
+.event-research-copy h2,
+.event-evidence-grid strong,
+.event-temperature-card strong,
+.event-overview strong,
+.event-focus-grid strong,
+.event-board-copy strong,
+.event-card-head strong,
+.event-card-metrics strong,
+.event-table-title strong,
+.watchlist-overview strong,
+.watchlist-daily-plan strong,
+.watchlist-card-head strong,
+.watchlist-score-box strong,
+.watchlist-metrics strong,
+.course-card h2,
+.strategy-card h2,
+.strategy-card strong,
+.subscription-offer h2,
+.subscription-offer strong,
+.value-grid h3,
+.compare-head strong,
+.compare-row strong {
+  font-weight: 560;
+}
+
+.calendar-hero-copy strong,
+.event-research-copy h2 {
+  color: var(--nav);
+  font-size: clamp(22px, 2.4vw, 30px);
+}
+
+.quality-overview strong,
+.event-overview strong,
+.watchlist-overview strong,
+.event-evidence-grid strong {
+  font-size: 21px;
+}
+
+.quality-focus-grid strong,
+.event-focus-grid strong {
+  font-size: 17px;
+}
+
+.event-research-hero {
+  background: var(--panel);
+}
+
+.event-temperature-card {
+  padding: 18px;
+}
+
+.event-temperature-card strong {
+  color: var(--nav);
+  font-size: 24px;
+}
+
+.quality-card-grid,
+.event-card-grid,
+.watchlist-grid {
+  background: var(--panel-subtle);
+}
+
+.event-observation-card:hover,
+.event-observation-card.is-selected,
+.quality-row:hover,
+.quality-row.is-selected,
+.event-row:hover,
+.event-row.is-selected {
+  box-shadow: none;
+}
+
+.event-observation-card.is-selected,
+.quality-row.is-selected,
+.event-row.is-selected {
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+
+.watchlist-status-row b,
+.watchlist-status-row span,
+.watchlist-status-row em,
+.watchlist-data-row span,
+.watchlist-review-actions button,
+.event-card-head em,
+.risk-pill,
+.calendar-impact,
+.subscription-offer button {
+  border-radius: var(--radius-control);
+  font-weight: 560;
+}
+
+.watchlist-score-box {
+  background: var(--panel-subtle);
+  box-shadow: none;
+}
+
+.course-card,
+.strategy-card {
+  box-shadow: none;
+}
+
+.subscription-offer {
+  background: var(--panel);
+}
+
+.subscription-offer strong {
+  color: var(--nav);
+  font-size: 32px;
+}
+
+.subscription-offer button {
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
