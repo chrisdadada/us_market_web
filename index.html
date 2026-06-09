@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>美股策略库</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-size='28' font-family='Arial' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=20260609-market2" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-home2" />
   </head>
   <body>
     <div class="app-shell">
@@ -102,8 +102,8 @@
           <div class="cockpit-hero workspace-header">
             <div>
               <p class="eyebrow">市场总览</p>
-              <h1>美股策略驾驶舱</h1>
-              <p class="subtitle">趋势、广度、波动、事件的盘面快照。</p>
+              <h1>今日市场工作台</h1>
+              <p class="subtitle">先看环境，再看资金流向和板块主线，最后确认本周事件。</p>
             </div>
             <div class="market-regime-card market-radar-card desk-panel">
               <span>当前结构</span>
@@ -125,6 +125,47 @@
             </article>
           </section>
 
+          <section class="dashboard-intelligence-grid" aria-label="今日重要摘要">
+            <article class="dashboard-intel-panel desk-panel">
+              <div class="desk-panel-header">
+                <div>
+                  <span>板块排行</span>
+                  <strong id="dashboardSectorLead">等待板块数据</strong>
+                </div>
+                <button class="ghost-action" type="button" data-market-section="sectors">更多</button>
+              </div>
+              <div class="dashboard-sector-rank" id="dashboardSectorRank">
+                <p>等待行情板块排行。</p>
+              </div>
+            </article>
+
+            <article class="dashboard-intel-panel desk-panel">
+              <div class="desk-panel-header">
+                <div>
+                  <span>资金流向</span>
+                  <strong id="dashboardFlowLead">等待资金数据</strong>
+                </div>
+                <button class="ghost-action" type="button" data-market-section="flows">更多</button>
+              </div>
+              <div class="dashboard-flow-pulse" id="dashboardFlowPulse">
+                <p>等待板块资金流向代理。</p>
+              </div>
+            </article>
+
+            <article class="dashboard-intel-panel desk-panel">
+              <div class="desk-panel-header">
+                <div>
+                  <span>财经日志</span>
+                  <strong id="dashboardCalendarLead">等待财经日历</strong>
+                </div>
+                <button class="ghost-action" type="button" data-page-link="events">更多</button>
+              </div>
+              <div class="dashboard-calendar-log" id="dashboardCalendarLog">
+                <p>等待宏观、财报和人工日志。</p>
+              </div>
+            </article>
+          </section>
+
           <section class="dashboard-focus-grid workspace-summary-row" aria-label="当前先看">
             <article class="metric-cell">
               <span>01 · 先看环境</span>
@@ -136,7 +177,7 @@
               <span>02 · 再看异动</span>
               <strong id="dashboardFocusMover">涨跌异动加载中</strong>
               <p id="dashboardFocusMoverNote">看当前最明显的涨跌、成交额和风险标签。</p>
-              <button type="button" data-page-link="market">看涨跌幅榜</button>
+              <button type="button" data-page-link="market">看市场与资金</button>
             </article>
             <article class="metric-cell">
               <span>03 · 找强势</span>
@@ -319,8 +360,8 @@
           <section class="module-section">
             <div class="section-title">
               <div>
-                <span>功能模块</span>
-                <h2>按模块进入页面</h2>
+                <span>全部入口</span>
+                <h2>更多工具</h2>
               </div>
             </div>
             <div class="module-grid" id="dashboardModuleGrid">
@@ -2703,6 +2744,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260609-market2"></script>
+    <script src="./app.js?v=20260609-home2"></script>
   </body>
 </html>

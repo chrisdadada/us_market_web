@@ -12481,6 +12481,184 @@ body {
   margin-bottom: 10px;
 }
 
+.dashboard-intelligence-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.dashboard-intel-panel {
+  min-width: 0;
+  padding: 12px;
+}
+
+.dashboard-intel-panel .desk-panel-header {
+  min-width: 0;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 10px;
+  margin: 0 0 8px;
+}
+
+.dashboard-intel-panel .desk-panel-header > div {
+  min-width: 0;
+}
+
+.dashboard-intel-panel .desk-panel-header span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.dashboard-intel-panel .desk-panel-header strong {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-sector-rank,
+.dashboard-flow-pulse,
+.dashboard-calendar-log {
+  display: grid;
+  gap: 0;
+}
+
+.dashboard-sector-rank button,
+.dashboard-flow-pulse button,
+.dashboard-calendar-log button {
+  min-width: 0;
+  min-height: 36px;
+  display: grid;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 7px 0;
+  text-align: left;
+}
+
+.dashboard-sector-rank button:hover,
+.dashboard-flow-pulse button:hover,
+.dashboard-calendar-log button:hover {
+  background: rgba(53, 167, 255, 0.06);
+}
+
+.dashboard-sector-rank button {
+  grid-template-columns: 30px 78px minmax(0, 1fr) 64px;
+  gap: 8px;
+}
+
+.dashboard-flow-pulse button {
+  grid-template-columns: 78px minmax(0, 1fr) 76px 56px;
+  gap: 8px;
+}
+
+.dashboard-calendar-log button {
+  grid-template-columns: 82px minmax(0, 1fr) 58px;
+  gap: 8px;
+}
+
+.dashboard-sector-rank button:last-child,
+.dashboard-flow-pulse button:last-child,
+.dashboard-calendar-log button:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-sector-rank em,
+.dashboard-flow-pulse small,
+.dashboard-calendar-log time {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.dashboard-sector-rank span,
+.dashboard-flow-pulse span,
+.dashboard-calendar-log strong,
+.dashboard-calendar-log time {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-calendar-log time {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.dashboard-sector-rank i,
+.dashboard-flow-pulse i {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(146, 166, 197, 0.16);
+}
+
+.dashboard-sector-rank i b,
+.dashboard-flow-pulse i b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+}
+
+.dashboard-flow-pulse i.is-positive b {
+  background: var(--positive);
+}
+
+.dashboard-flow-pulse i.is-negative b {
+  background: var(--negative);
+}
+
+.dashboard-sector-rank strong,
+.dashboard-flow-pulse strong {
+  font-size: 12px;
+  font-weight: 560;
+  text-align: right;
+}
+
+.dashboard-sector-rank .is-positive,
+.dashboard-flow-pulse .is-positive {
+  color: var(--positive);
+}
+
+.dashboard-sector-rank .is-negative,
+.dashboard-flow-pulse .is-negative {
+  color: var(--negative);
+}
+
+.dashboard-calendar-summary {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dashboard-calendar-summary strong {
+  color: var(--ink);
+  font-weight: 560;
+}
+
 .dashboard-focus-grid article {
   min-height: 112px;
   gap: 6px;
@@ -13539,6 +13717,10 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 @media (max-width: 900px) {
+  .dashboard-intelligence-grid {
+    grid-template-columns: 1fr;
+  }
+
   .market-workspace .market-sector-ranking,
   .market-workspace .market-heatmap-view {
     grid-template-columns: 1fr;

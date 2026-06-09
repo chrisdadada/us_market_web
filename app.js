@@ -3533,6 +3533,101 @@ const renderDashboardVisualBoard = () => {
       <p>财报、指引和机构观点变化会进入研究线索。</p>
     </article>
   `;
+  renderDashboardIntelligence();
+};
+
+const parseEventDateValue = (value) => {
+  const text = String(value || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return Number.POSITIVE_INFINITY;
+  const time = new Date(`${text}T00:00:00`).getTime();
+  return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
+};
+
+const dashboardEventRows = () => {
+  const events = state.eventsCalendar?.events || [];
+  return [...events]
+    .sort((a, b) => parseEventDateValue(a.date) - parseEventDateValue(b.date))
+    .slice(0, 4);
+};
+
+const renderDashboardIntelligence = () => {
+  const sectorRank = document.querySelector("#dashboardSectorRank");
+  const flowPulse = document.querySelector("#dashboardFlowPulse");
+  const calendarLog = document.querySelector("#dashboardCalendarLog");
+  const dayRows = state.boards?.day || state.rows || [];
+  const sectors = marketSectorStats(dayRows).slice(0, 5);
+  const sectorMax = Math.max(...sectors.map((item) => item.dollarVolume || item.count), 1);
+  const topSector = sectors[0];
+
+  setText(
+    "#dashboardSectorLead",
+    topSector ? `${topSector.sector} · ${formatSignedPct(topSector.avgChange)}` : "等待板块数据",
+  );
+  if (sectorRank) {
+    sectorRank.innerHTML = sectors.length
+      ? sectors.map((item, index) => {
+        const tone = item.avgChange >= 0 ? "is-positive" : "is-negative";
+        const width = Math.max(8, ((item.dollarVolume || item.count) / sectorMax) * 100).toFixed(1);
+        return `
+          <button type="button" data-sector-open="${escapeHtml(item.sector)}">
+            <em>${String(index + 1).padStart(2, "0")}</em>
+            <span>${escapeHtml(item.sector)}</span>
+            <i><b style="width:${width}%"></b></i>
+            <strong class="${tone}">${escapeHtml(formatSignedPct(item.avgChange))}</strong>
+          </button>
+        `;
+      }).join("")
+      : "<p>等待行情板块排行。</p>";
+  }
+
+  const flowRowsSorted = sectorFlowRows().slice(0, 5);
+  const flowTop = flowRowsSorted[0];
+  const flowMax = Math.max(...flowRowsSorted.map((item) => Math.abs(item.netFlowProxy || 0)), 1);
+  setText(
+    "#dashboardFlowLead",
+    flowTop ? `${flowTop.sector} · ${flowTop.netFlowLabel || formatCompactMoney(flowTop.netFlowProxy || 0)}` : "等待资金数据",
+  );
+  if (flowPulse) {
+    flowPulse.innerHTML = flowRowsSorted.length
+      ? flowRowsSorted.map((item) => {
+        const positive = (item.netFlowProxy || 0) >= 0;
+        const width = Math.max(8, (Math.abs(item.netFlowProxy || 0) / flowMax) * 100).toFixed(1);
+        return `
+          <button type="button" data-flow-sector-open="${escapeHtml(item.sector)}">
+            <span>${escapeHtml(item.sector)}</span>
+            <i class="${positive ? "is-positive" : "is-negative"}"><b style="width:${width}%"></b></i>
+            <strong class="${positive ? "is-positive" : "is-negative"}">${escapeHtml(item.netFlowLabel || formatCompactMoney(item.netFlowProxy || 0))}</strong>
+            <small>${escapeHtml(`${Math.round(item.breadthPct || 0)}%上涨`)}</small>
+          </button>
+        `;
+      }).join("")
+      : "<p>等待板块资金流向代理。</p>";
+  }
+
+  const events = dashboardEventRows();
+  const highCount = (state.eventsCalendar?.events || []).filter((item) => item.impact === "high").length;
+  const first = events[0];
+  setText("#dashboardCalendarLead", first ? `${first.date} · ${first.title}` : "等待财经日历");
+  if (calendarLog) {
+    calendarLog.innerHTML = events.length
+      ? `
+        <div class="dashboard-calendar-summary">
+          <span>高影响事件</span>
+          <strong>${escapeHtml(highCount ? `${highCount}项` : "--")}</strong>
+        </div>
+        ${events.map((item) => {
+          const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
+          return `
+            <button type="button" data-page-link="events">
+              <time>${escapeHtml(item.date || "--")} ${escapeHtml(item.time || "")}</time>
+              <strong>${escapeHtml(item.title || "--")}</strong>
+              <span class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</span>
+            </button>
+          `;
+        }).join("")}
+      `
+      : "<p>等待宏观、财报和人工日志。</p>";
+  }
 };
 
 const dataStatusItems = () => [
@@ -6841,6 +6936,7 @@ const renderEventsCalendar = (payload) => {
       : "<p>暂无影响映射。</p>";
   }
   renderDashboardVisualBoard();
+  renderDashboardIntelligence();
   renderDataStatus();
 };
 
@@ -7715,6 +7811,12 @@ const bindEvents = () => {
       const sector = document.querySelector("#sectorFilter");
       if (sector) sector.value = state.sectorFilter;
       state.marketVisualMode = "overview";
+      state.marketWorkspaceSection = "movers";
+      if (!document.querySelector('[data-view="market"]').classList.contains("is-active")) {
+        showPage("market");
+        return;
+      }
+      syncMarketWorkspaceTabs();
       renderTable();
       return;
     }
@@ -8306,6 +8408,7 @@ const init = async () => {
   renderCoreSignals(state.core);
   renderMarketTemperature(state.marketTemperature);
   renderDashboardVisualBoard();
+  renderDashboardIntelligence();
   renderDashboardRegimeRadar();
   renderLeader(state.rows[0], state.meta[state.activeBoard].updatedAt);
   renderTable();
@@ -8318,6 +8421,7 @@ const init = async () => {
   showPage(getPageFromHash(), { syncHash: false });
   window.setTimeout(() => {
     loadLazyDataset("eventOpportunities");
+    loadLazyDataset("eventsCalendar");
   }, 300);
 };
 
