@@ -3377,7 +3377,6 @@ const renderIndexValuation = (payload) => {
   setText("#valuationPageTitle", `${shortIndexName} 估值`);
   setText("#valuationPageSubtitle", `用 PE、PB、ROE、股息率和 PEG 观察 ${shortIndexName} 当前所处的位置。`);
   setText("#valuationIndexLabel", indexName);
-  setText("#valuationStatusLabel", ready ? (partialReady ? "持仓已接入" : "数据已接入") : "等待估值数据");
   setText("#valuationAsOf", ready ? formatDisplayDate(activePayload?.asOf || activePayload?.updatedAt || activePayload?.generatedAt) : "--");
   setText("#valuationCoverage", ready ? activePayload?.coverage || activePayload?.sample || "指数估值样本" : "等待指数估值样本接入");
   setText("#valuationTitle", ready ? activePayload?.title || `${indexName} 估值概览` : "等待估值数据");

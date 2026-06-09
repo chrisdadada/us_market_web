@@ -2681,10 +2681,6 @@ body :where(.is-negative) {
   min-width: 0;
 }
 
-.valuation-source strong {
-  color: var(--valuation-blue);
-}
-
 .valuation-shell {
   display: grid;
   gap: 12px;
@@ -14891,7 +14887,7 @@ body .page-view[data-view="risk"] .rule-timeline div {
 }
 
 /* Dark terminal consistency pass: remove legacy light panels from core research pages. */
-body :where(.source, .page-heading-simple .source, .valuation-source, .market-workspace .source) {
+body :where(.source, .page-heading-simple .source, .market-workspace .source) {
   border-color: var(--line) !important;
   background: rgba(11, 18, 32, 0.88) !important;
   color: var(--ink) !important;
