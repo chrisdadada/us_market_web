@@ -82,6 +82,7 @@ const state = {
   stocksPresetFilter: "all",
   stocksSectorFilter: "all",
   stocksCapFilter: "all",
+  marketWorkspaceSection: "movers",
 };
 
 const escapeHtml = (value) =>
@@ -3298,6 +3299,8 @@ const pageModules = [
 ];
 
 const pageMeta = Object.fromEntries(pageModules.map((item) => [item.id, [item.kicker, item.title]]));
+pageMeta.market = ["市场与资金", "市场工作区"];
+pageMeta.flows = ["市场与资金", "资金流向"];
 pageMeta.stock = ["股票详情", "股票详情"];
 pageMeta.admin = ["管理后台", "会员管理"];
 pageMeta.validation = ["验证中心", "模块有效性验证"];
@@ -3823,7 +3826,18 @@ const showPage = (page, options = {}) => {
   if (page === "stocks") {
     renderStocksPage();
   }
+  if (page === "market") {
+    state.marketWorkspaceSection = state.marketVisualMode === "sectors"
+      ? "sectors"
+      : state.marketVisualMode === "heatmap"
+        ? "heatmap"
+        : "movers";
+    syncMarketWorkspaceTabs();
+    if (state.rows?.length) renderTable();
+  }
   if (page === "flows") {
+    state.marketWorkspaceSection = "flows";
+    syncMarketWorkspaceTabs();
     renderFlowsPage();
   }
   if (page === "valuation") {
@@ -3839,6 +3853,22 @@ const showPage = (page, options = {}) => {
     renderWatchlist();
   }
   ensurePageData(page);
+};
+
+const syncMarketWorkspaceTabs = () => {
+  const active = document.querySelector('[data-view="flows"]')?.classList.contains("is-active")
+    ? "flows"
+    : state.marketWorkspaceSection || "movers";
+  const activeView = document.querySelector(".page-view.is-active");
+  activeView?.querySelectorAll("[data-market-section]").forEach((item) => {
+    const isActive = item.dataset.marketSection === active;
+    item.classList.toggle("is-active", isActive);
+    item.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+  document.querySelectorAll(".page-view:not(.is-active) [data-market-section]").forEach((item) => {
+    item.classList.remove("is-active");
+    item.setAttribute("aria-pressed", "false");
+  });
 };
 
 const getFilteredRows = () => {
@@ -7608,19 +7638,18 @@ const bindEvents = () => {
     });
   });
 
-  document.querySelectorAll("[data-page-link]").forEach((item) => {
-    item.addEventListener("click", (event) => {
-      event.preventDefault();
-      if (item.dataset.disabled === "true" || item.getAttribute("aria-disabled") === "true") return;
-      showPage(item.dataset.pageLink);
-    });
-  });
-
   document.querySelectorAll('a[data-disabled="true"]').forEach((item) => {
     item.addEventListener("click", (event) => event.preventDefault());
   });
 
   document.addEventListener("click", (event) => {
+    const pageLink = event.target.closest("[data-page-link]");
+    if (pageLink) {
+      event.preventDefault();
+      if (pageLink.dataset.disabled === "true" || pageLink.getAttribute("aria-disabled") === "true") return;
+      showPage(pageLink.dataset.pageLink);
+      return;
+    }
     const stockPreset = event.target.closest("[data-stocks-preset]");
     if (stockPreset) {
       event.preventDefault();
@@ -7652,6 +7681,30 @@ const bindEvents = () => {
     if (marketVisualMode) {
       event.preventDefault();
       state.marketVisualMode = marketVisualMode.dataset.marketVisualMode || "overview";
+      state.marketWorkspaceSection = state.marketVisualMode === "sectors"
+        ? "sectors"
+        : state.marketVisualMode === "heatmap"
+          ? "heatmap"
+          : "movers";
+      syncMarketWorkspaceTabs();
+      renderMarketVisualBoard(getFilteredRows());
+      return;
+    }
+    const marketSection = event.target.closest("[data-market-section]");
+    if (marketSection) {
+      event.preventDefault();
+      const section = marketSection.dataset.marketSection || "movers";
+      state.marketWorkspaceSection = section;
+      if (section === "flows") {
+        showPage("flows");
+        return;
+      }
+      state.marketVisualMode = section === "sectors" ? "sectors" : section === "heatmap" ? "heatmap" : "overview";
+      if (!document.querySelector('[data-view="market"]').classList.contains("is-active")) {
+        showPage("market");
+        return;
+      }
+      syncMarketWorkspaceTabs();
       renderMarketVisualBoard(getFilteredRows());
       return;
     }

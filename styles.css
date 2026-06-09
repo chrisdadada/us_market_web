@@ -13429,3 +13429,125 @@ body {
     border-bottom: 1px solid var(--line);
   }
 }
+
+.market-workspace .workspace-header,
+.flows-view .workspace-header {
+  margin-bottom: 10px;
+}
+
+.market-workspace-tabs {
+  margin: 2px 0 14px;
+}
+
+.market-workspace-tabs button {
+  min-width: 86px;
+  cursor: pointer;
+}
+
+.market-workspace .content-layout {
+  gap: 18px;
+}
+
+.market-workspace .market-strip,
+.market-workspace .market-board-brief,
+.market-workspace .leader-panel,
+.market-workspace .market-detail-panel,
+.market-workspace .ranking-panel,
+.market-workspace .rail-card,
+.market-workspace .market-chart-card {
+  background: rgba(13, 21, 34, 0.9);
+  background-color: rgba(13, 21, 34, 0.9);
+  box-shadow: none;
+}
+
+section.market-workspace .market-overview-grid > .market-chart-card {
+  background: rgba(13, 21, 34, 0.9);
+  background-color: rgba(13, 21, 34, 0.9);
+}
+
+.market-workspace .market-visual-tabs button {
+  border-color: var(--control-border);
+  background: rgba(8, 13, 23, 0.72);
+  color: var(--muted);
+}
+
+.market-workspace .market-visual-tabs button.is-active {
+  border-color: rgba(53, 167, 255, 0.36);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.market-workspace .market-sector-bars i,
+.market-workspace .market-volume-rank i,
+.market-workspace .market-sector-rank-list i,
+.market-workspace .market-direction-meter {
+  background: rgba(146, 166, 197, 0.16);
+}
+
+.market-workspace .market-sector-ranking,
+.market-workspace .market-heatmap-view {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: rgba(13, 21, 34, 0.78);
+  padding: 14px;
+}
+
+.market-workspace .market-visual-copy strong,
+.market-workspace .market-chart-head strong,
+.market-workspace .market-sector-rank-list span,
+.market-workspace .market-risk-donut b {
+  color: var(--ink);
+}
+
+.market-workspace .market-sector-rank-list button {
+  color: var(--ink);
+}
+
+.market-workspace .market-sector-rank-list button:hover {
+  background: rgba(53, 167, 255, 0.08);
+}
+
+.market-workspace .market-heatmap-grid {
+  border-color: rgba(146, 166, 197, 0.2);
+  background: rgba(146, 166, 197, 0.16);
+}
+
+.market-workspace .market-heat-tile {
+  background: #303b4a;
+}
+
+.market-workspace .market-heat-tile.is-up {
+  background: #167253;
+}
+
+.market-workspace .market-heat-tile.is-down {
+  background: #8b3341;
+}
+
+.market-workspace .market-heat-tile.is-flat {
+  background: #3b4656;
+}
+
+.market-workspace .market-risk-donut {
+  background:
+    radial-gradient(circle at center, var(--panel) 0 48%, transparent 49%),
+    conic-gradient(
+      var(--negative) 0 var(--extreme),
+      var(--amber) var(--extreme) calc(var(--extreme) + var(--high)),
+      var(--positive) calc(var(--extreme) + var(--high)) 100%
+    );
+}
+
+@media (max-width: 900px) {
+  .market-workspace .market-sector-ranking,
+  .market-workspace .market-heatmap-view {
+    grid-template-columns: 1fr;
+  }
+
+  .market-workspace .market-visual-copy {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+    padding-bottom: 12px;
+  }
+}

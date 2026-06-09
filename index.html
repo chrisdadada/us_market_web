@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>美股策略库</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-size='28' font-family='Arial' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=20260609-stock1" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-market2" />
   </head>
   <body>
     <div class="app-shell">
@@ -32,9 +32,8 @@
           <section class="nav-section">
             <p>市场</p>
             <a href="#" data-page-link="risk">市场温度计</a>
-            <a href="#" data-page-link="market">涨跌幅榜</a>
+            <a href="#" data-page-link="market">市场与资金</a>
             <a href="#" data-page-link="strength">全市场强弱</a>
-            <a href="#" data-page-link="flows">资金流向</a>
             <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
           </section>
 
@@ -1673,17 +1672,24 @@
           </section>
         </section>
 
-        <section class="page-view" data-view="market">
-          <div class="page-heading">
+        <section class="page-view market-workspace workspace-page" data-view="market">
+          <div class="page-heading workspace-header">
             <div>
-              <p class="eyebrow">行情异动</p>
-              <h1 id="pageTitle">美股年内涨幅榜</h1>
-              <p class="subtitle" id="pageSubtitle">按今年以来累计涨幅排序，适合快速观察强势股、高波动股和风险释放后的候选。</p>
+              <p class="eyebrow">市场与资金</p>
+              <h1 id="pageTitle">美股市场工作区</h1>
+              <p class="subtitle" id="pageSubtitle">把行情异动、板块排行、资金流向和热力图放到同一条研究路径里。</p>
             </div>
             <div class="source">
               <span>数据日期</span>
               <strong id="updatedAt">--</strong>
             </div>
+          </div>
+
+          <div class="market-workspace-tabs segmented-tabs" aria-label="市场与资金二级导航">
+            <button class="is-active" type="button" data-market-section="movers">行情异动</button>
+            <button type="button" data-market-section="sectors">板块排行</button>
+            <button type="button" data-market-section="flows">资金流向</button>
+            <button type="button" data-market-section="heatmap">热力图</button>
           </div>
 
           <div class="content-layout">
@@ -1984,14 +1990,21 @@
         <section class="page-view flows-view workspace-page" data-view="flows">
           <div class="page-heading flows-heading workspace-header">
             <div>
-              <p class="eyebrow">资金流向</p>
+              <p class="eyebrow">市场与资金</p>
               <h1>板块资金流向榜</h1>
-              <p class="subtitle">按板块聚合成交额、涨跌方向和上涨广度，先看资金关注集中在哪些行业。</p>
+              <p class="subtitle">按板块聚合成交额、涨跌方向和上涨广度，和行情异动一起判断资金偏好。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
               <strong id="flowsAsOf">--</strong>
             </div>
+          </div>
+
+          <div class="market-workspace-tabs segmented-tabs" aria-label="市场与资金二级导航">
+            <button type="button" data-market-section="movers">行情异动</button>
+            <button type="button" data-market-section="sectors">板块排行</button>
+            <button class="is-active" type="button" data-market-section="flows">资金流向</button>
+            <button type="button" data-market-section="heatmap">热力图</button>
           </div>
 
           <section class="flows-hero desk-panel" aria-label="资金流向摘要">
@@ -2690,6 +2703,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260609-stock1"></script>
+    <script src="./app.js?v=20260609-market2"></script>
   </body>
 </html>
