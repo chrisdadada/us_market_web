@@ -5294,52 +5294,37 @@ body :where(.is-negative) {
 }
 
 .info-tip::after {
-  content: attr(data-tip);
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 10px);
-  z-index: 40;
-  width: min(260px, 70vw);
-  transform: translateX(-12px) translateY(4px);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--nav);
-  color: #fff;
-  box-shadow: 0 12px 28px rgba(18, 23, 34, 0.18);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.55;
-  opacity: 0;
-  pointer-events: none;
-  padding: 9px 10px;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  white-space: normal;
+  content: none !important;
+  display: none !important;
 }
 
 .info-tip:hover::after,
 .info-tip:focus-visible::after {
-  opacity: 1;
-  transform: translateX(-12px) translateY(0);
+  content: none !important;
+  display: none !important;
 }
 
 .has-global-tip .info-tip::after {
-  display: none;
+  content: none !important;
+  display: none !important;
 }
 
 .global-info-tip {
   position: fixed;
-  z-index: 1000;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  z-index: 10000;
+  max-width: min(360px, calc(100vw - 28px));
+  border: 1px solid rgba(128, 151, 183, 0.42);
   border-radius: 8px;
-  background: var(--nav);
-  color: #fff;
-  box-shadow: 0 14px 34px rgba(18, 23, 34, 0.18);
+  background: rgba(8, 13, 23, 0.98);
+  color: #e8edf6;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.42);
   font-size: 12px;
-  font-weight: 750;
-  line-height: 1.52;
+  font-weight: 560;
+  line-height: 1.55;
   opacity: 0;
   pointer-events: none;
-  padding: 8px 10px;
+  padding: 10px 12px;
+  text-align: left;
   transform: translateY(4px);
   transition: opacity 0.14s ease, transform 0.14s ease;
   white-space: normal;
@@ -5368,11 +5353,8 @@ th .info-tip::after,
 .quality-table th .info-tip::after,
 .event-table th .info-tip::after,
 .validation-table th .info-tip::after {
-  top: calc(100% + 8px);
-  bottom: auto;
-  left: 50%;
-  width: 220px;
-  transform: translateX(-50%) translateY(-4px);
+  content: none !important;
+  display: none !important;
 }
 
 th .info-tip:hover::after,
@@ -5383,7 +5365,8 @@ th .info-tip:focus-visible::after,
 .event-table th .info-tip:focus-visible::after,
 .validation-table th .info-tip:hover::after,
 .validation-table th .info-tip:focus-visible::after {
-  transform: translateX(-50%) translateY(0);
+  content: none !important;
+  display: none !important;
 }
 
 .model-card,

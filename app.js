@@ -7958,33 +7958,46 @@ const setupInfoTips = () => {
   tip.className = "global-info-tip";
   tip.setAttribute("role", "tooltip");
   document.body.appendChild(tip);
+  let activeButton = null;
 
   const showTip = (button) => {
     const text = button?.dataset?.tip;
     if (!text) return;
+    activeButton = button;
     tip.textContent = text;
     tip.classList.add("is-visible");
     const rect = button.getBoundingClientRect();
     const width = Math.min(300, window.innerWidth - 28);
     const left = Math.max(14, Math.min(window.innerWidth - width - 14, rect.left + rect.width / 2 - width / 2));
-    const placeBelow = rect.top < 96;
-    const top = placeBelow ? rect.bottom + 10 : rect.top - tip.offsetHeight - 10;
     tip.style.width = `${width}px`;
     tip.style.left = `${left}px`;
+    const placeBelow = rect.top < 96;
+    const top = placeBelow ? rect.bottom + 10 : rect.top - tip.offsetHeight - 10;
     tip.style.top = `${Math.max(12, top)}px`;
   };
 
   const hideTip = () => {
+    activeButton = null;
     tip.classList.remove("is-visible");
   };
 
-  document.addEventListener("pointerover", (event) => {
+  const handleEnter = (event) => {
     const button = event.target.closest(".info-tip");
     if (button) showTip(button);
-  });
-  document.addEventListener("pointerout", (event) => {
-    if (event.target.closest(".info-tip")) hideTip();
-  });
+  };
+
+  const handleLeave = (event) => {
+    const button = event.target.closest(".info-tip");
+    if (!button || button !== activeButton) return;
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && button.contains(nextTarget)) return;
+    hideTip();
+  };
+
+  document.addEventListener("pointerover", handleEnter);
+  document.addEventListener("mouseover", handleEnter);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("mouseout", handleLeave);
   document.addEventListener("focusin", (event) => {
     const button = event.target.closest(".info-tip");
     if (button) showTip(button);
