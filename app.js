@@ -3541,46 +3541,12 @@ const pageModules = [
     summary: "跟踪方向变化、定时复盘和板块共振。",
     status: "接口接入",
   },
-  {
-    id: "live",
-    kicker: "策略实盘",
-    title: "懂币猫实盘",
-    nav: "实盘",
-    summary: "展示账户曲线、月度收益、盈利主线和付费复盘入口。",
-    status: "付费扩展",
-  },
-  {
-    id: "courses",
-    kicker: "课程",
-    title: "课程",
-    nav: "课程",
-    summary: "按新手、财报、交易纪律和工具训练组织学习路径。",
-    status: "页面已开",
-  },
-  {
-    id: "strategies",
-    kicker: "策略研究",
-    title: "策略合集",
-    nav: "策略",
-    summary: "沉淀强势股回踩、财报后趋势、小盘过滤和行业轮动模板。",
-    status: "页面已开",
-  },
-  {
-    id: "subscription",
-    kicker: "工具订阅",
-    title: "订阅方案",
-    nav: "订阅",
-    summary: "说明免费和付费权益，把工具价值讲清楚。",
-    status: "转化页",
-  },
 ];
 
 const pageMeta = Object.fromEntries(pageModules.map((item) => [item.id, [item.kicker, item.title]]));
 pageMeta.market = ["市场与资金", "市场工作区"];
 pageMeta.flows = ["市场与资金", "资金流向"];
 pageMeta.stock = ["股票详情", "股票详情"];
-pageMeta.admin = ["管理后台", "会员管理"];
-pageMeta.validation = ["验证中心", "模块有效性验证"];
 
 const dataFreshnessLabel = (value, item = {}) => {
   if (item.status === "waiting" || item.ready === false) return { label: "待接入", level: "muted" };

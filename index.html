@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-decouple1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-navtrim1" />
   </head>
   <body>
     <div class="app-shell">
@@ -51,24 +51,8 @@
             <a href="#" data-page-link="stock-events">股票线索</a>
             <a href="#" data-page-link="earnings">财报观察</a>
             <a href="#" data-page-link="watchlist">自选</a>
-            <a href="#" data-page-link="strategies">策略合集</a>
-            <a href="#" data-page-link="courses">课程</a>
-          </section>
-
-          <section class="nav-section">
-            <p>账户</p>
-            <a href="#" data-page-link="live">懂币猫实盘</a>
-            <a href="#" data-page-link="subscription">工具订阅</a>
-            <a class="is-hidden" href="#" data-page-link="validation" data-admin-only>验证中心</a>
-            <a class="is-hidden" href="#" data-page-link="admin" data-admin-only>会员管理</a>
           </section>
         </nav>
-
-        <div class="sidebar-pro">
-          <span>付费</span>
-          <strong>策略工具包</strong>
-          <p>解锁回测、异动原因和组合风控。</p>
-        </div>
       </aside>
 
       <main class="app-main">
@@ -95,7 +79,6 @@
           </div>
           <div class="topbar-actions">
             <button id="authButton" type="button">登录</button>
-            <button class="primary-action" type="button" data-page-link="subscription">升级付费</button>
           </div>
         </header>
 
@@ -195,39 +178,6 @@
           </section>
 
           <section class="cockpit-grid workspace-main dashboard-secondary-block">
-            <article class="cockpit-card live-card desk-panel">
-              <div class="card-head desk-panel-header">
-                <div>
-                  <span>懂币猫实盘</span>
-                  <h2>趋势策略组合</h2>
-                </div>
-                <button type="button" data-page-link="live">查看详情</button>
-              </div>
-              <div class="hero-return">
-                <span>近 1 年策略收益</span>
-                <strong id="strategyOneYear">+38.6%</strong>
-                <small id="strategyBenchmark">对比 QQQ +29.4%</small>
-              </div>
-              <div class="equity-chart" aria-label="资金曲线预览">
-                <svg viewBox="0 0 520 190" role="img">
-                  <defs>
-                    <linearGradient id="curveFill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stop-color="#14805e" stop-opacity="0.16" />
-                      <stop offset="100%" stop-color="#14805e" stop-opacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M10 158 C65 155, 82 136, 122 139 C168 143, 172 103, 220 108 C263 112, 278 82, 322 77 C372 71, 386 91, 427 61 C462 36, 486 45, 510 24 L510 180 L10 180 Z" fill="url(#curveFill)" />
-                  <path d="M10 158 C65 155, 82 136, 122 139 C168 143, 172 103, 220 108 C263 112, 278 82, 322 77 C372 71, 386 91, 427 61 C462 36, 486 45, 510 24" fill="none" stroke="#14805e" stroke-width="4" stroke-linecap="round" />
-                  <path d="M10 160 C72 150, 106 148, 156 132 C219 112, 254 120, 306 94 C359 68, 404 84, 510 52" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="6 8" stroke-linecap="round" />
-                </svg>
-              </div>
-              <div class="mini-stats">
-                <div><span>最大回撤</span><strong id="strategyDrawdown">-8.9%</strong></div>
-                <div><span>观察强度</span><strong id="strategyPosition">70%</strong></div>
-                <div><span>复盘节奏</span><strong>月度</strong></div>
-              </div>
-            </article>
-
             <article class="cockpit-card desk-panel">
               <div class="card-head desk-panel-header">
                 <div>
@@ -281,22 +231,6 @@
                 <b id="dashboardEventCount">--</b>
               </div>
               <p class="card-note" id="dashboardEventNote">适合先加入自选，再看价格是否确认。</p>
-            </article>
-
-            <article class="cockpit-card locked-card desk-panel" data-requires-plan="paid">
-              <div class="card-head desk-panel-header">
-                <div>
-                  <span>付费权益</span>
-                  <h2>交割记录</h2>
-                </div>
-                <b>付费</b>
-              </div>
-              <div class="locked-preview">
-                <div><span>最近</span><strong>强势股复盘</strong><em>锁定</em></div>
-                <div><span>上次</span><strong>风险节奏调整</strong><em>锁定</em></div>
-                <div><span>复盘</span><strong>ETF 防守记录</strong><em>锁定</em></div>
-              </div>
-              <button class="wide-action" type="button" data-gated-action="trade-records">查看订阅权益</button>
             </article>
           </section>
 
@@ -2721,6 +2655,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-decouple1"></script>
+    <script src="./app.js?v=20260610-navtrim1"></script>
   </body>
 </html>
