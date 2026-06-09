@@ -1,18 +1,18 @@
-const DATA_URL = "./data/ytd-gainers.json?v=20260609-product1";
-const MOVERS_URL = "./data/market-movers.json?v=20260609-product1";
-const CORE_URL = "./data/core-signals.json?v=20260609-product1";
-const STRENGTH_URL = "./data/strength-scanner.json?v=20260609-product1";
-const STRENGTH_REVIEW_URL = "./data/strength-review.json?v=20260609-product1";
-const SECTOR_FLOW_URL = "./data/sector-flow.json?v=20260609-product1";
-const EARNINGS_QUALITY_URL = "./data/earnings-quality.json?v=20260609-product1";
-const MARKET_TEMPERATURE_URL = "./data/market-temperature.json?v=20260609-product1";
-const MACRO_SERIES_URL = "./data/macro-series.json?v=20260609-product1";
-const EVENT_OPPORTUNITIES_URL = "./data/event-opportunities.json?v=20260609-product1";
-const EVENTS_CALENDAR_URL = "./data/events-calendar.json?v=20260609-product1";
-const VALIDATION_CENTER_URL = "./data/validation-center.json?v=20260609-product1";
-const INDEX_VALUATION_URL = "./data/index-valuation.json?v=20260609-product1";
-const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260609-product1";
-const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260609-product1";
+const DATA_URL = "./data/ytd-gainers.json?v=20260610-expand1";
+const MOVERS_URL = "./data/market-movers.json?v=20260610-expand1";
+const CORE_URL = "./data/core-signals.json?v=20260610-expand1";
+const STRENGTH_URL = "./data/strength-scanner.json?v=20260610-expand1";
+const STRENGTH_REVIEW_URL = "./data/strength-review.json?v=20260610-expand1";
+const SECTOR_FLOW_URL = "./data/sector-flow.json?v=20260610-expand1";
+const EARNINGS_QUALITY_URL = "./data/earnings-quality.json?v=20260610-expand1";
+const MARKET_TEMPERATURE_URL = "./data/market-temperature.json?v=20260610-expand1";
+const MACRO_SERIES_URL = "./data/macro-series.json?v=20260610-expand1";
+const EVENT_OPPORTUNITIES_URL = "./data/event-opportunities.json?v=20260610-expand1";
+const EVENTS_CALENDAR_URL = "./data/events-calendar.json?v=20260610-expand1";
+const VALIDATION_CENTER_URL = "./data/validation-center.json?v=20260610-expand1";
+const INDEX_VALUATION_URL = "./data/index-valuation.json?v=20260610-expand1";
+const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260610-expand1";
+const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260610-expand1";
 const WATCHLIST_STORAGE_KEY = "meigu_strategy_watchlist_v1";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "meigu_strategy_sidebar_collapsed_v1";
 
@@ -4434,9 +4434,9 @@ const renderSectorDetail = (row) => {
         <em>后续开放</em>
       </div>
       <div class="sector-detail-grid">
-        <article><span>覆盖标的</span><strong>${sectorRows.length}只</strong></article>
         <article><span>成交额放大</span><strong>${hot}只</strong></article>
         <article><span>极高风险</span><strong>${highRisk}只</strong></article>
+        <article><span>领涨标的</span><strong>${escapeHtml(top[0]?.symbol || "--")}</strong></article>
       </div>
       <div class="sector-peer-list">
         ${
@@ -8358,7 +8358,13 @@ const init = async () => {
   state.strengthReview = strengthReviewData;
   state.sectorFlow = sectorFlowData;
   state.marketTemperature = marketTemperatureData;
-  const knownRows = [...ytdData.rows, ...moversData.boards.day.rows, ...moversData.boards.week.rows];
+  const knownRows = [
+    ...ytdData.rows,
+    ...moversData.boards.day.rows,
+    ...moversData.boards.week.rows,
+    ...(moversData.boards.month?.rows || []),
+    ...(moversData.boards.volume?.rows || []),
+  ];
   const nameMap = Object.fromEntries(knownRows.map((row) => [row.symbol, row]));
   const strengthRows = state.strength && Array.isArray(state.strength.rows) ? state.strength.rows : [];
   const monthRows = strengthRows
@@ -8377,8 +8383,8 @@ const init = async () => {
     ytd: ytdData.rows.map((row) => ({ ...row, change: row.changeYtd })),
     day: moversData.boards.day.rows,
     week: moversData.boards.week.rows,
-    month: uniqueMonthRows,
-    volume: uniqueVolumeRows,
+    month: moversData.boards.month?.rows || uniqueMonthRows,
+    volume: moversData.boards.volume?.rows || uniqueVolumeRows,
   };
   state.meta = {
     ytd: {
@@ -8402,14 +8408,16 @@ const init = async () => {
       updatedAt: moversData.updatedAt,
     },
     month: {
+      ...(moversData.boards.month || {}),
       title: "美股近一月涨跌幅榜",
       subtitle: "按近 20 个交易日涨跌幅排序，适合观察中短期趋势是否已经走出来。",
       badge: "近一月涨幅第一",
       periodLabel: "近一月",
       referenceLabel: "月初估算价",
-      updatedAt: state.strength?.asOf || moversData.updatedAt,
+      updatedAt: moversData.updatedAt || state.strength?.asOf,
     },
     volume: {
+      ...(moversData.boards.volume || {}),
       title: "美股成交额异动榜",
       subtitle: "按成交额相对平时的放大倍数排序，适合发现资金突然聚集的标的。",
       badge: "成交额异动第一",
@@ -8419,7 +8427,7 @@ const init = async () => {
       multipleLabel: "成交额倍数",
       referenceMode: "volume",
       multipleMode: "volumeRatio",
-      updatedAt: state.strength?.asOf || moversData.updatedAt,
+      updatedAt: moversData.updatedAt || state.strength?.asOf,
     },
   };
   state.rows = state.boards[state.activeBoard];

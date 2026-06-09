@@ -224,6 +224,8 @@ def build_rows(
                 "change": clean_number(change, 2),
                 "price": clean_number(item.get("price"), 3),
                 "volume": compact_number(item.get("volume")),
+                "dollarVolume": clean_number(item.get("dollarVolume"), 0),
+                "volumeRatio": f"{clean_number(item.get('volumeRatio'), 2)}x" if clean_number(item.get("volumeRatio"), 2) is not None else previous.get("volumeRatio") or "--",
                 "marketCap": compact_money(market_caps.get(symbol)) if market_caps.get(symbol) else previous.get("marketCap") or "--",
             }
         )
@@ -255,6 +257,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     work = pd.DataFrame({"symbol": current.index, "price": current, "volume": latest_volume})
     work["return1d"] = (current / close.shift(1).iloc[-1] - 1) * 100
     work["return5d"] = (current / close.shift(5).iloc[-1] - 1) * 100
+    work["return21d"] = (current / close.shift(21).iloc[-1] - 1) * 100
     first_year_price = year_panel.apply(lambda col: col.dropna().iloc[0] if col.dropna().size else None)
     work["firstYearPrice"] = work["symbol"].map(first_year_price)
     work["returnYtd"] = (year_panel.iloc[-1] / first_year_price - 1) * 100
@@ -262,7 +265,10 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     work["company"] = work["symbol"].map(meta["name"]).fillna(work["symbol"])
     work["type"] = work["symbol"].map(meta["type"]).fillna("")
     work["median_dollar_volume_20d"] = work["symbol"].map(meta["median_dollar_volume_20d"]).fillna(0)
+    work["dollarVolume"] = work["symbol"].map(meta["dollar_volume"]).fillna(work["price"] * work["volume"])
+    work["volumeRatio"] = work["dollarVolume"] / work["median_dollar_volume_20d"].replace(0, pd.NA)
     work = work.dropna(subset=["price", "return1d", "return5d", "returnYtd"])
+    universe_count = int(work["symbol"].nunique())
     market_caps = load_market_caps(data_root, work.set_index("symbol")["price"])
 
     ytd_work = work[
@@ -294,17 +300,33 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         market_caps,
         limit,
     )
+    month_rows = build_rows(
+        work.dropna(subset=["return21d"]).assign(abs_return=work["return21d"].abs()).sort_values("abs_return", ascending=False),
+        "return21d",
+        old_map,
+        market_caps,
+        limit,
+    )
+    volume_rows = build_rows(
+        work.dropna(subset=["volumeRatio"]).sort_values(["volumeRatio", "dollarVolume"], ascending=False),
+        "return1d",
+        old_map,
+        market_caps,
+        limit,
+    )
 
     ytd = {
         "updatedAt": as_of,
         "generatedAt": now_iso(),
         "source": "Polygon split-adjusted daily bars + latest tradable universe",
+        "universeCount": universe_count,
         "rows": ytd_rows,
     }
     movers = {
         "updatedAt": as_of,
         "generatedAt": now_iso(),
         "source": "Polygon split-adjusted daily bars + latest tradable universe",
+        "universeCount": universe_count,
         "boards": {
             "day": {
                 "title": "24h 涨跌幅榜",
@@ -318,6 +340,22 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
                 "referenceLabel": "周初估算价",
                 "rows": week_rows,
             },
+            "month": {
+                "title": "近一月涨跌幅榜",
+                "periodLabel": "近一月",
+                "referenceLabel": "月初估算价",
+                "rows": month_rows,
+            },
+            "volume": {
+                "title": "成交额异动榜",
+                "periodLabel": "24h",
+                "referenceLabel": "成交额",
+                "volumeLabel": "成交额倍数",
+                "multipleLabel": "成交额倍数",
+                "referenceMode": "volume",
+                "multipleMode": "volumeRatio",
+                "rows": volume_rows,
+            },
         },
     }
     return ytd, movers
@@ -327,7 +365,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build visible market board JSON from local adjusted daily bars.")
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--asof", default="")
-    parser.add_argument("--limit", type=int, default=80)
+    parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--max-ytd-return", type=float, default=3000.0)
     parser.add_argument("--ytd-output", type=Path, default=DEFAULT_YTD_OUTPUT)
     parser.add_argument("--movers-output", type=Path, default=DEFAULT_MOVERS_OUTPUT)
@@ -337,7 +375,15 @@ def main() -> None:
     ytd, movers = build_payloads(args.data_root, as_of, args.limit, args.max_ytd_return)
     write_json(args.ytd_output, ytd)
     write_json(args.movers_output, movers)
-    print(json.dumps({"asOf": as_of, "ytdRows": len(ytd["rows"]), "dayRows": len(movers["boards"]["day"]["rows"]), "weekRows": len(movers["boards"]["week"]["rows"])}, ensure_ascii=False))
+    print(json.dumps({
+        "asOf": as_of,
+        "universeCount": ytd.get("universeCount"),
+        "ytdRows": len(ytd["rows"]),
+        "dayRows": len(movers["boards"]["day"]["rows"]),
+        "weekRows": len(movers["boards"]["week"]["rows"]),
+        "monthRows": len(movers["boards"]["month"]["rows"]),
+        "volumeRows": len(movers["boards"]["volume"]["rows"]),
+    }, ensure_ascii=False))
 
 
 if __name__ == "__main__":

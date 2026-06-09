@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -108,6 +109,56 @@ def load_sector_map(data_root: Path) -> dict[str, str]:
     return out
 
 
+def build_universe_rows(data_root: Path, as_of: str) -> tuple[list[dict[str, Any]], int]:
+    import pandas as pd
+    import sys
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from build_market_boards import infer_sector, latest_trade_date, load_daily, load_market_caps, load_universe
+
+    trade_date = as_of or latest_trade_date(data_root)
+    universe = load_universe(data_root, trade_date)
+    daily = load_daily(data_root, trade_date)
+    tradable = universe[
+        universe["tradable_core"].fillna(False)
+        & universe["is_common_or_adr"].fillna(False)
+        & (universe["close"].fillna(0) >= 1)
+    ].copy()
+    symbols = set(tradable["symbol"].astype(str))
+    daily = daily[daily["symbol"].isin(symbols)]
+    close = daily.pivot(index="trade_date", columns="symbol", values="adj_close").ffill()
+    volume = daily.pivot(index="trade_date", columns="symbol", values="adj_volume").fillna(0)
+    if len(close) < 2:
+      return [], 0
+    current = close.iloc[-1]
+    previous = close.shift(1).iloc[-1]
+    latest_volume = volume.iloc[-1]
+    meta = tradable.set_index("symbol")
+    prices = pd.Series(current, index=current.index)
+    market_caps = load_market_caps(data_root, prices)
+    sector_map = load_sector_map(data_root)
+    rows: list[dict[str, Any]] = []
+    for symbol in current.index:
+        price = clean_number(current.get(symbol))
+        prev = clean_number(previous.get(symbol))
+        if price is None or prev is None or prev <= 0:
+            continue
+        company = str(meta["name"].get(symbol) if symbol in meta.index else symbol)
+        ticker_type = str(meta["type"].get(symbol) if symbol in meta.index else "")
+        dollar_volume = clean_number(meta["dollar_volume"].get(symbol) if symbol in meta.index else None)
+        if dollar_volume is None:
+            dollar_volume = float(price) * float(latest_volume.get(symbol) or 0)
+        rows.append({
+            "symbol": str(symbol),
+            "name": company,
+            "sector": sector_map.get(str(symbol).upper()) or infer_sector(company, ticker_type),
+            "change": (float(price) / float(prev) - 1) * 100,
+            "liquidityValue": float(dollar_volume or 0),
+            "marketCap": money_label(float(market_caps.get(str(symbol).upper()) or 0)) if market_caps.get(str(symbol).upper()) else "--",
+        })
+    return rows, int(tradable["symbol"].nunique())
+
+
 def sector_name(row: dict[str, Any], sector_map: dict[str, str]) -> str:
     symbol = str(row.get("symbol") or "").upper()
     if sector_map.get(symbol):
@@ -125,7 +176,19 @@ def load_rows(path: Path) -> dict[str, Any]:
 
 def build_sector_flow(input_path: Path, output_path: Path, data_root: Path, limit: int) -> dict[str, Any]:
     payload = load_rows(input_path)
-    rows = payload.get("rows") if isinstance(payload.get("rows"), list) else []
+    source_mode = "strength-scanner"
+    universe_count = 0
+    fallback_reason = ""
+    try:
+        rows, universe_count = build_universe_rows(data_root, str(payload.get("asOf") or ""))
+        if rows:
+            source_mode = "tradable-universe"
+    except Exception as error:
+        fallback_reason = str(error)
+        print(f"warning: sector-flow full-universe build failed, falling back to scanner: {fallback_reason}", file=sys.stderr)
+        rows = []
+    if not rows:
+        rows = payload.get("rows") if isinstance(payload.get("rows"), list) else []
     groups: dict[str, dict[str, Any]] = {}
     seen_symbols: set[str] = set()
     sector_map = load_sector_map(data_root)
@@ -135,8 +198,10 @@ def build_sector_flow(input_path: Path, output_path: Path, data_root: Path, limi
             continue
         seen_symbols.add(symbol)
         sector = sector_name(row, sector_map)
-        change = parse_pct((row.get("periods") or {}).get("1d"))
-        liquidity = parse_money(row.get("liquidity"))
+        change = clean_number(row.get("change")) if source_mode == "tradable-universe" else parse_pct((row.get("periods") or {}).get("1d"))
+        change = float(change or 0)
+        liquidity = clean_number(row.get("liquidityValue")) if source_mode == "tradable-universe" else parse_money(row.get("liquidity"))
+        liquidity = float(liquidity or 0)
         signed_flow = liquidity * (1 if change > 0 else -1 if change < 0 else 0)
         current = groups.setdefault(
             sector,
@@ -215,8 +280,10 @@ def build_sector_flow(input_path: Path, output_path: Path, data_root: Path, limi
     result = {
         "asOf": payload.get("asOf") or "",
         "generatedAt": now_iso(),
-        "source": "strength-scanner liquidity + one-day price direction",
-        "method": "按板块聚合成交额/流动性与涨跌方向，生成资金流向代理；不等同于逐笔主买主卖或真实资金净流入。",
+        "source": "Polygon tradable universe liquidity + one-day price direction" if source_mode == "tradable-universe" else "strength-scanner liquidity + one-day price direction",
+        "method": "按全量可交易股票的成交额/流动性与涨跌方向聚合，生成板块资金流向代理；不等同于逐笔主买主卖或真实资金净流入。" if source_mode == "tradable-universe" else "按扫描池聚合成交额/流动性与涨跌方向，生成资金流向代理；不等同于逐笔主买主卖或真实资金净流入。",
+        "universeCount": universe_count or len(seen_symbols),
+        "fallbackReason": fallback_reason,
         "summary": {
             "leaderSector": top["sector"] if top else "--",
             "leaderNetFlow": top["netFlowLabel"] if top else "--",

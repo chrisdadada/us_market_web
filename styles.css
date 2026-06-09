@@ -13952,6 +13952,107 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   overflow: auto;
 }
 
+/* Dense detail pass: reduce empty locked modules and oversized stock/market panels. */
+.stock-research-workspace .stock-research-panel,
+.stock-research-workspace .stock-evidence-grid,
+.stock-research-workspace .stock-hub-grid {
+  margin-top: 10px;
+}
+
+.stock-research-workspace .stock-research-panel {
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 10px;
+}
+
+.stock-research-workspace .stock-research-main,
+.stock-research-workspace .stock-research-side,
+.stock-research-workspace .stock-hub-card,
+.market-extra-grid .market-paid-module,
+.market-detail-bottom .market-paid-module {
+  min-height: 0;
+  padding: 12px;
+}
+
+.stock-research-workspace .stock-research-main h2,
+.stock-research-workspace .stock-research-side strong,
+.stock-research-workspace .stock-card-head strong,
+.market-paid-module .module-head strong {
+  font-size: 17px;
+  font-weight: 560;
+  line-height: 1.25;
+}
+
+.stock-research-workspace .stock-research-main p,
+.stock-research-workspace .stock-research-side p,
+.stock-research-workspace .stock-card-note,
+.market-paid-module p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.stock-research-workspace .metric-cell {
+  min-height: 72px;
+  padding: 10px 12px;
+}
+
+.stock-research-workspace .metric-cell strong,
+.stock-research-workspace .stock-metric strong,
+.market-detail-grid strong,
+.sector-detail-grid strong {
+  font-size: 18px;
+  font-weight: 560;
+}
+
+.stock-research-workspace .stock-metric-grid,
+.market-detail-grid,
+.sector-detail-grid {
+  gap: 8px;
+}
+
+.stock-research-workspace .stock-metric,
+.market-detail-grid article,
+.sector-detail-grid article {
+  min-height: 70px;
+  padding: 9px 10px;
+}
+
+.stock-reason-list,
+.reason-list,
+.sector-peer-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.stock-reason-list b,
+.reason-list b,
+.sector-peer-list b {
+  min-height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(146, 166, 197, 0.1);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 24px;
+  padding: 0 9px;
+}
+
+.market-paid-module .module-head em,
+.stock-card-head em {
+  border-color: rgba(53, 167, 255, 0.22);
+  background: rgba(53, 167, 255, 0.1);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 560;
+}
+
 @media (max-width: 1100px) {
   .dashboard-tools-strip .module-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

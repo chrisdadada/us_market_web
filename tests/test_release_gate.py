@@ -151,6 +151,27 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertGreaterEqual(len(options_payload["bearish"]), 1)
         self.assertEqual(options_payload["quality"]["directionality"], "unknown")
 
+    def test_market_data_expansion_shape_is_present(self) -> None:
+        ytd = json.loads((ROOT / "data" / "ytd-gainers.json").read_text(encoding="utf-8"))
+        movers = json.loads((ROOT / "data" / "market-movers.json").read_text(encoding="utf-8"))
+        sector_flow = json.loads((ROOT / "data" / "sector-flow.json").read_text(encoding="utf-8"))
+
+        self.assertGreaterEqual(ytd.get("universeCount", 0), 800)
+        self.assertGreaterEqual(len(ytd.get("rows", [])), 800)
+        self.assertGreaterEqual(movers.get("universeCount", 0), 800)
+        for board in ("day", "week", "month", "volume"):
+            self.assertIn(board, movers["boards"])
+            self.assertGreaterEqual(len(movers["boards"][board].get("rows", [])), 800)
+
+        sample = movers["boards"]["volume"]["rows"][0]
+        for field in ("rank", "symbol", "company", "sector", "risk", "change", "volume", "volumeRatio", "marketCap"):
+            self.assertIn(field, sample)
+
+        self.assertGreaterEqual(sector_flow.get("universeCount", 0), 800)
+        self.assertIn("tradable universe", sector_flow.get("source", ""))
+        self.assertIn("fallbackReason", sector_flow)
+        self.assertGreaterEqual(len(sector_flow.get("rows", [])), 8)
+
     def test_frontend_routes_keep_inactive_pages_hidden(self) -> None:
         styles = (ROOT / "styles.css").read_text(encoding="utf-8")
         app = (ROOT / "app.js").read_text(encoding="utf-8")
