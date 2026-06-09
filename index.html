@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-calendar1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-risk1" />
   </head>
   <body>
     <div class="app-shell">
@@ -471,17 +471,23 @@
             <section class="macro-monitor-board" data-lockable-module="macro-monitor" aria-label="宏观监控台">
               <div class="macro-monitor-head">
                 <div>
-                  <span>宏观监控台</span>
-                  <h2>压力曲线、因子拆解和资产影响</h2>
+                  <span>市场压力监控</span>
+                  <h2>当前压力、来源和资产影响</h2>
                 </div>
-                <p id="macroMonitorSummary">读取宏观历史数据后，会把利率、美元、油价、通胀和波动率合成一张观察图。</p>
+                <p id="macroMonitorSummary">读取宏观历史数据后，会把 VIX、利率、美元、油价和通胀合成一张观察图。</p>
               </div>
               <div class="macro-monitor-layout">
                 <article class="macro-composite-card">
                   <div class="macro-composite-copy">
-                    <span>综合压力指数</span>
+                    <span>综合压力</span>
                     <strong id="macroCompositeScore">--</strong>
+                    <b id="macroCompositeBand">等待分区</b>
                     <p id="macroCompositeVerdict">等待历史数据</p>
+                    <div class="macro-pressure-legend" aria-label="压力分区说明">
+                      <span><i class="is-low"></i>0-35 低压力</span>
+                      <span><i class="is-mid"></i>35-65 中性</span>
+                      <span><i class="is-high"></i>65+ 高压力</span>
+                    </div>
                   </div>
                   <div class="macro-composite-chart" id="macroCompositeChart">
                     <div class="macro-chart-empty">等待图表</div>
@@ -517,6 +523,11 @@
                 <span>观察重点 <button class="info-tip" type="button" aria-label="观察重点解释" data-tip="把指标翻译成复盘顺序，帮助你少被情绪最热或最慌的时候带偏。">?</button></span>
                 <strong id="riskActionValue">只加强者</strong>
                 <p id="riskActionNote">优先看 QQQ、XLK 和七姐妹中的强相对收益标的。</p>
+              </div>
+              <div>
+                <span>主要压力源</span>
+                <strong id="riskDriverValue">等待数据</strong>
+                <p id="riskDriverNote">显示当前最需要盯住的宏观变量。</p>
               </div>
             </section>
 
@@ -2642,6 +2653,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-calendar1"></script>
+    <script src="./app.js?v=20260610-risk1"></script>
   </body>
 </html>

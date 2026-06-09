@@ -5705,7 +5705,7 @@ const macroMonitorSvg = (points) => {
   if (points.length < 2) return '<div class="macro-chart-empty">等待图表</div>';
   const width = 1040;
   const height = 300;
-  const pad = { left: 52, right: 34, top: 26, bottom: 42 };
+  const pad = { left: 56, right: 44, top: 26, bottom: 44 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const min = 0;
@@ -5717,19 +5717,27 @@ const macroMonitorSvg = (points) => {
   const last = points.at(-1);
   const lastX = xFor(points.length - 1);
   const lastY = yFor(last.value);
-  const ticks = [80, 60, 40, 20];
+  const ticks = [100, 65, 35, 0];
   const labels = [points[0], points[Math.floor(points.length / 2)], points.at(-1)];
   const zone = (from, to, className) => {
     const yTop = yFor(to);
     const yBottom = yFor(from);
     return `<rect class="${className}" x="${pad.left}" y="${yTop.toFixed(1)}" width="${plotW}" height="${(yBottom - yTop).toFixed(1)}"></rect>`;
   };
+  const zoneLabel = (value, label, className) => `
+    <g class="macro-monitor-zone-label ${className}" transform="translate(${(pad.left + 12).toFixed(1)}, ${(yFor(value) + 4).toFixed(1)})">
+      <text>${escapeHtml(label)}</text>
+    </g>
+  `;
   return `
     <svg class="macro-monitor-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="宏观综合压力走势">
       <rect class="macro-monitor-plot" x="${pad.left}" y="${pad.top}" width="${plotW}" height="${plotH}"></rect>
-      ${zone(0, 40, "macro-monitor-zone is-low")}
-      ${zone(40, 70, "macro-monitor-zone is-mid")}
-      ${zone(70, 100, "macro-monitor-zone is-high")}
+      ${zone(0, 35, "macro-monitor-zone is-low")}
+      ${zone(35, 65, "macro-monitor-zone is-mid")}
+      ${zone(65, 100, "macro-monitor-zone is-high")}
+      ${zoneLabel(18, "低压力 0-35", "is-low")}
+      ${zoneLabel(50, "中性 35-65", "is-mid")}
+      ${zoneLabel(83, "高压力 65+", "is-high")}
       ${ticks.map((tick) => {
         const y = yFor(tick);
         return `<g class="macro-monitor-gridline"><line x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line><text x="${pad.left - 12}" y="${(y + 4).toFixed(1)}" text-anchor="end">${tick}</text></g>`;
@@ -5737,6 +5745,7 @@ const macroMonitorSvg = (points) => {
       <path class="macro-monitor-area" d="${area}"></path>
       <path class="macro-monitor-line" d="${path}"></path>
       <line class="macro-monitor-guide" x1="${lastX.toFixed(1)}" x2="${lastX.toFixed(1)}" y1="${pad.top}" y2="${pad.top + plotH}"></line>
+      <line class="macro-monitor-current-level" x1="${pad.left}" x2="${width - pad.right}" y1="${lastY.toFixed(1)}" y2="${lastY.toFixed(1)}"></line>
       <circle class="macro-monitor-dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="5.5"></circle>
       <g class="macro-monitor-callout" transform="translate(${Math.min(width - 148, Math.max(pad.left + 10, lastX - 124)).toFixed(1)}, ${Math.max(pad.top + 6, Math.min(pad.top + plotH - 64, lastY - 58)).toFixed(1)})">
         <rect width="132" height="58" rx="7"></rect>
@@ -5754,9 +5763,16 @@ const macroMonitorSvg = (points) => {
 
 const macroMonitorVerdict = (score) => {
   if (!Number.isFinite(score)) return "等待历史数据";
-  if (score >= 70) return "宏观压力偏高，重点看利率、通胀和波动是否继续抬升。";
-  if (score >= 45) return "宏观压力中性偏高，适合把因子拆开看，不只看单一指标。";
-  return "宏观压力相对可控，继续看强弱和事件线索是否有价格确认。";
+  if (score >= 65) return "高压力区：先控制高波动股票，重点看 VIX、利率和美元是否继续上行。";
+  if (score >= 35) return "中性区：不要只看指数涨跌，要拆开看压力来自利率、美元还是通胀。";
+  return "低压力区：宏观背景相对可控，继续看强弱和事件线索是否有价格确认。";
+};
+
+const macroPressureBand = (score) => {
+  if (!Number.isFinite(score)) return { label: "等待分区", className: "is-neutral" };
+  if (score >= 65) return { label: "高压力区", className: "is-watch" };
+  if (score >= 35) return { label: "中性区", className: "is-neutral" };
+  return { label: "低压力区", className: "is-positive" };
 };
 
 const macroFactorScore = (indicator) => {
@@ -5768,6 +5784,11 @@ const macroFactorScore = (indicator) => {
   return 28;
 };
 
+const macroFactorDrivers = (rows) =>
+  [...rows]
+    .map((indicator) => ({ ...indicator, factorScore: Math.round(macroFactorScore(indicator)) }))
+    .sort((a, b) => b.factorScore - a.factorScore);
+
 const macroAssetImpactRows = (rows, score) => {
   const pressureText = rows.map((row) => `${normalizeMacroIndicatorKey(row)}:${row.status || row.riskLevel || ""}`).join(" ");
   const rateHigh = /dgs10:watch|dgs10:elevated|dgs30:watch|dgs30:elevated/.test(pressureText);
@@ -5776,11 +5797,11 @@ const macroAssetImpactRows = (rows, score) => {
   const cpiHigh = /cpiaucsl:watch|cpiaucsl:elevated/.test(pressureText);
   const vixHigh = /vixcls:watch|vixcls:elevated/.test(pressureText);
   return [
-    ["SPY / QQQ", score >= 70 || vixHigh ? "承压观察" : "环境可跟踪", rateHigh ? "利率是关键变量" : "先看趋势是否延续"],
-    ["七姐妹 / 成长股", rateHigh || cpiHigh ? "估值压力" : "主线仍可观察", "重点看10Y和CPI"],
-    ["黄金 / 贵金属", usdHigh || rateHigh ? "需要确认" : "避险弹性", "美元和实际利率决定节奏"],
-    ["能源 / 原油链", oilHigh ? "热度升温" : "中性观察", "油价影响通胀和利润预期"],
-    ["小盘高波动", score >= 60 || vixHigh ? "降低频率" : "精选观察", "先看流动性和回撤"],
+    ["SPY / QQQ", score >= 65 || vixHigh ? "承压观察" : "环境可跟踪", rateHigh ? "利率是关键变量" : "先看趋势是否延续", score >= 65 || vixHigh ? "is-watch" : "is-positive"],
+    ["七姐妹 / 成长股", rateHigh || cpiHigh ? "估值压力" : "主线仍可观察", "重点看10Y和CPI", rateHigh || cpiHigh ? "is-watch" : "is-positive"],
+    ["黄金 / 贵金属", usdHigh || rateHigh ? "需要确认" : "避险弹性", "美元和实际利率决定节奏", usdHigh || rateHigh ? "is-neutral" : "is-positive"],
+    ["能源 / 原油链", oilHigh ? "热度升温" : "中性观察", "油价影响通胀和利润预期", oilHigh ? "is-watch" : "is-neutral"],
+    ["小盘高波动", score >= 60 || vixHigh ? "降低频率" : "精选观察", "先看流动性和回撤", score >= 60 || vixHigh ? "is-watch" : "is-positive"],
   ];
 };
 
@@ -5790,12 +5811,28 @@ const renderMacroMonitor = () => {
   const points = macroMonitorCompositePoints();
   const lastScore = points.length ? Math.round(points.at(-1).value) : null;
   const macroRows = macroPressureRows(state.marketTemperature?.indicators || []);
+  const factorDrivers = macroFactorDrivers(macroRows);
+  const topDrivers = factorDrivers.slice(0, 3);
+  const band = macroPressureBand(lastScore);
   setText("#macroCompositeScore", Number.isFinite(lastScore) ? `${lastScore}` : "--");
+  setText("#macroCompositeBand", Number.isFinite(lastScore) ? `${band.label} · ${lastScore}/100` : band.label);
   setText("#macroCompositeVerdict", macroMonitorVerdict(lastScore));
+  const bandNode = document.querySelector("#macroCompositeBand");
+  if (bandNode) {
+    bandNode.classList.remove("is-positive", "is-neutral", "is-watch");
+    bandNode.classList.add(band.className);
+  }
+  setText("#riskDriverValue", topDrivers.length ? topDrivers.map((item) => item.name).join(" / ") : "等待数据");
+  setText(
+    "#riskDriverNote",
+    topDrivers.length
+      ? `${topDrivers.map((item) => `${item.name}${item.level ? `(${item.level})` : ""}`).join("、")} 是当前最需要盯住的变量。`
+      : "显示当前最需要盯住的宏观变量。",
+  );
   setText(
     "#macroMonitorSummary",
     points.length
-      ? `综合压力由 VIX、10Y、美元、原油和CPI近似合成，当前为 ${lastScore}/100。`
+      ? `当前处于${band.label}，综合压力由 VIX、10Y、美元、原油和 CPI 近似合成。`
       : "读取宏观历史数据后，会把利率、美元、油价、通胀和波动率合成一张观察图。",
   );
   chart.innerHTML = macroMonitorSvg(points);
@@ -5803,13 +5840,13 @@ const renderMacroMonitor = () => {
   const factorBoard = document.querySelector("#macroFactorBoard");
   if (factorBoard) {
     factorBoard.innerHTML = macroRows.length
-      ? macroRows.map((indicator) => {
-          const score = Math.round(macroFactorScore(indicator));
+      ? factorDrivers.map((indicator) => {
+          const score = indicator.factorScore;
           return `
             <div class="${signalClass(indicator.status || indicator.riskLevel)}">
               <b>${escapeHtml(indicator.name || "宏观因子")}</b>
               <i><em style="width: ${score}%"></em></i>
-              <strong>${escapeHtml(indicator.level || indicator.riskLabel || "--")}</strong>
+              <strong>${escapeHtml(`${score}`)} · ${escapeHtml(indicator.level || indicator.riskLabel || "--")}</strong>
             </div>
           `;
         }).join("")
@@ -5818,8 +5855,8 @@ const renderMacroMonitor = () => {
 
   const impact = document.querySelector("#macroAssetImpact");
   if (impact) {
-    impact.innerHTML = macroAssetImpactRows(macroRows, Number(lastScore)).map(([asset, stateLabel, note]) => `
-      <div>
+    impact.innerHTML = macroAssetImpactRows(macroRows, Number(lastScore)).map(([asset, stateLabel, note, stateClass]) => `
+      <div class="${escapeHtml(stateClass)}">
         <b>${escapeHtml(asset)}</b>
         <strong>${escapeHtml(stateLabel)}</strong>
         <em>${escapeHtml(note)}</em>
