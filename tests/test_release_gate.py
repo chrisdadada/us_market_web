@@ -151,6 +151,16 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertGreaterEqual(len(options_payload["bearish"]), 1)
         self.assertEqual(options_payload["quality"]["directionality"], "unknown")
 
+    def test_frontend_routes_keep_inactive_pages_hidden(self) -> None:
+        styles = (ROOT / "styles.css").read_text(encoding="utf-8")
+        app = (ROOT / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn(".page-view:not(.is-active)", styles)
+        self.assertIn("display: none !important", styles)
+        self.assertIn(".page-view.is-active.evidence-workspace", styles)
+        self.assertNotIn("\n.evidence-workspace {\n  display: grid;", styles)
+        self.assertIn("view.hidden = !active", app)
+
     def test_free_and_paid_users_receive_different_access(self) -> None:
         admin = self.login("admin@example.test", "admin-password")
         self.create_user(admin, "free@example.test", "free")

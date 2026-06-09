@@ -2004,6 +2004,10 @@ body :where(.is-negative) {
   animation: viewIn 0.18s ease both;
 }
 
+.page-view:not(.is-active) {
+  display: none !important;
+}
+
 .page-view.is-active {
   display: block;
 }
@@ -11918,7 +11922,7 @@ body {
 }
 
 /* Evidence workbench pages: strength, events, earnings. */
-.evidence-workspace {
+.page-view.is-active.evidence-workspace {
   display: grid;
   gap: 12px;
 }

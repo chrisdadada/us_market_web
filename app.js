@@ -3887,7 +3887,9 @@ const showPage = (page, options = {}) => {
     page = "dashboard";
   }
   document.querySelectorAll(".page-view").forEach((view) => {
-    view.classList.toggle("is-active", view.dataset.view === page);
+    const active = view.dataset.view === page;
+    view.classList.toggle("is-active", active);
+    view.hidden = !active;
   });
   document.querySelectorAll(".nav-item").forEach((item) => {
     const active = item.dataset.page === page;
