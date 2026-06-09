@@ -1294,6 +1294,111 @@ const renderStocksPage = () => {
     .join("");
 };
 
+const flowRows = () => {
+  const volumeRows = state.boards?.volume || [];
+  const dayRows = state.boards?.day || [];
+  const rows = volumeRows.length ? volumeRows : dayRows;
+  return rows
+    .map((row) => {
+      const day = getBoardRow("day", row.symbol);
+      const market = getMarketDetailSource(row.symbol) || row;
+      const change = day ? getChange(day) : getChange(market);
+      const ratio = parseRatio(row.volumeRatio || market.volumeRatio);
+      const signal = ratio >= 1.5 && change > 0
+        ? "量价确认"
+        : ratio >= 1.5 && change < 0
+          ? "放量承压"
+          : ratio >= 1.2
+            ? "成交活跃"
+            : "普通活跃";
+      return {
+        ...market,
+        symbol: row.symbol,
+        sector: market.sector || row.sector || "未分类",
+        change,
+        ratio,
+        volumeRatio: row.volumeRatio || market.volumeRatio || (ratio ? `${ratio.toFixed(1)}x` : "--"),
+        signal,
+      };
+    })
+    .filter((row) => row.symbol)
+    .sort((a, b) => b.ratio - a.ratio || Math.abs(b.change) - Math.abs(a.change))
+    .slice(0, 80);
+};
+
+const flowSectorRows = (rows) => {
+  const map = new Map();
+  rows.forEach((row) => {
+    const key = row.sector || "未分类";
+    const current = map.get(key) || { sector: key, count: 0, totalRatio: 0, upCount: 0, downCount: 0 };
+    current.count += 1;
+    current.totalRatio += Number.isFinite(row.ratio) ? row.ratio : 0;
+    if (row.change >= 0) current.upCount += 1;
+    else current.downCount += 1;
+    map.set(key, current);
+  });
+  return [...map.values()]
+    .map((item) => ({ ...item, avgRatio: item.totalRatio / Math.max(1, item.count) }))
+    .sort((a, b) => b.avgRatio - a.avgRatio || b.count - a.count)
+    .slice(0, 8);
+};
+
+const renderFlowsPage = () => {
+  const body = document.querySelector("#flowsStockBody");
+  const sectorList = document.querySelector("#flowsSectorList");
+  if (!body) return;
+  const rows = flowRows();
+  const sectors = flowSectorRows(rows);
+  const top = rows[0];
+  const topSector = sectors[0];
+  const accumulation = rows.filter((row) => row.signal === "量价确认").length;
+  const distribution = rows.filter((row) => row.signal === "放量承压").length;
+  setText("#flowsAsOf", formatDisplayDate(state.meta?.volume?.updatedAt || state.meta?.day?.updatedAt));
+  setText("#flowsHeroTitle", top ? `${top.symbol} · ${top.signal}` : "等待成交额数据");
+  setText(
+    "#flowsHeroLead",
+    top
+      ? `${top.symbol} 成交额倍数 ${top.volumeRatio}，${formatSignedPct(top.change)}。先看价格和板块是否继续确认。`
+      : "成交额放大只是入口，后续需要价格、板块和事件继续确认。",
+  );
+  setText("#flowsTopSymbol", top ? top.symbol : "--");
+  setText("#flowsTopNote", top ? `${top.volumeRatio} · ${top.signal}` : "等待数据。");
+  setText("#flowsTopSector", topSector ? topSector.sector : "--");
+  setText("#flowsAccumulationCount", accumulation ? String(accumulation) : "--");
+  setText("#flowsDistributionCount", distribution ? String(distribution) : "--");
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="6">等待成交额数据。</td></tr>`;
+  } else {
+    body.innerHTML = rows.slice(0, 40).map((row) => {
+      const changeClass = row.change >= 0 ? "is-positive" : "is-negative";
+      const signalClass = row.signal === "量价确认" ? "is-positive" : row.signal === "放量承压" ? "is-negative" : "";
+      return `
+        <tr>
+          <td><button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">${escapeHtml(row.symbol)}</button></td>
+          <td>${escapeHtml(row.sector || "未分类")}</td>
+          <td>${escapeHtml(row.volumeRatio || "--")}</td>
+          <td class="${changeClass}">${escapeHtml(formatSignedPct(row.change))}</td>
+          <td><span class="flow-signal ${signalClass}">${escapeHtml(row.signal)}</span></td>
+          <td><button class="table-action" type="button" data-stock-open="${escapeHtml(row.symbol)}">详情</button></td>
+        </tr>
+      `;
+    }).join("");
+  }
+  if (sectorList) {
+    const max = Math.max(...sectors.map((item) => item.avgRatio), 1);
+    sectorList.innerHTML = sectors.length
+      ? sectors.map((item) => `
+        <button type="button" data-flow-sector-open="${escapeHtml(item.sector)}">
+          <span>${escapeHtml(item.sector)}</span>
+          <i><b style="width:${Math.max(8, (item.avgRatio / max) * 100).toFixed(1)}%"></b></i>
+          <strong>${escapeHtml(`${item.avgRatio.toFixed(1)}x`)}</strong>
+          <small>${escapeHtml(`${item.upCount}涨 / ${item.downCount}跌`)}</small>
+        </button>
+      `).join("")
+      : "<p>等待板块活跃度数据。</p>";
+  }
+};
+
 const stockMetric = (label, value, className = "") => `
   <article class="${className}">
     <span>${escapeHtml(label)}</span>
@@ -3085,6 +3190,14 @@ const pageModules = [
     status: "数据驱动",
   },
   {
+    id: "flows",
+    kicker: "资金活跃度",
+    title: "资金活跃度",
+    nav: "资金",
+    summary: "用成交额放大、相对成交额和涨跌方向观察资金关注点。",
+    status: "代理指标",
+  },
+  {
     id: "options",
     kicker: "衍生品线索",
     title: "期权流向复盘",
@@ -3659,6 +3772,9 @@ const showPage = (page, options = {}) => {
   }
   if (page === "stocks") {
     renderStocksPage();
+  }
+  if (page === "flows") {
+    renderFlowsPage();
   }
   if (page === "valuation") {
     renderIndexValuation(state.indexValuation);
@@ -7491,6 +7607,17 @@ const bindEvents = () => {
       const sector = document.querySelector("#sectorFilter");
       if (sector) sector.value = state.sectorFilter;
       state.marketVisualMode = "overview";
+      renderTable();
+      return;
+    }
+    const flowSectorOpen = event.target.closest("[data-flow-sector-open]");
+    if (flowSectorOpen) {
+      event.preventDefault();
+      state.sectorFilter = flowSectorOpen.dataset.flowSectorOpen || "all";
+      const sector = document.querySelector("#sectorFilter");
+      if (sector) sector.value = state.sectorFilter;
+      state.marketVisualMode = "overview";
+      showPage("market");
       renderTable();
       return;
     }

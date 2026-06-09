@@ -59,6 +59,10 @@
             <span>行情</span>
             <strong>涨跌幅榜</strong>
           </button>
+          <button class="nav-item" type="button" data-page="flows">
+            <span>资金</span>
+            <strong>资金活跃度</strong>
+          </button>
           <button class="nav-item" type="button" data-page="options">
             <span>流向</span>
             <strong>期权流向</strong>
@@ -91,6 +95,7 @@
           <a href="#" data-page-link="strategies">策略合集</a>
           <a href="#" data-page-link="market">盘前盘后</a>
           <a href="#" data-page-link="stocks">股票库</a>
+          <a href="#" data-page-link="flows">资金活跃度</a>
           <a href="#" data-page-link="options">期权流向</a>
           <a href="#" data-page-link="strength">行业强弱</a>
           <a href="#" data-page-link="earnings">财报观察</a>
@@ -2007,6 +2012,80 @@
               <section>
                 <h2>字段说明</h2>
                 <p>市值和行业分类会逐步接入更稳定的数据源；待补充字段不会参与关键判断。</p>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="page-view flows-view" data-view="flows">
+          <div class="page-heading flows-heading">
+            <div>
+              <p class="eyebrow">资金活跃度</p>
+              <h1>成交额代理的资金线索</h1>
+              <p class="subtitle">用成交额放大、相对成交额和涨跌方向观察资金关注点。这里是代理指标，不代表真实资金方向。</p>
+            </div>
+            <div class="source">
+              <span>数据日期</span>
+              <strong id="flowsAsOf">--</strong>
+            </div>
+          </div>
+
+          <section class="flows-hero" aria-label="资金活跃度摘要">
+            <div>
+              <span>当前主线</span>
+              <strong id="flowsHeroTitle">等待成交额数据</strong>
+              <p id="flowsHeroLead">成交额放大只是入口，后续需要价格、板块和事件继续确认。</p>
+            </div>
+            <div class="flows-method-note">
+              <span>口径说明</span>
+              <strong>成交额代理</strong>
+              <p>第一版只展示量价活跃度，不把成交额代理解释成真实资金方向。</p>
+            </div>
+          </section>
+
+          <section class="flows-summary-grid" aria-label="资金活跃度指标">
+            <article><span>活跃榜首</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
+            <article><span>板块集中</span><strong id="flowsTopSector">--</strong><p>看成交额代理是否集中在少数板块。</p></article>
+            <article><span>量价确认</span><strong id="flowsAccumulationCount">--</strong><p>上涨且成交额放大的股票。</p></article>
+            <article><span>分歧压力</span><strong id="flowsDistributionCount">--</strong><p>下跌且成交额放大的股票。</p></article>
+          </section>
+
+          <div class="flows-layout">
+            <section class="flows-main-panel">
+              <div class="flows-panel-head">
+                <div>
+                  <span>个股活跃度</span>
+                  <strong>按成交额倍数排序</strong>
+                </div>
+                <button class="ghost-action" type="button" data-page-link="market">查看行情榜</button>
+              </div>
+              <div class="table-wrap flows-table-wrap">
+                <table class="flows-table">
+                  <thead>
+                    <tr>
+                      <th>股票</th>
+                      <th>板块</th>
+                      <th>成交额倍数</th>
+                      <th>涨跌</th>
+                      <th>代理信号</th>
+                      <th>详情</th>
+                    </tr>
+                  </thead>
+                  <tbody id="flowsStockBody">
+                    <tr><td colspan="6">等待成交额数据。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="flows-rail">
+              <section>
+                <h2>板块活跃度</h2>
+                <div id="flowsSectorList" class="flows-sector-list"></div>
+              </section>
+              <section>
+                <h2>怎么看</h2>
+                <p>上涨 + 成交额放大更像量价确认；下跌 + 成交额放大更像分歧或压力。两者都只是观察线索。</p>
               </section>
             </aside>
           </div>
