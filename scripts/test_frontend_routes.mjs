@@ -22,7 +22,7 @@ const routeCases = [
   { hash: "", view: "dashboard", text: "市场快照", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#market", view: "market", text: "涨跌幅榜", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#flows", view: "market", text: "Flow Scanner", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#events", view: "events", text: "财经日志", absentText: "股票线索" },
+  { hash: "#events", view: "events", text: "财经日历", absentText: "股票线索" },
   { hash: "#stock-events", view: "stock-events", text: "股票线索" },
   { hash: "#stock-events/guidance_up", view: "stock-events", text: "业绩预期变好" },
   { hash: "#events/guidance_up", view: "stock-events", text: "业绩预期变好" },

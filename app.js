@@ -672,12 +672,6 @@ const loadAdminUsers = async () => {
   renderAdminUsers();
 };
 
-const calendarEventTypeLabel = (type) => {
-  if (type === "review") return "定时复盘";
-  if (type === "switch" || type === "direction_change") return "方向切换";
-  return "即时信号";
-};
-
 const directionLabel = (direction, fallback) => {
   if (fallback) return fallback;
   if (direction === "long") return "上行观察";
@@ -3449,7 +3443,7 @@ const pageModules = [
     kicker: "财经日历",
     title: "财经日历",
     nav: "日历",
-    summary: "查看宏观、财报和人工财经日志的时间、影响范围和关联模块。",
+    summary: "查看宏观事件和财报日期的时间、影响范围和关联模块。",
     status: "数据驱动",
   },
   {
@@ -3714,7 +3708,6 @@ const renderDashboardVisualBoard = () => {
     ? [
         ["宏观日历", calendarEvents.filter((item) => item.type === "macro").length],
         ["财报日历", calendarEvents.filter((item) => item.type === "earnings").length],
-        ["人工日志", calendarEvents.filter((item) => item.type === "manual").length],
       ].filter((item) => item[1])
     : [];
   const eventDisplayTypes = calendarTypes.length ? calendarTypes : eventTypes;
@@ -3886,7 +3879,7 @@ const renderDashboardIntelligence = () => {
           `;
         }).join("")}
       `
-      : "<p>等待宏观、财报和人工日志。</p>";
+      : "<p>等待宏观和财报日程。</p>";
   }
 };
 
@@ -7193,7 +7186,6 @@ const renderEventsCalendar = (payload) => {
   const rules = Array.isArray(data.impactRules) ? data.impactRules : [];
   const body = document.querySelector("#calendarEventBody");
   const impactList = document.querySelector("#calendarImpactList");
-  const manualList = document.querySelector("#calendarManualList");
   setText("#eventsAsOf", formatDisplayDate(data.asOf || data.generatedAt || state.eventOpportunities?.asOf));
   const highEvents = events.filter((item) => item.impact === "high");
   const first = highEvents[0] || events[0];
@@ -7202,11 +7194,10 @@ const renderEventsCalendar = (payload) => {
     "#calendarHeroLead",
     first
       ? `${first.summary || "先看事件会影响哪些模块。"}`
-      : "宏观、财报和人工事件会在这里按影响等级和关联模块统一展示。",
+      : "宏观和财报事件会在这里按影响等级和关联模块统一展示。",
   );
   setText("#calendarMacroStatus", events.some((item) => item.type === "macro") ? "已同步" : "待同步");
   setText("#calendarEarningsStatus", events.some((item) => item.type === "earnings") ? "待确认" : "待接入");
-  setText("#calendarManualStatus", events.some((item) => item.type === "manual") ? "可录入" : "待配置");
   if (body) {
     body.innerHTML = events.length
       ? events.map((item) => {
@@ -7222,13 +7213,12 @@ const renderEventsCalendar = (payload) => {
               <strong>${escapeHtml(item.title || "--")}</strong>
               <p>${escapeHtml(item.summary || "")}</p>
             </td>
-            <td>${escapeHtml(calendarEventTypeLabel(item.type))}<br><span>${escapeHtml(item.sourceName || "")}</span></td>
             <td>${escapeHtml(related || "--")}</td>
             <td><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
           </tr>
         `;
       }).join("")
-      : '<tr><td colspan="5">财经日历暂无数据。</td></tr>';
+      : '<tr><td colspan="4">财经日历暂无数据。</td></tr>';
   }
   if (impactList) {
     impactList.innerHTML = rules.length
@@ -7240,21 +7230,6 @@ const renderEventsCalendar = (payload) => {
         </article>
       `).join("")
       : "<p>暂无影响映射。</p>";
-  }
-  if (manualList) {
-    const manualEvents = events.filter((item) => item.type === "manual").slice(0, 4);
-    const manualSummary = (item) => String(item.summary || "")
-      .replace(/\b(NVDA|MU|AMD|MRVL|MSFT|AAPL|AMZN|META|XLK|XLI|XLV|QQQ|SPY|TLT)\b/g, "相关资产")
-      .replace(/相关资产(、相关资产)+/g, "相关资产");
-    manualList.innerHTML = manualEvents.length
-      ? manualEvents.map((item) => `
-        <article>
-          <strong>${escapeHtml(item.title || "--")}</strong>
-          <p>${escapeHtml(manualSummary(item))}</p>
-          <span>${escapeHtml([item.date, item.time, eventImpactLabel(item.impact), ...(item.relatedModules || []).slice(0, 2)].filter(Boolean).join(" / "))}</span>
-        </article>
-      `).join("")
-      : "<p>暂无人工财经日志。</p>";
   }
   renderDashboardVisualBoard();
   renderDashboardIntelligence();

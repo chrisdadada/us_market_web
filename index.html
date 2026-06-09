@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-tooltip2" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-calendar1" />
   </head>
   <body>
     <div class="app-shell">
@@ -139,13 +139,13 @@
             <article class="dashboard-intel-panel desk-panel">
               <div class="desk-panel-header">
                 <div>
-                  <span>财经日志</span>
+                  <span>财经日历</span>
                   <strong id="dashboardCalendarLead">等待财经日历</strong>
                 </div>
                 <button class="ghost-action" type="button" data-page-link="events">更多</button>
               </div>
               <div class="dashboard-calendar-log" id="dashboardCalendarLog">
-                <p>等待宏观、财报和人工日志。</p>
+                <p>等待宏观和财报日程。</p>
               </div>
             </article>
           </section>
@@ -1334,7 +1334,7 @@
             <div>
               <p class="eyebrow" id="eventsEyebrow">财经日历</p>
               <h1 id="eventsPageTitle">财经日历</h1>
-              <p class="subtitle" id="eventsPageSubtitle">只看未来事件、影响范围和人工财经日志。股票研究线索会放在独立页面，不混在这里。</p>
+              <p class="subtitle" id="eventsPageSubtitle">只看未来宏观事件、财报日期和影响范围。股票研究线索会放在独立页面，不混在这里。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1346,12 +1346,11 @@
             <div class="calendar-hero-copy">
               <span>本周事件</span>
               <strong id="calendarHeroTitle">等待财经日历</strong>
-              <p id="calendarHeroLead">宏观、财报和人工事件会在这里按影响等级和关联模块统一展示。</p>
+              <p id="calendarHeroLead">宏观和财报事件会在这里按影响等级和关联模块统一展示。</p>
             </div>
             <div class="calendar-source-board">
               <div><span>宏观日历</span><strong id="calendarMacroStatus">待加载</strong></div>
               <div><span>财报日期</span><strong id="calendarEarningsStatus">待接入</strong></div>
-              <div><span>人工日志</span><strong id="calendarManualStatus">可录入</strong></div>
             </div>
           </section>
 
@@ -1362,7 +1361,6 @@
                   <span>未来事件日历</span>
                   <strong>按影响和关联模块排序</strong>
                 </div>
-                <button class="ghost-action" type="button" data-disabled="true" disabled>上传财经日志</button>
               </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
                 <table class="calendar-table data-table">
@@ -1370,13 +1368,12 @@
                     <tr>
                       <th>日期</th>
                       <th>事件</th>
-                      <th>类型</th>
                       <th>关联</th>
                       <th>影响</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEventBody">
-                    <tr><td colspan="5">正在加载财经日历。</td></tr>
+                    <tr><td colspan="4">正在加载财经日历。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1387,12 +1384,6 @@
                 <h2>事件影响映射</h2>
                 <div id="calendarImpactList" class="calendar-impact-list">
                   <p>加载后显示事件如何影响市场、风险、估值和股票库。</p>
-                </div>
-              </section>
-              <section>
-                <h2>人工财经日志</h2>
-                <div id="calendarManualList" class="calendar-impact-list">
-                  <p>加载后显示本周人工财经日志。</p>
                 </div>
               </section>
             </aside>
@@ -2651,6 +2642,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-tooltip2"></script>
+    <script src="./app.js?v=20260610-calendar1"></script>
   </body>
 </html>
