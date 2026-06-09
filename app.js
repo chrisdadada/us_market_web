@@ -14,6 +14,7 @@ const INDEX_VALUATION_URL = "./data/index-valuation.json?v=20260609-product1";
 const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260609-product1";
 const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260609-product1";
 const WATCHLIST_STORAGE_KEY = "meigu_strategy_watchlist_v1";
+const SIDEBAR_COLLAPSED_STORAGE_KEY = "meigu_strategy_sidebar_collapsed_v1";
 
 const state = {
   activeBoard: "ytd",
@@ -274,6 +275,19 @@ const safeWriteJson = (key, value) => {
   } catch (error) {
     // localStorage 不可用时，当前页面仍保留内存状态。
   }
+};
+
+const setSidebarCollapsed = (collapsed) => {
+  document.body.classList.toggle("is-sidebar-collapsed", collapsed);
+  document.querySelectorAll(".sidebar-toggle").forEach((button) => {
+    button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    button.setAttribute("aria-label", collapsed ? "展开一级导航" : "收起一级导航");
+  });
+  safeWriteJson(SIDEBAR_COLLAPSED_STORAGE_KEY, collapsed);
+};
+
+const initSidebarState = () => {
+  setSidebarCollapsed(Boolean(safeReadJson(SIDEBAR_COLLAPSED_STORAGE_KEY, false)));
 };
 
 const formatDateTime = (value) => {
@@ -7546,6 +7560,11 @@ const setupInfoTips = () => {
 
 const bindEvents = () => {
   setupInfoTips();
+  document.querySelectorAll(".sidebar-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      setSidebarCollapsed(!document.body.classList.contains("is-sidebar-collapsed"));
+    });
+  });
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.setAttribute("aria-current", item.classList.contains("is-active") ? "page" : "false");
   });
@@ -8175,6 +8194,7 @@ const init = async () => {
   const ytdData = await ytdResponse.json();
   const moversData = await moversResponse.json();
   state.watchlist = safeReadJson(WATCHLIST_STORAGE_KEY, []);
+  initSidebarState();
   state.core = coreData;
   state.strength = strengthData;
   state.strengthReview = strengthReviewData;

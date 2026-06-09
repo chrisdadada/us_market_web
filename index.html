@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>美股策略库</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-size='28' font-family='Arial' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=20260609-product1" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-dark1" />
   </head>
   <body>
     <div class="app-shell">
@@ -17,6 +17,9 @@
             <small>美股研究工具</small>
           </span>
         </a>
+        <button class="sidebar-toggle sidebar-toggle-inside" id="sidebarToggleInside" type="button" aria-label="收起一级导航" aria-expanded="true">
+          <span></span>
+        </button>
 
         <nav class="side-nav" aria-label="产品导航">
           <section class="nav-section">
@@ -70,7 +73,10 @@
 
       <main class="app-main">
         <header class="workspace-topbar">
-          <div>
+          <button class="sidebar-toggle topbar-sidebar-toggle" id="sidebarToggle" type="button" aria-label="收起一级导航" aria-expanded="true">
+            <span></span>
+          </button>
+          <div class="workspace-title-block">
             <span id="workspaceKicker">策略总览</span>
             <strong id="workspaceTitle">策略驾驶舱</strong>
           </div>
@@ -2684,6 +2690,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260609-product1"></script>
+    <script src="./app.js?v=20260609-dark1"></script>
   </body>
 </html>
