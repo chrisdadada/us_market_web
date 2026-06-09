@@ -2719,11 +2719,21 @@ const renderStockHub = (symbol) => {
           <div>
             <span>事件</span>
             <strong>${escapeHtml(eventSummary)}</strong>
+            <dl class="stock-fact-list">
+              <dt>类型</dt><dd>${escapeHtml(eventRow?.eventLabel || eventRow?.eventType || "--")}</dd>
+              <dt>日期</dt><dd>${escapeHtml(eventRow?.eventDate || "--")}</dd>
+              <dt>20日表现</dt><dd>${escapeHtml(eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct))}</dd>
+            </dl>
             <p>${escapeHtml(eventRow?.reason || "暂无明确事件，先以行情、成交额和板块共振观察。")}</p>
           </div>
           <div>
             <span>财报</span>
             <strong>${escapeHtml(earningsSummary)}</strong>
+            <dl class="stock-fact-list">
+              <dt>综合分</dt><dd>${escapeHtml(quality?.score == null ? "--" : Number(quality.score).toFixed(2))}</dd>
+              <dt>财报日</dt><dd>${escapeHtml(quality?.latestEarningsDate || "--")}</dd>
+              <dt>目标空间</dt><dd>${escapeHtml(targetUpside)}</dd>
+            </dl>
             <p>${escapeHtml(quality?.userReason || "暂无财报摘要，后续接入后展示业绩、指引和分析师变化。")}</p>
           </div>
         </div>
@@ -2751,6 +2761,19 @@ const renderStockHub = (symbol) => {
           <em>同板块</em>
         </div>
         <div class="stock-peer-table">
+          ${
+            peers.length
+              ? `
+                <div class="stock-peer-table-head">
+                  <span>代码</span>
+                  <span>公司</span>
+                  <span>涨跌幅</span>
+                  <span>市值</span>
+                  <span>成交异动</span>
+                </div>
+              `
+              : ""
+          }
           ${
             peers.length
               ? peers.map((peer) => `

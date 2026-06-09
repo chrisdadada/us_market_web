@@ -510,8 +510,8 @@ body.is-sidebar-collapsed .app-sidebar {
   overflow: hidden;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-card);
-  background: #0d1726;
-  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.12);
+  background: #0b1220;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
 .global-search-group {
@@ -530,7 +530,7 @@ body.is-sidebar-collapsed .app-sidebar {
   align-items: center;
   border: 0;
   border-top: 1px solid var(--line);
-  background: #0d1726;
+  background: #0b1220;
   color: var(--ink);
   padding: 8px 12px;
   text-align: left;
@@ -539,10 +539,12 @@ body.is-sidebar-collapsed .app-sidebar {
 
 .global-search-result:hover,
 .global-search-result.is-active {
-  background: #f4f8fc;
+  background: rgba(53, 167, 255, 0.12);
+  box-shadow: inset 3px 0 0 rgba(53, 167, 255, 0.9);
 }
 
 .global-search-result strong {
+  color: #dce8f6;
   margin: 0;
   font-size: 13px;
   font-weight: 800;
@@ -551,14 +553,14 @@ body.is-sidebar-collapsed .app-sidebar {
 .global-search-result span {
   min-width: 0;
   overflow: hidden;
-  color: var(--muted);
+  color: #9fb0c5;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .global-search-result em {
-  color: var(--muted);
+  color: #aebcd0;
   font-size: 12px;
   font-style: normal;
   font-weight: 800;
@@ -8874,6 +8876,23 @@ h1 {
   margin-top: 12px;
 }
 
+.stock-peer-table-head {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 82px 78px 62px;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  color: #75869d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0 10px 6px;
+}
+
+.stock-peer-table-head span:nth-child(n + 3) {
+  text-align: right;
+}
+
 .stock-peer-table button {
   display: grid;
   grid-template-columns: 70px minmax(0, 1fr) 82px 78px 62px;
@@ -8890,7 +8909,8 @@ h1 {
 }
 
 .stock-peer-table button:hover {
-  background: #f5f8fb;
+  border-color: rgba(53, 167, 255, 0.38);
+  background: rgba(53, 167, 255, 0.08);
 }
 
 .stock-peer-table strong {
@@ -8962,6 +8982,42 @@ h1 {
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+.stock-fact-list {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+  margin: 10px 0 0;
+  border: 1px solid rgba(128, 151, 183, 0.12);
+  border-radius: var(--radius-control);
+}
+
+.stock-fact-list dt,
+.stock-fact-list dd {
+  min-height: 28px;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.12);
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+.stock-fact-list dt:nth-last-child(2),
+.stock-fact-list dd:last-child {
+  border-bottom: 0;
+}
+
+.stock-fact-list dt {
+  color: #75869d;
+}
+
+.stock-fact-list dd {
+  overflow: hidden;
+  color: #d7e2ee;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stock-event-list {
