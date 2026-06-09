@@ -1992,41 +1992,27 @@
                 <button class="ghost-action" type="button" data-stocks-clear>清除筛选</button>
               </div>
               <div class="table-wrap stocks-table-wrap desk-panel-body">
-                <table class="data-table">
+                <table class="data-table stocks-terminal-table">
                   <thead>
                     <tr>
                       <th>代码</th>
                       <th>公司</th>
-                      <th>板块</th>
+                      <th>板块/行业</th>
                       <th>市值</th>
-                      <th>价格/涨跌</th>
-                      <th>数据线索</th>
+                      <th>价格</th>
+                      <th>涨跌幅</th>
+                      <th>成交额</th>
+                      <th>成交异动</th>
+                      <th>强弱/排名</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody id="stocksTableBody">
-                    <tr><td colspan="7">正在加载股票库。</td></tr>
+                    <tr><td colspan="10">正在加载股票库。</td></tr>
                   </tbody>
                 </table>
               </div>
             </section>
-
-            <aside class="stocks-rail workspace-side" aria-label="股票库说明">
-              <section>
-                <h2>使用方式</h2>
-                <p>先用搜索和筛选缩小范围，再进入个股详情查看价格、强弱、事件、财报和风险。</p>
-              </section>
-              <section>
-                <h2>常用入口</h2>
-                <button type="button" data-stocks-preset="liquid">高流动性</button>
-                <button type="button" data-stocks-preset="watchlist">自选</button>
-                <button type="button" data-stocks-preset="event">事件关联</button>
-              </section>
-              <section>
-                <h2>字段说明</h2>
-                <p>市值和行业分类会逐步接入更稳定的数据源；待补充字段不会参与关键判断。</p>
-              </section>
-            </aside>
           </div>
         </section>
 

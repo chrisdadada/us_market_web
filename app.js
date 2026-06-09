@@ -1213,7 +1213,8 @@ const normalizeStockLibraryItem = (item) => {
   const sector = item.sector || market?.sector || strength?.sectorProxy || signal?.theme || "未分类";
   const change = market ? getChange(market) : parseSignedPercent(item.change);
   const marketCap = item.marketCap || market?.marketCap || "--";
-  const dollarVolume = Number(item.volume || market?.dollarVolume || market?.volumeDollar || 0);
+  const dollarVolume = Number(item.volume || market?.dollarVolume || market?.volumeDollar || quality?.dollarVolume20d || 0);
+  const volumeRatio = market?.volumeRatio || strength?.crowding?.volumeRatio || "";
   const sources = new Set([...(item.sources || [])]);
   if (market) sources.add("行情");
   if (strength) sources.add("强弱");
@@ -1225,10 +1226,19 @@ const normalizeStockLibraryItem = (item) => {
     name,
     sector,
     change,
-    price: market?.price,
+    price: market?.price ?? strength?.price ?? quality?.close ?? eventRow?.close,
     marketCap,
     capBucket: stockCapBucketFromItem({ marketCap }),
     dollarVolume,
+    volumeRatio,
+    strengthRank: strength?.rank,
+    strengthScore: strength?.score,
+    strengthLabel: strength?.label,
+    relativeStrength: strength?.relative?.spy || strength?.relative?.qqq || strength?.relative?.sector || "",
+    eventLabel: eventRow?.eventLabel || "",
+    eventDate: eventRow?.eventDate || "",
+    qualityLabel: quality?.userAngle || "",
+    qualityScore: quality?.score,
     hasEvent: Boolean(eventRow),
     inWatchlist: isInWatchlist(symbol),
     sources: [...sources],
@@ -1295,25 +1305,35 @@ const renderStocksPage = () => {
           : "按当前筛选展示";
   setText("#stocksResultLabel", label);
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="7">当前筛选下暂无结果。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10">当前筛选下暂无结果。</td></tr>`;
     return;
   }
   body.innerHTML = rows
     .map((item) => {
       const changeClass = Number.isFinite(item.change) && item.change !== 0 ? (item.change > 0 ? "is-positive" : "is-negative") : "";
-      const sourceText = item.sources.filter((source) => source !== "覆盖池").slice(0, 3).join(" / ") || "基础资料";
+      const price = Number(item.price);
+      const strengthText = item.strengthScore == null
+        ? "--"
+        : `${Math.round(Number(item.strengthScore))} / #${item.strengthRank || "--"}`;
+      const strengthSub = item.relativeStrength || item.strengthLabel || "";
       return `
         <tr>
-          <td><button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</button></td>
-          <td>${escapeHtml(item.name || "--")}</td>
-          <td>${escapeHtml(item.sector || "未分类")}</td>
-          <td>${escapeHtml(item.marketCap || "--")}</td>
-          <td>
-            <span>${escapeHtml(item.price ? formatMoney(Number(item.price)) : "--")}</span>
-            <em class="stocks-change ${escapeHtml(changeClass)}">${escapeHtml(Number.isFinite(item.change) ? formatSignedPct(item.change) : "--")}</em>
+          <td class="stocks-symbol-cell" data-label="代码">
+            <button class="inline-stock-link stocks-symbol-link" type="button" data-stock-open="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</button>
+            ${item.inWatchlist ? '<span class="stocks-mini-flag">自选</span>' : ""}
           </td>
-          <td>${escapeHtml(sourceText)}</td>
-          <td><button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button></td>
+          <td class="stocks-company-cell" data-label="公司">${escapeHtml(item.name || "--")}</td>
+          <td data-label="板块/行业">${escapeHtml(item.sector || "未分类")}</td>
+          <td class="stocks-num-cell" data-label="市值">${escapeHtml(item.marketCap || "--")}</td>
+          <td class="stocks-num-cell" data-label="价格">${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</td>
+          <td class="stocks-num-cell ${escapeHtml(changeClass)}" data-label="涨跌幅">${escapeHtml(Number.isFinite(item.change) ? formatSignedPct(item.change) : "--")}</td>
+          <td class="stocks-num-cell" data-label="成交额">${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")}</td>
+          <td class="stocks-num-cell" data-label="成交异动">${escapeHtml(item.volumeRatio || "--")}</td>
+          <td class="stocks-signal-cell" data-label="强弱/排名">
+            <strong>${escapeHtml(strengthText)}</strong>
+            <span>${escapeHtml(strengthSub || "--")}</span>
+          </td>
+          <td class="stocks-action-cell" data-label="操作"><button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button></td>
         </tr>
       `;
     })
