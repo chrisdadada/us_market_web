@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>美股策略库</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-size='28' font-family='Arial' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=20260609-dark1" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-desk1" />
   </head>
   <body>
     <div class="app-shell">
@@ -99,14 +99,14 @@
           </div>
         </header>
 
-        <section class="page-view is-active" data-view="dashboard">
-          <div class="cockpit-hero">
+        <section class="page-view workspace-page is-active" data-view="dashboard">
+          <div class="cockpit-hero workspace-header">
             <div>
               <p class="eyebrow">市场总览</p>
               <h1>美股策略驾驶舱</h1>
               <p class="subtitle">趋势、广度、波动、事件的盘面快照。</p>
             </div>
-            <div class="market-regime-card market-radar-card">
+            <div class="market-regime-card market-radar-card desk-panel">
               <span>当前结构</span>
               <strong id="marketRegimeLabel">偏强但谨慎</strong>
               <p id="marketRegimeSummary">QQQ 强于 SPY，科技主线仍在趋势区；小盘异动升温，高热度线索需要风控。</p>
@@ -119,33 +119,33 @@
             </div>
           </div>
 
-          <section class="dashboard-snapshot-board" id="dashboardSnapshotBoard" aria-label="市场图形化快照">
-            <article class="dashboard-snapshot-card">
+          <section class="dashboard-snapshot-board workspace-summary-row" id="dashboardSnapshotBoard" aria-label="市场图形化快照">
+            <article class="dashboard-snapshot-card metric-cell">
               <span>市场快照</span>
               <strong>等待数据</strong>
             </article>
           </section>
 
-          <section class="dashboard-focus-grid" aria-label="当前先看">
-            <article>
+          <section class="dashboard-focus-grid workspace-summary-row" aria-label="当前先看">
+            <article class="metric-cell">
               <span>01 · 先看环境</span>
               <strong id="dashboardFocusTemperature">市场温度加载中</strong>
               <p id="dashboardFocusTemperatureNote">先看当前环境偏强、偏中性还是偏防守。</p>
               <button type="button" data-page-link="risk">看温度</button>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>02 · 再看异动</span>
               <strong id="dashboardFocusMover">涨跌异动加载中</strong>
               <p id="dashboardFocusMoverNote">看当前最明显的涨跌、成交额和风险标签。</p>
               <button type="button" data-page-link="market">看涨跌幅榜</button>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>03 · 找强势</span>
               <strong id="dashboardFocusStrength">强弱扫描加载中</strong>
               <p id="dashboardFocusStrengthNote">优先从强于大盘和行业的股票里找线索。</p>
               <button type="button" data-page-link="strength">看强弱榜</button>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>04 · 看理由</span>
               <strong id="dashboardFocusEvent">研究线索加载中</strong>
               <p id="dashboardFocusEventNote">用财报、预期改善和机构观点解释为什么需要继续跟踪。</p>
@@ -153,9 +153,9 @@
             </article>
           </section>
 
-          <section class="cockpit-grid">
-            <article class="cockpit-card live-card">
-              <div class="card-head">
+          <section class="cockpit-grid workspace-main">
+            <article class="cockpit-card live-card desk-panel">
+              <div class="card-head desk-panel-header">
                 <div>
                   <span>懂币猫实盘</span>
                   <h2>趋势策略组合</h2>
@@ -187,8 +187,8 @@
               </div>
             </article>
 
-            <article class="cockpit-card">
-              <div class="card-head">
+            <article class="cockpit-card desk-panel">
+              <div class="card-head desk-panel-header">
                 <div>
                   <span>免费工具</span>
                   <h2>市场温度计</h2>
@@ -223,8 +223,8 @@
               <p class="card-note" id="dashboardRiskNote">风险信号增多时，高波动线索降级观察。</p>
             </article>
 
-            <article class="cockpit-card">
-              <div class="card-head">
+            <article class="cockpit-card desk-panel">
+              <div class="card-head desk-panel-header">
                 <div>
                   <span>今日观察</span>
                   <h2>预期改善观察</h2>
@@ -242,8 +242,8 @@
               <p class="card-note" id="dashboardEventNote">适合先加入观察池，再看价格是否确认。</p>
             </article>
 
-            <article class="cockpit-card locked-card" data-requires-plan="paid">
-              <div class="card-head">
+            <article class="cockpit-card locked-card desk-panel" data-requires-plan="paid">
+              <div class="card-head desk-panel-header">
                 <div>
                   <span>付费权益</span>
                   <h2>交割记录</h2>
@@ -1888,20 +1888,20 @@
           </div>
         </section>
 
-        <section class="page-view stocks-view" data-view="stocks">
-          <div class="page-heading stocks-heading">
+        <section class="page-view stocks-view workspace-page" data-view="stocks">
+          <div class="page-heading stocks-heading workspace-header">
             <div>
               <p class="eyebrow">股票库</p>
               <h1>搜索和筛选美股研究标的</h1>
               <p class="subtitle">按代码、公司名、板块、流动性和事件线索查找股票；具体判断进入个股详情页。</p>
             </div>
-            <div class="source">
+            <div class="source source-chip">
               <span>数据日期</span>
               <strong id="stocksAsOf">--</strong>
             </div>
           </div>
 
-          <section class="stocks-toolbar" aria-label="股票库筛选">
+          <section class="stocks-toolbar filter-bar" aria-label="股票库筛选">
             <label>
               <span>搜索</span>
               <input id="stocksSearchInput" type="search" placeholder="股票代码、公司名或板块" />
@@ -1933,17 +1933,17 @@
             </label>
           </section>
 
-          <div class="stocks-layout">
-            <section class="stocks-main" aria-label="股票列表">
-              <div class="stocks-table-head">
+          <div class="stocks-layout workspace-main">
+            <section class="stocks-main desk-panel" aria-label="股票列表">
+              <div class="stocks-table-head desk-panel-header">
                 <div>
                   <span>股票列表</span>
                   <strong id="stocksResultLabel">按当前筛选展示</strong>
                 </div>
                 <button class="ghost-action" type="button" data-stocks-clear>清除筛选</button>
               </div>
-              <div class="table-wrap stocks-table-wrap">
-                <table>
+              <div class="table-wrap stocks-table-wrap desk-panel-body">
+                <table class="data-table">
                   <thead>
                     <tr>
                       <th>代码</th>
@@ -1962,7 +1962,7 @@
               </div>
             </section>
 
-            <aside class="stocks-rail" aria-label="股票库说明">
+            <aside class="stocks-rail workspace-side" aria-label="股票库说明">
               <section>
                 <h2>使用方式</h2>
                 <p>先用搜索和筛选缩小范围，再进入个股详情查看价格、强弱、事件、财报和风险。</p>
@@ -1981,20 +1981,20 @@
           </div>
         </section>
 
-        <section class="page-view flows-view" data-view="flows">
-          <div class="page-heading flows-heading">
+        <section class="page-view flows-view workspace-page" data-view="flows">
+          <div class="page-heading flows-heading workspace-header">
             <div>
               <p class="eyebrow">资金流向</p>
               <h1>板块资金流向榜</h1>
               <p class="subtitle">按板块聚合成交额、涨跌方向和上涨广度，先看资金关注集中在哪些行业。</p>
             </div>
-            <div class="source">
+            <div class="source source-chip">
               <span>数据日期</span>
               <strong id="flowsAsOf">--</strong>
             </div>
           </div>
 
-          <section class="flows-hero" aria-label="资金流向摘要">
+          <section class="flows-hero desk-panel" aria-label="资金流向摘要">
             <div>
               <span>当前领先板块</span>
               <strong id="flowsHeroTitle">等待板块数据</strong>
@@ -2007,24 +2007,24 @@
             </div>
           </section>
 
-          <section class="flows-summary-grid" aria-label="资金流向指标">
-            <article><span>流入领先</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
-            <article><span>活跃板块</span><strong id="flowsTopSector">--</strong><p>按成交额代理观察市场关注度。</p></article>
-            <article><span>流入板块</span><strong id="flowsAccumulationCount">--</strong><p>净流向代理为正的板块数量。</p></article>
-            <article><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>净流向代理为负的板块数量。</p></article>
+          <section class="flows-summary-grid workspace-summary-row metric-row" aria-label="资金流向指标">
+            <article class="metric-cell"><span>流入领先</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
+            <article class="metric-cell"><span>活跃板块</span><strong id="flowsTopSector">--</strong><p>按成交额代理观察市场关注度。</p></article>
+            <article class="metric-cell"><span>流入板块</span><strong id="flowsAccumulationCount">--</strong><p>净流向代理为正的板块数量。</p></article>
+            <article class="metric-cell"><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>净流向代理为负的板块数量。</p></article>
           </section>
 
-          <div class="flows-layout">
-            <section class="flows-main-panel">
-              <div class="flows-panel-head">
+          <div class="flows-layout workspace-main">
+            <section class="flows-main-panel desk-panel">
+              <div class="flows-panel-head desk-panel-header">
                 <div>
                   <span>板块排行</span>
                   <strong>按资金流向代理排序</strong>
                 </div>
                 <button class="ghost-action" type="button" data-page-link="market">查看行情榜</button>
               </div>
-              <div class="table-wrap flows-table-wrap">
-                <table class="flows-table">
+              <div class="table-wrap flows-table-wrap desk-panel-body">
+                <table class="flows-table data-table">
                   <thead>
                     <tr>
                       <th>板块</th>
@@ -2042,7 +2042,7 @@
               </div>
             </section>
 
-            <aside class="flows-rail">
+            <aside class="flows-rail workspace-side">
               <section>
                 <h2>个股明细</h2>
                 <div id="flowsSectorList" class="flows-sector-list"></div>
