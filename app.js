@@ -45,7 +45,7 @@ const state = {
   qualityBoard: "quality",
   qualityQuery: "",
   selectedQualitySymbol: "",
-  eventBoard: "guidance_up",
+  eventBoard: "all",
   eventQuery: "",
   eventScoreFilter: "all",
   eventRiskFilter: "all",
@@ -193,7 +193,8 @@ const ensurePageData = (page) => {
   if (page === "valuation") jobs.push(loadLazyDataset("indexValuation"));
   if (page === "options") jobs.push(loadLazyDataset("optionsFlow"));
   if (page === "earnings") jobs.push(loadLazyDataset("earningsQuality"));
-  if (page === "events") jobs.push(loadLazyDataset("eventsCalendar"), loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
+  if (page === "events") jobs.push(loadLazyDataset("eventsCalendar"));
+  if (page === "stock-events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
   if (page === "stock") jobs.push(loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
   if (page === "stocks") jobs.push(loadGlobalSearchUniverse().then(() => renderStocksPage()));
@@ -895,10 +896,41 @@ const loadSignals = async () => {
     renderSignalDashboard();
     renderWatchlist();
   } catch (error) {
+    const fallbackSignals = state.core?.risk?.signals || [];
+    const fallbackStates = fallbackSignals.map((item) => ({
+      symbol: item.term,
+      direction: item.bucket === "watch" ? "short" : "long",
+      directionText: item.bucket === "watch" ? "谨慎观察" : item.label,
+      intervalLabel: "日线",
+      price: item.label || "--",
+      livePrice: item.asOf || state.core?.asOf || "--",
+      marketChangePct: item.bucket === "positive" ? "偏强" : item.bucket === "watch" ? "压力" : "中性",
+      theme: "市场信号",
+      firstSignalAt: item.asOf || state.core?.asOf || "--",
+      signalAge: "核心信号",
+      maxFavorablePct: "--",
+      maxAdversePct: "--",
+    }));
     state.signals = {
-      overview: { activeSymbols: 0, switches24h: 0, reviewQueue: 0, capturedMovePct: "暂无记录" },
-      states: [],
-      feed: [],
+      overview: {
+        activeSymbols: fallbackStates.length,
+        switches24h: 0,
+        reviewQueue: 0,
+        capturedMovePct: fallbackStates.length ? "核心信号" : "暂无记录",
+      },
+      states: fallbackStates,
+      feed: fallbackSignals.map((item) => ({
+        symbol: item.term,
+        theme: "市场信号",
+        intervalLabel: "日线",
+        eventType: "core_signal",
+        direction: item.bucket === "watch" ? "short" : "long",
+        directionText: item.label,
+        price: item.label,
+        livePrice: item.asOf || state.core?.asOf || "--",
+        marketChangePct: item.note || "--",
+        currentTime: item.asOf || state.core?.asOf || "--",
+      })),
       sectors: [],
       reviewQueue: [],
     };
@@ -1585,10 +1617,18 @@ const stockSectorFlowSummary = (rows) => {
 };
 
 const signalToHistoryLabel = {
-  guidance_up: "预期改善",
+  guidance_up: "业绩预期变好",
   earnings_beat: "财报超预期",
   analyst_positive: "机构观点变化",
   short_squeeze: "空头压力变化",
+};
+
+const displayEventLabel = (rowOrLabel, fallback = "观察线索") => {
+  const raw = typeof rowOrLabel === "string" ? rowOrLabel : rowOrLabel?.eventLabel || rowOrLabel?.eventType;
+  const type = typeof rowOrLabel === "string" ? "" : rowOrLabel?.eventType;
+  if (type && signalToHistoryLabel[type]) return signalToHistoryLabel[type];
+  const text = String(raw || fallback);
+  return text.replace(/预期改善观察/g, "业绩预期变好").replace(/预期改善/g, "业绩预期变好");
 };
 
 const stockHistoryEvidence = (signal) => {
@@ -1613,7 +1653,7 @@ const stockHistoryEvidence = (signal) => {
 const stockResearchSummary = ({ target, market, strength, quality, eventRow, signal }) => {
   const evidence = stockHistoryEvidence(eventRow?.eventType || "guidance_up");
   const title = eventRow
-    ? `${eventRow.eventLabel || "观察线索"}：${eventReasonForUser(eventRow)}`
+    ? `${displayEventLabel(eventRow)}：${eventReasonForUser(eventRow)}`
     : quality
       ? `财报观察：${quality.userReason || quality.userAngle || "财报和预期数据正在补充"}`
       : strength
@@ -1818,7 +1858,7 @@ const stockWatchlistState = (symbol) => {
 };
 
 const stockPrimarySource = ({ market, strength, quality, eventRow, signal }) => {
-  if (eventRow) return eventRow.eventLabel || "预期改善观察";
+  if (eventRow) return displayEventLabel(eventRow, "股票线索");
   if (quality) return quality.userAngle || "财报观察";
   if (signal) return "趋势信号";
   if (strength) return "全市场强弱";
@@ -2128,7 +2168,7 @@ const renderWatchlistDailyPlan = (rows, reviewRows, priorityRows) => {
     focus.textContent = "先加入自选对象";
     reason.textContent = "自选会根据复盘分、到期时间和数据覆盖自动排序。";
     action.textContent = "等待观察对象";
-    next.textContent = "从涨跌幅榜、强弱、财报或预期改善观察加入股票后，这里会给出下一步。";
+    next.textContent = "从涨跌幅榜、强弱、财报或股票线索加入股票后，这里会给出下一步。";
     return;
   }
   const review = watchlistReviewPlan(top);
@@ -2198,7 +2238,7 @@ const stockTimelineItems = (symbol) => {
   if (eventRow) {
     items.push({
       label: "观察线索",
-      title: eventRow.eventLabel || eventRow.eventType || "预期改善观察",
+      title: displayEventLabel(eventRow, "股票线索"),
       value: `${eventRow.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct)} · ${eventRow.eventDate || "--"}`,
     });
   }
@@ -2224,7 +2264,7 @@ const stockActionChecklist = (symbol) => {
   if (strength) items.push(`先看强弱是否保持：${strength.label}，20日表现 ${strength.periods?.["20d"] || "--"}。`);
   if (market) items.push(`再看风险是否可接受：${market.risk}，不只看涨幅，也看成交额是否连续。`);
   if (quality) items.push(`财报角度：${quality.userReason || quality.userAngle || "等待更多财报解释"}。`);
-  if (eventRow) items.push(`观察线索：${eventRow.reason || eventRow.eventLabel || "先看线索是否继续被价格确认"}。`);
+  if (eventRow) items.push(`观察线索：${eventRow.reason || displayEventLabel(eventRow) || "先看线索是否继续被价格确认"}。`);
   if (signal) items.push(`趋势信号：${directionLabel(signal.direction, signal.directionText)}，当前表现 ${signal.marketChangePct || "--"}。`);
   if (!items.length) items.push("先加入自选，等待更多行情、强弱、财报或信号数据补充。");
   return items.slice(0, 4);
@@ -2366,7 +2406,7 @@ const renderStockHub = (symbol) => {
     content.innerHTML = `
       <div class="empty-detail">
         <strong>选择一只股票</strong>
-        <p>从预期改善观察、涨跌幅榜、全市场强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
+        <p>从股票线索、涨跌幅榜、全市场强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
       </div>
     `;
     return;
@@ -2410,7 +2450,7 @@ const renderStockHub = (symbol) => {
   const marketCapPosition = marketCapRank > 0 ? `板块市值 ${marketCapRank}/${marketCapRankRows.length}` : capLabel(market || { marketCap: marketCapText });
   const peerRows = peers.slice(0, 5);
   const eventSummary = eventRow
-    ? `${eventRow.eventLabel || eventTypeLabel(eventRow.eventType)} · ${eventRow.eventDate || "日期待补"}`
+    ? `${displayEventLabel(eventRow, eventTypeLabel(eventRow.eventType))} · ${eventRow.eventDate || "日期待补"}`
     : "暂无事件线索";
   const earningsSummary = quality
     ? `${quality.userAngle || "财报观察"} · ${quality.latestEarningsDate || "日期待补"}`
@@ -2653,7 +2693,7 @@ const renderStockHub = (symbol) => {
         <h2>${escapeHtml(research.title)}</h2>
         <p>${escapeHtml(research.nextStep)}</p>
         <div class="stock-research-actions">
-          ${watchlistActionButton(target, eventRow ? "预期改善观察" : "股票详情")}
+          ${watchlistActionButton(target, eventRow ? "股票线索" : "股票详情")}
           <button class="ghost-action" type="button" data-page-link="watchlist">去自选</button>
         </div>
       </article>
@@ -2757,7 +2797,7 @@ const renderStockHub = (symbol) => {
             <span>事件</span>
             <strong>${escapeHtml(eventSummary)}</strong>
             <dl class="stock-fact-list">
-              <dt>类型</dt><dd>${escapeHtml(eventRow?.eventLabel || eventRow?.eventType || "--")}</dd>
+              <dt>类型</dt><dd>${escapeHtml(eventRow ? displayEventLabel(eventRow) : "--")}</dd>
               <dt>日期</dt><dd>${escapeHtml(eventRow?.eventDate || "--")}</dd>
               <dt>20日表现</dt><dd>${escapeHtml(eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct))}</dd>
             </dl>
@@ -3407,10 +3447,18 @@ const pageModules = [
   },
   {
     id: "events",
-    kicker: "事件中心",
-    title: "事件中心",
-    nav: "事件",
-    summary: "统一查看财经日历、人工日志和事件驱动的股票线索。",
+    kicker: "财经日历",
+    title: "财经日历",
+    nav: "日历",
+    summary: "查看宏观、财报和人工财经日志的时间、影响范围和关联模块。",
+    status: "数据驱动",
+  },
+  {
+    id: "stock-events",
+    kicker: "股票线索",
+    title: "股票线索",
+    nav: "线索",
+    summary: "把业绩预期变好、财报超预期、机构观点和空头压力翻译成个股复盘入口。",
     status: "数据驱动",
   },
   {
@@ -3552,8 +3600,15 @@ const getPageFromHash = () => {
     return "stock";
   }
   if (page === "events") {
-    if (symbol && eventBoardFallbacks[symbol]) state.eventBoard = symbol;
+    if (symbol && eventBoardFallbacks[symbol]) {
+      state.eventBoard = symbol;
+      return "stock-events";
+    }
     return "events";
+  }
+  if (page === "stock-events") {
+    state.eventBoard = symbol && eventBoardFallbacks[symbol] ? symbol : "all";
+    return "stock-events";
   }
   return pageMeta[page] ? page : "dashboard";
 };
@@ -3606,10 +3661,10 @@ const renderDashboardFocus = () => {
       : "优先从强于大盘和行业的股票里找线索。",
   );
 
-  setText("#dashboardFocusEvent", eventTop ? `${normalizeStockSymbol(eventTop.ticker || eventTop.symbol)} · ${eventTop.eventLabel || "研究线索"}` : "等待研究线索");
+  setText("#dashboardFocusEvent", eventTop ? `${normalizeStockSymbol(eventTop.ticker || eventTop.symbol)} · ${displayEventLabel(eventTop, "股票线索")}` : "等待股票线索");
   setText(
     "#dashboardFocusEventNote",
-    eventTop ? eventReasonForUser(eventTop) : "用财报、预期改善和机构观点解释为什么需要继续跟踪。",
+    eventTop ? eventReasonForUser(eventTop) : "用财报、业绩预期和机构观点解释为什么需要继续跟踪。",
   );
 };
 
@@ -3872,7 +3927,7 @@ const renderDashboardIntelligence = () => {
 
 const dataStatusItems = () => [
   {
-    label: "预期改善观察",
+    label: "股票线索",
     date: state.eventOpportunities?.asOf,
     generatedAt: state.eventOpportunities?.generatedAt,
     cadence: "按数据批次更新",
@@ -4162,7 +4217,7 @@ const showPage = (page, options = {}) => {
   if (page === "earnings") {
     renderQualityTable();
   }
-  if (page === "events") {
+  if (page === "stock-events") {
     renderEventTable();
   }
   if (page === "stocks") {
@@ -4639,7 +4694,7 @@ const marketDetailPreview = (row) => {
     .map(([label]) => label);
   const heat = stockHeatSummary({ market: row, strength, month, volume });
   return {
-    title: eventRow?.eventLabel || quality?.userAngle || strength?.label || heat.label,
+    title: eventRow ? displayEventLabel(eventRow) : quality?.userAngle || strength?.label || heat.label,
     note: eventRow?.reason || quality?.userReason || strength?.action || heat.note,
     primary: stockPrimarySource({ market: row, strength, quality, eventRow, signal }),
     sourceText: sources.length ? sources.join(" / ") : "行情",
@@ -6269,7 +6324,7 @@ const temperatureWatchPlan = (score, label, position) => {
   if (score >= 70) {
     return [
       ["先看大盘", "SPY 和 QQQ 不破短线趋势时，可以保留较高频率的观察节奏。", true],
-      ["再看主线", "从强弱榜、七姐妹和预期改善观察里查看资金已经关注的股票。", true],
+      ["再看主线", "从强弱榜、七姐妹和股票线索里查看资金已经关注的股票。", true],
       ["控制高热度", `观察强度参考 ${position}，但单只股票仍要看确认，不把结论一次打满。`, false],
       ["留意失效条件", "如果 VIX 或利率快速走高，新增线索需要重新确认。", false],
     ];
@@ -7098,7 +7153,8 @@ const renderEarningsQuality = (payload) => {
 };
 
 const eventBoardFallbacks = {
-  guidance_up: { title: "预期改善观察", subtitle: "公司主动上调未来预期，先看价格和成交是否继续确认。" },
+  all: { title: "股票线索总览", subtitle: "汇总业绩预期变好、财报超预期、机构观点和空头压力变化，用于找到值得复盘的股票。" },
+  guidance_up: { title: "业绩预期变好", subtitle: "公司或市场开始认为后续收入、利润或订单可能比之前想得更好，先看价格和成交是否确认。" },
   earnings_beat: { title: "财报超预期观察", subtitle: "业绩明显好于市场预期后，观察资金是否继续确认。" },
   analyst_positive: { title: "机构观点变化", subtitle: "目标价、评级或观点明显转好时，先看股价是否同步确认。" },
   short_squeeze: { title: "空头压力变化", subtitle: "空头比例较高且价格开始转强，波动会更大，确认条件要更严格。" },
@@ -7106,7 +7162,7 @@ const eventBoardFallbacks = {
 
 const eventTermTips = {
   analyst_positive: "机构观点变化指券商或研究机构上调评级、目标价，或给出更积极观点。重点看市场是否真的用价格和成交额投票。",
-  guidance_up: "预期改善指公司把未来收入或利润预期往上调，通常说明管理层对后续经营更有信心，但仍需要价格和成交确认。",
+  guidance_up: "业绩预期变好，就是公司自己或市场开始觉得这家公司后面可能比之前想得更好，比如收入、利润、订单或毛利率预期被上调。",
   earnings_beat: "财报超预期指实际业绩比市场原本预期更好。后续要看好消息是否已经被股价提前反映。",
   short_squeeze: "空头挤压指做空的人被迫回补，容易带来快速拉升，也容易快速回落，需要更严格的确认条件。",
   liquidity: "流动性可以理解成成交额。成交额越高，通常越容易进出；太低时滑点和波动会更明显。",
@@ -7115,20 +7171,32 @@ const eventTermTips = {
 };
 
 const getEventBoard = () => {
+  if (state.eventBoard === "all") {
+    return {
+      ...eventBoardFallbacks.all,
+      rows: allEventRows().sort((a, b) => Number(b.signalScore || 0) - Number(a.signalScore || 0)),
+    };
+  }
   const fallback = eventBoardFallbacks[state.eventBoard] || eventBoardFallbacks.analyst_positive;
-  return state.eventOpportunities?.boards?.[state.eventBoard] || { ...fallback, rows: [] };
+  const board = state.eventOpportunities?.boards?.[state.eventBoard];
+  if (!board) return { ...fallback, rows: [] };
+  return {
+    ...board,
+    title: displayEventLabel(board.title || fallback.title, fallback.title),
+    subtitle: state.eventBoard === "guidance_up" ? fallback.subtitle : board.subtitle || fallback.subtitle,
+  };
 };
 
 const syncEventPageChrome = () => {
   const board = eventBoardFallbacks[state.eventBoard];
-  const isBoardRoute = window.location.hash.startsWith(`#events/${state.eventBoard}`);
-  setText("#eventsEyebrow", isBoardRoute ? "事件中心 / 研究线索" : "事件中心");
-  setText("#eventsPageTitle", isBoardRoute && board ? board.title.replace(/观察$/, "") : "财经日历与研究线索");
+  const isBoardRoute = window.location.hash.startsWith(`#stock-events/${state.eventBoard}`);
+  setText("#stockEventsEyebrow", "股票线索");
+  setText("#stockEventsPageTitle", isBoardRoute && board ? board.title.replace(/观察$/, "") : "股票线索");
   setText(
-    "#eventsPageSubtitle",
+    "#stockEventsPageSubtitle",
     isBoardRoute && board
-      ? `${board.subtitle} 上方财经日历仍用于判断事件背景和影响链路。`
-      : "先看未来事件会影响什么，再把宏观、财报、人工日志和股票线索统一到同一条复盘链路里。",
+      ? board.subtitle
+      : "把财报、业绩预期、机构观点和空头压力翻译成可复盘的个股线索。",
   );
   document.querySelectorAll(".event-tab").forEach((item) => {
     const active = item.dataset.eventBoard === state.eventBoard;
@@ -7149,6 +7217,7 @@ const eventTypeLabel = (type) => {
   if (type === "earnings") return "财报";
   if (type === "manual") return "人工";
   if (type === "policy") return "政策";
+  if (type === "core_signal") return "核心信号";
   return type || "事件";
 };
 
@@ -7202,19 +7271,22 @@ const renderEventsCalendar = (payload) => {
         <article>
           <strong>${escapeHtml(rule.trigger || "--")}</strong>
           <p>${escapeHtml(rule.effect || "")}</p>
-          <span>${escapeHtml((rule.modules || []).join(" / ") || "事件中心")}</span>
+          <span>${escapeHtml((rule.modules || []).join(" / ") || "财经日历")}</span>
         </article>
       `).join("")
       : "<p>暂无影响映射。</p>";
   }
   if (manualList) {
     const manualEvents = events.filter((item) => item.type === "manual").slice(0, 4);
+    const manualSummary = (item) => String(item.summary || "")
+      .replace(/\b(NVDA|MU|AMD|MRVL|MSFT|AAPL|AMZN|META|XLK|XLI|XLV|QQQ|SPY|TLT)\b/g, "相关资产")
+      .replace(/相关资产(、相关资产)+/g, "相关资产");
     manualList.innerHTML = manualEvents.length
       ? manualEvents.map((item) => `
         <article>
           <strong>${escapeHtml(item.title || "--")}</strong>
-          <p>${escapeHtml(item.summary || "")}</p>
-          <span>${escapeHtml([item.date, item.time, ...(item.relatedAssets || []).slice(0, 3)].filter(Boolean).join(" / "))}</span>
+          <p>${escapeHtml(manualSummary(item))}</p>
+          <span>${escapeHtml([item.date, item.time, eventImpactLabel(item.impact), ...(item.relatedModules || []).slice(0, 2)].filter(Boolean).join(" / "))}</span>
         </article>
       `).join("")
       : "<p>暂无人工财经日志。</p>";
@@ -7358,7 +7430,7 @@ const eventNextReview = (row) => {
   if (row?.eventType === "short_squeeze") return "重点看回补行情是否延续，若成交缩小且价格回落，先不要提高优先级。";
   if (row?.eventType === "earnings_beat") return "看财报后的价格承接和分析师后续调整，避免只因为单次财报超预期就提高优先级。";
   if (row?.eventType === "analyst_positive") return "看机构观点变化后价格是否继续确认，单日拉升后等回踩更稳。";
-  return "看预期改善后价格和成交是否继续确认，再决定是否加入长期跟踪。";
+  return "看业绩预期变好后价格和成交是否继续确认，再决定是否加入长期跟踪。";
 };
 
 const eventCurrentPosition = (row) => {
@@ -7382,7 +7454,7 @@ const eventDetailPreview = (row) => {
     .map(([label]) => label);
   return {
     sources: sources.length ? sources.join(" / ") : "线索",
-    title: `${row?.eventLabel || "观察线索"} · ${sources.length || 1}项依据`,
+    title: `${displayEventLabel(row)} · ${sources.length || 1}项依据`,
     note: eventReasonForUser(row),
   };
 };
@@ -7395,7 +7467,7 @@ const renderEventFocusGrid = (rows) => {
   const preview = top ? eventDetailPreview(top) : null;
   const priority = top ? reviewPriorityForEventRow(top) : null;
   const riskRows = rows.filter(eventRiskFlag);
-  setText("#eventFocusLeader", top ? `${ticker} · ${top.eventLabel || "观察线索"}` : "等待线索");
+  setText("#eventFocusLeader", top ? `${ticker} · ${displayEventLabel(top)}` : "等待线索");
   setText(
     "#eventFocusLeaderNote",
     top ? `${top.companyName || top.name || ticker}：复盘分 ${priority.score}，${priority.reason}。` : "先看理由清楚、价格已经确认、流动性够用的股票。",
@@ -7445,14 +7517,14 @@ const renderExpectationEvidence = () => {
   setText(
     "#expectationHeroTitle",
     rows.length
-      ? `研究线索：${eventBoardFallbacks[state.eventBoard]?.title || "观察线索"} · ${rows.length} 只候选`
-      : "研究线索：等待更清晰的确认信号",
+      ? `股票线索：${eventBoardFallbacks[state.eventBoard]?.title || "观察线索"} · ${rows.length} 只候选`
+      : "股票线索：等待更清晰的确认信号",
   );
   setText(
     "#expectationHeroLead",
     rows.length
-      ? "财经日历是事件中心第一层；这里把事件落到可复盘股票，先看理由，再看价格、成交和市场环境是否确认。"
-      : "财经日历是事件中心第一层；股票线索作为第二层研究入口，等待数据生成后再进入复盘。",
+      ? "这里把研究线索落到可复盘股票，先看理由，再看价格、成交和市场环境是否确认。"
+      : "股票线索等待数据生成后再进入复盘；财经日历只保留事件时间和背景。",
   );
 };
 
@@ -7476,12 +7548,12 @@ const renderEventDetail = (row) => {
   panel.innerHTML = `
     <div class="event-detail-head">
       <div>
-        <span>${escapeHtml(row.eventLabel || row.eventType || "观察线索")}</span>
+        <span>${escapeHtml(displayEventLabel(row))}</span>
         <h2>${escapeHtml(ticker)}</h2>
         <p>${escapeHtml(row.companyName || row.name || "")}</p>
       </div>
       <div class="quality-head-actions">
-        ${watchlistActionButton(ticker, "预期改善观察")}
+        ${watchlistActionButton(ticker, "股票线索")}
         <button class="ghost-action" type="button" data-stock-open="${escapeHtml(ticker)}">股票详情</button>
       </div>
     </div>
@@ -7525,7 +7597,7 @@ const renderEventDetail = (row) => {
     </section>
     <div class="event-detail-grid">
       ${eventMetric(eventDateLabel(row), row.eventDate || "--")}
-      ${eventMetric(eventTypeFieldLabel(row), row.eventLabel || row.eventType || "--")}
+      ${eventMetric(eventTypeFieldLabel(row), displayEventLabel(row, "--"))}
       ${eventMetric("20日表现", row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct), Number(row.return20dPct) >= 0 ? "is-positive" : "is-negative")}
       ${eventMetric("5日后观察", row.fwd5dPct == null ? "--" : formatSignedPct(row.fwd5dPct), Number(row.fwd5dPct) >= 0 ? "is-positive" : "is-negative")}
       ${eventMetric("20日后观察", row.fwd20dPct == null ? "--" : formatSignedPct(row.fwd20dPct), Number(row.fwd20dPct) >= 0 ? "is-positive" : "is-negative")}
@@ -7569,7 +7641,7 @@ const renderEventTable = () => {
   setText("#eventBoardTitle", board.title || eventBoardFallbacks[state.eventBoard]?.title || "--");
   setText(
     "#eventBoardSubtitle",
-    board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是财经日历下面的研究线索二级区。",
+    board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是独立的股票研究线索，不属于财经日历。",
   );
   setText("#eventActiveTitle", board.title || "--");
   setText("#eventActiveSubtitle", board.subtitle || "等待数据加载。");
@@ -7611,7 +7683,7 @@ const renderEventTable = () => {
         <article class="event-observation-card ${selected ? "is-selected" : ""}" data-event-symbol="${escapeHtml(ticker)}">
           <div class="event-card-head">
             <div>
-              <span>${escapeHtml(row.eventLabel || row.eventType || "观察线索")}</span>
+              <span>${escapeHtml(displayEventLabel(row))}</span>
               <strong>${escapeHtml(ticker)}</strong>
               <p>${escapeHtml(row.companyName || row.name || "")}</p>
             </div>
@@ -7640,7 +7712,7 @@ const renderEventTable = () => {
           </section>
           <div class="event-card-actions">
             <button class="ghost-action" type="button" data-stock-open="${escapeHtml(ticker)}">股票详情</button>
-            ${watchlistActionButton(ticker, "预期改善观察")}
+            ${watchlistActionButton(ticker, "股票线索")}
           </div>
         </article>
       `;
@@ -7661,15 +7733,15 @@ const renderEventTable = () => {
               <span>${escapeHtml(row.companyName || row.name || "")}</span>
               <div class="inline-action-row">
                 <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(ticker)}">详情</button>
-                <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="预期改善观察">${isInWatchlist(ticker) ? "已自选" : "加入自选"}</button>
+                <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="股票线索">${isInWatchlist(ticker) ? "已自选" : "加入自选"}</button>
               </div>
             </div>
           </td>
           <td class="event-type-cell" data-label="线索">
             <div class="event-label-stack">
               <strong>
-                ${escapeHtml(row.eventLabel || row.eventType || "--")}
-                <button class="info-tip" type="button" aria-label="${escapeHtml(row.eventLabel || "线索")}解释" data-tip="${escapeHtml(eventTermTip(row))}">?</button>
+                ${escapeHtml(displayEventLabel(row, "--"))}
+                <button class="info-tip" type="button" aria-label="${escapeHtml(displayEventLabel(row, "线索"))}解释" data-tip="${escapeHtml(eventTermTip(row))}">?</button>
               </strong>
               <span>${escapeHtml(eventDateLabel(row))} ${escapeHtml(formatDisplayDate(row.eventDate))}</span>
             </div>
@@ -7698,15 +7770,15 @@ const renderEventOpportunities = (payload) => {
   const rows = guidanceRows.length ? guidanceRows : allEventRows();
   const first = rows[0];
   const stats = Array.isArray(payload?.forwardStats) ? payload.forwardStats : [];
-  setText("#eventsAsOf", formatDisplayDate(payload?.asOf));
+  setText("#stockEventsAsOf", formatDisplayDate(payload?.asOf));
   renderEventsCalendar(state.eventsCalendar);
   setText("#eventTotalCount", rows.length ? `${rows.length}只` : "--");
   setText("#eventTopSymbol", first ? normalizeStockSymbol(first.ticker || first.symbol) : "--");
   setText("#eventTopReason", first ? eventReasonForUser(first) : "有数据后显示当前更需要进一步研究的线索。");
   setText("#dashboardEventLeader", first ? normalizeStockSymbol(first.ticker || first.symbol) : "等待数据");
   setText("#dashboardEventCount", rows.length ? `${rows.length}` : "--");
-  setText("#dashboardEventCopy", first ? eventReasonForUser(first) : "预期改善、财报和机构观点变化会集中展示。");
-  setText("#dashboardEventNote", first?.eventLabel || first?.eventType || "适合先加入自选，再看价格是否确认。");
+  setText("#dashboardEventCopy", first ? eventReasonForUser(first) : "业绩预期变好、财报和机构观点变化会集中展示。");
+  setText("#dashboardEventNote", first ? displayEventLabel(first) : "适合先加入自选，再看价格是否确认。");
   setText("#eventForwardSummary", stats.length ? `${stats.length}组记录` : "待接入");
   renderEventTable();
   renderDashboardFocus();
@@ -8039,7 +8111,7 @@ const bindEvents = () => {
       if (pageLink.dataset.disabled === "true" || pageLink.getAttribute("aria-disabled") === "true") return;
       if (pageLink.dataset.eventBoardLink) {
         state.eventBoard = pageLink.dataset.eventBoardLink;
-        showPage("events", { hash: `#events/${state.eventBoard}` });
+        showPage("stock-events", { hash: `#stock-events/${state.eventBoard}` });
         const target = document.querySelector(".page-view.is-active .event-layout");
         if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
         return;
@@ -8561,8 +8633,8 @@ const bindEvents = () => {
   document.querySelectorAll(".event-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       state.eventBoard = tab.dataset.eventBoard;
-      if (window.location.hash.startsWith("#events")) {
-        window.history.pushState(null, "", `#events/${state.eventBoard}`);
+      if (window.location.hash.startsWith("#stock-events")) {
+        window.history.pushState(null, "", state.eventBoard === "all" ? "#stock-events" : `#stock-events/${state.eventBoard}`);
       }
       document.querySelectorAll(".event-tab").forEach((item) => {
         item.classList.toggle("is-active", item === tab);

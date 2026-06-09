@@ -14889,3 +14889,181 @@ body .page-view[data-view="risk"] .rule-timeline div {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Dark terminal consistency pass: remove legacy light panels from core research pages. */
+body :where(.source, .page-heading-simple .source, .valuation-source, .market-workspace .source) {
+  border-color: var(--line) !important;
+  background: rgba(11, 18, 32, 0.88) !important;
+  color: var(--ink) !important;
+}
+
+body :where(input, select, textarea),
+body :where(.market-workspace input, .market-workspace select, .stocks-view input, .stocks-view select, .watchlist-view input, .watchlist-view select) {
+  border-color: var(--control-border) !important;
+  background: rgba(7, 12, 21, 0.94) !important;
+  color: var(--ink) !important;
+}
+
+body :where(input, select, textarea)::placeholder {
+  color: #6f8098 !important;
+}
+
+body :where(
+  .valuation-index-tabs,
+  .valuation-tabs,
+  .valuation-range,
+  .watchlist-toolbar,
+  .stocks-toolbar,
+  .market-workspace .filter-bar,
+  .market-workspace .search-box,
+  .market-workspace .select-box
+) {
+  border-color: var(--line) !important;
+  background: rgba(8, 13, 23, 0.88) !important;
+  color: var(--ink) !important;
+}
+
+body :where(
+  .valuation-index-tabs button,
+  .valuation-tabs button,
+  .valuation-range button
+) {
+  color: var(--muted) !important;
+  background: transparent !important;
+}
+
+body :where(
+  .valuation-index-tabs button.is-active,
+  .valuation-tabs button.is-active,
+  .valuation-range button.is-active
+) {
+  background: var(--blue-soft) !important;
+  color: var(--blue) !important;
+  box-shadow: inset 0 0 0 1px rgba(53, 167, 255, 0.24) !important;
+}
+
+body :where(
+  .valuation-hero,
+  .valuation-metrics,
+  .valuation-metrics article,
+  .valuation-chart-panel,
+  .valuation-chart-wrap,
+  .valuation-chart,
+  .valuation-empty-chart,
+  .valuation-holdings-panel,
+  .valuation-holdings-stats article,
+  .valuation-holdings-list article,
+  .mag7-leader,
+  .mag7-table-card,
+  .mag7-row,
+  .options-chart-card,
+  .options-rank-card,
+  .options-lead-card,
+  .options-summary-grid article,
+  .macro-pool-action
+) {
+  border-color: var(--line) !important;
+  background: rgba(12, 19, 32, 0.86) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+}
+
+body :where(
+  .valuation-hero h2,
+  .valuation-metrics strong,
+  .valuation-chart-head h2,
+  .valuation-empty-chart strong,
+  .valuation-holdings-head h2,
+  .valuation-holdings-stats strong,
+  .valuation-holding-main strong,
+  .mag7-leader h2,
+  .mag7-row strong,
+  .mag7-row em,
+  .options-summary-grid strong,
+  .options-lead-card strong,
+  .options-card-head strong,
+  .macro-pool-action
+) {
+  color: var(--ink) !important;
+}
+
+body :where(
+  .valuation-hero span,
+  .valuation-asof span,
+  .valuation-metrics span,
+  .valuation-chart-head span,
+  .valuation-empty-chart span,
+  .valuation-holdings-head span,
+  .valuation-holdings-stats span,
+  .valuation-holding-main span,
+  .mag7-leader span,
+  .mag7-row span,
+  .options-summary-grid span,
+  .options-card-head span
+) {
+  color: var(--muted) !important;
+}
+
+body :where(
+  .valuation-hero p,
+  .valuation-chart-head p,
+  .valuation-empty-chart p,
+  .valuation-percentile-note,
+  .valuation-holdings-head p,
+  .mag7-leader p,
+  .options-lead-card p,
+  .options-note-board p
+) {
+  color: #7f8da2 !important;
+}
+
+body :where(#optionsFlowChart, .options-chart-card svg, .valuation-plot-bg, .valuation-chart svg) {
+  background: rgba(7, 12, 21, 0.58) !important;
+}
+
+body .valuation-plot-bg {
+  fill: rgba(7, 12, 21, 0.72) !important;
+  stroke: rgba(128, 151, 183, 0.2) !important;
+}
+
+body .valuation-chart .macro-series-y-tick line,
+body .valuation-ref line {
+  stroke: rgba(128, 151, 183, 0.18) !important;
+}
+
+body .valuation-chart .macro-series-y-tick text,
+body .valuation-chart .macro-series-x-label,
+body .valuation-ref text {
+  fill: #8fa0b8 !important;
+}
+
+body .valuation-current-callout rect,
+body .valuation-hover rect {
+  fill: rgba(12, 19, 32, 0.94) !important;
+  stroke: rgba(128, 151, 183, 0.28) !important;
+}
+
+body .valuation-current-callout text,
+body .valuation-hover text {
+  fill: #dce7f5 !important;
+}
+
+body :where(.market-workspace .data-table td, .market-workspace .market-row, .ranking-panel .market-row) {
+  background: rgba(10, 16, 27, 0.42) !important;
+  color: var(--ink) !important;
+}
+
+body :where(.market-workspace .data-table th, .ranking-panel .data-table th) {
+  background: #09111e !important;
+  color: #9fb0c6 !important;
+}
+
+body :where(.market-table-title) {
+  border-color: var(--line) !important;
+  background: rgba(8, 13, 23, 0.88) !important;
+  color: var(--ink) !important;
+}
+
+body :where(.market-workspace .market-row.is-selected, .ranking-panel .market-row.is-selected, .mag7-row.is-top, .mag7-row:hover) {
+  background: rgba(53, 167, 255, 0.1) !important;
+}

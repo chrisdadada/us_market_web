@@ -18,7 +18,7 @@ COPYFILE_DISABLE=1 tar \
   --exclude='dongbimao-site.tar.gz' \
   --exclude='__pycache__' \
   -czf "${ARCHIVE}" \
-  index.html styles.css app.js data server scripts mockups
+  index.html styles.css app.js assets data server scripts mockups
 
 scp "${ARCHIVE}" "${SERVER}:${REMOTE_ARCHIVE}"
 
@@ -26,7 +26,7 @@ ssh "${SERVER}" 'set -e
 rm -rf /opt/dongbimao-dev/*
 tar -xzf /tmp/dongbimao-site.tar.gz -C /opt/dongbimao-dev
 rm -rf /var/www/dongbimao-dev/*
-cp -a /opt/dongbimao-dev/index.html /opt/dongbimao-dev/styles.css /opt/dongbimao-dev/app.js /opt/dongbimao-dev/data /opt/dongbimao-dev/mockups /var/www/dongbimao-dev/
+cp -a /opt/dongbimao-dev/index.html /opt/dongbimao-dev/styles.css /opt/dongbimao-dev/app.js /opt/dongbimao-dev/assets /opt/dongbimao-dev/data /opt/dongbimao-dev/mockups /var/www/dongbimao-dev/
 systemctl restart ytd-gainers-auth
 nginx -t
 systemctl reload nginx
