@@ -1,41 +1,41 @@
 :root {
   color-scheme: light;
-  --page: #f4f6f8;
+  --page: #f7f8f9;
   --panel: #ffffff;
-  --panel-subtle: #fbfcfd;
-  --ink: #172033;
-  --muted: #657184;
-  --line: #e0e6ee;
-  --line-strong: #c9d3e1;
-  --red: #2f6796;
-  --red-soft: #edf5fb;
-  --green: #167b5d;
-  --positive: #167b5d;
-  --positive-soft: #edf8f3;
-  --negative: #ba2f24;
-  --negative-soft: #fff0ee;
-  --blue: #2f6796;
-  --blue-soft: #edf5fb;
-  --amber: #9b6816;
-  --amber-soft: #fff7e8;
-  --nav: #111827;
-  --shadow-soft: 0 10px 28px rgba(17, 24, 39, 0.07);
-  --shadow-lift: 0 18px 44px rgba(17, 24, 39, 0.11);
-  --radius-panel: 10px;
-  --radius-control: 8px;
-  --chart-ink: #172033;
-  --chart-blue: #285f92;
-  --chart-blue-2: #7da7c9;
-  --chart-track: #eef3f8;
-  --chart-grid: #e8eef5;
-  --chart-axis: #758196;
-  --chart-fill: rgba(40, 95, 146, 0.07);
-  --chart-callout: #111827;
-  --control-bg: #f7fafc;
-  --control-active: #eaf3fb;
-  --control-border: #d9e3ee;
-  --table-head: #f8fafc;
-  --table-hover: #f7fafc;
+  --panel-subtle: #fafafa;
+  --ink: #1f242b;
+  --muted: #6d7480;
+  --line: #e3e5e8;
+  --line-strong: #cfd4da;
+  --red: #3b6686;
+  --red-soft: #eef4f7;
+  --green: #25735c;
+  --positive: #25735c;
+  --positive-soft: #eef7f3;
+  --negative: #a8463f;
+  --negative-soft: #fbf1ef;
+  --blue: #3b6686;
+  --blue-soft: #eef4f7;
+  --amber: #8a6a24;
+  --amber-soft: #fbf7ea;
+  --nav: #1b1f24;
+  --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-lift: 0 8px 20px rgba(17, 24, 39, 0.08);
+  --radius-panel: 6px;
+  --radius-control: 6px;
+  --chart-ink: #1f242b;
+  --chart-blue: #3b6686;
+  --chart-blue-2: #8aa7ba;
+  --chart-track: #f0f2f4;
+  --chart-grid: #e8eaed;
+  --chart-axis: #747b86;
+  --chart-fill: rgba(59, 102, 134, 0.06);
+  --chart-callout: #1b1f24;
+  --control-bg: #f5f6f7;
+  --control-active: #eef4f7;
+  --control-border: #d9dde2;
+  --table-head: #f6f7f8;
+  --table-hover: #f7f8f9;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -47,12 +47,10 @@
 
 body {
   margin: 0;
-  background:
-    linear-gradient(180deg, #fbfcfe 0, var(--page) 260px),
-    var(--page);
+  background: var(--page);
   color: var(--ink);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
   text-rendering: optimizeLegibility;
 }
 
@@ -119,7 +117,7 @@ select:focus-visible {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-columns: 224px minmax(0, 1fr);
 }
 
 .app-sidebar {
@@ -130,8 +128,7 @@ select:focus-visible {
   flex-direction: column;
   gap: 22px;
   border-right: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(14px);
+  background: #fff;
   padding: 18px 14px;
 }
 
@@ -143,17 +140,15 @@ select:focus-visible {
 }
 
 .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: inline-grid;
   place-items: center;
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(47, 103, 150, 0.32), transparent 46%),
-    var(--nav);
+  border-radius: 6px;
+  background: var(--nav);
   color: #fff;
-  font-weight: 900;
-  box-shadow: 0 10px 22px rgba(17, 24, 39, 0.18);
+  font-weight: 700;
+  box-shadow: none;
 }
 
 .brand strong,
@@ -163,6 +158,7 @@ select:focus-visible {
 
 .brand strong {
   font-size: 16px;
+  font-weight: 650;
   line-height: 1.1;
 }
 
@@ -174,7 +170,7 @@ select:focus-visible {
 
 .side-nav {
   display: grid;
-  gap: 6px;
+  gap: 2px;
 }
 
 .nav-item {
@@ -182,14 +178,14 @@ select:focus-visible {
   display: grid;
   grid-template-columns: 44px 1fr;
   align-items: center;
-  min-height: 50px;
+  min-height: 44px;
   border: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  border-left: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
-  color: #3b4250;
+  color: #3f4650;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 5px 8px;
   text-align: left;
 }
 
@@ -198,15 +194,16 @@ select:focus-visible {
   height: 30px;
   display: inline-grid;
   place-items: center;
-  border-radius: 7px;
-  background: #f3f5f8;
+  border-radius: 5px;
+  background: transparent;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .nav-item strong {
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 560;
 }
 
 .nav-item[data-page="earnings"] {
@@ -223,18 +220,18 @@ select:focus-visible {
 .nav-item[data-page="earnings"] strong,
 .nav-item[data-page="events"] strong {
   color: var(--nav);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .nav-item:hover,
 .nav-item.is-active {
-  border-color: rgba(47, 103, 150, 0.11);
-  background: #f5f8fb;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+  border-left-color: var(--blue);
+  background: #f5f7f8;
+  box-shadow: none;
 }
 
 .nav-item:hover {
-  transform: translateX(2px);
+  transform: none;
 }
 
 .nav-item[data-disabled="true"],
@@ -258,7 +255,7 @@ select:focus-visible {
 }
 
 .nav-item.is-active span {
-  background: var(--red-soft);
+  background: transparent;
   color: var(--red);
 }
 
@@ -267,9 +264,7 @@ select:focus-visible {
 }
 
 .nav-item.is-active {
-  box-shadow:
-    inset 3px 0 0 var(--blue),
-    inset 0 0 0 1px rgba(47, 103, 150, 0.08);
+  box-shadow: none;
 }
 
 .sidebar-group {
@@ -287,11 +282,11 @@ select:focus-visible {
 }
 
 .sidebar-group a {
-  border-radius: 8px;
+  border-radius: 0;
   color: #4f5866;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 520;
+  padding: 7px 8px;
 }
 
 .sidebar-group a:hover {
@@ -328,11 +323,9 @@ select:focus-visible {
   margin-top: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
-  background:
-    linear-gradient(135deg, rgba(47, 103, 150, 0.08), transparent 52%),
-    var(--panel-subtle);
+  background: var(--panel-subtle);
   padding: 14px;
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
 }
 
 .sidebar-pro span {
@@ -343,7 +336,7 @@ select:focus-visible {
   background: var(--red-soft);
   color: var(--red);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 650;
   padding: 0 8px;
 }
 
@@ -362,7 +355,7 @@ select:focus-visible {
 
 .app-main {
   min-width: 0;
-  padding: 0 30px 38px;
+  padding: 0 32px 38px;
 }
 
 .workspace-topbar {
@@ -373,9 +366,9 @@ select:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(224, 230, 238, 0.9);
-  background: rgba(244, 246, 248, 0.86);
-  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(247, 248, 249, 0.96);
+  backdrop-filter: blur(10px);
 }
 
 .workspace-topbar span,
@@ -398,6 +391,7 @@ select:focus-visible {
   display: block;
   margin-top: 3px;
   font-size: 16px;
+  font-weight: 620;
 }
 
 .global-search {
@@ -408,7 +402,7 @@ select:focus-visible {
 .global-search input {
   height: 36px;
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.92);
+  background: #fff;
   font-size: 13px;
 }
 
@@ -1809,7 +1803,7 @@ select:focus-visible {
 
 .page-view {
   display: none;
-  padding-top: 22px;
+  padding-top: 20px;
   animation: viewIn 0.18s ease both;
 }
 
@@ -1831,15 +1825,19 @@ select:focus-visible {
 
 .cockpit-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
   align-items: stretch;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
   margin-bottom: 16px;
 }
 
 .cockpit-hero h1 {
   max-width: 760px;
-  font-size: clamp(30px, 3.2vw, 44px);
+  margin-bottom: 8px;
+  font-size: clamp(26px, 2.6vw, 36px);
+  font-weight: 560;
   letter-spacing: 0;
 }
 
@@ -1853,7 +1851,7 @@ select:focus-visible {
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--panel);
-  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.02);
+  box-shadow: none;
 }
 
 .market-regime-card:hover,
@@ -1883,17 +1881,20 @@ select:focus-visible {
 .stock-identity-card:hover,
 .stock-price-card:hover {
   border-color: rgba(47, 103, 150, 0.17);
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
 }
 
 .market-regime-card {
-  padding: 18px;
+  padding: 16px 18px;
 }
 
 .dashboard-focus-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
   margin-bottom: 16px;
 }
 
@@ -1901,21 +1902,29 @@ select:focus-visible {
   display: grid;
   gap: 10px;
   min-width: 0;
-  min-height: 176px;
+  min-height: 158px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
   padding: 16px;
+}
+
+.dashboard-focus-grid article:last-child {
+  border-right: 0;
 }
 
 .dashboard-focus-grid span {
   display: block;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 620;
 }
 
 .dashboard-focus-grid strong {
   display: block;
   color: var(--nav);
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 560;
   line-height: 1.25;
 }
 
@@ -1929,12 +1938,12 @@ select:focus-visible {
   align-self: end;
   justify-self: start;
   min-height: 32px;
-  border: 1px solid rgba(45, 95, 143, 0.24);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
-  background: var(--blue-soft);
-  color: var(--blue);
+  background: #fff;
+  color: var(--ink);
   cursor: pointer;
-  font-weight: 900;
+  font-weight: 560;
   padding: 0 11px;
 }
 
@@ -1949,14 +1958,15 @@ select:focus-visible {
   display: block;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 620;
 }
 
 .market-regime-card strong {
   display: block;
-  margin-top: 12px;
-  color: var(--blue);
-  font-size: 24px;
+  margin-top: 10px;
+  color: var(--nav);
+  font-size: 20px;
+  font-weight: 560;
 }
 
 .market-regime-card p,
@@ -1985,7 +1995,7 @@ select:focus-visible {
   gap: 10px;
   color: #667386;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 560;
 }
 
 .dashboard-radar-bars i {
@@ -2001,7 +2011,7 @@ select:focus-visible {
   inset: 0 auto 0 0;
   width: var(--level);
   border-radius: inherit;
-  background: linear-gradient(90deg, #2f6796, #74a4c9);
+  background: #6f91a8;
   content: "";
 }
 
@@ -2014,17 +2024,25 @@ select:focus-visible {
 .dashboard-snapshot-board {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
   margin-bottom: 16px;
 }
 
 .dashboard-snapshot-card {
   min-width: 0;
-  min-height: 236px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  min-height: 218px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
   background: #fff;
   padding: 16px;
+}
+
+.dashboard-snapshot-card:last-child {
+  border-right: 0;
 }
 
 .dashboard-snapshot-head {
@@ -2041,12 +2059,13 @@ select:focus-visible {
 .dashboard-event-bars span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 620;
 }
 
 .dashboard-snapshot-head strong {
-  color: #111827;
-  font-size: 24px;
+  color: var(--nav);
+  font-size: 21px;
+  font-weight: 560;
   line-height: 1;
   white-space: nowrap;
 }
@@ -2067,7 +2086,7 @@ select:focus-visible {
   border-radius: 50%;
   background:
     radial-gradient(circle at center, #fff 0 55%, transparent 56%),
-    conic-gradient(#2f6796 0 var(--score), #e8eef5 var(--score) 100%);
+    conic-gradient(#6f91a8 0 var(--score), #e8eaed var(--score) 100%);
 }
 
 .dashboard-ring b {
@@ -2170,13 +2189,23 @@ select:focus-visible {
 .cockpit-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.78fr) minmax(280px, 0.78fr);
-  gap: 16px;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
   margin-bottom: 16px;
 }
 
 .cockpit-card {
   min-width: 0;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
   padding: 18px;
+}
+
+.cockpit-card:last-child {
+  border-right: 0;
 }
 
 .card-head,
@@ -2190,7 +2219,8 @@ select:focus-visible {
 .card-head h2,
 .section-title h2 {
   margin-top: 5px;
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 560;
 }
 
 .card-head button,
@@ -2198,12 +2228,12 @@ select:focus-visible {
 .wide-action,
 .ghost-action {
   height: 34px;
-  border: 1px solid rgba(45, 95, 143, 0.22);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
-  background: var(--red-soft);
-  color: var(--red);
+  background: #fff;
+  color: var(--ink);
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 560;
   padding: 0 12px;
 }
 
