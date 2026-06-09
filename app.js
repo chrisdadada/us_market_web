@@ -2318,7 +2318,7 @@ const renderStockHub = (symbol) => {
     : `数据日期 ${escapeHtml(dataAsOf)} · 依据 ${escapeHtml(`${sourceCount}项`)}`;
   const signalCard = signal
     ? `
-      <article class="stock-hub-card">
+      <article class="stock-hub-card desk-panel">
         <div class="stock-card-head">
           <div>
             <span>趋势信号</span>
@@ -2340,7 +2340,7 @@ const renderStockHub = (symbol) => {
     : "";
   const signalHistoryCard = events.length
     ? `
-      <article class="stock-hub-card stock-hub-card-wide" data-lockable-module="stock-hub-signal-history">
+      <article class="stock-hub-card stock-hub-card-wide desk-panel" data-lockable-module="stock-hub-signal-history">
         <div class="stock-card-head">
           <div>
             <span>信号生命周期</span>
@@ -2368,7 +2368,7 @@ const renderStockHub = (symbol) => {
   );
 
   content.innerHTML = `
-    <section class="stock-hub-hero">
+    <section class="stock-hub-hero stock-identity-strip">
       <div class="stock-identity-card">
         <div>
           <span>单股画像</span>
@@ -2388,50 +2388,31 @@ const renderStockHub = (symbol) => {
       </div>
     </section>
 
-    <section class="stock-decision-strip" aria-label="单股研究结论">
-      <article>
-        <span>一句话结论</span>
-        <strong>${escapeHtml(verdict)}</strong>
-        <p>${escapeHtml(research.risk)}</p>
+    <section class="stock-core-row metric-row" aria-label="单股核心判断">
+      <article class="metric-cell">
+        <span>价格与位置</span>
+        <strong>${escapeHtml(heat.label)}</strong>
+        <p>${escapeHtml(heat.note)}</p>
       </article>
-      <article>
-        <span>为什么被看到</span>
+      <article class="metric-cell">
+        <span>强弱与资金</span>
         <strong>${escapeHtml(primarySource)}</strong>
         <p>${escapeHtml(research.title)}</p>
       </article>
-      <article>
-        <span>现在位置</span>
-        <strong>${escapeHtml(heat.label)}</strong>
-        <p>${escapeHtml(heat.note)}</p>
-      </article>
-      <article>
-        <span>复盘优先级</span>
-        <strong>${escapeHtml(`${priority.score}分`)}</strong>
-        <p>${escapeHtml(priority.reason)}</p>
-      </article>
-      <article>
-        <span>接下来怎么观察</span>
-        <strong>${escapeHtml(reviewPlan)}</strong>
-        <p>加入观察池后，可以按这个条件继续跟踪。</p>
+      <article class="metric-cell">
+        <span>风险与下一步</span>
+        <strong>${escapeHtml(`${priority.score}分 · ${verdict}`)}</strong>
+        <p>${escapeHtml(reviewPlan)}。${escapeHtml(research.risk)}</p>
       </article>
     </section>
 
-    <section class="stock-retail-guide" aria-label="普通投资者观察说明">
-      <article>
-        <span>普通投资者先看</span>
-        <strong>${escapeHtml(heat.label)}</strong>
-        <p>${escapeHtml(heat.note)}</p>
-      </article>
-      <article>
-        <span>观察池状态</span>
-        <strong>${escapeHtml(watchState.title)}</strong>
-        <p>${escapeHtml(`${watchState.source} · ${watchState.review}`)}</p>
-      </article>
-      <article>
-        <span>下一步复盘</span>
-        <strong>${escapeHtml(watchState.active ? "按复盘节奏跟踪" : "先加入观察池")}</strong>
-        <p>${escapeHtml(watchState.note)}</p>
-      </article>
+    <section class="stock-evidence-tabs segmented-tabs" aria-label="单股证据导航">
+      <button type="button">行情</button>
+      <button type="button">强弱</button>
+      <button type="button">资金</button>
+      <button type="button">事件/财报</button>
+      <button type="button">期权</button>
+      <button type="button">估值</button>
     </section>
 
     <section class="stock-macro-panel" data-lockable-module="stock-hub-macro" aria-label="单股宏观背景">
@@ -2465,7 +2446,7 @@ const renderStockHub = (symbol) => {
       </div>
     </section>
 
-    <section class="stock-research-panel">
+    <section class="stock-research-panel desk-panel">
       <article class="stock-research-main">
         <span>研究摘要</span>
         <h2>${escapeHtml(research.title)}</h2>
@@ -2482,31 +2463,31 @@ const renderStockHub = (symbol) => {
       </article>
     </section>
 
-    <section class="stock-evidence-grid">
-      <article>
+    <section class="stock-evidence-grid metric-row">
+      <article class="metric-cell">
         <span>同类历史样本</span>
         <strong>${escapeHtml(evidence.count ? formatNumber(evidence.count) : "样本不足")}</strong>
         <p>${escapeHtml(evidence.label)} · ${escapeHtml(evidence.status)}</p>
       </article>
-      <article>
+      <article class="metric-cell">
         <span>20日正向占比</span>
         <strong>${escapeHtml(formatEvidencePct(evidence.positiveRate, evidence.count))}</strong>
         <p>只在样本量足够时展示</p>
       </article>
-      <article>
+      <article class="metric-cell">
         <span>强于SPY占比</span>
         <strong>${escapeHtml(formatEvidencePct(evidence.strongerSpyRate, evidence.count))}</strong>
         <p>和大盘做相对比较</p>
       </article>
-      <article>
+      <article class="metric-cell">
         <span>稳健均值</span>
         <strong>${escapeHtml(formatEvidenceSignedPct(evidence.stableAverage, evidence.count))}</strong>
         <p>去除极端值后的参考</p>
       </article>
     </section>
 
-    <section class="stock-hub-grid">
-      <article class="stock-hub-card">
+    <section class="stock-hub-grid workspace-main">
+      <article class="stock-hub-card desk-panel">
         <div class="stock-card-head">
           <div>
             <span>涨跌幅与成交额</span>
@@ -2524,7 +2505,7 @@ const renderStockHub = (symbol) => {
         </div>
       </article>
 
-      <article class="stock-hub-card">
+      <article class="stock-hub-card desk-panel">
         <div class="stock-card-head">
           <div>
             <span>强弱位置</span>
@@ -2543,7 +2524,7 @@ const renderStockHub = (symbol) => {
         <p class="stock-card-note">${escapeHtml(strength?.action || "后续接入强弱数据后，会显示它相对大盘、纳指和行业的位置。")}</p>
       </article>
 
-      <article class="stock-hub-card">
+      <article class="stock-hub-card desk-panel">
         <div class="stock-card-head">
           <div>
             <span>财报质量</span>
@@ -2562,7 +2543,7 @@ const renderStockHub = (symbol) => {
 
       ${signalCard}
 
-      <article class="stock-hub-card stock-hub-card-wide" data-lockable-module="stock-hub-catalyst">
+      <article class="stock-hub-card stock-hub-card-wide desk-panel" data-lockable-module="stock-hub-catalyst">
         <div class="stock-card-head">
           <div>
             <span>为什么进入观察</span>
@@ -2580,7 +2561,7 @@ const renderStockHub = (symbol) => {
         <p class="stock-card-note">${escapeHtml(market?.actionNote || quality?.userRisk || strength?.action || "先看数据是否持续改善，再决定是否加入观察名单。")}</p>
       </article>
 
-      <article class="stock-hub-card" data-lockable-module="stock-hub-action-plan">
+      <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-action-plan">
         <div class="stock-card-head">
           <div>
             <span>下一步怎么跟</span>
@@ -2593,7 +2574,7 @@ const renderStockHub = (symbol) => {
         </div>
       </article>
 
-      <article class="stock-hub-card stock-hub-card-wide" data-lockable-module="stock-hub-peer-depth">
+      <article class="stock-hub-card stock-hub-card-wide desk-panel" data-lockable-module="stock-hub-peer-depth">
         <div class="stock-card-head">
           <div>
             <span>同方向对比</span>
@@ -2616,7 +2597,7 @@ const renderStockHub = (symbol) => {
         </div>
       </article>
 
-      <article class="stock-hub-card" data-lockable-module="stock-hub-risk">
+      <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-risk">
         <div class="stock-card-head">
           <div>
             <span>风险提示</span>
@@ -2635,7 +2616,7 @@ const renderStockHub = (symbol) => {
         }
       </article>
 
-      <article class="stock-hub-card" data-lockable-module="stock-hub-history">
+      <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-history">
         <div class="stock-card-head">
           <div>
             <span>观察记录</span>
