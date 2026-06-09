@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>美股策略库</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-size='28' font-family='Arial' font-weight='700' fill='white'%3EM%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=20260609-desk1" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-evidence2" />
   </head>
   <body>
     <div class="app-shell">
@@ -1074,51 +1074,51 @@
           </section>
         </section>
 
-        <section class="page-view" data-view="strength">
-          <div class="page-heading">
+        <section class="page-view workspace-page evidence-workspace" data-view="strength">
+          <div class="page-heading workspace-header">
             <div>
               <p class="eyebrow">全市场扫描</p>
               <h1>今日强弱观察池</h1>
               <p class="subtitle">每天把几千只美股压缩成三张清单：重点观察、风险回避、等回踩。你先看结论，再看理由。</p>
             </div>
-            <div class="source">
+            <div class="source source-chip">
               <span>扫描日期</span>
               <strong id="strengthAsOf">--</strong>
             </div>
           </div>
 
-          <section class="strength-overview" aria-label="强弱扫描摘要">
-            <article>
+          <section class="strength-overview metric-row" aria-label="强弱扫描摘要">
+            <article class="metric-cell">
               <span>已替你扫描</span>
               <strong id="strengthUniverse">--</strong>
               <p id="strengthUniverseNote">先过滤成交额不足、价格过低和历史太短的股票。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>重点观察</span>
               <strong id="strengthLeader">--</strong>
               <p id="strengthLeaderNote">当前先从这批股票里找研究线索。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>风险回避</span>
               <strong id="strengthWeakest">--</strong>
               <p>走势明显落后，先降低观察优先级。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>别急着追</span>
               <strong id="strengthCrowdingCount">--</strong>
               <p>短线已经偏热，等分歧或回踩后再复盘。</p>
             </article>
           </section>
 
-          <section class="product-insight-grid" id="strengthInsightGrid" aria-label="强弱观察说明">
+          <section class="product-insight-grid evidence-note-row" id="strengthInsightGrid" aria-label="强弱观察说明">
             <article><span>当前怎么看</span><strong>先看相对强弱</strong><p>优先从强于大盘、强于行业的股票里找研究线索。</p></article>
             <article><span>为什么入选</span><strong>看价格和成交</strong><p>短线太热时不急着下结论，等待分歧或回踩后再复盘。</p></article>
             <article><span>风险提醒</span><strong>避开明显落后</strong><p>走势持续落后的股票，先从观察池里降级。</p></article>
             <article><span>下一步</span><strong>加入观察池</strong><p>只把熟悉、流动性好的股票加入观察，再等确认。</p></article>
           </section>
 
-          <div class="strength-layout">
-            <section class="strength-leader-panel">
+          <div class="strength-layout workspace-main">
+            <section class="strength-leader-panel desk-panel">
               <div>
                 <span>当前先看</span>
                 <h2 id="strengthHeroSymbol">--</h2>
@@ -1137,7 +1137,7 @@
               </div>
             </section>
 
-            <section class="strength-theme-section" data-module="strength-themes">
+            <section class="strength-theme-section desk-panel" data-module="strength-themes">
               <div class="section-title">
                 <div>
                   <span>主线观察</span>
@@ -1169,9 +1169,9 @@
               </div>
             </section>
 
-            <section class="strength-panel" data-module="strength-lists">
-              <div class="panel-head">
-                <div class="board-tabs" aria-label="强弱榜单切换">
+            <section class="strength-panel desk-panel" data-module="strength-lists">
+              <div class="panel-head desk-panel-header">
+                <div class="board-tabs segmented-tabs" aria-label="强弱榜单切换">
                   <button class="board-tab strength-tab is-active" type="button" data-strength-bucket="strongest">重点观察</button>
                   <button class="board-tab strength-tab" type="button" data-strength-bucket="weakest">风险回避</button>
                   <button class="board-tab strength-tab" type="button" data-strength-bucket="watchlist">等回踩</button>
@@ -1179,7 +1179,7 @@
                 <div class="summary" id="strengthResultSummary">--</div>
               </div>
 
-              <div class="strength-toolbar">
+              <div class="strength-toolbar filter-bar">
                 <label class="search-box">
                   <span>搜索</span>
                   <input id="strengthSearchInput" type="search" placeholder="代码、公司名或标签" />
@@ -1198,8 +1198,8 @@
                 </label>
               </div>
 
-              <div class="table-wrap">
-                <table class="strength-table">
+              <div class="table-wrap desk-panel-body">
+                <table class="strength-table data-table">
                   <thead>
                     <tr>
                       <th>排名</th>
@@ -1218,7 +1218,7 @@
               </div>
             </section>
 
-            <aside class="strength-side">
+            <aside class="strength-side workspace-side">
               <section class="rail-card strength-pro-card" data-lockable-module="strength-toolkit">
                 <h2>后续工具包</h2>
                 <div class="locked-preview">
@@ -1241,50 +1241,50 @@
           </div>
         </section>
 
-        <section class="page-view" data-view="earnings">
-          <div class="page-heading">
+        <section class="page-view workspace-page evidence-workspace" data-view="earnings">
+          <div class="page-heading workspace-header">
             <div>
               <p class="eyebrow">财报季观察</p>
               <h1>财报观察</h1>
               <p class="subtitle">把财报超预期、预期上修、价格表现和成交额放在一起，筛出值得复盘的财报线索。</p>
             </div>
-            <div class="source">
+            <div class="source source-chip">
               <span>数据日期</span>
               <strong id="earningsAsOf">--</strong>
             </div>
           </div>
 
-          <section class="quality-overview" aria-label="财报观察摘要">
-            <article>
+          <section class="quality-overview metric-row" aria-label="财报观察摘要">
+            <article class="metric-cell">
               <span>当前候选</span>
               <strong id="qualityCoreCount">--</strong>
               <p>财报、未来预期、股价和成交额同时过筛。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>财报榜首</span>
               <strong id="qualityCoreLeader">--</strong>
               <p id="qualityCoreReason">等待数据加载。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>机构也在看</span>
               <strong id="qualityConfluenceLeader">--</strong>
               <p>财报不错，同时分析师覆盖和目标价也更有看点。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>适合场景</span>
               <strong id="qualityUserAngle">--</strong>
               <p>财报季做观察名单、重点复盘和股票详情入口。</p>
             </article>
           </section>
 
-          <section class="quality-visual-board" id="qualityInsightGrid" aria-label="财报观察图表">
+          <section class="quality-visual-board evidence-note-row" id="qualityInsightGrid" aria-label="财报观察图表">
             <article class="quality-chart-card">
               <span>财报线索分布</span>
               <strong>等待数据</strong>
             </article>
           </section>
 
-          <section class="quality-focus-grid" aria-label="今日财报观察怎么选">
+          <section class="quality-focus-grid evidence-note-row" aria-label="今日财报观察怎么选">
             <article>
               <span>当前榜首</span>
               <strong id="qualityFocusLeader">等待候选</strong>
@@ -1307,17 +1307,17 @@
             </article>
           </section>
 
-          <div class="quality-layout">
-            <section class="quality-main-panel">
-              <div class="panel-head">
-                <div class="board-tabs" aria-label="财报榜单切换">
+          <div class="quality-layout workspace-main">
+            <section class="quality-main-panel desk-panel">
+              <div class="panel-head desk-panel-header">
+                <div class="board-tabs segmented-tabs" aria-label="财报榜单切换">
                   <button class="board-tab quality-tab is-active" type="button" data-quality-board="quality">财报观察</button>
                   <button class="board-tab quality-tab" type="button" data-quality-board="confluence">机构也在看</button>
                 </div>
                 <div class="summary" id="qualityResultSummary">--</div>
               </div>
 
-              <div class="quality-toolbar">
+              <div class="quality-toolbar filter-bar">
                 <label class="search-box">
                   <span>搜索</span>
                   <input id="qualitySearchInput" type="search" placeholder="代码、公司名、上榜理由" />
@@ -1328,8 +1328,8 @@
                 </div>
               </div>
 
-              <div class="table-wrap">
-                <table class="quality-table">
+              <div class="table-wrap desk-panel-body">
+                <table class="quality-table data-table">
                   <thead>
                     <tr>
                       <th>排名</th>
@@ -1347,7 +1347,7 @@
               </div>
             </section>
 
-            <aside class="quality-detail-panel" id="qualityDetailPanel" aria-label="财报观察详情">
+            <aside class="quality-detail-panel workspace-side" id="qualityDetailPanel" aria-label="财报观察详情">
               <div class="empty-detail">
                 <strong>点击榜单股票查看详情</strong>
                 <p>这里会集中显示上榜理由、财报日期、预期上调幅度、目标价空间和主要风险。</p>
@@ -1356,20 +1356,20 @@
           </div>
         </section>
 
-        <section class="page-view" data-view="events">
-          <div class="page-heading">
+        <section class="page-view workspace-page evidence-workspace" data-view="events">
+          <div class="page-heading workspace-header">
             <div>
               <p class="eyebrow">事件中心</p>
               <h1>财经日历与研究线索</h1>
               <p class="subtitle">先看未来事件会影响什么，再把宏观、财报、人工日志和股票线索统一到同一条复盘链路里。</p>
             </div>
-            <div class="source">
+            <div class="source source-chip">
               <span>数据日期</span>
               <strong id="eventsAsOf">--</strong>
             </div>
           </div>
 
-          <section class="calendar-hero" aria-label="财经日历摘要">
+          <section class="calendar-hero desk-panel" aria-label="财经日历摘要">
             <div class="calendar-hero-copy">
               <span>本周事件</span>
               <strong id="calendarHeroTitle">等待财经日历</strong>
@@ -1382,17 +1382,17 @@
             </div>
           </section>
 
-          <div class="calendar-layout">
-            <section class="calendar-main-panel">
-              <div class="calendar-panel-head">
+          <div class="calendar-layout workspace-main">
+            <section class="calendar-main-panel desk-panel">
+              <div class="calendar-panel-head desk-panel-header">
                 <div>
                   <span>未来事件日历</span>
                   <strong>按影响和关联模块排序</strong>
                 </div>
                 <button class="ghost-action" type="button" data-disabled="true" disabled>上传财经日志</button>
               </div>
-              <div class="table-wrap calendar-table-wrap">
-                <table class="calendar-table">
+              <div class="table-wrap calendar-table-wrap desk-panel-body">
+                <table class="calendar-table data-table">
                   <thead>
                     <tr>
                       <th>日期</th>
@@ -1409,7 +1409,7 @@
               </div>
             </section>
 
-            <aside class="calendar-impact-panel">
+            <aside class="calendar-impact-panel workspace-side">
               <section>
                 <h2>事件影响映射</h2>
                 <div id="calendarImpactList" class="calendar-impact-list">
@@ -1423,7 +1423,7 @@
             </aside>
           </div>
 
-          <section class="event-research-hero">
+          <section class="event-research-hero desk-panel">
             <div class="event-research-copy">
               <span>当前观察</span>
               <h2 id="expectationHeroTitle">当前先看：预期改善 + 股价已确认的股票</h2>
@@ -1443,30 +1443,30 @@
             </aside>
           </section>
 
-          <section class="event-overview" aria-label="观察线索摘要">
-            <article>
+          <section class="event-overview metric-row" aria-label="观察线索摘要">
+            <article class="metric-cell">
               <span>观察名单</span>
               <strong id="eventTotalCount">--</strong>
               <p>优先看分数、流动性和价格确认都更清晰的股票。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>当前榜单</span>
               <strong id="eventActiveTitle">--</strong>
               <p id="eventActiveSubtitle">等待数据加载。</p>
             </article>
-            <article>
+            <article class="metric-cell">
               <span>榜首股票</span>
               <strong id="eventTopSymbol">--</strong>
               <p id="eventTopReason">有数据后显示当前更需要进一步研究的线索。</p>
             </article>
-            <article data-lockable-module="event-forward-stats">
+            <article class="metric-cell" data-lockable-module="event-forward-stats">
               <span>观察节奏</span>
               <strong id="eventDecisionValue">先筛选</strong>
               <p id="eventDecisionNote">先过滤低分和高风险，再看价格是否确认。</p>
             </article>
           </section>
 
-          <section class="event-focus-grid" aria-label="当前怎么选">
+          <section class="event-focus-grid evidence-note-row" aria-label="当前怎么选">
             <article>
               <span>当前先看</span>
               <strong id="eventFocusLeader">等待线索</strong>
@@ -1489,10 +1489,10 @@
             </article>
           </section>
 
-          <div class="event-layout">
-            <section class="event-main-panel">
-              <div class="panel-head">
-                <div class="board-tabs" aria-label="事件榜单切换">
+          <div class="event-layout workspace-main">
+            <section class="event-main-panel desk-panel">
+              <div class="panel-head desk-panel-header">
+                <div class="board-tabs segmented-tabs" aria-label="事件榜单切换">
                   <button class="board-tab event-tab is-active" type="button" data-event-board="guidance_up">预期改善</button>
                   <button class="board-tab event-tab" type="button" data-event-board="earnings_beat">财报超预期</button>
                   <button class="board-tab event-tab" type="button" data-event-board="analyst_positive">机构观点变化</button>
@@ -1506,7 +1506,7 @@
                 <span id="eventBoardSubtitle">数据生成后会显示这张榜单的筛选口径。</span>
               </div>
 
-              <div class="event-toolbar" aria-label="观察线索筛选">
+              <div class="event-toolbar filter-bar" aria-label="观察线索筛选">
                 <label class="search-box">
                   <span>搜索股票 / 公司 / 理由</span>
                   <input id="eventSearchInput" type="search" placeholder="例如 NVDA、财报、空头" autocomplete="off" />
@@ -1547,8 +1547,8 @@
                 <strong>完整字段对照</strong>
               </div>
 
-              <div class="table-wrap">
-                <table class="event-table">
+              <div class="table-wrap desk-panel-body">
+                <table class="event-table data-table">
                   <thead>
                     <tr>
                       <th>排名</th>
@@ -1566,7 +1566,7 @@
               </div>
             </section>
 
-            <aside class="event-detail-panel" id="eventDetailPanel" aria-label="观察线索详情">
+            <aside class="event-detail-panel workspace-side" id="eventDetailPanel" aria-label="观察线索详情">
               <div class="empty-detail">
                 <strong>点击榜单股票查看详情</strong>
                 <p>这里会显示事件日期、事件类型、核心理由、主要风险和后续观察窗口。</p>
