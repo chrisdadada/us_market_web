@@ -52,6 +52,7 @@ const state = {
   directionFilter: "all",
   riskFilter: "all",
   macroFilter: "all",
+  marketVisualMode: "overview",
   auth: {
     authenticated: false,
     user: null,
@@ -3824,33 +3825,117 @@ const marketSectorStats = (rows) => {
   const sectorMap = new Map();
   rows.forEach((row) => {
     const key = row.sector || "未分类";
-    const current = sectorMap.get(key) || { sector: key, count: 0, totalChange: 0, hotVolume: 0 };
+    const volumeRow = getBoardRow("volume", row.symbol);
+    const ratio = parseRatio(volumeRow?.volumeRatio || row.volumeRatio);
+    const dollarVolume = Number(row.dollarVolume || row.volumeDollar || 0) || ratio;
+    const current = sectorMap.get(key) || {
+      sector: key,
+      count: 0,
+      upCount: 0,
+      totalChange: 0,
+      hotVolume: 0,
+      dollarVolume: 0,
+      signedFlowProxy: 0,
+    };
     current.count += 1;
     current.totalChange += getChange(row);
-    if (parseRatio(row.volumeRatio) >= 2) current.hotVolume += 1;
+    if (getChange(row) >= 0) current.upCount += 1;
+    if (ratio >= 2) current.hotVolume += 1;
+    current.dollarVolume += dollarVolume;
+    current.signedFlowProxy += dollarVolume * Math.sign(getChange(row));
     sectorMap.set(key, current);
   });
   return [...sectorMap.values()]
     .map((item) => ({
       ...item,
       avgChange: item.totalChange / Math.max(1, item.count),
+      breadthPct: (item.upCount / Math.max(1, item.count)) * 100,
     }))
-    .sort((a, b) => b.count - a.count || b.avgChange - a.avgChange);
+    .sort((a, b) => b.dollarVolume - a.dollarVolume || b.count - a.count || b.avgChange - a.avgChange);
 };
 
-const renderMarketVisualBoard = (rows) => {
-  const board = document.querySelector("#marketVisualBoard");
-  if (!board) return;
+const marketVisualTabs = () => `
+  <div class="market-visual-tabs" aria-label="市场视图">
+    ${[
+      ["overview", "概览"],
+      ["sectors", "板块排行"],
+      ["heatmap", "热力图"],
+    ].map(([key, label]) => `
+      <button type="button" data-market-visual-mode="${key}" class="${state.marketVisualMode === key ? "is-active" : ""}" aria-pressed="${state.marketVisualMode === key ? "true" : "false"}">${label}</button>
+    `).join("")}
+  </div>
+`;
+
+const renderMarketSectorRankingView = (rows) => {
+  const sectors = marketSectorStats(rows).slice(0, 10);
+  const maxVolume = Math.max(...sectors.map((item) => item.dollarVolume), 1);
+  return `
+    ${marketVisualTabs()}
+    <section class="market-sector-ranking">
+      <div class="market-visual-copy">
+        <span>板块排行榜</span>
+        <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
+        <p>按当前榜单的成交额活跃度排序，先看主线集中在哪些板块，再进入热力图确认个股贡献。</p>
+      </div>
+      <div class="market-sector-rank-list">
+        ${sectors.map((item, index) => {
+          const changeClass = item.avgChange >= 0 ? "is-positive" : "is-negative";
+          return `
+            <button type="button" data-sector-open="${escapeHtml(item.sector)}">
+              <em>${String(index + 1).padStart(2, "0")}</em>
+              <span>${escapeHtml(item.sector)}</span>
+              <i><b style="width:${Math.max(6, (item.dollarVolume / maxVolume) * 100).toFixed(1)}%"></b></i>
+              <strong class="${changeClass}">${escapeHtml(formatSignedPct(item.avgChange))}</strong>
+              <small>${escapeHtml(`${Math.round(item.breadthPct)}%上涨`)}</small>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+};
+
+const marketHeatmapSize = (row) => {
+  const volumeRow = getBoardRow("volume", row.symbol);
+  const ratio = parseRatio(volumeRow?.volumeRatio || row.volumeRatio);
+  const dollarVolume = Number(row.dollarVolume || row.volumeDollar || 0);
+  return Math.max(1, dollarVolume || ratio || Math.abs(getChange(row)));
+};
+
+const renderMarketHeatmapView = (rows) => {
+  const tiles = [...rows]
+    .map((row) => ({ ...row, heatSize: marketHeatmapSize(row) }))
+    .sort((a, b) => b.heatSize - a.heatSize)
+    .slice(0, 24);
+  const max = Math.max(...tiles.map((row) => row.heatSize), 1);
+  return `
+    ${marketVisualTabs()}
+    <section class="market-heatmap-view">
+      <div class="market-visual-copy">
+        <span>成交额权重热力图</span>
+        <strong>${escapeHtml(tiles[0]?.symbol || "--")}</strong>
+        <p>面积先用成交额活跃度做代理，颜色表示当前榜单涨跌；补齐市值字段后可切换为市值权重。</p>
+      </div>
+      <div class="market-heatmap-grid">
+        ${tiles.map((row) => {
+          const change = getChange(row);
+          const tone = change > 0 ? "is-up" : change < 0 ? "is-down" : "is-flat";
+          const span = row.heatSize / max > 0.55 ? "is-large" : row.heatSize / max > 0.25 ? "is-mid" : "";
+          return `
+            <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}">
+              <small>${escapeHtml(row.sector || "未分类")}</small>
+              <strong>${escapeHtml(row.symbol)}</strong>
+              <span>${escapeHtml(formatSignedPct(change))}</span>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+};
+
+const renderMarketOverviewView = (rows) => {
   const total = rows.length;
-  if (!total) {
-    board.innerHTML = `
-      <article class="market-chart-card">
-        <span>行情雷达</span>
-        <strong>暂无符合条件的股票</strong>
-      </article>
-    `;
-    return;
-  }
   const sectors = marketSectorStats(rows).slice(0, 7);
   const maxSectorCount = Math.max(...sectors.map((item) => item.count), 1);
   const upCount = rows.filter((row) => getChange(row) >= 0).length;
@@ -3879,65 +3964,92 @@ const renderMarketVisualBoard = (rows) => {
         .slice(0, 5)
     : hotVolumeRows;
   const maxVolumeRatio = Math.max(...fallbackVolumeRows.map((row) => row.ratio), 1);
-
-  board.innerHTML = `
-    <article class="market-chart-card market-sector-chart">
-      <div class="market-chart-head">
-        <span>板块热度</span>
-        <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
-      </div>
-      <div class="market-sector-bars">
-        ${sectors.map((item) => `
-          <div>
-            <b>${escapeHtml(item.sector)}</b>
-            <i><em style="width:${Math.max(5, (item.count / maxSectorCount) * 100).toFixed(1)}%"></em></i>
-            <strong>${escapeHtml(String(item.count))}</strong>
-          </div>
-        `).join("")}
-      </div>
-    </article>
-    <article class="market-chart-card">
-      <div class="market-chart-head">
-        <span>涨跌结构</span>
-        <strong>${escapeHtml(`${upCount} / ${downCount}`)}</strong>
-      </div>
-      <div class="market-direction-meter">
-        <i style="width:${((upCount / total) * 100).toFixed(1)}%"></i>
-      </div>
-      <div class="market-direction-labels">
-        <span>上涨 ${escapeHtml(String(upCount))}</span>
-        <span>下跌 ${escapeHtml(String(downCount))}</span>
-      </div>
-      <p>${escapeHtml(upCount >= downCount ? "当前筛选里上涨占优。" : "当前筛选里回落更多。")}</p>
-    </article>
-    <article class="market-chart-card">
-      <div class="market-chart-head">
-        <span>风险标签</span>
-        <strong>${escapeHtml(`${riskStats[0][1]}只`)}</strong>
-      </div>
-      <div class="market-risk-donut" style="--extreme:${(riskStats[0][1] / total * 100).toFixed(1)}%; --high:${(riskStats[1][1] / total * 100).toFixed(1)}%">
-        <b>${escapeHtml(String(total))}</b>
-      </div>
-      <div class="market-risk-legend">
-        ${riskStats.map(([label, count, className]) => `<span class="${className}">${escapeHtml(label)} ${escapeHtml(String(count))}</span>`).join("")}
-      </div>
-    </article>
-    <article class="market-chart-card">
-      <div class="market-chart-head">
-        <span>成交额放大</span>
-        <strong>${escapeHtml(hotVolumeRows[0]?.symbol || "--")}</strong>
-      </div>
-      <div class="market-volume-rank">
-        ${fallbackVolumeRows.length ? fallbackVolumeRows.map((row) => `
-          <div>
-            <b>${escapeHtml(row.symbol)}</b>
-            <i><em style="width:${Math.max(5, (row.ratio / maxVolumeRatio) * 100).toFixed(1)}%"></em></i>
-            <strong>${escapeHtml(row.volumeRatio || `${row.ratio.toFixed(1)}x`)}</strong>
-          </div>
-        `).join("") : "<p>当前榜单暂无成交额倍数字段。</p>"}
-      </div>
-    </article>
+  return `
+    ${marketVisualTabs()}
+    <div class="market-overview-grid">
+      <article class="market-chart-card market-sector-chart">
+        <div class="market-chart-head">
+          <span>板块热度</span>
+          <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
+        </div>
+        <div class="market-sector-bars">
+          ${sectors.map((item) => `
+            <div>
+              <b>${escapeHtml(item.sector)}</b>
+              <i><em style="width:${Math.max(5, (item.count / maxSectorCount) * 100).toFixed(1)}%"></em></i>
+              <strong>${escapeHtml(String(item.count))}</strong>
+            </div>
+          `).join("")}
+        </div>
+      </article>
+      <article class="market-chart-card">
+        <div class="market-chart-head">
+          <span>涨跌结构</span>
+          <strong>${escapeHtml(`${upCount} / ${downCount}`)}</strong>
+        </div>
+        <div class="market-direction-meter">
+          <i style="width:${((upCount / total) * 100).toFixed(1)}%"></i>
+        </div>
+        <div class="market-direction-labels">
+          <span>上涨 ${escapeHtml(String(upCount))}</span>
+          <span>下跌 ${escapeHtml(String(downCount))}</span>
+        </div>
+        <p>${escapeHtml(upCount >= downCount ? "当前筛选里上涨占优。" : "当前筛选里回落更多。")}</p>
+      </article>
+      <article class="market-chart-card">
+        <div class="market-chart-head">
+          <span>风险标签</span>
+          <strong>${escapeHtml(`${riskStats[0][1]}只`)}</strong>
+        </div>
+        <div class="market-risk-donut" style="--extreme:${(riskStats[0][1] / total * 100).toFixed(1)}%; --high:${(riskStats[1][1] / total * 100).toFixed(1)}%">
+          <b>${escapeHtml(String(total))}</b>
+        </div>
+        <div class="market-risk-legend">
+          ${riskStats.map(([label, count, className]) => `<span class="${className}">${escapeHtml(label)} ${escapeHtml(String(count))}</span>`).join("")}
+        </div>
+      </article>
+      <article class="market-chart-card">
+        <div class="market-chart-head">
+          <span>成交额放大</span>
+          <strong>${escapeHtml(hotVolumeRows[0]?.symbol || "--")}</strong>
+        </div>
+        <div class="market-volume-rank">
+          ${fallbackVolumeRows.length ? fallbackVolumeRows.map((row) => `
+            <div>
+              <b>${escapeHtml(row.symbol)}</b>
+              <i><em style="width:${Math.max(5, (row.ratio / maxVolumeRatio) * 100).toFixed(1)}%"></em></i>
+              <strong>${escapeHtml(row.volumeRatio || `${row.ratio.toFixed(1)}x`)}</strong>
+            </div>
+          `).join("") : "<p>当前榜单暂无成交额倍数字段。</p>"}
+        </div>
+      </article>
+    </div>
   `;
+};
+
+const renderMarketVisualBoard = (rows) => {
+  const board = document.querySelector("#marketVisualBoard");
+  if (!board) return;
+  const total = rows.length;
+  if (!total) {
+    board.innerHTML = `
+      ${marketVisualTabs()}
+      <article class="market-chart-card">
+        <span>行情雷达</span>
+        <strong>暂无符合条件的股票</strong>
+      </article>
+    `;
+    return;
+  }
+  if (state.marketVisualMode === "sectors") {
+    board.innerHTML = renderMarketSectorRankingView(rows);
+    return;
+  }
+  if (state.marketVisualMode === "heatmap") {
+    board.innerHTML = renderMarketHeatmapView(rows);
+    return;
+  }
+  board.innerHTML = renderMarketOverviewView(rows);
 };
 
 const getBoardRow = (board, symbol) => (state.boards[board] || []).find((row) => row.symbol === symbol);
@@ -7273,6 +7385,23 @@ const bindEvents = () => {
       if (sector) sector.value = "all";
       if (cap) cap.value = "all";
       renderStocksPage();
+      return;
+    }
+    const marketVisualMode = event.target.closest("[data-market-visual-mode]");
+    if (marketVisualMode) {
+      event.preventDefault();
+      state.marketVisualMode = marketVisualMode.dataset.marketVisualMode || "overview";
+      renderMarketVisualBoard(getFilteredRows());
+      return;
+    }
+    const sectorOpen = event.target.closest("[data-sector-open]");
+    if (sectorOpen) {
+      event.preventDefault();
+      state.sectorFilter = sectorOpen.dataset.sectorOpen || "all";
+      const sector = document.querySelector("#sectorFilter");
+      if (sector) sector.value = state.sectorFilter;
+      state.marketVisualMode = "overview";
+      renderTable();
       return;
     }
     const macroSeriesRange = event.target.closest("[data-macro-series-range]");
