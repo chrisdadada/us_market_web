@@ -1,6 +1,6 @@
 {
   "updatedAt": "2026-06-08",
-  "generatedAt": "2026-06-09T09:25:16.483775+00:00",
+  "generatedAt": "2026-06-09T14:45:28.549705+00:00",
   "source": "Polygon split-adjusted daily bars + latest tradable universe",
   "boards": {
     "day": {
@@ -19,7 +19,7 @@
           "change": 54.47,
           "price": 19.0,
           "volume": "18,998,513",
-          "marketCap": "--"
+          "marketCap": "90.08M"
         },
         {
           "rank": 2,
@@ -32,7 +32,7 @@
           "change": -53.93,
           "price": 1.76,
           "volume": "6,399,852",
-          "marketCap": "--"
+          "marketCap": "164.10K"
         },
         {
           "rank": 3,
@@ -45,7 +45,7 @@
           "change": 52.97,
           "price": 30.93,
           "volume": "21,825,742",
-          "marketCap": "--"
+          "marketCap": "3.05B"
         },
         {
           "rank": 4,
@@ -58,7 +58,7 @@
           "change": 39.84,
           "price": 3.44,
           "volume": "5,345,648",
-          "marketCap": "--"
+          "marketCap": "600.15M"
         },
         {
           "rank": 5,
@@ -71,7 +71,7 @@
           "change": 26.83,
           "price": 6.57,
           "volume": "10,253,384",
-          "marketCap": "--"
+          "marketCap": "112.25M"
         },
         {
           "rank": 6,
@@ -84,7 +84,7 @@
           "change": 22.19,
           "price": 3.8,
           "volume": "67,703,658",
-          "marketCap": "--"
+          "marketCap": "416.06M"
         },
         {
           "rank": 7,
@@ -97,7 +97,7 @@
           "change": 21.36,
           "price": 30.51,
           "volume": "19,328,341",
-          "marketCap": "--"
+          "marketCap": "5.32B"
         },
         {
           "rank": 8,
@@ -106,11 +106,11 @@
           "chineseName": "ALVO",
           "sector": "未分类",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 19.77,
           "price": 4.24,
           "volume": "2,265,909",
-          "marketCap": "--"
+          "marketCap": "1.03B"
         },
         {
           "rank": 9,
@@ -119,11 +119,11 @@
           "chineseName": "GOVX",
           "sector": "未分类",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": -18.79,
           "price": 1.34,
           "volume": "777,541",
-          "marketCap": "--"
+          "marketCap": "7.75M"
         },
         {
           "rank": 10,
@@ -136,7 +136,7 @@
           "change": 18.32,
           "price": 237.83,
           "volume": "8,691,315",
-          "marketCap": "--"
+          "marketCap": "63.84B"
         },
         {
           "rank": 11,
@@ -149,7 +149,7 @@
           "change": -18.04,
           "price": 12.22,
           "volume": "6,577,114",
-          "marketCap": "--"
+          "marketCap": "62.15M"
         },
         {
           "rank": 12,
@@ -158,11 +158,11 @@
           "chineseName": "MASK",
           "sector": "科技",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": -17.65,
           "price": 3.15,
           "volume": "1,429,798",
-          "marketCap": "--"
+          "marketCap": "2.11M"
         },
         {
           "rank": 13,
@@ -175,7 +175,7 @@
           "change": -17.59,
           "price": 18.27,
           "volume": "748,086",
-          "marketCap": "129.52M"
+          "marketCap": "127.03M"
         },
         {
           "rank": 14,
@@ -188,7 +188,7 @@
           "change": -16.56,
           "price": 13.15,
           "volume": "1,279,594",
-          "marketCap": "--"
+          "marketCap": "510.12M"
         },
         {
           "rank": 15,
@@ -201,7 +201,7 @@
           "change": 16.35,
           "price": 5.48,
           "volume": "2,436,179",
-          "marketCap": "--"
+          "marketCap": "941.59M"
         },
         {
           "rank": 16,
@@ -214,7 +214,7 @@
           "change": 15.97,
           "price": 7.48,
           "volume": "2,643,890",
-          "marketCap": "--"
+          "marketCap": "41.35M"
         },
         {
           "rank": 17,
@@ -227,7 +227,7 @@
           "change": 15.33,
           "price": 7.75,
           "volume": "4,920,249",
-          "marketCap": "--"
+          "marketCap": "81.93M"
         },
         {
           "rank": 18,
@@ -240,7 +240,7 @@
           "change": 15.22,
           "price": 2.65,
           "volume": "988,188",
-          "marketCap": "--"
+          "marketCap": "226.87M"
         },
         {
           "rank": 19,
@@ -249,11 +249,11 @@
           "chineseName": "HTCO",
           "sector": "未分类",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 15.17,
           "price": 3.34,
           "volume": "1,462,051",
-          "marketCap": "--"
+          "marketCap": "51.75M"
         },
         {
           "rank": 20,
@@ -266,7 +266,7 @@
           "change": -15.06,
           "price": 75.28,
           "volume": "1,296,201",
-          "marketCap": "--"
+          "marketCap": "4.03B"
         },
         {
           "rank": 21,
@@ -279,7 +279,7 @@
           "change": 14.93,
           "price": 4.81,
           "volume": "2,030,704",
-          "marketCap": "--"
+          "marketCap": "634.69M"
         },
         {
           "rank": 22,
@@ -288,11 +288,11 @@
           "chineseName": "STTK",
           "sector": "未分类",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": -14.85,
           "price": 3.9,
           "volume": "5,579,889",
-          "marketCap": "--"
+          "marketCap": "473.12M"
         },
         {
           "rank": 23,
@@ -300,12 +300,12 @@
           "company": "Wealthfront Corporation Common Stock",
           "chineseName": "WLTH",
           "sector": "未分类",
-          "risk": "趋势观察",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "risk": "趋势剧震",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": -14.62,
           "price": 8.41,
           "volume": "7,669,180",
-          "marketCap": "--"
+          "marketCap": "1.73B"
         },
         {
           "rank": 24,
@@ -318,7 +318,7 @@
           "change": 13.95,
           "price": 3.43,
           "volume": "296,310",
-          "marketCap": "--"
+          "marketCap": "4.17M"
         },
         {
           "rank": 25,
@@ -331,7 +331,7 @@
           "change": 13.95,
           "price": 12.09,
           "volume": "3,529,016",
-          "marketCap": "--"
+          "marketCap": "605.34M"
         },
         {
           "rank": 26,
@@ -344,7 +344,7 @@
           "change": 13.85,
           "price": 43.32,
           "volume": "140,970",
-          "marketCap": "--"
+          "marketCap": "237.43M"
         },
         {
           "rank": 27,
@@ -353,11 +353,11 @@
           "chineseName": "FABC",
           "sector": "科技",
           "risk": "趋势观察",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": -13.65,
           "price": 3.67,
           "volume": "997,870",
-          "marketCap": "--"
+          "marketCap": "6.83M"
         },
         {
           "rank": 28,
@@ -370,7 +370,7 @@
           "change": 13.64,
           "price": 14.83,
           "volume": "112,301",
-          "marketCap": "--"
+          "marketCap": "4.56M"
         },
         {
           "rank": 29,
@@ -383,7 +383,7 @@
           "change": -13.62,
           "price": 2.22,
           "volume": "1,639,458",
-          "marketCap": "--"
+          "marketCap": "14.93M"
         },
         {
           "rank": 30,
@@ -392,11 +392,11 @@
           "chineseName": "ALOY",
           "sector": "未分类",
           "risk": "趋势观察",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 13.54,
           "price": 14.17,
           "volume": "3,360,795",
-          "marketCap": "--"
+          "marketCap": "534.89M"
         },
         {
           "rank": 31,
@@ -405,11 +405,11 @@
           "chineseName": "NWL",
           "sector": "未分类",
           "risk": "趋势观察",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 13.17,
           "price": 4.21,
           "volume": "13,858,816",
-          "marketCap": "--"
+          "marketCap": "1.50B"
         },
         {
           "rank": 32,
@@ -422,7 +422,7 @@
           "change": 12.88,
           "price": 1.49,
           "volume": "621,415",
-          "marketCap": "--"
+          "marketCap": "279.85K"
         },
         {
           "rank": 33,
@@ -435,7 +435,7 @@
           "change": 12.47,
           "price": 4.15,
           "volume": "1,367,250",
-          "marketCap": "--"
+          "marketCap": "331.58M"
         },
         {
           "rank": 34,
@@ -444,11 +444,11 @@
           "chineseName": "PAL",
           "sector": "未分类",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 12.05,
           "price": 7.16,
           "volume": "358,725",
-          "marketCap": "--"
+          "marketCap": "141.63M"
         },
         {
           "rank": 35,
@@ -461,7 +461,7 @@
           "change": 11.85,
           "price": 13.78,
           "volume": "32,778,447",
-          "marketCap": "--"
+          "marketCap": "5.01B"
         },
         {
           "rank": 36,
@@ -474,7 +474,7 @@
           "change": -11.83,
           "price": 1.64,
           "volume": "1,441,132",
-          "marketCap": "--"
+          "marketCap": "128.37M"
         },
         {
           "rank": 37,
@@ -483,11 +483,11 @@
           "chineseName": "SHAZ",
           "sector": "科技",
           "risk": "趋势观察",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": -11.79,
           "price": 59.46,
           "volume": "756,143",
-          "marketCap": "--"
+          "marketCap": "810.71M"
         },
         {
           "rank": 38,
@@ -500,7 +500,7 @@
           "change": 11.75,
           "price": 27.39,
           "volume": "14,958,878",
-          "marketCap": "--"
+          "marketCap": "7.06B"
         },
         {
           "rank": 39,
@@ -513,7 +513,7 @@
           "change": -11.57,
           "price": 14.98,
           "volume": "1,466,489",
-          "marketCap": "--"
+          "marketCap": "1.15B"
         },
         {
           "rank": 40,
@@ -521,12 +521,12 @@
           "company": "RoboStrategy, Inc. Common Stock",
           "chineseName": "BOT",
           "sector": "未分类",
-          "risk": "趋势观察",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "risk": "趋势剧震",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 11.34,
           "price": 41.74,
           "volume": "1,334,002",
-          "marketCap": "--"
+          "marketCap": "572.54M"
         },
         {
           "rank": 41,
@@ -539,7 +539,7 @@
           "change": 11.28,
           "price": 31.48,
           "volume": "2,580,752",
-          "marketCap": "--"
+          "marketCap": "2.61B"
         },
         {
           "rank": 42,
@@ -565,7 +565,7 @@
           "change": 11.19,
           "price": 110.27,
           "volume": "136,973,899",
-          "marketCap": "--"
+          "marketCap": "597.89B"
         },
         {
           "rank": 44,
@@ -578,7 +578,7 @@
           "change": 11.1,
           "price": 196.64,
           "volume": "14,905,710",
-          "marketCap": "12.61B"
+          "marketCap": "13.26B"
         },
         {
           "rank": 45,
@@ -587,11 +587,11 @@
           "chineseName": "HCWB",
           "sector": "未分类",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": -11.04,
           "price": 1.45,
           "volume": "654,001",
-          "marketCap": "--"
+          "marketCap": "16.36M"
         },
         {
           "rank": 46,
@@ -604,7 +604,7 @@
           "change": 11.0,
           "price": 11.5,
           "volume": "1,349,763",
-          "marketCap": "--"
+          "marketCap": "266.60M"
         },
         {
           "rank": 47,
@@ -617,7 +617,7 @@
           "change": -10.98,
           "price": 95.34,
           "volume": "559,306",
-          "marketCap": "--"
+          "marketCap": "1.06B"
         },
         {
           "rank": 48,
@@ -626,11 +626,11 @@
           "chineseName": "LESL",
           "sector": "未分类",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 10.8,
           "price": 5.13,
           "volume": "401,124",
-          "marketCap": "--"
+          "marketCap": "28.17M"
         },
         {
           "rank": 49,
@@ -643,7 +643,7 @@
           "change": 10.77,
           "price": 136.0,
           "volume": "1,148,780",
-          "marketCap": "--"
+          "marketCap": "5.02B"
         },
         {
           "rank": 50,
@@ -656,7 +656,7 @@
           "change": -10.76,
           "price": 619.98,
           "volume": "694,460",
-          "marketCap": "--"
+          "marketCap": "8.80B"
         },
         {
           "rank": 51,
@@ -669,7 +669,7 @@
           "change": 10.6,
           "price": 62.8,
           "volume": "28,561,682",
-          "marketCap": "--"
+          "marketCap": "19.59B"
         },
         {
           "rank": 52,
@@ -682,7 +682,7 @@
           "change": -10.56,
           "price": 15.5,
           "volume": "18,376,202",
-          "marketCap": "--"
+          "marketCap": "1.07B"
         },
         {
           "rank": 53,
@@ -695,7 +695,7 @@
           "change": 10.49,
           "price": 12.95,
           "volume": "516,976",
-          "marketCap": "--"
+          "marketCap": "940.10M"
         },
         {
           "rank": 54,
@@ -708,7 +708,7 @@
           "change": 10.43,
           "price": 4.66,
           "volume": "3,510,675",
-          "marketCap": "--"
+          "marketCap": "434.18M"
         },
         {
           "rank": 55,
@@ -721,7 +721,7 @@
           "change": 10.37,
           "price": 4.47,
           "volume": "10,506,223",
-          "marketCap": "--"
+          "marketCap": "828.25M"
         },
         {
           "rank": 56,
@@ -734,7 +734,7 @@
           "change": 10.33,
           "price": 5.66,
           "volume": "71,913,782",
-          "marketCap": "--"
+          "marketCap": "2.55B"
         },
         {
           "rank": 57,
@@ -747,7 +747,7 @@
           "change": 10.32,
           "price": 8.71,
           "volume": "1,637,317",
-          "marketCap": "--"
+          "marketCap": "703.09M"
         },
         {
           "rank": 58,
@@ -760,7 +760,7 @@
           "change": -10.3,
           "price": 5.05,
           "volume": "467,095",
-          "marketCap": "--"
+          "marketCap": "8.61M"
         },
         {
           "rank": 59,
@@ -773,7 +773,7 @@
           "change": 10.19,
           "price": 13.63,
           "volume": "936,866",
-          "marketCap": "--"
+          "marketCap": "409.61M"
         },
         {
           "rank": 60,
@@ -786,7 +786,7 @@
           "change": 10.14,
           "price": 16.94,
           "volume": "1,449,928",
-          "marketCap": "--"
+          "marketCap": "1.92B"
         },
         {
           "rank": 61,
@@ -799,7 +799,7 @@
           "change": -9.92,
           "price": 7.9,
           "volume": "7,477,141",
-          "marketCap": "--"
+          "marketCap": "1.04B"
         },
         {
           "rank": 62,
@@ -812,7 +812,7 @@
           "change": 9.87,
           "price": 949.28,
           "volume": "54,097,770",
-          "marketCap": "--"
+          "marketCap": "825.49B"
         },
         {
           "rank": 63,
@@ -825,7 +825,7 @@
           "change": 9.78,
           "price": 15.26,
           "volume": "6,477,413",
-          "marketCap": "--"
+          "marketCap": "3.94B"
         },
         {
           "rank": 64,
@@ -838,7 +838,7 @@
           "change": 9.72,
           "price": 25.85,
           "volume": "4,325,154",
-          "marketCap": "--"
+          "marketCap": "1.27B"
         },
         {
           "rank": 65,
@@ -846,12 +846,12 @@
           "company": "Marvell Technology, Inc. Common Stock",
           "chineseName": "MRVL",
           "sector": "科技",
-          "risk": "趋势观察",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "risk": "趋势剧震",
+          "actionNote": "强势股先看成交额能否延续，回踩不破更有复盘价值。",
           "change": 9.63,
           "price": 288.85,
           "volume": "84,575,493",
-          "marketCap": "--"
+          "marketCap": "163.55B"
         },
         {
           "rank": 66,
@@ -864,7 +864,7 @@
           "change": 9.63,
           "price": 4.44,
           "volume": "229,692",
-          "marketCap": "--"
+          "marketCap": "59.22M"
         },
         {
           "rank": 67,
@@ -877,7 +877,7 @@
           "change": -9.46,
           "price": 14.07,
           "volume": "3,054,115",
-          "marketCap": "--"
+          "marketCap": "17.22B"
         },
         {
           "rank": 68,
@@ -890,7 +890,7 @@
           "change": -9.45,
           "price": 1.15,
           "volume": "2,283,639",
-          "marketCap": "--"
+          "marketCap": "96.16M"
         },
         {
           "rank": 69,
@@ -903,7 +903,7 @@
           "change": 9.43,
           "price": 56.3,
           "volume": "998,153",
-          "marketCap": "--"
+          "marketCap": "1.87B"
         },
         {
           "rank": 70,
@@ -916,7 +916,7 @@
           "change": 9.27,
           "price": 2108.06,
           "volume": "1,165,901",
-          "marketCap": "--"
+          "marketCap": "238.98B"
         },
         {
           "rank": 71,
@@ -929,7 +929,7 @@
           "change": 9.27,
           "price": 15.21,
           "volume": "4,032,331",
-          "marketCap": "--"
+          "marketCap": "1.25B"
         },
         {
           "rank": 72,
@@ -942,7 +942,7 @@
           "change": 9.23,
           "price": 346.33,
           "volume": "5,048,478",
-          "marketCap": "--"
+          "marketCap": "49.28B"
         },
         {
           "rank": 73,
@@ -955,7 +955,7 @@
           "change": -9.17,
           "price": 8.62,
           "volume": "6,864,236",
-          "marketCap": "--"
+          "marketCap": "1.52B"
         },
         {
           "rank": 74,
@@ -968,7 +968,7 @@
           "change": 9.16,
           "price": 5.72,
           "volume": "466,450",
-          "marketCap": "--"
+          "marketCap": "199.88M"
         },
         {
           "rank": 75,
@@ -977,11 +977,11 @@
           "chineseName": "AIB",
           "sector": "科技",
           "risk": "小盘高波动",
-          "actionNote": "先观察成交额和价格是否能延续，再决定是否加入重点复盘。",
+          "actionNote": "大幅回撤先看是否破趋势线，不要只因跌多就提高优先级。",
           "change": 9.09,
           "price": 1.8,
           "volume": "4,111,453",
-          "marketCap": "--"
+          "marketCap": "67.01M"
         },
         {
           "rank": 76,
@@ -994,7 +994,7 @@
           "change": 8.94,
           "price": 6.46,
           "volume": "8,032,830",
-          "marketCap": "--"
+          "marketCap": "1.34B"
         },
         {
           "rank": 77,
@@ -1007,7 +1007,7 @@
           "change": 8.91,
           "price": 10.63,
           "volume": "180,914",
-          "marketCap": "--"
+          "marketCap": "194.93M"
         },
         {
           "rank": 78,
@@ -1020,7 +1020,7 @@
           "change": 8.91,
           "price": 59.19,
           "volume": "41,125,888",
-          "marketCap": "--"
+          "marketCap": "18.84B"
         },
         {
           "rank": 79,
@@ -1033,7 +1033,7 @@
           "change": 8.87,
           "price": 31.55,
           "volume": "2,711,690",
-          "marketCap": "--"
+          "marketCap": "2.91B"
         },
         {
           "rank": 80,
@@ -1046,7 +1046,7 @@
           "change": -8.84,
           "price": 3.455,
           "volume": "3,276,507",
-          "marketCap": "--"
+          "marketCap": "550.42M"
         }
       ]
     },
@@ -1066,7 +1066,7 @@
           "change": 426.15,
           "price": 5.13,
           "volume": "1,804,301",
-          "marketCap": "--"
+          "marketCap": "24.59M"
         },
         {
           "rank": 2,
@@ -1079,7 +1079,7 @@
           "change": 253.64,
           "price": 3.28,
           "volume": "33,412,383",
-          "marketCap": "--"
+          "marketCap": "33.38M"
         },
         {
           "rank": 3,
@@ -1092,7 +1092,7 @@
           "change": -82.91,
           "price": 1.76,
           "volume": "6,399,852",
-          "marketCap": "--"
+          "marketCap": "164.10K"
         },
         {
           "rank": 4,
@@ -1105,7 +1105,7 @@
           "change": 82.59,
           "price": 41.74,
           "volume": "1,334,002",
-          "marketCap": "--"
+          "marketCap": "572.54M"
         },
         {
           "rank": 5,
@@ -1118,7 +1118,7 @@
           "change": -78.28,
           "price": 2.22,
           "volume": "223,831",
-          "marketCap": "--"
+          "marketCap": "11.38M"
         },
         {
           "rank": 6,
@@ -1144,7 +1144,7 @@
           "change": -46.42,
           "price": 3.44,
           "volume": "3,314,166",
-          "marketCap": "--"
+          "marketCap": "423.12M"
         },
         {
           "rank": 8,
@@ -1157,7 +1157,7 @@
           "change": -45.21,
           "price": 4.12,
           "volume": "27,434,871",
-          "marketCap": "--"
+          "marketCap": "258.00M"
         },
         {
           "rank": 9,
@@ -1170,7 +1170,7 @@
           "change": -43.4,
           "price": 1.8,
           "volume": "4,111,453",
-          "marketCap": "--"
+          "marketCap": "67.01M"
         },
         {
           "rank": 10,
@@ -1183,7 +1183,7 @@
           "change": -42.2,
           "price": 3.15,
           "volume": "1,429,798",
-          "marketCap": "--"
+          "marketCap": "2.11M"
         },
         {
           "rank": 11,
@@ -1196,7 +1196,7 @@
           "change": -42.04,
           "price": 4.99,
           "volume": "459,521",
-          "marketCap": "--"
+          "marketCap": "726.91M"
         },
         {
           "rank": 12,
@@ -1209,7 +1209,7 @@
           "change": -40.4,
           "price": 23.01,
           "volume": "2,110,268",
-          "marketCap": "--"
+          "marketCap": "1.33B"
         },
         {
           "rank": 13,
@@ -1222,7 +1222,7 @@
           "change": -39.63,
           "price": 2.27,
           "volume": "501,255",
-          "marketCap": "--"
+          "marketCap": "494.75M"
         },
         {
           "rank": 14,
@@ -1235,7 +1235,7 @@
           "change": -39.37,
           "price": 1.34,
           "volume": "777,541",
-          "marketCap": "--"
+          "marketCap": "7.75M"
         },
         {
           "rank": 15,
@@ -1248,7 +1248,7 @@
           "change": 39.3,
           "price": 19.0,
           "volume": "18,998,513",
-          "marketCap": "--"
+          "marketCap": "90.08M"
         },
         {
           "rank": 16,
@@ -1261,7 +1261,7 @@
           "change": -38.71,
           "price": 1.71,
           "volume": "629,379",
-          "marketCap": "--"
+          "marketCap": "204.89M"
         },
         {
           "rank": 17,
@@ -1287,7 +1287,7 @@
           "change": 33.9,
           "price": 30.93,
           "volume": "21,825,742",
-          "marketCap": "--"
+          "marketCap": "3.05B"
         },
         {
           "rank": 19,
@@ -1300,7 +1300,7 @@
           "change": -32.84,
           "price": 2.25,
           "volume": "5,545,814",
-          "marketCap": "--"
+          "marketCap": "306.59M"
         },
         {
           "rank": 20,
@@ -1313,7 +1313,7 @@
           "change": 31.68,
           "price": 4.24,
           "volume": "2,265,909",
-          "marketCap": "--"
+          "marketCap": "1.03B"
         },
         {
           "rank": 21,
@@ -1326,7 +1326,7 @@
           "change": 31.64,
           "price": 288.85,
           "volume": "84,575,493",
-          "marketCap": "--"
+          "marketCap": "163.55B"
         },
         {
           "rank": 22,
@@ -1339,7 +1339,7 @@
           "change": -31.61,
           "price": 8.35,
           "volume": "277,427",
-          "marketCap": "--"
+          "marketCap": "462.29M"
         },
         {
           "rank": 23,
@@ -1352,7 +1352,7 @@
           "change": 31.2,
           "price": 5.13,
           "volume": "401,124",
-          "marketCap": "--"
+          "marketCap": "28.17M"
         },
         {
           "rank": 24,
@@ -1365,7 +1365,7 @@
           "change": -31.07,
           "price": 2.95,
           "volume": "1,534,757",
-          "marketCap": "--"
+          "marketCap": "611.39M"
         },
         {
           "rank": 25,
@@ -1378,7 +1378,7 @@
           "change": -31.01,
           "price": 8.41,
           "volume": "7,669,180",
-          "marketCap": "--"
+          "marketCap": "1.73B"
         },
         {
           "rank": 26,
@@ -1391,7 +1391,7 @@
           "change": 30.98,
           "price": 3.34,
           "volume": "1,462,051",
-          "marketCap": "--"
+          "marketCap": "51.75M"
         },
         {
           "rank": 27,
@@ -1404,7 +1404,7 @@
           "change": -30.97,
           "price": 3.9,
           "volume": "5,579,889",
-          "marketCap": "--"
+          "marketCap": "473.12M"
         },
         {
           "rank": 28,
@@ -1417,7 +1417,7 @@
           "change": 30.97,
           "price": 18.27,
           "volume": "748,086",
-          "marketCap": "129.52M"
+          "marketCap": "127.03M"
         },
         {
           "rank": 29,
@@ -1430,7 +1430,7 @@
           "change": -30.29,
           "price": 1.91,
           "volume": "1,368,513",
-          "marketCap": "--"
+          "marketCap": "214.47M"
         },
         {
           "rank": 30,
@@ -1443,7 +1443,7 @@
           "change": -29.95,
           "price": 1.45,
           "volume": "654,001",
-          "marketCap": "--"
+          "marketCap": "16.36M"
         },
         {
           "rank": 31,
@@ -1456,7 +1456,7 @@
           "change": -29.6,
           "price": 8.87,
           "volume": "138,204",
-          "marketCap": "--"
+          "marketCap": "7.75M"
         },
         {
           "rank": 32,
@@ -1469,7 +1469,7 @@
           "change": -29.53,
           "price": 32.74,
           "volume": "20,145,326",
-          "marketCap": "--"
+          "marketCap": "15.20B"
         },
         {
           "rank": 33,
@@ -1482,7 +1482,7 @@
           "change": -28.97,
           "price": 9.93,
           "volume": "1,594,890",
-          "marketCap": "--"
+          "marketCap": "708.78M"
         },
         {
           "rank": 34,
@@ -1495,7 +1495,7 @@
           "change": 28.94,
           "price": 14.17,
           "volume": "3,360,795",
-          "marketCap": "--"
+          "marketCap": "534.89M"
         },
         {
           "rank": 35,
@@ -1508,7 +1508,7 @@
           "change": -28.9,
           "price": 87.43,
           "volume": "1,437,794",
-          "marketCap": "--"
+          "marketCap": "6.84B"
         },
         {
           "rank": 36,
@@ -1521,7 +1521,7 @@
           "change": -28.49,
           "price": 4.97,
           "volume": "125,705",
-          "marketCap": "--"
+          "marketCap": "416.79M"
         },
         {
           "rank": 37,
@@ -1534,7 +1534,7 @@
           "change": -27.73,
           "price": 4.77,
           "volume": "1,071,743",
-          "marketCap": "--"
+          "marketCap": "74.38M"
         },
         {
           "rank": 38,
@@ -1547,7 +1547,7 @@
           "change": -27.68,
           "price": 22.5,
           "volume": "2,021,812",
-          "marketCap": "--"
+          "marketCap": "2.35B"
         },
         {
           "rank": 39,
@@ -1560,7 +1560,7 @@
           "change": 27.57,
           "price": 6.57,
           "volume": "10,253,384",
-          "marketCap": "--"
+          "marketCap": "112.25M"
         },
         {
           "rank": 40,
@@ -1573,7 +1573,7 @@
           "change": -27.39,
           "price": 1.75,
           "volume": "7,037,749",
-          "marketCap": "--"
+          "marketCap": "10.97M"
         },
         {
           "rank": 41,
@@ -1586,7 +1586,7 @@
           "change": -27.33,
           "price": 3.67,
           "volume": "997,870",
-          "marketCap": "--"
+          "marketCap": "6.83M"
         },
         {
           "rank": 42,
@@ -1599,7 +1599,7 @@
           "change": -27.26,
           "price": 15.5,
           "volume": "18,376,202",
-          "marketCap": "--"
+          "marketCap": "1.07B"
         },
         {
           "rank": 43,
@@ -1612,7 +1612,7 @@
           "change": 27.18,
           "price": 7.16,
           "volume": "358,725",
-          "marketCap": "--"
+          "marketCap": "141.63M"
         },
         {
           "rank": 44,
@@ -1625,7 +1625,7 @@
           "change": -27.01,
           "price": 7.19,
           "volume": "48,985",
-          "marketCap": "--"
+          "marketCap": "237.30M"
         },
         {
           "rank": 45,
@@ -1638,7 +1638,7 @@
           "change": -26.87,
           "price": 12.22,
           "volume": "6,577,114",
-          "marketCap": "--"
+          "marketCap": "62.15M"
         },
         {
           "rank": 46,
@@ -1651,7 +1651,7 @@
           "change": -26.67,
           "price": 9.43,
           "volume": "5,191,680",
-          "marketCap": "--"
+          "marketCap": "4.70B"
         },
         {
           "rank": 47,
@@ -1664,7 +1664,7 @@
           "change": -26.55,
           "price": 7.69,
           "volume": "592,265",
-          "marketCap": "--"
+          "marketCap": "311.51M"
         },
         {
           "rank": 48,
@@ -1677,7 +1677,7 @@
           "change": -26.5,
           "price": 8.015,
           "volume": "1,254,160",
-          "marketCap": "--"
+          "marketCap": "330.02M"
         },
         {
           "rank": 49,
@@ -1690,7 +1690,7 @@
           "change": 26.43,
           "price": 4.21,
           "volume": "13,858,816",
-          "marketCap": "--"
+          "marketCap": "1.50B"
         },
         {
           "rank": 50,
@@ -1703,7 +1703,7 @@
           "change": -26.19,
           "price": 10.71,
           "volume": "1,468,648",
-          "marketCap": "--"
+          "marketCap": "1.69B"
         },
         {
           "rank": 51,
@@ -1716,7 +1716,7 @@
           "change": -26.16,
           "price": 3.345,
           "volume": "556,104",
-          "marketCap": "--"
+          "marketCap": "161.62M"
         },
         {
           "rank": 52,
@@ -1729,7 +1729,7 @@
           "change": -25.98,
           "price": 9.06,
           "volume": "958,442",
-          "marketCap": "--"
+          "marketCap": "723.13M"
         },
         {
           "rank": 53,
@@ -1742,7 +1742,7 @@
           "change": -25.91,
           "price": 6.29,
           "volume": "20,775",
-          "marketCap": "--"
+          "marketCap": "45.39M"
         },
         {
           "rank": 54,
@@ -1755,7 +1755,7 @@
           "change": -25.86,
           "price": 23.4,
           "volume": "888,815",
-          "marketCap": "--"
+          "marketCap": "934.08M"
         },
         {
           "rank": 55,
@@ -1768,7 +1768,7 @@
           "change": 25.83,
           "price": 4.53,
           "volume": "207,730",
-          "marketCap": "--"
+          "marketCap": "61.47M"
         },
         {
           "rank": 56,
@@ -1781,7 +1781,7 @@
           "change": -25.8,
           "price": 127.19,
           "volume": "1,986,028",
-          "marketCap": "--"
+          "marketCap": "11.84B"
         },
         {
           "rank": 57,
@@ -1794,7 +1794,7 @@
           "change": -25.59,
           "price": 2.53,
           "volume": "5,249,190",
-          "marketCap": "--"
+          "marketCap": "227.64M"
         },
         {
           "rank": 58,
@@ -1807,7 +1807,7 @@
           "change": -25.42,
           "price": 6.69,
           "volume": "20,138,986",
-          "marketCap": "--"
+          "marketCap": "2.41B"
         },
         {
           "rank": 59,
@@ -1820,7 +1820,7 @@
           "change": -25.39,
           "price": 2.85,
           "volume": "7,761,777",
-          "marketCap": "--"
+          "marketCap": "1.08B"
         },
         {
           "rank": 60,
@@ -1833,7 +1833,7 @@
           "change": -25.25,
           "price": 59.46,
           "volume": "756,143",
-          "marketCap": "--"
+          "marketCap": "810.71M"
         },
         {
           "rank": 61,
@@ -1846,7 +1846,7 @@
           "change": -25.0,
           "price": 1.71,
           "volume": "1,171,972",
-          "marketCap": "--"
+          "marketCap": "359.39M"
         },
         {
           "rank": 62,
@@ -1859,7 +1859,7 @@
           "change": -24.55,
           "price": 16.23,
           "volume": "1,782,547",
-          "marketCap": "--"
+          "marketCap": "551.62M"
         },
         {
           "rank": 63,
@@ -1872,7 +1872,7 @@
           "change": -24.53,
           "price": 22.21,
           "volume": "16,560,737",
-          "marketCap": "--"
+          "marketCap": "5.03B"
         },
         {
           "rank": 64,
@@ -1885,7 +1885,7 @@
           "change": -24.44,
           "price": 253.25,
           "volume": "726,407",
-          "marketCap": "--"
+          "marketCap": "9.36B"
         },
         {
           "rank": 65,
@@ -1898,7 +1898,7 @@
           "change": -24.41,
           "price": 29.63,
           "volume": "2,049,928",
-          "marketCap": "--"
+          "marketCap": "945.07M"
         },
         {
           "rank": 66,
@@ -1911,7 +1911,7 @@
           "change": -24.41,
           "price": 12.82,
           "volume": "493,491",
-          "marketCap": "--"
+          "marketCap": "204.88M"
         },
         {
           "rank": 67,
@@ -1924,7 +1924,7 @@
           "change": -24.3,
           "price": 8.69,
           "volume": "2,371,611",
-          "marketCap": "--"
+          "marketCap": "735.35M"
         },
         {
           "rank": 68,
@@ -1937,7 +1937,7 @@
           "change": -24.28,
           "price": 1.84,
           "volume": "1,656,008",
-          "marketCap": "--"
+          "marketCap": "198.36M"
         },
         {
           "rank": 69,
@@ -1950,7 +1950,7 @@
           "change": -24.09,
           "price": 2.93,
           "volume": "740,732",
-          "marketCap": "--"
+          "marketCap": "56.69M"
         },
         {
           "rank": 70,
@@ -1963,7 +1963,7 @@
           "change": -24.06,
           "price": 21.65,
           "volume": "170,274",
-          "marketCap": "--"
+          "marketCap": "378.51M"
         },
         {
           "rank": 71,
@@ -1976,7 +1976,7 @@
           "change": 24.0,
           "price": 14.88,
           "volume": "742,287",
-          "marketCap": "--"
+          "marketCap": "3.27B"
         },
         {
           "rank": 72,
@@ -1989,7 +1989,7 @@
           "change": -23.93,
           "price": 1.78,
           "volume": "707,931",
-          "marketCap": "--"
+          "marketCap": "164.84M"
         },
         {
           "rank": 73,
@@ -2002,7 +2002,7 @@
           "change": -23.82,
           "price": 4.51,
           "volume": "10,736,402",
-          "marketCap": "--"
+          "marketCap": "996.89M"
         },
         {
           "rank": 74,
@@ -2015,7 +2015,7 @@
           "change": -23.57,
           "price": 2.4,
           "volume": "407,685",
-          "marketCap": "--"
+          "marketCap": "200.33M"
         },
         {
           "rank": 75,
@@ -2028,7 +2028,7 @@
           "change": 23.56,
           "price": 31.52,
           "volume": "3,203,461",
-          "marketCap": "--"
+          "marketCap": "5.22B"
         },
         {
           "rank": 76,
@@ -2041,7 +2041,7 @@
           "change": -23.48,
           "price": 10.3,
           "volume": "39,401,459",
-          "marketCap": "--"
+          "marketCap": "4.64B"
         },
         {
           "rank": 77,
@@ -2054,7 +2054,7 @@
           "change": -23.38,
           "price": 5.095,
           "volume": "16,350,507",
-          "marketCap": "--"
+          "marketCap": "2.22B"
         },
         {
           "rank": 78,
@@ -2067,7 +2067,7 @@
           "change": -23.35,
           "price": 1.28,
           "volume": "1,229,666",
-          "marketCap": "--"
+          "marketCap": "82.81M"
         },
         {
           "rank": 79,
@@ -2080,7 +2080,7 @@
           "change": -23.35,
           "price": 7.78,
           "volume": "182,344",
-          "marketCap": "--"
+          "marketCap": "79.72M"
         },
         {
           "rank": 80,
@@ -2093,7 +2093,7 @@
           "change": -23.01,
           "price": 6.19,
           "volume": "456,761",
-          "marketCap": "--"
+          "marketCap": "137.42M"
         }
       ]
     }

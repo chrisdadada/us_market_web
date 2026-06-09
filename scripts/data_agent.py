@@ -84,6 +84,15 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def read_site_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
 def read_parquet_compatible(path: Path, columns: list[str] | None = None) -> pd.DataFrame:
     try:
         return pd.read_parquet(path, columns=columns)
@@ -666,6 +675,7 @@ def main() -> None:
     market_leaders = build_market_leaders(data_root, as_of, min(args.limit, 100))
     earnings_quality = build_earnings_quality(data_root, as_of, args.limit)
     analyst_heat = build_analyst_heat(data_root, min(args.limit, 100))
+    sector_flow = read_site_json(args.site_data_dir / "sector-flow.json")
     manifest = build_manifest(as_of, health)
     agent = {
         "generatedAt": now_iso(),
@@ -678,6 +688,7 @@ def main() -> None:
             "marketLeaders": market_leaders,
             "earningsQuality": earnings_quality,
             "analystHeat": analyst_heat,
+            "sectorFlow": sector_flow,
         },
     }
 

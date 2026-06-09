@@ -48,6 +48,39 @@ def fmt_money(value: float | None) -> str:
     return f"${value:,.0f}"
 
 
+def fmt_market_cap(value: float | None) -> str:
+    if value is None or pd.isna(value):
+        return "--"
+    if value >= 1_000_000_000:
+        return f"{value / 1_000_000_000:.2f}B"
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.2f}M"
+    return f"{value:,.0f}"
+
+
+def load_market_caps(data_root: Path, prices: pd.Series) -> dict[str, float]:
+    path = data_root / "raw" / "polygon_rest" / "corporate_actions_full" / "ticker_details_full.parquet"
+    if not path.exists():
+        return {}
+    columns = ["ticker", "market_cap", "weighted_shares_outstanding", "share_class_shares_outstanding"]
+    details = pd.read_parquet(path, columns=columns)
+    details["ticker"] = details["ticker"].astype(str).str.upper()
+    caps: dict[str, float] = {}
+    for row in details.itertuples(index=False):
+        symbol = str(row.ticker).upper()
+        cap = row.market_cap
+        if cap is None or pd.isna(cap):
+            shares = row.weighted_shares_outstanding
+            if shares is None or pd.isna(shares):
+                shares = row.share_class_shares_outstanding
+            price = prices.get(symbol)
+            if shares is not None and not pd.isna(shares) and price is not None and not pd.isna(price):
+                cap = float(shares) * float(price)
+        if cap is not None and not pd.isna(cap) and float(cap) > 0:
+            caps[symbol] = float(cap)
+    return caps
+
+
 def percentile(series: pd.Series, higher_is_better: bool = True) -> pd.Series:
     ranks = series.rank(pct=True, method="average")
     if not higher_is_better:
@@ -361,6 +394,7 @@ def build_scanner(data_root: Path, output: Path, snapshot_dir: Path, min_adv: fl
     high_63 = high_panel[candidate_symbols].tail(63).max()
     low_63 = low_panel[candidate_symbols].tail(63).min()
     close_latest = close_panel[candidate_symbols].iloc[-1]
+    market_caps = load_market_caps(data_root, close_latest)
     high_latest = high_panel[candidate_symbols].iloc[-1]
     low_latest = low_panel[candidate_symbols].iloc[-1]
     volume_latest = volume_panel[candidate_symbols].iloc[-1]
@@ -433,6 +467,7 @@ def build_scanner(data_root: Path, output: Path, snapshot_dir: Path, min_adv: fl
     meta = tradable.set_index("symbol")
     work["name"] = work["symbol"].map(meta["name"]).fillna(work["symbol"])
     work["exchange"] = work["symbol"].map(meta["primary_exchange"]).fillna("--")
+    work["market_cap"] = work["symbol"].map(market_caps)
     work = work.dropna(subset=["strength_score", "ret_20d"]).copy()
 
     labels = work.apply(label_for, axis=1, result_type="expand")
@@ -484,6 +519,7 @@ def build_scanner(data_root: Path, output: Path, snapshot_dir: Path, min_adv: fl
                         "volumeRatio": f"{float(row.volume_ratio):.1f}x",
                     },
                     "liquidity": fmt_money(row.dollar_volume),
+                    "marketCap": fmt_market_cap(row.market_cap),
                 }
             )
         return rows

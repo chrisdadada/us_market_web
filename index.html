@@ -31,7 +31,7 @@
             <a href="#" data-page-link="risk">市场温度计</a>
             <a href="#" data-page-link="market">涨跌幅榜</a>
             <a href="#" data-page-link="strength">全市场强弱</a>
-            <a href="#" data-page-link="flows">资金活跃度</a>
+            <a href="#" data-page-link="flows">资金流向</a>
             <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
           </section>
 
@@ -1978,9 +1978,9 @@
         <section class="page-view flows-view" data-view="flows">
           <div class="page-heading flows-heading">
             <div>
-              <p class="eyebrow">资金活跃度</p>
-              <h1>成交额代理的资金线索</h1>
-              <p class="subtitle">用成交额放大、相对成交额和涨跌方向观察资金关注点。这里是代理指标，不代表真实资金方向。</p>
+              <p class="eyebrow">资金流向</p>
+              <h1>板块资金流向榜</h1>
+              <p class="subtitle">按板块聚合成交额、涨跌方向和上涨广度，先看资金关注集中在哪些行业。</p>
             </div>
             <div class="source">
               <span>数据日期</span>
@@ -1988,32 +1988,32 @@
             </div>
           </div>
 
-          <section class="flows-hero" aria-label="资金活跃度摘要">
+          <section class="flows-hero" aria-label="资金流向摘要">
             <div>
-              <span>当前主线</span>
-              <strong id="flowsHeroTitle">等待成交额数据</strong>
-              <p id="flowsHeroLead">成交额放大只是入口，后续需要价格、板块和事件继续确认。</p>
+              <span>当前领先板块</span>
+              <strong id="flowsHeroTitle">等待板块数据</strong>
+              <p id="flowsHeroLead">用板块层面的成交活跃和涨跌广度判断资金偏好。</p>
             </div>
             <div class="flows-method-note">
               <span>口径说明</span>
-              <strong>成交额代理</strong>
-              <p>第一版只展示量价活跃度，不把成交额代理解释成真实资金方向。</p>
+              <strong>资金流向代理</strong>
+              <p>当前按成交额/流动性和涨跌方向聚合，不等同于逐笔主买主卖或真实净流入。</p>
             </div>
           </section>
 
-          <section class="flows-summary-grid" aria-label="资金活跃度指标">
-            <article><span>活跃榜首</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
-            <article><span>板块集中</span><strong id="flowsTopSector">--</strong><p>看成交额代理是否集中在少数板块。</p></article>
-            <article><span>量价确认</span><strong id="flowsAccumulationCount">--</strong><p>上涨且成交额放大的股票。</p></article>
-            <article><span>分歧压力</span><strong id="flowsDistributionCount">--</strong><p>下跌且成交额放大的股票。</p></article>
+          <section class="flows-summary-grid" aria-label="资金流向指标">
+            <article><span>流入领先</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
+            <article><span>活跃板块</span><strong id="flowsTopSector">--</strong><p>按成交额代理观察市场关注度。</p></article>
+            <article><span>流入板块</span><strong id="flowsAccumulationCount">--</strong><p>净流向代理为正的板块数量。</p></article>
+            <article><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>净流向代理为负的板块数量。</p></article>
           </section>
 
           <div class="flows-layout">
             <section class="flows-main-panel">
               <div class="flows-panel-head">
                 <div>
-                  <span>个股活跃度</span>
-                  <strong>按成交额倍数排序</strong>
+                  <span>板块排行</span>
+                  <strong>按资金流向代理排序</strong>
                 </div>
                 <button class="ghost-action" type="button" data-page-link="market">查看行情榜</button>
               </div>
@@ -2021,16 +2021,16 @@
                 <table class="flows-table">
                   <thead>
                     <tr>
-                      <th>股票</th>
                       <th>板块</th>
-                      <th>成交额倍数</th>
-                      <th>涨跌</th>
-                      <th>代理信号</th>
+                      <th>净流向代理</th>
+                      <th>成交活跃</th>
+                      <th>上涨广度</th>
+                      <th>代表标的</th>
                       <th>详情</th>
                     </tr>
                   </thead>
-                  <tbody id="flowsStockBody">
-                    <tr><td colspan="6">等待成交额数据。</td></tr>
+                  <tbody id="flowsSectorBody">
+                    <tr><td colspan="6">等待板块资金流向数据。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -2038,12 +2038,12 @@
 
             <aside class="flows-rail">
               <section>
-                <h2>板块活跃度</h2>
+                <h2>个股明细</h2>
                 <div id="flowsSectorList" class="flows-sector-list"></div>
               </section>
               <section>
                 <h2>怎么看</h2>
-                <p>上涨 + 成交额放大更像量价确认；下跌 + 成交额放大更像分歧或压力。两者都只是观察线索。</p>
+                <p>绿色代表净流向代理为正，红色代表承压；再结合上涨广度和代表标的判断是否形成板块主线。</p>
               </section>
             </aside>
           </div>

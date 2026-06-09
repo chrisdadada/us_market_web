@@ -3,6 +3,7 @@ const MOVERS_URL = "./data/market-movers.json?v=20260609-product1";
 const CORE_URL = "./data/core-signals.json?v=20260609-product1";
 const STRENGTH_URL = "./data/strength-scanner.json?v=20260609-product1";
 const STRENGTH_REVIEW_URL = "./data/strength-review.json?v=20260609-product1";
+const SECTOR_FLOW_URL = "./data/sector-flow.json?v=20260609-product1";
 const EARNINGS_QUALITY_URL = "./data/earnings-quality.json?v=20260609-product1";
 const MARKET_TEMPERATURE_URL = "./data/market-temperature.json?v=20260609-product1";
 const MACRO_SERIES_URL = "./data/macro-series.json?v=20260609-product1";
@@ -20,6 +21,7 @@ const state = {
   core: null,
   strength: null,
   strengthReview: null,
+  sectorFlow: null,
   strengthBucket: "strongest",
   strengthQuery: "",
   strengthLabelFilter: "all",
@@ -377,6 +379,16 @@ const parseSignedPercent = (value) => {
 const parseRatio = (value) => {
   const number = Number(String(value || "").replace("x", ""));
   return Number.isFinite(number) ? number : 0;
+};
+
+const parseMoneyLabel = (value) => {
+  const text = String(value || "").trim().replace("$", "").replace(/,/g, "");
+  if (!text || text === "--") return 0;
+  const suffix = text.at(-1)?.toUpperCase();
+  const multiplier = suffix === "B" ? 1_000_000_000 : suffix === "M" ? 1_000_000 : suffix === "K" ? 1_000 : 1;
+  const raw = multiplier === 1 ? text : text.slice(0, -1);
+  const number = Number(raw);
+  return Number.isFinite(number) ? number * multiplier : 0;
 };
 
 const formatChangeValue = (row) => {
@@ -1343,59 +1355,102 @@ const flowSectorRows = (rows) => {
     .slice(0, 8);
 };
 
+const sectorFlowRows = () => {
+  if (Array.isArray(state.sectorFlow?.rows) && state.sectorFlow.rows.length) return state.sectorFlow.rows;
+  const map = new Map();
+  flowRows().forEach((row) => {
+    const sector = row.sector || "未分类";
+    const liquidity = parseMoneyLabel(row.liquidity || row.volume || row.volumeDollar || row.dollarVolume);
+    const signed = liquidity * Math.sign(row.change || 0);
+    const current = map.get(sector) || {
+      sector,
+      count: 0,
+      upCount: 0,
+      downCount: 0,
+      totalChange: 0,
+      activeValue: 0,
+      netFlowProxy: 0,
+      leaders: [],
+    };
+    current.count += 1;
+    current.upCount += row.change > 0 ? 1 : 0;
+    current.downCount += row.change < 0 ? 1 : 0;
+    current.totalChange += row.change || 0;
+    current.activeValue += liquidity;
+    current.netFlowProxy += signed;
+    current.leaders.push({ symbol: row.symbol, change: row.change, liquidity: row.volumeRatio || row.volume || "--", marketCap: row.marketCap || "--" });
+    map.set(sector, current);
+  });
+  return [...map.values()]
+    .map((item, index) => ({
+      ...item,
+      rank: index + 1,
+      avgChange: item.totalChange / Math.max(1, item.count),
+      breadthPct: (item.upCount / Math.max(1, item.count)) * 100,
+      activeValueLabel: formatCompactMoney(item.activeValue),
+      netFlowLabel: formatCompactMoney(item.netFlowProxy),
+      status: item.netFlowProxy > 0 ? "流入领先" : item.netFlowProxy < 0 ? "流出压力" : "活跃分歧",
+      leaders: item.leaders.slice(0, 5),
+    }))
+    .sort((a, b) => b.netFlowProxy - a.netFlowProxy || b.activeValue - a.activeValue)
+    .map((item, index) => ({ ...item, rank: index + 1 }))
+    .slice(0, 16);
+};
+
 const renderFlowsPage = () => {
-  const body = document.querySelector("#flowsStockBody");
+  const body = document.querySelector("#flowsSectorBody");
   const sectorList = document.querySelector("#flowsSectorList");
   if (!body) return;
-  const rows = flowRows();
-  const sectors = flowSectorRows(rows);
+  const rows = sectorFlowRows();
+  const stockRows = flowRows();
   const top = rows[0];
-  const topSector = sectors[0];
-  const accumulation = rows.filter((row) => row.signal === "量价确认").length;
-  const distribution = rows.filter((row) => row.signal === "放量承压").length;
-  setText("#flowsAsOf", formatDisplayDate(state.meta?.volume?.updatedAt || state.meta?.day?.updatedAt));
-  setText("#flowsHeroTitle", top ? `${top.symbol} · ${top.signal}` : "等待成交额数据");
+  const activeSector = rows.slice().sort((a, b) => (b.activeValue || 0) - (a.activeValue || 0))[0];
+  const positiveSectors = rows.filter((row) => (row.netFlowProxy || 0) > 0).length;
+  const negativeSectors = rows.filter((row) => (row.netFlowProxy || 0) < 0).length;
+  setText("#flowsAsOf", formatDisplayDate(state.sectorFlow?.asOf || state.meta?.volume?.updatedAt || state.meta?.day?.updatedAt));
+  setText("#flowsHeroTitle", top ? `${top.sector} · ${top.netFlowLabel || formatCompactMoney(top.netFlowProxy || 0)}` : "等待板块数据");
   setText(
     "#flowsHeroLead",
     top
-      ? `${top.symbol} 成交额倍数 ${top.volumeRatio}，${formatSignedPct(top.change)}。先看价格和板块是否继续确认。`
-      : "成交额放大只是入口，后续需要价格、板块和事件继续确认。",
+      ? `${top.status || "板块领先"}，上涨广度 ${Math.round(top.breadthPct || 0)}%，代表标的 ${(top.leaders || []).slice(0, 3).map((item) => item.symbol).join(" / ") || "--"}。`
+      : "用板块层面的成交活跃和涨跌广度判断资金偏好。",
   );
-  setText("#flowsTopSymbol", top ? top.symbol : "--");
-  setText("#flowsTopNote", top ? `${top.volumeRatio} · ${top.signal}` : "等待数据。");
-  setText("#flowsTopSector", topSector ? topSector.sector : "--");
-  setText("#flowsAccumulationCount", accumulation ? String(accumulation) : "--");
-  setText("#flowsDistributionCount", distribution ? String(distribution) : "--");
+  setText("#flowsTopSymbol", top ? top.sector : "--");
+  setText("#flowsTopNote", top ? `${top.netFlowLabel || formatCompactMoney(top.netFlowProxy || 0)} · ${top.status || "代理流向"}` : "等待数据。");
+  setText("#flowsTopSector", activeSector ? activeSector.sector : "--");
+  setText("#flowsAccumulationCount", positiveSectors ? String(positiveSectors) : "--");
+  setText("#flowsDistributionCount", negativeSectors ? String(negativeSectors) : "--");
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="6">等待成交额数据。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6">等待板块资金流向数据。</td></tr>`;
   } else {
-    body.innerHTML = rows.slice(0, 40).map((row) => {
-      const changeClass = row.change >= 0 ? "is-positive" : "is-negative";
-      const signalClass = row.signal === "量价确认" ? "is-positive" : row.signal === "放量承压" ? "is-negative" : "";
+    body.innerHTML = rows.slice(0, 16).map((row) => {
+      const changeClass = (row.netFlowProxy || 0) >= 0 ? "is-positive" : "is-negative";
+      const leaders = (row.leaders || []).slice(0, 4).map((item) => item.symbol).join(" / ") || "--";
       return `
         <tr>
-          <td><button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">${escapeHtml(row.symbol)}</button></td>
-          <td>${escapeHtml(row.sector || "未分类")}</td>
-          <td>${escapeHtml(row.volumeRatio || "--")}</td>
-          <td class="${changeClass}">${escapeHtml(formatSignedPct(row.change))}</td>
-          <td><span class="flow-signal ${signalClass}">${escapeHtml(row.signal)}</span></td>
-          <td><button class="table-action" type="button" data-stock-open="${escapeHtml(row.symbol)}">详情</button></td>
+          <td><button class="inline-stock-link" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">${escapeHtml(row.sector)}</button></td>
+          <td class="${changeClass}">${escapeHtml(row.netFlowLabel || formatCompactMoney(row.netFlowProxy || 0))}</td>
+          <td>${escapeHtml(row.activeValueLabel || formatCompactMoney(row.activeValue || 0))}</td>
+          <td>${escapeHtml(`${Math.round(row.breadthPct || 0)}% · ${row.upCount || 0}涨/${row.downCount || 0}跌`)}</td>
+          <td>${escapeHtml(leaders)}</td>
+          <td><button class="table-action" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">查看</button></td>
         </tr>
       `;
     }).join("");
   }
   if (sectorList) {
-    const max = Math.max(...sectors.map((item) => item.avgRatio), 1);
-    sectorList.innerHTML = sectors.length
-      ? sectors.map((item) => `
-        <button type="button" data-flow-sector-open="${escapeHtml(item.sector)}">
-          <span>${escapeHtml(item.sector)}</span>
-          <i><b style="width:${Math.max(8, (item.avgRatio / max) * 100).toFixed(1)}%"></b></i>
-          <strong>${escapeHtml(`${item.avgRatio.toFixed(1)}x`)}</strong>
-          <small>${escapeHtml(`${item.upCount}涨 / ${item.downCount}跌`)}</small>
+    const detailRows = stockRows.slice(0, 10);
+    const max = Math.max(...detailRows.map((item) => parseRatio(item.volumeRatio)), 1);
+    sectorList.innerHTML = detailRows.length
+      ? detailRows.map((item) => `
+        <button type="button" data-stock-open="${escapeHtml(item.symbol)}">
+          <span>${escapeHtml(item.symbol)}</span>
+          <i><b style="width:${Math.max(8, (parseRatio(item.volumeRatio) / max) * 100).toFixed(1)}%"></b></i>
+          <strong>${escapeHtml(item.volumeRatio || "--")}</strong>
+          <small>${escapeHtml(`${item.sector || "未分类"} · ${formatSignedPct(item.change)}`)}</small>
         </button>
       `).join("")
-      : "<p>等待板块活跃度数据。</p>";
+      : "<p>等待个股活跃度数据。</p>";
   }
 };
 
@@ -3191,10 +3246,10 @@ const pageModules = [
   },
   {
     id: "flows",
-    kicker: "资金活跃度",
-    title: "资金活跃度",
+    kicker: "板块资金流向",
+    title: "资金流向",
     nav: "资金",
-    summary: "用成交额放大、相对成交额和涨跌方向观察资金关注点。",
+    summary: "按板块聚合成交额、涨跌方向和上涨广度，观察资金偏好。",
     status: "代理指标",
   },
   {
@@ -8106,6 +8161,7 @@ const init = async () => {
     coreData,
     strengthData,
     strengthReviewData,
+    sectorFlowData,
     marketTemperatureData,
   ] = await Promise.all([
     fetch(DATA_URL),
@@ -8113,6 +8169,7 @@ const init = async () => {
     fetchOptionalJson(CORE_URL),
     fetchOptionalJson(STRENGTH_URL),
     fetchOptionalJson(STRENGTH_REVIEW_URL),
+    fetchOptionalJson(SECTOR_FLOW_URL),
     fetchOptionalJson(MARKET_TEMPERATURE_URL),
   ]);
   const ytdData = await ytdResponse.json();
@@ -8121,6 +8178,7 @@ const init = async () => {
   state.core = coreData;
   state.strength = strengthData;
   state.strengthReview = strengthReviewData;
+  state.sectorFlow = sectorFlowData;
   state.marketTemperature = marketTemperatureData;
   const knownRows = [...ytdData.rows, ...moversData.boards.day.rows, ...moversData.boards.week.rows];
   const nameMap = Object.fromEntries(knownRows.map((row) => [row.symbol, row]));

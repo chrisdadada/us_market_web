@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T09:25:44.444753+00:00",
+  "generatedAt": "2026-06-09T14:45:33.829762+00:00",
   "asOf": "2026-06-08",
   "universe": {
     "total": 2641,
@@ -58,6 +58,7 @@
         "volumeRatio": "2.1x"
       },
       "liquidity": "$409.7M",
+      "marketCap": "7.06B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -98,6 +99,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$397.9M",
+      "marketCap": "36.51B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -138,6 +140,7 @@
         "volumeRatio": "2.4x"
       },
       "liquidity": "$617.2M",
+      "marketCap": "11.54B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -178,6 +181,7 @@
         "volumeRatio": "2.1x"
       },
       "liquidity": "$67.4M",
+      "marketCap": "112.25M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -218,6 +222,7 @@
         "volumeRatio": "1.9x"
       },
       "liquidity": "$73.1M",
+      "marketCap": "3.10B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -258,6 +263,7 @@
         "volumeRatio": "2.5x"
       },
       "liquidity": "$85.2M",
+      "marketCap": "2.78B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -298,6 +304,7 @@
         "volumeRatio": "1.6x"
       },
       "liquidity": "$456.8M",
+      "marketCap": "28.78B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -338,6 +345,7 @@
         "volumeRatio": "1.4x"
       },
       "liquidity": "$3.4B",
+      "marketCap": "157.80B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -378,6 +386,7 @@
         "volumeRatio": "1.7x"
       },
       "liquidity": "$100.6M",
+      "marketCap": "2.71B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -418,6 +427,7 @@
         "volumeRatio": "4.9x"
       },
       "liquidity": "$24.4B",
+      "marketCap": "163.55B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -458,6 +468,7 @@
         "volumeRatio": "1.5x"
       },
       "liquidity": "$171.9M",
+      "marketCap": "8.79B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -498,6 +509,7 @@
         "volumeRatio": "1.7x"
       },
       "liquidity": "$490.6M",
+      "marketCap": "5.47B",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -538,6 +550,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$1.7B",
+      "marketCap": "49.28B",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -578,6 +591,7 @@
         "volumeRatio": "2.0x"
       },
       "liquidity": "$42.9M",
+      "marketCap": "2.12B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -618,6 +632,7 @@
         "volumeRatio": "2.1x"
       },
       "liquidity": "$279.1M",
+      "marketCap": "3.23B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -658,6 +673,7 @@
         "volumeRatio": "1.7x"
       },
       "liquidity": "$391.9M",
+      "marketCap": "24.79B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -698,6 +714,7 @@
         "volumeRatio": "1.7x"
       },
       "liquidity": "$51.8M",
+      "marketCap": "5.88B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -738,6 +755,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$48.2M",
+      "marketCap": "3.93B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -778,6 +796,7 @@
         "volumeRatio": "9.0x"
       },
       "liquidity": "$675.1M",
+      "marketCap": "3.05B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -818,6 +837,7 @@
         "volumeRatio": "2.1x"
       },
       "liquidity": "$201.9M",
+      "marketCap": "5.49B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -858,6 +878,7 @@
         "volumeRatio": "1.5x"
       },
       "liquidity": "$580.1M",
+      "marketCap": "27.57B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -898,6 +919,7 @@
         "volumeRatio": "2.4x"
       },
       "liquidity": "$1.4B",
+      "marketCap": "44.85B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -938,6 +960,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$110.2M",
+      "marketCap": "6.42B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -978,6 +1001,7 @@
         "volumeRatio": "2.2x"
       },
       "liquidity": "$96.1M",
+      "marketCap": "12.07B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1018,6 +1042,7 @@
         "volumeRatio": "0.8x"
       },
       "liquidity": "$12.3B",
+      "marketCap": "729.82B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -1058,6 +1083,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$246.6M",
+      "marketCap": "2.42B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -1098,6 +1124,7 @@
         "volumeRatio": "1.3x"
       },
       "liquidity": "$21.2M",
+      "marketCap": "593.95M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1138,6 +1165,7 @@
         "volumeRatio": "1.8x"
       },
       "liquidity": "$100.0M",
+      "marketCap": "2.29B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1178,6 +1206,7 @@
         "volumeRatio": "1.3x"
       },
       "liquidity": "$563.6M",
+      "marketCap": "13.21B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -1218,6 +1247,7 @@
         "volumeRatio": "1.8x"
       },
       "liquidity": "$267.8M",
+      "marketCap": "16.31B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1258,6 +1288,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$1.4B",
+      "marketCap": "20.12B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1298,6 +1329,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$475.3M",
+      "marketCap": "43.64B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1338,6 +1370,7 @@
         "volumeRatio": "1.6x"
       },
       "liquidity": "$51.9M",
+      "marketCap": "1.34B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1378,6 +1411,7 @@
         "volumeRatio": "5.2x"
       },
       "liquidity": "$80.5M",
+      "marketCap": "545.54M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1418,6 +1452,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$762.9M",
+      "marketCap": "95.24B",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -1458,6 +1493,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$51.4B",
+      "marketCap": "825.49B",
       "onBoard": {
         "label": "连续 6 天",
         "days": 6,
@@ -1498,6 +1534,7 @@
         "volumeRatio": "1.4x"
       },
       "liquidity": "$289.6M",
+      "marketCap": "3.63B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -1538,6 +1575,7 @@
         "volumeRatio": "1.1x"
       },
       "liquidity": "$59.7M",
+      "marketCap": "4.05B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1578,6 +1616,7 @@
         "volumeRatio": "1.4x"
       },
       "liquidity": "$195.6M",
+      "marketCap": "8.14B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1618,6 +1657,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$590.5M",
+      "marketCap": "119.02B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -1658,6 +1698,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$2.8M",
+      "marketCap": "137.42M",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -1698,6 +1739,7 @@
         "volumeRatio": "0.6x"
       },
       "liquidity": "$5.0M",
+      "marketCap": "587.14M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1738,6 +1780,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$5.4M",
+      "marketCap": "459.29M",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -1778,6 +1821,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$9.9M",
+      "marketCap": "651.43M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1818,6 +1862,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$9.4M",
+      "marketCap": "267.19M",
       "onBoard": {
         "label": "连续 6 天",
         "days": 6,
@@ -1858,6 +1903,7 @@
         "volumeRatio": "0.6x"
       },
       "liquidity": "$6.1M",
+      "marketCap": "2.70B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1898,6 +1944,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$5.3M",
+      "marketCap": "445.87M",
       "onBoard": {
         "label": "连续 6 天",
         "days": 6,
@@ -1938,6 +1985,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$15.7M",
+      "marketCap": "1.69B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -1978,6 +2026,7 @@
         "volumeRatio": "0.4x"
       },
       "liquidity": "$2.0M",
+      "marketCap": "225.75M",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -2018,6 +2067,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$8.5M",
+      "marketCap": "1.37B",
       "onBoard": {
         "label": "连续 6 天",
         "days": 6,
@@ -2058,6 +2108,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$13.9M",
+      "marketCap": "896.01M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2098,6 +2149,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$10.2M",
+      "marketCap": "1.03B",
       "onBoard": {
         "label": "连续 3 天",
         "days": 3,
@@ -2138,6 +2190,7 @@
         "volumeRatio": "0.6x"
       },
       "liquidity": "$7.3M",
+      "marketCap": "308.63M",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -2178,6 +2231,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$9.4M",
+      "marketCap": "1.18B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2218,6 +2272,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$19.4M",
+      "marketCap": "994.43M",
       "onBoard": {
         "label": "连续 5 天",
         "days": 5,
@@ -2258,6 +2313,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$10.4M",
+      "marketCap": "360.63M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2298,6 +2354,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$13.7M",
+      "marketCap": "1.22B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2338,6 +2395,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$9.4M",
+      "marketCap": "729.25M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2378,6 +2436,7 @@
         "volumeRatio": "0.8x"
       },
       "liquidity": "$14.7M",
+      "marketCap": "1.30B",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -2418,6 +2477,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$16.1M",
+      "marketCap": "1.11B",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -2458,6 +2518,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$4.9M",
+      "marketCap": "354.37M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2498,6 +2559,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$15.0M",
+      "marketCap": "4.18B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2538,6 +2600,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$6.6M",
+      "marketCap": "539.55M",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -2578,6 +2641,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$16.7M",
+      "marketCap": "1.10B",
       "onBoard": {
         "label": "连续 3 天",
         "days": 3,
@@ -2618,6 +2682,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$15.8M",
+      "marketCap": "708.78M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2658,6 +2723,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$4.5M",
+      "marketCap": "10.76B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2698,6 +2764,7 @@
         "volumeRatio": "0.6x"
       },
       "liquidity": "$17.2M",
+      "marketCap": "3.48B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2738,6 +2805,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$2.7M",
+      "marketCap": "489.50M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2778,6 +2846,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$48.5M",
+      "marketCap": "5.61B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2818,6 +2887,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$4.3M",
+      "marketCap": "515.84M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2858,6 +2928,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$7.7M",
+      "marketCap": "1.08B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2898,6 +2969,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$20.7M",
+      "marketCap": "1.43B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2938,6 +3010,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$14.7M",
+      "marketCap": "24.83B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -2978,6 +3051,7 @@
         "volumeRatio": "0.8x"
       },
       "liquidity": "$4.7M",
+      "marketCap": "371.64M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3018,6 +3092,7 @@
         "volumeRatio": "0.5x"
       },
       "liquidity": "$27.8M",
+      "marketCap": "2.73B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -3058,6 +3133,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$60.2M",
+      "marketCap": "2.94B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3098,6 +3174,7 @@
         "volumeRatio": "0.9x"
       },
       "liquidity": "$94.6M",
+      "marketCap": "36.27B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -3138,6 +3215,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$3.8M",
+      "marketCap": "1.39B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3178,6 +3256,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$56.6M",
+      "marketCap": "2.35B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3218,6 +3297,7 @@
         "volumeRatio": "0.8x"
       },
       "liquidity": "$27.3M",
+      "marketCap": "851.94M",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -3258,6 +3338,7 @@
         "volumeRatio": "2.1x"
       },
       "liquidity": "$409.7M",
+      "marketCap": "7.06B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -3298,6 +3379,7 @@
         "volumeRatio": "2.1x"
       },
       "liquidity": "$67.4M",
+      "marketCap": "112.25M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3338,6 +3420,7 @@
         "volumeRatio": "0.7x"
       },
       "liquidity": "$397.9M",
+      "marketCap": "36.51B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -3378,6 +3461,7 @@
         "volumeRatio": "1.9x"
       },
       "liquidity": "$73.1M",
+      "marketCap": "3.10B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3418,6 +3502,7 @@
         "volumeRatio": "2.5x"
       },
       "liquidity": "$85.2M",
+      "marketCap": "2.78B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3458,6 +3543,7 @@
         "volumeRatio": "1.7x"
       },
       "liquidity": "$100.6M",
+      "marketCap": "2.71B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3498,6 +3584,7 @@
         "volumeRatio": "4.9x"
       },
       "liquidity": "$24.4B",
+      "marketCap": "163.55B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3538,6 +3625,7 @@
         "volumeRatio": "1.5x"
       },
       "liquidity": "$171.9M",
+      "marketCap": "8.79B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3578,6 +3666,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$1.7B",
+      "marketCap": "49.28B",
       "onBoard": {
         "label": "连续 4 天",
         "days": 4,
@@ -3618,6 +3707,7 @@
         "volumeRatio": "2.0x"
       },
       "liquidity": "$42.9M",
+      "marketCap": "2.12B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3658,6 +3748,7 @@
         "volumeRatio": "9.0x"
       },
       "liquidity": "$675.1M",
+      "marketCap": "3.05B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3698,6 +3789,7 @@
         "volumeRatio": "2.1x"
       },
       "liquidity": "$201.9M",
+      "marketCap": "5.49B",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -3738,6 +3830,7 @@
         "volumeRatio": "1.8x"
       },
       "liquidity": "$100.0M",
+      "marketCap": "2.29B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3778,6 +3871,7 @@
         "volumeRatio": "1.3x"
       },
       "liquidity": "$21.2M",
+      "marketCap": "593.95M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3818,6 +3912,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$475.3M",
+      "marketCap": "43.64B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3858,6 +3953,7 @@
         "volumeRatio": "5.2x"
       },
       "liquidity": "$80.5M",
+      "marketCap": "545.54M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -3898,6 +3994,7 @@
         "volumeRatio": "1.2x"
       },
       "liquidity": "$246.6M",
+      "marketCap": "2.42B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -3938,6 +4035,7 @@
         "volumeRatio": "2.4x"
       },
       "liquidity": "$1.4B",
+      "marketCap": "44.85B",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -3978,6 +4076,7 @@
         "volumeRatio": "1.4x"
       },
       "liquidity": "$74.4M",
+      "marketCap": "5.94B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4018,6 +4117,7 @@
         "volumeRatio": "5.7x"
       },
       "liquidity": "$402.6M",
+      "marketCap": "5.37B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4058,6 +4158,7 @@
         "volumeRatio": "1.8x"
       },
       "liquidity": "$53.4M",
+      "marketCap": "729.36M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4098,6 +4199,7 @@
         "volumeRatio": "1.4x"
       },
       "liquidity": "$988.2M",
+      "marketCap": "57.71B",
       "onBoard": {
         "label": "连续 3 天",
         "days": 3,
@@ -4138,6 +4240,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$492.3M",
+      "marketCap": "58.65B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4178,6 +4281,7 @@
         "volumeRatio": "1.1x"
       },
       "liquidity": "$8.4M",
+      "marketCap": "928.05M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4218,6 +4322,7 @@
         "volumeRatio": "2.6x"
       },
       "liquidity": "$33.6M",
+      "marketCap": "490.83M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4258,6 +4363,7 @@
         "volumeRatio": "3.6x"
       },
       "liquidity": "$80.4M",
+      "marketCap": "62.15M",
       "onBoard": {
         "label": "连续 2 天",
         "days": 2,
@@ -4298,6 +4404,7 @@
         "volumeRatio": "2.0x"
       },
       "liquidity": "$11.8M",
+      "marketCap": "825.89M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4338,6 +4445,7 @@
         "volumeRatio": "1.9x"
       },
       "liquidity": "$15.7M",
+      "marketCap": "118.55M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4378,6 +4486,7 @@
         "volumeRatio": "1.3x"
       },
       "liquidity": "$2.5B",
+      "marketCap": "238.98B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4418,6 +4527,7 @@
         "volumeRatio": "3.0x"
       },
       "liquidity": "$19.8M",
+      "marketCap": "41.35M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4458,6 +4568,7 @@
         "volumeRatio": "2.6x"
       },
       "liquidity": "$118.5M",
+      "marketCap": "2.95B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4498,6 +4609,7 @@
         "volumeRatio": "1.6x"
       },
       "liquidity": "$20.9M",
+      "marketCap": "1.71B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4538,6 +4650,7 @@
         "volumeRatio": "2.6x"
       },
       "liquidity": "$132.6M",
+      "marketCap": "3.98B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4578,6 +4691,7 @@
         "volumeRatio": "1.9x"
       },
       "liquidity": "$17.5M",
+      "marketCap": "450.52M",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4618,6 +4732,7 @@
         "volumeRatio": "1.9x"
       },
       "liquidity": "$156.1M",
+      "marketCap": "9.55B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4658,6 +4773,7 @@
         "volumeRatio": "5.4x"
       },
       "liquidity": "$713.8M",
+      "marketCap": "69.64B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4698,6 +4814,7 @@
         "volumeRatio": "1.4x"
       },
       "liquidity": "$56.2M",
+      "marketCap": "1.87B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4738,6 +4855,7 @@
         "volumeRatio": "1.0x"
       },
       "liquidity": "$110.7M",
+      "marketCap": "10.55B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,
@@ -4778,6 +4896,7 @@
         "volumeRatio": "2.4x"
       },
       "liquidity": "$21.5M",
+      "marketCap": "227.05M",
       "onBoard": {
         "label": "今日回榜",
         "days": 1,
@@ -4818,6 +4937,7 @@
         "volumeRatio": "1.4x"
       },
       "liquidity": "$99.2M",
+      "marketCap": "4.43B",
       "onBoard": {
         "label": "今日新上榜",
         "days": 1,

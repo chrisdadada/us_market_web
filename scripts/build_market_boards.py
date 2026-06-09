@@ -175,7 +175,34 @@ def action_for(risk: str, change: float) -> str:
     return "先观察成交额和价格是否能延续，再决定是否加入重点复盘。"
 
 
-def build_rows(frame: pd.DataFrame, change_col: str, old_map: dict[str, dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+def load_market_caps(data_root: Path, prices: pd.Series) -> dict[str, float]:
+    path = data_root / "raw" / "polygon_rest" / "corporate_actions_full" / "ticker_details_full.parquet"
+    if not path.exists():
+        return {}
+    columns = ["ticker", "market_cap", "weighted_shares_outstanding", "share_class_shares_outstanding"]
+    details = pd.read_parquet(path, columns=columns)
+    details["ticker"] = details["ticker"].astype(str).str.upper()
+    caps: dict[str, float] = {}
+    for row in details.itertuples(index=False):
+        symbol = str(row.ticker).upper()
+        cap = clean_number(row.market_cap, 0)
+        if cap is None:
+            shares = clean_number(row.weighted_shares_outstanding, 0) or clean_number(row.share_class_shares_outstanding, 0)
+            price = clean_number(prices.get(symbol), 4)
+            if shares and price:
+                cap = shares * price
+        if cap and cap > 0:
+            caps[symbol] = float(cap)
+    return caps
+
+
+def build_rows(
+    frame: pd.DataFrame,
+    change_col: str,
+    old_map: dict[str, dict[str, Any]],
+    market_caps: dict[str, float],
+    limit: int,
+) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for rank, row in enumerate(frame.head(limit).itertuples(index=False), start=1):
         item = pd.Series(row._asdict())
@@ -197,7 +224,7 @@ def build_rows(frame: pd.DataFrame, change_col: str, old_map: dict[str, dict[str
                 "change": clean_number(change, 2),
                 "price": clean_number(item.get("price"), 3),
                 "volume": compact_number(item.get("volume")),
-                "marketCap": previous.get("marketCap") or "--",
+                "marketCap": compact_money(market_caps.get(symbol)) if market_caps.get(symbol) else previous.get("marketCap") or "--",
             }
         )
     return out
@@ -236,6 +263,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     work["type"] = work["symbol"].map(meta["type"]).fillna("")
     work["median_dollar_volume_20d"] = work["symbol"].map(meta["median_dollar_volume_20d"]).fillna(0)
     work = work.dropna(subset=["price", "return1d", "return5d", "returnYtd"])
+    market_caps = load_market_caps(data_root, work.set_index("symbol")["price"])
 
     ytd_work = work[
         (work["firstYearPrice"].fillna(0) >= 1)
@@ -246,6 +274,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         ytd_work.sort_values("returnYtd", ascending=False).rename(columns={"returnYtd": "changeYtd"}),
         "changeYtd",
         old_map,
+        market_caps,
         limit,
     )
     for row in ytd_rows:
@@ -255,12 +284,14 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
         work.assign(abs_return=work["return1d"].abs()).sort_values("abs_return", ascending=False),
         "return1d",
         old_map,
+        market_caps,
         limit,
     )
     week_rows = build_rows(
         work.assign(abs_return=work["return5d"].abs()).sort_values("abs_return", ascending=False),
         "return5d",
         old_map,
+        market_caps,
         limit,
     )
 
