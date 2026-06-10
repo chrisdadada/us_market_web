@@ -16129,6 +16129,157 @@ body .page-view[data-view="risk"] .macro-series-foot {
   font-size: 11px;
 }
 
+/* Stock library and single-stock terminal polish. */
+body .stocks-overview strong {
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+body .stocks-overview article:first-child strong {
+  color: #8fc7ff;
+  font-size: 16px;
+}
+
+body .stocks-table-wrap table {
+  min-width: 1480px;
+}
+
+body .stocks-terminal-table th:nth-child(12),
+body .stocks-terminal-table td:nth-child(12) {
+  width: 190px;
+}
+
+body .stocks-terminal-table th:nth-child(13),
+body .stocks-terminal-table td:nth-child(13) {
+  width: 190px;
+}
+
+body .stocks-signal-cell strong {
+  font-weight: 620;
+}
+
+body .stocks-signal-cell.is-positive strong {
+  color: var(--positive);
+}
+
+body .stocks-signal-cell.is-negative strong {
+  color: var(--negative);
+}
+
+body .stocks-signal-cell.is-neutral strong {
+  color: #8fc7ff;
+}
+
+body .stocks-signal-cell.is-muted strong {
+  color: #8fa0b8;
+}
+
+body .stock-terminal-grid {
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+}
+
+body .stock-terminal-panel {
+  border-radius: 4px;
+}
+
+body .stock-terminal-head {
+  min-height: 54px;
+  padding: 10px 12px;
+}
+
+body .stock-terminal-peer-table .stock-terminal-row {
+  grid-template-columns: 42px 58px minmax(140px, 1fr) 66px 76px 66px 72px;
+}
+
+body .stock-terminal-table {
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body .stock-terminal-peer-table .stock-terminal-row {
+  min-width: 590px;
+}
+
+body .stock-terminal-row {
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+body .stock-terminal-row i {
+  color: #75869d;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+}
+
+body .stock-terminal-row.is-current i {
+  color: #8fc7ff;
+}
+
+body .stock-terminal-row.is-current {
+  box-shadow: inset 2px 0 0 #35a7ff;
+}
+
+body .stock-terminal-row.is-head span:nth-child(n + 4) {
+  text-align: right;
+}
+
+body .stock-terminal-row small:last-child {
+  color: #9fb0c6;
+}
+
+body .stock-research-workspace .stock-hub-card {
+  overflow: hidden;
+}
+
+body .stock-research-workspace .stock-peer-table {
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body .stock-research-workspace .stock-peer-table-head,
+body .stock-research-workspace .stock-peer-table button {
+  min-width: 540px;
+}
+
+body .stock-fact-matrix {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+body .stock-fact-matrix section {
+  border: 0;
+  border-right: 1px solid rgba(128, 151, 183, 0.14);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px;
+}
+
+body .stock-fact-matrix section:last-child {
+  border-right: 0;
+}
+
+body .stock-fact-matrix .stock-risk-facts {
+  grid-column: auto;
+}
+
+body .stock-fact-matrix dl {
+  grid-template-columns: 82px minmax(0, 1fr);
+}
+
+body .stock-fact-matrix dt,
+body .stock-fact-matrix dd {
+  min-height: 26px;
+  padding: 6px 0;
+}
+
+body .stock-fact-matrix dd {
+  white-space: normal;
+}
+
 @media (max-width: 760px) {
   body .stock-research-workspace .stock-terminal-grid {
     grid-template-columns: 1fr;
@@ -16139,9 +16290,9 @@ body .page-view[data-view="risk"] .macro-series-foot {
     -webkit-overflow-scrolling: touch;
   }
 
-  body .stock-research-workspace .stock-terminal-row {
-    grid-template-columns: 58px minmax(120px, 1fr) 68px 76px 66px;
-    min-width: 460px;
+  body .stock-research-workspace .stock-terminal-peer-table .stock-terminal-row {
+    grid-template-columns: 44px 58px minmax(132px, 1fr) 64px 74px 66px 78px;
+    min-width: 560px;
   }
 
   body .stock-research-workspace .stock-fact-matrix {
@@ -16150,6 +16301,15 @@ body .page-view[data-view="risk"] .macro-series-foot {
 
   body .stock-research-workspace .stock-fact-matrix .stock-risk-facts {
     grid-column: auto;
+  }
+
+  body .stock-fact-matrix section {
+    border-right: 0;
+    border-bottom: 1px solid rgba(128, 151, 183, 0.14);
+  }
+
+  body .stock-fact-matrix section:last-child {
+    border-bottom: 0;
   }
 
   body .page-view[data-view="risk"] .macro-monitor-head,
