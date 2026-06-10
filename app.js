@@ -5026,15 +5026,31 @@ const renderMarketSectorRankingView = (rows) => {
   const flowSectors = sectorFlowDisplayRows();
   const sectors = knownSectorRows(flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
   const maxAbsFlow = Math.max(...sectors.map((item) => Math.abs(Number(item.netFlowProxy ?? item.avgChange) || 0)), 1);
+  const positiveCount = sectors.filter((item) => Number(item.netFlowProxy ?? item.avgChange) >= 0).length;
+  const negativeCount = sectors.length - positiveCount;
+  const activeSector = sectors.slice().sort((a, b) => (b.activeValue || b.dollarVolume || 0) - (a.activeValue || a.dollarVolume || 0))[0];
+  const topSector = sectors[0];
   return `
     ${marketVisualTabs()}
     <section class="market-sector-ranking professional-market-board">
       <div class="market-visual-copy">
-        <span>板块主线</span>
-        <strong>${escapeHtml(sectorDisplayName(sectors[0]?.sector))}</strong>
-        <p>按板块合计成交额、涨跌方向和上涨广度排序。先看资金集中在哪些方向，再进入热力图确认个股贡献。</p>
+        <span>板块排行</span>
+        <strong>${escapeHtml(sectorDisplayName(topSector?.sector))}</strong>
+        <p>按板块资金方向、成交活跃度和上涨广度排序。绿色表示流入或上涨占优，红色表示流出或下跌占优。</p>
+        <div class="market-visual-metrics">
+          <div><span>流入板块</span><b class="is-positive">${escapeHtml(String(positiveCount))}</b></div>
+          <div><span>流出板块</span><b class="is-negative">${escapeHtml(String(negativeCount))}</b></div>
+          <div><span>成交最活跃</span><b>${escapeHtml(sectorDisplayName(activeSector?.sector))}</b></div>
+        </div>
       </div>
       <div class="market-sector-rank-list">
+        <div class="market-sector-rank-head">
+          <span>排名</span>
+          <span>板块</span>
+          <span>资金方向</span>
+          <span>数值</span>
+          <span>广度 / 龙头</span>
+        </div>
         ${sectors.map((item, index) => {
           const value = item.activeValue || item.dollarVolume || 0;
           const flowValue = item.netFlowProxy ?? item.avgChange ?? 0;
@@ -5071,27 +5087,43 @@ const renderMarketHeatmapView = (rows) => {
     .sort((a, b) => b.heatSize - a.heatSize)
     .slice(0, 24);
   const max = Math.max(...tiles.map((row) => row.heatSize), 1);
+  const upTiles = tiles.filter((row) => getChange(row) > 0).length;
+  const downTiles = tiles.filter((row) => getChange(row) < 0).length;
+  const sectorCount = new Set(tiles.map((row) => sectorDisplayName(row.sector))).size;
+  const topTile = tiles[0];
   return `
     ${marketVisualTabs()}
     <section class="market-heatmap-view professional-market-board">
       <div class="market-visual-copy">
         <span>成交额权重热力图</span>
-        <strong>${escapeHtml(tiles[0]?.symbol || "--")}</strong>
-        <p>面积按成交额活跃度排序，颜色表示涨跌方向。先确认市场热度集中在哪些股票和板块。</p>
+        <strong>${escapeHtml(topTile?.symbol || "--")}</strong>
+        <p>面积代表成交活跃度，绿色为上涨，红色为下跌。先看大块集中在哪些板块，再进入个股详情确认原因。</p>
+        <div class="market-visual-metrics">
+          <div><span>上涨</span><b class="is-positive">${escapeHtml(String(upTiles))}</b></div>
+          <div><span>下跌</span><b class="is-negative">${escapeHtml(String(downTiles))}</b></div>
+          <div><span>覆盖板块</span><b>${escapeHtml(String(sectorCount))}</b></div>
+        </div>
       </div>
-      <div class="market-heatmap-grid">
-        ${tiles.map((row) => {
-          const change = getChange(row);
-          const tone = change > 0 ? "is-up" : change < 0 ? "is-down" : "is-flat";
-          const span = row.heatSize / max > 0.55 ? "is-large" : row.heatSize / max > 0.25 ? "is-mid" : "";
-          return `
-            <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}">
-              <small>${escapeHtml(sectorDisplayName(row.sector))}</small>
-              <strong>${escapeHtml(row.symbol)}</strong>
-              <span>${escapeHtml(formatSignedPct(change))}</span>
-            </button>
-          `;
-        }).join("")}
+      <div class="market-heatmap-shell">
+        <div class="market-heatmap-legend">
+          <span><i class="is-up"></i>上涨</span>
+          <span><i class="is-down"></i>下跌</span>
+          <span><i></i>面积=成交活跃度</span>
+        </div>
+        <div class="market-heatmap-grid">
+          ${tiles.map((row) => {
+            const change = getChange(row);
+            const tone = change > 0 ? "is-up" : change < 0 ? "is-down" : "is-flat";
+            const span = row.heatSize / max > 0.55 ? "is-large" : row.heatSize / max > 0.25 ? "is-mid" : "";
+            return `
+              <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}">
+                <small>${escapeHtml(sectorDisplayName(row.sector))}</small>
+                <strong>${escapeHtml(row.symbol)}</strong>
+                <span>${escapeHtml(formatSignedPct(change))}</span>
+              </button>
+            `;
+          }).join("")}
+        </div>
       </div>
     </section>
   `;
