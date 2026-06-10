@@ -6073,17 +6073,23 @@ const normalizeMacroIndicatorKey = (item) => String(item?.key || item?.id || ite
 const macroPressureIndicatorFromSeries = (item) => {
   if (!item) return null;
   const key = normalizeMacroIndicatorKey(item);
-  const value = item.value || formatIndicatorValueWithUnit(item.current ?? item.latestValue, item.unit || "");
+  const value = item.value || formatIndicatorValueWithUnit(item.current ?? item.currentValue ?? item.latestValue, item.unit || "");
   return {
     key,
     name: item.name || macroSeriesFallbackNames[key] || "宏观指标",
     value,
-    previous: item.previous || formatIndicatorValueWithUnit(item.previousValue, item.unit || ""),
+    previous: item.previous || formatIndicatorValueWithUnit(item.previousValue ?? item.previous, item.unit || ""),
     change: item.change || "变化待更新",
     status: item.status || (item.level === "高" ? "watch" : item.level === "低" ? "positive" : "neutral"),
     level: item.level || item.riskLabel || "--",
     explain: item.summary || item.explain || item.explanation || "",
     impact: item.impact || item.category || "市场环境",
+    percentiles: item.percentiles || {},
+    percentile: item.percentile ?? item.rankPercentile,
+    points: item.points || [],
+    current: item.current ?? item.currentValue ?? item.latestValue,
+    unit: item.unit || "",
+    bands: item.bands || item.refs || item.referenceLines || {},
   };
 };
 
@@ -6098,9 +6104,11 @@ const macroPressureRows = (indicators = []) => {
       impact: item.impact || item.category || "市场环境",
     });
   });
-  (state.macroSeries?.indicators || []).forEach((item) => {
+  normalizeMacroSeriesItems(state.macroSeries).forEach((item) => {
     const row = macroPressureIndicatorFromSeries(item);
-    if (row && !byKey.has(row.key)) byKey.set(row.key, row);
+    if (!row) return;
+    const existing = byKey.get(row.key);
+    byKey.set(row.key, existing ? { ...row, ...existing, points: row.points, percentiles: row.percentiles, bands: row.bands, percentile: row.percentile, unit: row.unit || existing.unit } : row);
   });
   return macroPressureKeys.map((key) => byKey.get(key)).filter(Boolean);
 };
@@ -6586,7 +6594,29 @@ const macroPressureBand = (score) => {
   return { label: "低压力区", className: "is-positive" };
 };
 
+const macroFactorPercentile = (indicator) => {
+  const candidates = [
+    indicator?.percentiles?.oneYear,
+    indicator?.percentiles?.threeYear,
+    indicator?.percentiles?.fiveYear,
+    indicator?.percentile,
+    indicator?.rankPercentile,
+  ];
+  for (const value of candidates) {
+    const number = parseMacroSeriesNumber(value);
+    if (Number.isFinite(number)) return Math.max(0, Math.min(100, number));
+  }
+  return null;
+};
+
 const macroFactorScore = (indicator) => {
+  const percentile = macroFactorPercentile(indicator);
+  if (Number.isFinite(percentile)) return percentile;
+  if (indicator?.points?.length) {
+    const current = parseMacroSeriesNumber(indicator.current ?? indicator.latestValue ?? indicator.value ?? indicator.points.at(-1)?.value);
+    const pressureScore = macroMonitorPressureScore(indicator, current);
+    if (Number.isFinite(pressureScore)) return pressureScore;
+  }
   const raw = Number(indicator?.riskScore);
   if (Number.isFinite(raw)) return Math.max(0, Math.min(100, raw * 33.3));
   const status = indicator?.status || indicator?.riskLevel;
@@ -6595,10 +6625,34 @@ const macroFactorScore = (indicator) => {
   return 28;
 };
 
+const macroFactorPressureLabel = (score) => {
+  if (!Number.isFinite(score)) return "待判断";
+  if (score >= 75) return "高压力";
+  if (score >= 60) return "偏高";
+  if (score >= 35) return "中性";
+  return "低压力";
+};
+
+const macroFactorNarrative = (indicator) => {
+  const pieces = [
+    indicator.impact || indicator.category || "市场环境",
+    indicator.asOf ? `更新 ${formatDisplayDate(indicator.asOf)}` : "",
+    indicator.change && indicator.change !== "变化待更新" ? indicatorChangeMetaLabel(indicator.change) : "",
+  ].filter(Boolean);
+  return pieces.join(" · ") || "等待更多历史数据";
+};
+
 const macroFactorDrivers = (rows) =>
   [...rows]
     .map((indicator) => ({ ...indicator, factorScore: Math.round(macroFactorScore(indicator)) }))
     .sort((a, b) => b.factorScore - a.factorScore);
+
+const macroDriverLabel = (rows, keys) =>
+  keys
+    .map((key) => rows.find((row) => normalizeMacroIndicatorKey(row) === key))
+    .filter(Boolean)
+    .map((row) => `${row.name}${row.level ? ` ${row.level}` : ""}`)
+    .join(" / ") || "等待因子";
 
 const macroAssetImpactRows = (rows, score) => {
   const pressureText = rows.map((row) => `${normalizeMacroIndicatorKey(row)}:${row.status || row.riskLevel || ""}`).join(" ");
@@ -6608,11 +6662,11 @@ const macroAssetImpactRows = (rows, score) => {
   const cpiHigh = /cpiaucsl:watch|cpiaucsl:elevated/.test(pressureText);
   const vixHigh = /vixcls:watch|vixcls:elevated/.test(pressureText);
   return [
-    ["SPY / QQQ", score >= 65 || vixHigh ? "承压观察" : "环境可跟踪", rateHigh ? "利率是关键变量" : "先看趋势是否延续", score >= 65 || vixHigh ? "is-watch" : "is-positive"],
-    ["七姐妹 / 成长股", rateHigh || cpiHigh ? "估值压力" : "主线仍可观察", "重点看10Y和CPI", rateHigh || cpiHigh ? "is-watch" : "is-positive"],
-    ["黄金 / 贵金属", usdHigh || rateHigh ? "需要确认" : "避险弹性", "美元和实际利率决定节奏", usdHigh || rateHigh ? "is-neutral" : "is-positive"],
-    ["能源 / 原油链", oilHigh ? "热度升温" : "中性观察", "油价影响通胀和利润预期", oilHigh ? "is-watch" : "is-neutral"],
-    ["小盘高波动", score >= 60 || vixHigh ? "降低频率" : "精选观察", "先看流动性和回撤", score >= 60 || vixHigh ? "is-watch" : "is-positive"],
+    { asset: "SPY / QQQ", stateLabel: score >= 65 || vixHigh ? "承压观察" : "环境可跟踪", driver: macroDriverLabel(rows, ["vixcls", "dgs10"]), note: rateHigh ? "利率是关键变量，先看指数趋势是否能守住。" : "先看趋势是否延续，再回到强弱榜筛选。", stateClass: score >= 65 || vixHigh ? "is-watch" : "is-positive" },
+    { asset: "七姐妹 / 成长股", stateLabel: rateHigh || cpiHigh ? "估值压力" : "主线仍可观察", driver: macroDriverLabel(rows, ["dgs10", "cpiaucsl"]), note: "高估值股票重点看10Y、CPI和成交额确认。", stateClass: rateHigh || cpiHigh ? "is-watch" : "is-positive" },
+    { asset: "黄金 / 贵金属", stateLabel: usdHigh || rateHigh ? "需要确认" : "避险弹性", driver: macroDriverLabel(rows, ["dtwexbgs", "dgs10"]), note: "美元和实际利率决定节奏，避免只看避险叙事。", stateClass: usdHigh || rateHigh ? "is-neutral" : "is-positive" },
+    { asset: "能源 / 原油链", stateLabel: oilHigh ? "热度升温" : "中性观察", driver: macroDriverLabel(rows, ["dcoilwtico", "cpiaucsl"]), note: "油价影响通胀和利润预期，同时看能源板块资金。", stateClass: oilHigh ? "is-watch" : "is-neutral" },
+    { asset: "小盘高波动", stateLabel: score >= 60 || vixHigh ? "降低频率" : "精选观察", driver: macroDriverLabel(rows, ["vixcls"]), note: "先看流动性、回撤和是否有明确事件支撑。", stateClass: score >= 60 || vixHigh ? "is-watch" : "is-positive" },
   ];
 };
 
@@ -6651,26 +6705,35 @@ const renderMacroMonitor = () => {
   const factorBoard = document.querySelector("#macroFactorBoard");
   if (factorBoard) {
     factorBoard.innerHTML = macroRows.length
-      ? factorDrivers.map((indicator) => {
+      ? `
+        <div class="macro-factor-header">
+          <span>因子</span>
+          <span>压力位置</span>
+          <span>分数</span>
+          <span>读数 / 变化</span>
+        </div>
+        ${factorDrivers.map((indicator) => {
           const score = indicator.factorScore;
           return `
             <div class="macro-factor-row ${signalClass(indicator.status || indicator.riskLevel)}">
-              <b>${escapeHtml(indicator.name || "宏观因子")}<span>${escapeHtml(indicator.level || indicator.riskLabel || "--")}</span></b>
+              <b>${escapeHtml(indicator.name || "宏观因子")}<span>${escapeHtml(macroFactorNarrative(indicator))}</span></b>
               <i><em style="width: ${score}%"></em></i>
-              <strong>${escapeHtml(`${score}`)}</strong>
+              <strong>${escapeHtml(`${score}`)}<span>${escapeHtml(macroFactorPressureLabel(score))}</span></strong>
               <small>${escapeHtml(indicator.value || "--")} / ${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</small>
             </div>
           `;
-        }).join("")
+        }).join("")}
+      `
       : '<div><b>等待数据</b><i><em style="width: 0%"></em></i><strong>--</strong></div>';
   }
 
   const impact = document.querySelector("#macroAssetImpact");
   if (impact) {
-    impact.innerHTML = macroAssetImpactRows(macroRows, Number(lastScore)).map(([asset, stateLabel, note, stateClass]) => `
+    impact.innerHTML = macroAssetImpactRows(macroRows, Number(lastScore)).map(({ asset, stateLabel, driver, note, stateClass }) => `
       <div class="macro-asset-row ${escapeHtml(stateClass)}">
         <b>${escapeHtml(asset)}</b>
         <strong>${escapeHtml(stateLabel)}</strong>
+        <span>${escapeHtml(driver)}</span>
         <em>${escapeHtml(note)}</em>
       </div>
     `).join("");

@@ -17403,6 +17403,24 @@ body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
   padding: 8px 10px;
 }
 
+body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header {
+  display: grid;
+  grid-template-columns: 132px minmax(92px, 1fr) 54px 138px;
+  gap: 10px;
+  align-items: center;
+  min-height: 30px;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.16);
+  background: rgba(15, 23, 42, 0.82);
+  padding: 7px 10px;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header span {
+  color: #78889d;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
 body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row:last-child,
 body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row:last-child {
   border-bottom: 0;
@@ -17431,10 +17449,18 @@ body .page-view[data-view="risk"] .macro-factor-bars i {
 }
 
 body .page-view[data-view="risk"] .macro-factor-bars strong {
+  display: grid;
+  gap: 2px;
   color: #e6eef9;
   font-size: 13px;
   font-weight: 620;
   text-align: right;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars strong span {
+  color: #798aa0;
+  font-size: 10px;
+  font-weight: 560;
 }
 
 body .page-view[data-view="risk"] .macro-factor-bars small {
@@ -17447,10 +17473,10 @@ body .page-view[data-view="risk"] .macro-factor-bars small {
 
 body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 88px minmax(0, 1.25fr);
+  grid-template-columns: minmax(120px, 1fr) 92px minmax(0, 1.25fr);
   gap: 10px;
   align-items: center;
-  min-height: 42px;
+  min-height: 58px;
   border: 0;
   border-bottom: 1px solid rgba(128, 151, 183, 0.12);
   border-radius: 0;
@@ -17465,8 +17491,18 @@ body .page-view[data-view="risk"] .macro-asset-list strong {
   font-size: 12px;
 }
 
+body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row > span {
+  min-width: 0;
+  overflow: hidden;
+  color: #a6b4c7;
+  font-size: 11px;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 body .page-view[data-view="risk"] .macro-asset-list em {
-  grid-column: auto;
+  grid-column: 3;
   color: #8392a8;
   font-size: 11px;
   line-height: 1.35;
@@ -18243,9 +18279,21 @@ body .watchlist-actions-cell .icon-action {
     grid-template-columns: 1fr;
   }
 
+  body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header {
+    display: none;
+  }
+
   body .page-view[data-view="risk"] .macro-factor-bars small,
   body .page-view[data-view="risk"] .macro-factor-bars strong {
     text-align: left;
+  }
+
+  body .page-view[data-view="risk"] .macro-asset-list em {
+    grid-column: auto;
+  }
+
+  body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row > span {
+    white-space: normal;
   }
 
   body .page-view[data-view="risk"] .macro-series-card {
