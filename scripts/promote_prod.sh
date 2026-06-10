@@ -12,8 +12,10 @@ rm -rf /opt/dongbimao-prod/* /var/www/dongbimao-prod/*
 cp -a /opt/dongbimao-dev/. /opt/dongbimao-prod/
 cp -a /var/www/dongbimao-dev/. /var/www/dongbimao-prod/
 find /var/www/dongbimao-prod/data -maxdepth 1 -name "*.db*" -delete
+systemctl restart ytd-gainers-auth
 nginx -t
 systemctl reload nginx
+systemctl is-active ytd-gainers-auth >/dev/null
 '
 
 echo "Prod promoted: http://www.dongbimao.com/"
