@@ -453,7 +453,18 @@ const ensurePageData = (page) => {
   }));
   if (page === "stock-events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
-  if (page === "stock") jobs.push(loadProductStockDetail(state.selectedStockSymbol), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
+  if (page === "stock") {
+    jobs.push(
+      loadProductStockDetail(state.selectedStockSymbol),
+      loadProductCalendar().then((calendar) => {
+        if (calendar) renderEventsCalendar(calendar);
+        return calendar;
+      }),
+      loadProductSectors(),
+      loadLazyDataset("earningsQuality"),
+      loadLazyDataset("eventOpportunities"),
+    );
+  }
   if (page === "stocks") {
     jobs.push(
       Promise.all([loadProductMeta(), loadGlobalSearchUniverse(), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities")])
@@ -2832,6 +2843,104 @@ const refreshWatchlistViews = () => {
   if (activePage === "events") renderEventTable();
 };
 
+const splitReferenceList = (value) => {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+  return String(value || "")
+    .split(/[\/,，、;；|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const normalizedReferenceSet = (value) => new Set(splitReferenceList(value).map((item) => normalizeStockSymbol(item) || item.toUpperCase()));
+
+const calendarRows = () => {
+  const rows = state.eventsCalendar?.events || state.eventsCalendar?.rows || [];
+  return (Array.isArray(rows) ? rows : []).map(normalizeProductCalendarRow).sort(calendarEventSort);
+};
+
+const calendarRowMatchesStock = (row, target, profile, macroExposure) => {
+  const assets = normalizedReferenceSet(row.relatedAssets);
+  const modules = splitReferenceList(row.relatedModules).join(" ").toLowerCase();
+  const titleText = `${row.title || ""} ${row.summary || ""} ${row.sourceName || ""}`.toUpperCase();
+  const profileText = `${profile?.company || ""} ${profile?.chineseName || ""} ${profile?.sector || ""}`.toUpperCase();
+  if (assets.has(target) || titleText.includes(target)) return "direct";
+  if (row.type === "earnings" && profileText && titleText && titleText.includes(profileText.split(/\s+/)[0])) return "direct";
+  if (row.type === "macro" || row.type === "policy") {
+    if (assets.has("SPY") || assets.has("QQQ") || assets.has("IWM") || /市场|风险|估值|股票|macro|market|risk/.test(modules)) return "macro";
+    if (macroExposure?.keys?.some((key) => titleText.includes(key.toUpperCase()))) return "macro";
+  }
+  return "";
+};
+
+const stockLinkedCalendarRows = ({ target, profile, macroExposure, quality }) => {
+  const rows = calendarRows();
+  const matches = rows
+    .map((row) => ({ ...row, matchType: calendarRowMatchesStock(row, target, profile, macroExposure) }))
+    .filter((row) => row.matchType);
+  const direct = matches.filter((row) => row.matchType === "direct");
+  const macro = matches.filter((row) => row.matchType === "macro");
+  const syntheticEarnings = quality?.latestEarningsDate && !direct.some((row) => row.type === "earnings")
+    ? [{
+        id: `${target}-quality-earnings`,
+        date: quality.latestEarningsDate,
+        time: "",
+        title: `${target} 财报日期`,
+        type: "earnings",
+        impact: "medium",
+        relatedModules: ["个股详情", "财报观察"],
+        relatedAssets: [target],
+        summary: quality.userAngle || quality.userReason || "来自财报观察数据。",
+        matchType: "direct",
+      }]
+    : [];
+  return [...syntheticEarnings, ...direct, ...macro].sort(calendarEventSort).slice(0, 5);
+};
+
+const stockEarningsDateLabel = (linkedRows, quality) => {
+  const earnings = linkedRows.find((row) => row.type === "earnings");
+  if (earnings?.date) return formatDisplayDate(earnings.date);
+  if (quality?.latestEarningsDate) return formatDisplayDate(quality.latestEarningsDate);
+  return "财报日期待接入";
+};
+
+const stockSectorFlowDetail = (profile, sectorRankRows) => {
+  const sector = sectorDisplayName(profile?.sector);
+  const rows = sectorFlowDisplayRows();
+  const row = rows.find((item) => sectorDisplayName(item.sector) === sector) || null;
+  const changes = sectorRankRows.map(getChange).filter(Number.isFinite);
+  const breadthPct = row?.breadthPct ?? (changes.length ? (changes.filter((value) => value >= 0).length / changes.length) * 100 : null);
+  const flowValue = Number(row?.netFlowProxy);
+  const flowClass = Number.isFinite(flowValue) && flowValue < 0 ? "is-negative" : Number.isFinite(flowValue) && flowValue > 0 ? "is-positive" : "";
+  return {
+    row,
+    label: row?.status || (Number.isFinite(flowValue) ? (flowValue >= 0 ? "资金净流入" : "资金净流出") : "资金方向待接入"),
+    netFlow: Number.isFinite(flowValue) ? formatSignedCompactMoney(flowValue) : row?.netFlowLabel || "--",
+    activeValue: row?.activeValueLabel || (row?.activeValue ? formatCompactMoney(row.activeValue) : "--"),
+    breadth: Number.isFinite(breadthPct) ? `${Math.round(breadthPct)}%` : "--",
+    leaders: (row?.leaders || sectorRankRows.slice(0, 4)).slice(0, 4),
+    className: flowClass,
+  };
+};
+
+const renderStockCalendarRows = (rows) => {
+  if (!rows.length) {
+    return `<div class="stock-linked-empty">暂无直接关联日程。宏观事件可先回到财经日历整体观察。</div>`;
+  }
+  return rows.map((row) => {
+    const impactClass = row.impact === "high" ? "is-high" : row.impact === "medium" ? "is-medium" : "is-low";
+    const related = splitReferenceList(row.relatedAssets).slice(0, 3).join(" / ") || splitReferenceList(row.relatedModules).slice(0, 2).join(" / ") || eventTypeLabel(row.type);
+    return `
+      <div class="stock-linked-row">
+        <time>${escapeHtml(formatDisplayDate(row.date))}</time>
+        <strong>${escapeHtml(row.title || "--")}</strong>
+        <span>${escapeHtml(related || "--")}</span>
+        <em class="${impactClass}">${escapeHtml(eventImpactLabel(row.impact))}</em>
+        <p>${escapeHtml(compactText(row.summary || row.sourceName || "等待事件摘要补充。", 92))}</p>
+      </div>
+    `;
+  }).join("");
+};
+
 const renderStockHub = (symbol) => {
   const target = normalizeStockSymbol(symbol || state.selectedStockSymbol);
   const content = document.querySelector("#stockHubContent");
@@ -2865,8 +2974,6 @@ const renderStockHub = (symbol) => {
   const profile = stockDisplayName(target);
   const currentPrice = productDetail?.profile?.price || market?.price || strength?.price || quality?.close || eventRow?.close || signal?.livePrice || "--";
   const moveReasons = market ? inferMoveReason(market, volume) : [];
-  const riskBucket = market ? getRiskBucket(market) : null;
-  const riskScore = market ? getRiskScore(market) : 0;
   const targetUpside = quality?.avgPriceTargetUpsidePct == null ? "--" : formatSignedPct(quality.avgPriceTargetUpsidePct);
   const signalPerformance = signal?.marketChangePct || signal?.directionalChangePct || "--";
   const productPeers = (productDetail?.peers || []).map((peer) => {
@@ -2904,7 +3011,6 @@ const renderStockHub = (symbol) => {
   const sectorRankText = sectorRank > 0 ? `${sectorRank}/${sectorRankRows.length}` : "--";
   const volumeRatioText = formatVolumeRatioLabel(volume?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio);
   const marketCapText = productDetail?.profile?.marketCap || market?.marketCap || quality?.marketCap || "--";
-  const sectorFlow = stockSectorFlowSummary(sectorRankRows);
   const volumeSummary = volumeRatioSummary(volumeRatioText, market ? getChange(market) : getChange(day || {}));
   const sectorChanges = sectorRankRows.map(getChange).filter(Number.isFinite);
   const sectorAverageChange = sectorChanges.length ? sectorChanges.reduce((sum, value) => sum + value, 0) / sectorChanges.length : null;
@@ -2963,6 +3069,16 @@ const renderStockHub = (symbol) => {
   const heat = stockHeatSummary({ market, strength, month, volume });
   const watchState = stockWatchlistState(target);
   const macroExposure = stockMacroExposure(profile, market);
+  const linkedCalendarRows = stockLinkedCalendarRows({ target, profile, macroExposure, quality });
+  const directCalendarCount = linkedCalendarRows.filter((row) => row.matchType === "direct").length;
+  const macroCalendarCount = linkedCalendarRows.filter((row) => row.matchType === "macro").length;
+  const nextCalendarRow = linkedCalendarRows[0] || null;
+  const earningsDateText = stockEarningsDateLabel(linkedCalendarRows, quality);
+  const sectorFlowDetailData = stockSectorFlowDetail(profile, sectorRankRows);
+  const sectorFlowLeaders = (sectorFlowDetailData.leaders || [])
+    .map((item) => normalizeStockSymbol(item.symbol || item.ticker))
+    .filter(Boolean)
+    .slice(0, 4);
   const primarySource = stockPrimarySource({ market, strength, quality, eventRow, signal });
   const reviewPlan = stockReviewPlan({ eventRow, quality, strength, signal, market });
   const dataDates = [
@@ -3091,8 +3207,8 @@ const renderStockHub = (symbol) => {
       </article>
       <article>
         <span>资金流向摘要</span>
-        <strong>${escapeHtml(sectorFlow.label)}</strong>
-        <p>${escapeHtml(`${sectorFlow.note} 活跃成交 ${sectorFlow.active}`)}</p>
+        <strong class="${escapeHtml(sectorFlowDetailData.className)}">${escapeHtml(sectorFlowDetailData.netFlow)}</strong>
+        <p>${escapeHtml(`${sectorFlowDetailData.label} · 广度 ${sectorFlowDetailData.breadth} · 活跃成交 ${sectorFlowDetailData.activeValue}`)}</p>
       </article>
     </section>
 
@@ -3144,10 +3260,10 @@ const renderStockHub = (symbol) => {
       <article>
         <div>
           <span>事件 / 财报</span>
-          <strong>${escapeHtml(eventRow || quality ? "有线索" : "暂无线索")}</strong>
+          <strong>${escapeHtml(nextCalendarRow ? `${formatDisplayDate(nextCalendarRow.date)} · ${eventTypeLabel(nextCalendarRow.type)}` : earningsDateText)}</strong>
         </div>
-        <p>${escapeHtml(eventSummary)}</p>
-        <p>${escapeHtml(earningsSummary)}${quality?.avgPriceTargetUpsidePct == null ? "" : ` · 目标价空间 ${escapeHtml(targetUpside)}`}</p>
+        <p>${escapeHtml(nextCalendarRow?.title || eventSummary)}</p>
+        <p>财报 ${escapeHtml(earningsDateText)}${quality?.avgPriceTargetUpsidePct == null ? "" : ` · 目标价空间 ${escapeHtml(targetUpside)}`}</p>
       </article>
     </section>
 
@@ -3196,10 +3312,20 @@ const renderStockHub = (symbol) => {
       <article class="stock-terminal-panel">
         <div class="stock-terminal-head">
           <div>
-            <span>事件 / 财报 / 风险</span>
+            <span>事件 / 财报 / 资金</span>
             <strong>事实表</strong>
           </div>
           <em>研究</em>
+        </div>
+        <div class="stock-linked-calendar">
+          <div class="stock-linked-summary">
+            <span>财经日历关联</span>
+            <strong>${escapeHtml(nextCalendarRow ? nextCalendarRow.title : "暂无直接日程")}</strong>
+            <em>${escapeHtml(`直接 ${directCalendarCount} · 宏观 ${macroCalendarCount}`)}</em>
+          </div>
+          <div class="stock-linked-list">
+            ${renderStockCalendarRows(linkedCalendarRows)}
+          </div>
         </div>
         <div class="stock-fact-matrix">
           <section>
@@ -3210,14 +3336,18 @@ const renderStockHub = (symbol) => {
               <dt>事件后20日</dt><dd class="${Number(eventRow?.return20dPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct))}</dd>
               <dt>事件理由</dt><dd>${escapeHtml(compactText(eventRow?.reason, 120) || "暂无明确事件")}</dd>
               <dt>财报口径</dt><dd>${escapeHtml(quality?.userAngle || "--")}</dd>
-              <dt>财报日期</dt><dd>${escapeHtml(quality?.latestEarningsDate || "--")}</dd>
+              <dt>财报日期</dt><dd>${escapeHtml(earningsDateText)}</dd>
               <dt>目标空间</dt><dd class="${Number(quality?.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(targetUpside)}</dd>
               <dt>财报理由</dt><dd>${escapeHtml(compactText(quality?.userReason, 120) || "暂无财报摘要")}</dd>
             </dl>
           </section>
           <section class="stock-risk-facts">
-            <h3>风险 / 下一步</h3>
+            <h3>资金 / 风险</h3>
             <dl>
+              <dt>板块资金</dt><dd class="${escapeHtml(sectorFlowDetailData.className)}">${escapeHtml(sectorFlowDetailData.netFlow)}</dd>
+              <dt>上涨广度</dt><dd>${escapeHtml(sectorFlowDetailData.breadth)}</dd>
+              <dt>活跃成交</dt><dd>${escapeHtml(sectorFlowDetailData.activeValue)}</dd>
+              <dt>代表标的</dt><dd>${escapeHtml(sectorFlowLeaders.join(" / ") || "--")}</dd>
               ${riskFacts.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(compactText(value, 96) || "--")}</dd>`).join("")}
               <dt>复盘动作</dt><dd>${escapeHtml(compactText(reviewPlan, 110) || "--")}</dd>
               <dt>数据口径</dt><dd>${escapeHtml(`${sourceCount}项数据 · 更新至 ${dataAsOf}`)}</dd>
@@ -3298,61 +3428,7 @@ const renderStockHub = (symbol) => {
       </article>
     </section>
 
-    <section class="stock-hub-grid workspace-main">
-      <article class="stock-hub-card desk-panel">
-        <div class="stock-card-head">
-          <div>
-            <span>涨跌幅与成交额</span>
-            <strong>现在热不热</strong>
-          </div>
-          <em>基础</em>
-        </div>
-        <div class="stock-metric-grid">
-          ${stockMetric("1D", formatChangeValue(day), day && getChange(day) < 0 ? "is-negative" : "is-positive")}
-          ${stockMetric("近一周", formatChangeValue(week), week && getChange(week) < 0 ? "is-negative" : "is-positive")}
-          ${stockMetric("近一月", formatChangeValue(month), month && getChange(month) < 0 ? "is-negative" : "is-positive")}
-          ${stockMetric("今年以来", formatChangeValue(ytd), ytd && getChange(ytd) < 0 ? "is-negative" : "is-positive")}
-          ${stockMetric("成交额倍数", formatVolumeRatioLabel(volume?.volumeRatio || market?.volumeRatio))}
-          ${stockMetric("成交额 / 成交量", volume?.volume || market?.volume || "--")}
-        </div>
-      </article>
-
-      <article class="stock-hub-card desk-panel">
-        <div class="stock-card-head">
-          <div>
-            <span>强弱位置</span>
-            <strong>${escapeHtml(strength?.label || "等待强弱数据")}</strong>
-          </div>
-          <em>基础</em>
-        </div>
-        <div class="stock-metric-grid">
-          ${stockMetric("强弱分", strength?.score == null ? "--" : `${strength.score} 分`)}
-          ${stockMetric("1D", strength?.periods?.["1d"] || "--", stockSignedClass(strength?.periods?.["1d"]))}
-          ${stockMetric("5D", strength?.periods?.["5d"] || "--", stockSignedClass(strength?.periods?.["5d"]))}
-          ${stockMetric("20D", strength?.periods?.["20d"] || "--", stockSignedClass(strength?.periods?.["20d"]))}
-          ${stockMetric("相对 SPY", strength?.relative?.spy || "--", stockSignedClass(strength?.relative?.spy))}
-          ${stockMetric("成交额热度", formatVolumeRatioLabel(strength?.crowding?.volumeRatio))}
-        </div>
-        <p class="stock-card-note">${escapeHtml(strength?.action || "暂无强弱扫描记录，先看价格、成交额和同板块对比。")}</p>
-      </article>
-
-      <article class="stock-hub-card desk-panel">
-        <div class="stock-card-head">
-          <div>
-            <span>财报质量</span>
-            <strong>${escapeHtml(quality?.userAngle || "等待财报数据")}</strong>
-          </div>
-          <em>基础</em>
-        </div>
-        <div class="stock-metric-grid">
-          ${stockMetric("综合分", quality?.score == null ? "--" : Number(quality.score).toFixed(2))}
-          ${stockMetric("20日表现", quality?.return20dPct == null ? "--" : formatSignedPct(quality.return20dPct), Number(quality?.return20dPct) >= 0 ? "is-positive" : "is-negative")}
-          ${stockMetric("目标价空间", targetUpside, Number(quality?.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative")}
-          ${stockMetric("覆盖机构", quality?.firms30d == null ? "--" : `${quality.firms30d} 家`)}
-        </div>
-        <p class="stock-card-note">${escapeHtml(quality?.userReason || "暂无财报质量记录，先看事件、价格和成交额是否确认。")}</p>
-      </article>
-
+    <section class="stock-hub-grid stock-hub-grid-compact workspace-main">
       ${signalCard}
 
       <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-action-plan">
@@ -3366,63 +3442,6 @@ const renderStockHub = (symbol) => {
         <div class="stock-checklist">
           ${actionItems.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}
         </div>
-      </article>
-
-      <article class="stock-hub-card stock-hub-card-wide desk-panel" data-lockable-module="stock-hub-peer-depth">
-        <div class="stock-card-head">
-          <div>
-            <span>同方向对比</span>
-            <strong>${escapeHtml(profile.sector)}</strong>
-          </div>
-          <em>同板块</em>
-        </div>
-        <div class="stock-peer-table">
-          ${
-            peers.length
-              ? `
-                <div class="stock-peer-table-head">
-                  <span>代码</span>
-                  <span>公司</span>
-                  <span>涨跌幅</span>
-                  <span>市值</span>
-                  <span>成交异动</span>
-                </div>
-              `
-              : ""
-          }
-          ${
-            peers.length
-              ? peers.map((peer) => `
-                  <button type="button" data-stock-open="${escapeHtml(peer.symbol)}">
-                    <strong>${escapeHtml(peer.symbol)}</strong>
-                    <span>${escapeHtml(peer.company || peer.name || peer.chineseName || peer.symbol)}</span>
-                    <b>${formatChangeValue(peer)}</b>
-                    <em>${escapeHtml(peer.marketCap || "--")}</em>
-                    <small>${escapeHtml(formatVolumeRatioLabel(peer.volumeRatio))}</small>
-                  </button>
-                `).join("")
-              : "<p class=\"stock-card-note\">暂无同板块样本，先看个股自身行情和事件线索。</p>"
-          }
-        </div>
-      </article>
-
-      <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-risk">
-        <div class="stock-card-head">
-          <div>
-            <span>风险提示</span>
-            <strong>${escapeHtml(market ? getRiskLabel(riskBucket) : quality?.userRisk || "等待数据")}</strong>
-          </div>
-          <em>风险</em>
-        </div>
-        ${
-          market
-            ? `<div class="risk-score risk-${riskBucket}">
-                <strong>${escapeHtml(getRiskLabel(riskBucket))}</strong>
-                <div class="risk-bar"><i style="width: ${riskScore}%"></i></div>
-                <span>${escapeHtml(market.risk)}</span>
-              </div>`
-            : `<p class="stock-card-note">${escapeHtml(quality?.userRisk || "暂无独立风险标签。")}</p>`
-        }
       </article>
 
       <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-history">
