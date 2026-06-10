@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-signalcolor1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-marketdesk1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1737,6 +1737,28 @@
             <button type="button" data-market-section="heatmap">成交热力图</button>
           </div>
 
+          <section class="market-section-context" id="marketSectionContext" aria-label="当前模块">
+            <div>
+              <span id="marketSectionKicker">涨跌幅榜</span>
+              <strong id="marketSectionTitle">行情异动</strong>
+              <p id="marketSectionNote">按涨跌幅、成交额、市值和风险标签筛出需要复盘的股票。</p>
+            </div>
+            <dl>
+              <div>
+                <dt id="marketSectionPrimaryLabel">主指标</dt>
+                <dd id="marketSectionPrimary">--</dd>
+              </div>
+              <div>
+                <dt id="marketSectionSecondaryLabel">结构</dt>
+                <dd id="marketSectionSecondary">--</dd>
+              </div>
+              <div>
+                <dt id="marketSectionTertiaryLabel">下一步</dt>
+                <dd id="marketSectionTertiary">--</dd>
+              </div>
+            </dl>
+          </section>
+
           <div class="content-layout">
             <div class="main-column">
               <section class="market-strip" aria-label="榜单摘要">
@@ -2725,6 +2747,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-signalcolor1"></script>
+    <script src="./app.js?v=20260610-marketdesk1"></script>
   </body>
 </html>

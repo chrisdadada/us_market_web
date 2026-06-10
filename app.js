@@ -2010,6 +2010,110 @@ const formatSignedCompactMoney = (value, fallback = "") => {
   return number > 0 ? `+${label}` : label;
 };
 
+const setMarketSectionMetric = (selector, value, tone = "") => {
+  const node = document.querySelector(selector);
+  if (!node) return;
+  node.textContent = value == null || value === "" ? "--" : value;
+  node.classList.remove("is-positive", "is-negative", "is-neutral");
+  if (tone) node.classList.add(tone);
+};
+
+const marketSectionContext = (section, rows) => {
+  const total = rows.length;
+  const upCount = rows.filter((row) => getChange(row) >= 0).length;
+  const downCount = Math.max(0, total - upCount);
+  const top = rows[0];
+  if (section === "sectors") {
+    const sectorRows = knownSectorRows(sectorFlowDisplayRows().length ? sectorFlowDisplayRows() : marketSectorStats(rows));
+    const topSector = sectorRows[0];
+    const positiveCount = sectorRows.filter((item) => Number(item.netFlowProxy ?? item.avgChange) >= 0).length;
+    const negativeCount = Math.max(0, sectorRows.length - positiveCount);
+    const activeSector = sectorRows.slice().sort((a, b) => (b.activeValue || b.dollarVolume || 0) - (a.activeValue || a.dollarVolume || 0))[0];
+    return {
+      kicker: "板块排行",
+      title: "板块排行",
+      note: "按板块资金方向、成交活跃度和上涨广度排序，先确认主线是不是板块级扩散。",
+      primaryLabel: "领先板块",
+      primary: sectorDisplayName(topSector?.sector) || "--",
+      primaryTone: Number(topSector?.netFlowProxy ?? topSector?.avgChange) >= 0 ? "is-positive" : "is-negative",
+      secondaryLabel: "流入 / 流出",
+      secondary: sectorRows.length ? `${positiveCount} / ${negativeCount}` : "--",
+      tertiaryLabel: "成交活跃",
+      tertiary: sectorDisplayName(activeSector?.sector) || "--",
+    };
+  }
+  if (section === "flows") {
+    const flowSectors = sectorFlowDisplayRows();
+    const topFlow = flowSectors[0];
+    const positiveCount = flowSectors.filter((item) => (item.netFlowProxy || 0) > 0).length;
+    const negativeCount = flowSectors.filter((item) => (item.netFlowProxy || 0) < 0).length;
+    return {
+      kicker: "板块资金",
+      title: "板块资金方向",
+      note: "用板块成交额、涨跌方向和上涨广度做资金流向代理，观察钱更集中流向哪些方向。",
+      primaryLabel: "流入领先",
+      primary: topFlow ? sectorDisplayName(topFlow.sector) : "--",
+      primaryTone: (topFlow?.netFlowProxy || 0) >= 0 ? "is-positive" : "is-negative",
+      secondaryLabel: "流入 / 流出",
+      secondary: flowSectors.length ? `${positiveCount} / ${negativeCount}` : "--",
+      tertiaryLabel: "净方向",
+      tertiary: topFlow ? formatSignedCompactMoney(topFlow.netFlowProxy, topFlow.netFlowLabel) : "--",
+      tertiaryTone: (topFlow?.netFlowProxy || 0) >= 0 ? "is-positive" : "is-negative",
+    };
+  }
+  if (section === "heatmap") {
+    const tiles = knownSectorRows(rows)
+      .map((row) => ({ ...row, heatSize: marketHeatmapSize(row) }))
+      .sort((a, b) => b.heatSize - a.heatSize)
+      .slice(0, 24);
+    const upTiles = tiles.filter((row) => getChange(row) > 0).length;
+    const downTiles = tiles.filter((row) => getChange(row) < 0).length;
+    const topTile = tiles[0];
+    return {
+      kicker: "成交热力图",
+      title: "成交额热力图",
+      note: "面积代表成交活跃度，颜色代表涨跌方向，用来快速发现资金集中交易的股票和板块。",
+      primaryLabel: "最大热区",
+      primary: topTile?.symbol || "--",
+      primaryTone: topTile && getChange(topTile) >= 0 ? "is-positive" : "is-negative",
+      secondaryLabel: "涨 / 跌",
+      secondary: tiles.length ? `${upTiles} / ${downTiles}` : "--",
+      tertiaryLabel: "所属板块",
+      tertiary: sectorDisplayName(topTile?.sector) || "--",
+    };
+  }
+  const boardMeta = state.meta[state.activeBoard] || {};
+  const volumeHot = rows.filter((row) => parseRatio(getBoardRow("volume", row.symbol)?.volumeRatio || row.volumeRatio) >= 2).length;
+  return {
+    kicker: "涨跌幅榜",
+    title: "行情异动",
+    note: "按涨跌幅、成交额、市值和风险标签筛出需要复盘的股票，再进入个股工作台确认原因。",
+    primaryLabel: "当前榜单",
+    primary: boardMeta.title || "涨跌幅榜",
+    secondaryLabel: "涨 / 跌",
+    secondary: total ? `${upCount} / ${downCount}` : "--",
+    tertiaryLabel: "榜首 / 放量",
+    tertiary: top ? `${top.symbol} · ${volumeHot}只` : "--",
+    tertiaryTone: top && getChange(top) >= 0 ? "is-positive" : "is-negative",
+  };
+};
+
+const renderMarketSectionContext = (rows = getFilteredRows()) => {
+  const section = state.marketWorkspaceSection || "movers";
+  const context = marketSectionContext(section, Array.isArray(rows) ? rows : []);
+  setText("#marketSectionKicker", context.kicker);
+  setText("#marketSectionTitle", context.title);
+  setText("#marketSectionNote", context.note);
+  setText("#marketSectionPrimaryLabel", context.primaryLabel);
+  setText("#marketSectionSecondaryLabel", context.secondaryLabel);
+  setText("#marketSectionTertiaryLabel", context.tertiaryLabel);
+  setMarketSectionMetric("#marketSectionPrimary", context.primary, context.primaryTone);
+  setMarketSectionMetric("#marketSectionSecondary", context.secondary, context.secondaryTone);
+  setMarketSectionMetric("#marketSectionTertiary", context.tertiary, context.tertiaryTone);
+  const page = document.querySelector('[data-view="market"]');
+  if (page) page.dataset.marketWorkspaceSection = section;
+};
+
 const renderFlowsPage = () => {
   const body = document.querySelector("#flowsSectorBody");
   const sectorList = document.querySelector("#flowsSectorList");
@@ -2085,6 +2189,7 @@ const renderFlowsPage = () => {
       `).join("")
       : "<p>等待个股活跃度数据。</p>";
   }
+  renderMarketSectionContext(getFilteredRows());
 };
 
 const syncMarketWorkspacePanels = () => {
@@ -2093,13 +2198,19 @@ const syncMarketWorkspacePanels = () => {
   const flows = document.querySelector("#marketFlowsPanel");
   const visual = document.querySelector("#marketVisualBoard");
   const brief = document.querySelector(".market-workspace .market-board-brief");
+  const strip = document.querySelector(".market-workspace .market-strip");
+  const macroFilter = document.querySelector("#marketMacroFilter");
   const pageTitle = document.querySelector("#pageTitle");
   const pageSubtitle = document.querySelector("#pageSubtitle");
+  const showMovers = section === "movers";
   const showFlows = section === "flows";
-  if (scanner) scanner.hidden = showFlows;
+  if (scanner) scanner.hidden = !showMovers;
   if (flows) flows.hidden = !showFlows;
   if (visual) visual.hidden = showFlows;
-  if (brief) brief.hidden = showFlows;
+  if (brief) brief.hidden = !showMovers;
+  if (strip) strip.hidden = !showMovers;
+  if (macroFilter && !showMovers) macroFilter.hidden = true;
+  renderMarketSectionContext();
   if (showFlows) {
     if (pageTitle) pageTitle.textContent = "板块资金方向";
     if (pageSubtitle) pageSubtitle.textContent = "按板块聚合成交额、涨跌扩散和领涨股票，观察主线是否有成交额确认。";
@@ -5697,7 +5808,12 @@ const renderTable = () => {
   }
   renderMarketBrief(rows);
   renderMarketVisualBoard(rows);
-  renderMarketMacroFilter(rows);
+  if (state.marketWorkspaceSection === "movers") {
+    renderMarketMacroFilter(rows);
+  } else {
+    const macroFilter = document.querySelector("#marketMacroFilter");
+    if (macroFilter) macroFilter.hidden = true;
+  }
   renderDashboardFocus();
   renderDashboardVisualBoard();
 
