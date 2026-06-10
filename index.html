@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-riskflow1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-workbench2" />
   </head>
   <body>
     <div class="app-shell">
@@ -48,7 +48,7 @@
           <section class="nav-section">
             <p>研究</p>
             <a href="#" data-page-link="events">财经日历</a>
-            <a href="#" data-page-link="stock-events">股票线索</a>
+            <a href="#" data-page-link="stock-events">股票事件</a>
             <a href="#" data-page-link="earnings">财报观察</a>
             <a href="#" data-page-link="watchlist">自选</a>
           </section>
@@ -171,9 +171,9 @@
             </article>
             <article class="metric-cell">
               <span>04 · 看理由</span>
-              <strong id="dashboardFocusEvent">股票线索加载中</strong>
+              <strong id="dashboardFocusEvent">股票事件加载中</strong>
               <p id="dashboardFocusEventNote">看财报、业绩预期、机构观点和空头压力背后的个股理由。</p>
-              <button type="button" data-page-link="stock-events">看股票线索</button>
+              <button type="button" data-page-link="stock-events">看股票事件</button>
             </article>
           </section>
 
@@ -1078,7 +1078,7 @@
             <article class="metric-cell">
               <span>重点观察</span>
               <strong id="strengthLeader">--</strong>
-              <p id="strengthLeaderNote">当前先从这批股票里找研究线索。</p>
+              <p id="strengthLeaderNote">当前先从这批股票里找可复盘标的。</p>
             </article>
             <article class="metric-cell">
               <span>风险回避</span>
@@ -1093,7 +1093,7 @@
           </section>
 
           <section class="product-insight-grid evidence-note-row" id="strengthInsightGrid" aria-label="强弱观察说明">
-            <article><span>当前怎么看</span><strong>先看相对强弱</strong><p>优先从强于大盘、强于行业的股票里找研究线索。</p></article>
+            <article><span>当前怎么看</span><strong>先看相对强弱</strong><p>优先从强于大盘、强于行业的股票里找可复盘标的。</p></article>
             <article><span>为什么入选</span><strong>看价格和成交</strong><p>短线太热时不急着下结论，等待分歧或回踩后再复盘。</p></article>
             <article><span>风险提醒</span><strong>避开明显落后</strong><p>走势持续落后的股票，先从自选里降级。</p></article>
             <article><span>下一步</span><strong>加入自选</strong><p>只把熟悉、流动性好的股票加入自选，再等确认。</p></article>
@@ -1203,13 +1203,13 @@
 
             <aside class="strength-side workspace-side">
               <section class="rail-card strength-pro-card" data-lockable-module="strength-toolkit">
-                <h2>后续工具包</h2>
+                <h2>强弱榜怎么看</h2>
                 <div class="locked-preview">
-                  <div><span>盘中</span><strong>强弱变化提醒</strong><em>规划中</em></div>
-                  <div><span>验证</span><strong>名单后续表现</strong><em>规划中</em></div>
-                  <div><span>名单</span><strong>一键加入自选</strong><em>规划中</em></div>
+                  <div><span>相对</span><strong>先看强于 SPY / QQQ</strong><em>核心</em></div>
+                  <div><span>成交</span><strong>再看成交额是否确认</strong><em>过滤</em></div>
+                  <div><span>风险</span><strong>最后排除高噪音标的</strong><em>风控</em></div>
                 </div>
-                <button class="wide-action" type="button" disabled>后续接入</button>
+                <button class="wide-action" type="button" data-page-link="watchlist">查看自选</button>
               </section>
               <section class="rail-card strength-review-card" data-module="strength-review" data-lockable-module="strength-review">
                 <h2>历史表现</h2>
@@ -1345,7 +1345,7 @@
             <div>
               <p class="eyebrow" id="eventsEyebrow">财经日历</p>
               <h1 id="eventsPageTitle">财经日历</h1>
-              <p class="subtitle" id="eventsPageSubtitle">只看未来宏观事件、财报日期和影响范围。股票研究线索会放在独立页面，不混在这里。</p>
+              <p class="subtitle" id="eventsPageSubtitle">只看未来宏观事件、财报日期和影响范围。人工财经日志暂不展示，等真实内容接入后单独呈现。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1426,9 +1426,9 @@
         <section class="page-view workspace-page evidence-workspace" data-view="stock-events">
           <div class="page-heading workspace-header">
             <div>
-              <p class="eyebrow" id="stockEventsEyebrow">股票线索</p>
-              <h1 id="stockEventsPageTitle">股票线索</h1>
-              <p class="subtitle" id="stockEventsPageSubtitle">把财报、业绩预期、机构观点和空头压力翻译成可复盘的个股线索。</p>
+              <p class="eyebrow" id="stockEventsEyebrow">股票事件</p>
+              <h1 id="stockEventsPageTitle">股票事件</h1>
+              <p class="subtitle" id="stockEventsPageSubtitle">把财报、业绩预期、机构观点和空头压力翻译成可复盘的股票名单。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1436,11 +1436,11 @@
             </div>
           </div>
 
-          <section class="event-research-hero desk-panel" aria-label="股票线索">
+          <section class="event-research-hero desk-panel" aria-label="股票事件">
             <div class="event-research-copy">
-              <span>股票线索</span>
-              <h2 id="expectationHeroTitle">线索池：业绩预期变好、财报超预期、机构观点与空头压力</h2>
-              <p id="expectationHeroLead">这里解释哪些公司值得继续复盘；财经日历只提供事件时间和背景。</p>
+              <span>股票事件</span>
+              <h2 id="expectationHeroTitle">观察池：业绩预期变好、财报超预期、机构观点与空头压力</h2>
+              <p id="expectationHeroLead">这里解释哪些公司值得继续复盘；财经日历只提供事件时间和影响范围。</p>
               <div class="event-evidence-grid">
                 <article><span>当前候选</span><strong id="expectationCandidateCount">--</strong><p id="expectationCandidateNote">按当前筛选显示</p></article>
                 <article><span>历史样本</span><strong id="expectationSampleCount">--</strong><p id="expectationSampleRange">--</p></article>
@@ -1456,9 +1456,9 @@
             </aside>
           </section>
 
-          <section class="event-overview metric-row" aria-label="观察线索摘要">
+          <section class="event-overview metric-row" aria-label="股票事件摘要">
             <article class="metric-cell">
-              <span>观察名单</span>
+              <span>股票名单</span>
               <strong id="eventTotalCount">--</strong>
               <p>优先看分数、流动性和价格确认都更清晰的股票。</p>
             </article>
@@ -1470,7 +1470,7 @@
             <article class="metric-cell">
               <span>榜首股票</span>
               <strong id="eventTopSymbol">--</strong>
-              <p id="eventTopReason">有数据后显示当前更需要进一步研究的线索。</p>
+              <p id="eventTopReason">有数据后显示当前更需要进一步复盘的股票。</p>
             </article>
             <article class="metric-cell" data-lockable-module="event-forward-stats">
               <span>观察节奏</span>
@@ -1482,7 +1482,7 @@
           <section class="event-focus-grid evidence-note-row" aria-label="当前怎么选">
             <article>
               <span>当前先看</span>
-              <strong id="eventFocusLeader">加载线索</strong>
+              <strong id="eventFocusLeader">加载股票</strong>
               <p id="eventFocusLeaderNote">先看理由清楚、价格已经确认、流动性够用的股票。</p>
             </article>
             <article>
@@ -1506,11 +1506,11 @@
             <section class="event-main-panel desk-panel">
               <div class="panel-head desk-panel-header">
                 <div>
-                  <span>股票线索</span>
-                  <strong>把研究线索落到可复盘股票</strong>
+                  <span>股票事件</span>
+                  <strong>把事件落到可复盘股票</strong>
                 </div>
-                <div class="board-tabs segmented-tabs" aria-label="股票线索榜单切换">
-                  <button class="board-tab event-tab is-active" type="button" data-event-board="all">全部线索</button>
+                <div class="board-tabs segmented-tabs" aria-label="股票事件榜单切换">
+                  <button class="board-tab event-tab is-active" type="button" data-event-board="all">全部股票</button>
                   <button class="board-tab event-tab" type="button" data-event-board="guidance_up">业绩预期变好</button>
                   <button class="board-tab event-tab" type="button" data-event-board="earnings_beat">财报超预期</button>
                   <button class="board-tab event-tab" type="button" data-event-board="analyst_positive">机构观点变化</button>
@@ -1521,16 +1521,16 @@
 
               <div class="event-board-copy">
                 <strong id="eventBoardTitle">--</strong>
-                <span id="eventBoardSubtitle">这里是独立的股票研究线索，不属于财经日历。</span>
+                <span id="eventBoardSubtitle">这里是独立的股票事件页面，不属于财经日历。</span>
               </div>
 
-              <div class="event-toolbar filter-bar" aria-label="观察线索筛选">
+              <div class="event-toolbar filter-bar" aria-label="股票事件筛选">
                 <label class="search-box">
                   <span>搜索股票 / 公司 / 理由</span>
                   <input id="eventSearchInput" type="search" placeholder="例如 NVDA、财报、空头" autocomplete="off" />
                 </label>
                 <label class="select-box">
-                  <span>线索分 <button class="info-tip" type="button" aria-label="线索分解释" data-tip="线索分来自当前榜单本身，用来筛选事件强度；复盘分会再结合价格、成交额、强弱和风险。">?</button></span>
+                  <span>事件分 <button class="info-tip" type="button" aria-label="事件分解释" data-tip="事件分来自当前榜单本身，用来筛选事件强度；复盘分会再结合价格、成交额、强弱和风险。">?</button></span>
                   <select id="eventScoreFilter">
                     <option value="all">全部分数</option>
                     <option value="high">优先看高分</option>
@@ -1559,7 +1559,7 @@
                 <button class="ghost-action filter-clear-action" type="button" data-event-clear>清除筛选</button>
               </div>
 
-              <div class="event-card-grid" id="eventCardGrid" aria-label="观察线索卡片"></div>
+              <div class="event-card-grid" id="eventCardGrid" aria-label="股票事件卡片"></div>
 
               <div class="event-table-title">
                 <span>数据明细</span>
@@ -1572,7 +1572,7 @@
                     <tr>
                       <th>排名</th>
                       <th>股票</th>
-                      <th>线索 <button class="info-tip" type="button" aria-label="线索解释" data-tip="线索指股票被重新关注的原因，比如业绩预期变好、财报超预期、机构观点变化或空头压力变化。">?</button></th>
+                      <th>事件 <button class="info-tip" type="button" aria-label="事件解释" data-tip="事件指股票被重新关注的原因，比如业绩预期变好、财报超预期、机构观点变化或空头压力变化。">?</button></th>
                       <th>进入原因</th>
                       <th>复盘分 <button class="info-tip" type="button" aria-label="复盘分解释" data-tip="把线索、价格、成交额、强弱、风险等信息合成一个复盘优先级，只用于排序，不构成交易建议。">?</button></th>
                       <th>20日表现 <button class="info-tip" type="button" aria-label="20日表现解释" data-tip="过去约一个月的价格表现，用来判断事件之后资金有没有继续确认。">?</button></th>
@@ -1585,10 +1585,10 @@
               </div>
             </section>
 
-            <aside class="event-detail-panel workspace-side" id="eventDetailPanel" aria-label="观察线索详情">
+            <aside class="event-detail-panel workspace-side" id="eventDetailPanel" aria-label="股票事件详情">
               <div class="empty-detail">
                 <strong>点击榜单股票查看详情</strong>
-                <p>这里会显示事件日期、事件类型、核心理由、主要风险和后续观察窗口。</p>
+                <p>这里会显示事件日期、事件类型、核心理由、主要风险和复盘窗口。</p>
               </div>
             </aside>
           </div>
@@ -1682,7 +1682,7 @@
             <article>
               <span>数据口径</span>
               <strong>离线复盘，不做实时监控</strong>
-              <p>第一版读取本地 JSON 快照；后续由 market-data-lab 脚本把 Polygon 期权合约与聚合行情产出为同一结构。</p>
+              <p>当前读取本地 JSON 快照，由数据脚本统一生成期权合约、聚合行情和复盘字段。</p>
             </article>
             <article>
               <span>方向解释</span>
@@ -1716,7 +1716,7 @@
             <div class="main-column">
               <section class="market-strip" aria-label="榜单摘要">
                 <div>
-                  <span>研究池</span>
+                  <span>筛选口径</span>
                   <strong id="statCount">--</strong>
                 </div>
                 <div>
@@ -2136,7 +2136,7 @@
             <div>
               <span>复盘安排</span>
               <strong id="watchlistTodayAction">等待观察对象</strong>
-              <p id="watchlistTodayNext">从涨跌幅榜、强弱、财报或股票线索加入股票后，这里会给出下一步。</p>
+              <p id="watchlistTodayNext">从涨跌幅榜、强弱、财报或股票事件加入股票后，这里会给出下一步。</p>
             </div>
           </section>
 
@@ -2708,6 +2708,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-riskflow1"></script>
+    <script src="./app.js?v=20260610-workbench2"></script>
   </body>
 </html>

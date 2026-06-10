@@ -9158,6 +9158,194 @@ h1 {
   white-space: nowrap;
 }
 
+.stock-terminal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 10px;
+}
+
+.stock-terminal-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: rgba(12, 19, 32, 0.86);
+}
+
+.stock-terminal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 14px;
+}
+
+.stock-terminal-head span,
+.stock-fact-matrix h3 {
+  margin: 0;
+  color: #8fa0b8;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.stock-terminal-head strong {
+  display: block;
+  margin-top: 4px;
+  color: #e8edf6;
+  font-size: 16px;
+  font-weight: 620;
+}
+
+.stock-terminal-head em {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgba(128, 151, 183, 0.22);
+  border-radius: var(--radius-control);
+  color: #a9b6c8;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 620;
+  padding: 0 8px;
+}
+
+.stock-terminal-table {
+  display: grid;
+}
+
+.stock-terminal-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 74px 82px 72px;
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.13);
+  background: transparent;
+  color: #dce7f5;
+  cursor: pointer;
+  padding: 0 14px;
+  text-align: left;
+}
+
+.stock-terminal-row:last-child {
+  border-bottom: 0;
+}
+
+.stock-terminal-row.is-head {
+  min-height: 32px;
+  color: #75869d;
+  cursor: default;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.stock-terminal-row:not(.is-head):hover,
+.stock-terminal-row.is-current {
+  background: rgba(53, 167, 255, 0.08);
+}
+
+.stock-terminal-row strong {
+  color: #e8edf6;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.stock-terminal-row span {
+  overflow: hidden;
+  color: #96a5b8;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-terminal-row b,
+.stock-terminal-row em,
+.stock-terminal-row small {
+  overflow: hidden;
+  font-size: 12px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-terminal-row b {
+  color: #8fc7ff;
+}
+
+.stock-terminal-row b.is-positive,
+.stock-fact-matrix dd.is-positive {
+  color: var(--positive);
+}
+
+.stock-terminal-row b.is-negative,
+.stock-fact-matrix dd.is-negative {
+  color: var(--negative);
+}
+
+.stock-terminal-row em,
+.stock-terminal-row small {
+  color: #8fa0b8;
+}
+
+.stock-terminal-empty {
+  color: #8fa0b8;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 14px;
+}
+
+.stock-fact-matrix {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.stock-fact-matrix section {
+  min-width: 0;
+  border: 1px solid rgba(128, 151, 183, 0.14);
+  border-radius: var(--radius-control);
+  background: rgba(7, 12, 21, 0.52);
+  padding: 10px;
+}
+
+.stock-fact-matrix .stock-risk-facts {
+  grid-column: 1 / -1;
+}
+
+.stock-fact-matrix dl {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 0;
+  margin: 8px 0 0;
+}
+
+.stock-fact-matrix dt,
+.stock-fact-matrix dd {
+  min-height: 28px;
+  border-top: 1px solid rgba(128, 151, 183, 0.11);
+  margin: 0;
+  padding: 7px 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.stock-fact-matrix dt {
+  color: #75869d;
+}
+
+.stock-fact-matrix dd {
+  overflow: hidden;
+  color: #dce7f5;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .stock-event-list {
   display: grid;
   gap: 10px;
@@ -15620,4 +15808,28 @@ body :where(.market-table-title) {
 
 body :where(.market-workspace .market-row.is-selected, .ranking-panel .market-row.is-selected, .mag7-row.is-top, .mag7-row:hover) {
   background: rgba(53, 167, 255, 0.1) !important;
+}
+
+@media (max-width: 760px) {
+  body .stock-research-workspace .stock-terminal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body .stock-research-workspace .stock-terminal-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body .stock-research-workspace .stock-terminal-row {
+    grid-template-columns: 58px minmax(120px, 1fr) 68px 76px 66px;
+    min-width: 460px;
+  }
+
+  body .stock-research-workspace .stock-fact-matrix {
+    grid-template-columns: 1fr;
+  }
+
+  body .stock-research-workspace .stock-fact-matrix .stock-risk-facts {
+    grid-column: auto;
+  }
 }

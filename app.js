@@ -421,6 +421,18 @@ const parseMoneyLabel = (value) => {
   return Number.isFinite(number) ? number * multiplier : 0;
 };
 
+const isKnownSector = (sector) => {
+  const value = String(sector || "").trim();
+  return Boolean(value && value !== "未分类" && value !== "板块待补" && value !== "--");
+};
+
+const knownSectorRows = (rows = []) => {
+  const filtered = rows.filter((row) => isKnownSector(row.sector));
+  return filtered.length >= 5 ? filtered : rows;
+};
+
+const sectorDisplayName = (sector) => (isKnownSector(sector) ? sector : "板块待补");
+
 const formatChangeValue = (row) => {
   if (!row) return "--";
   const change = getChange(row);
@@ -1007,7 +1019,7 @@ const stockDisplayName = (symbol) => {
     symbol: normalizeStockSymbol(symbol),
     chineseName: market?.chineseName || "",
     company: market?.company || quality?.companyName || event?.companyName || quality?.name || strength?.name || "",
-    sector: market?.sector || strength?.sectorProxy || signalStateForSymbol(symbol)?.theme || "未分类",
+    sector: sectorDisplayName(market?.sector || strength?.sectorProxy || signalStateForSymbol(symbol)?.theme),
   };
 };
 
@@ -1261,7 +1273,7 @@ const normalizeStockLibraryItem = (item) => {
   const month = getBoardRow("month", symbol);
   const ytd = getBoardRow("ytd", symbol);
   const name = item.name || market?.company || market?.chineseName || strength?.name || quality?.companyName || "";
-  const sector = item.sector || market?.sector || strength?.sectorProxy || signal?.theme || "未分类";
+  const sector = sectorDisplayName(item.sector || market?.sector || strength?.sectorProxy || signal?.theme);
   const change = market ? getChange(market) : parseSignedPercent(item.change);
   const marketCap = item.marketCap || market?.marketCap || "--";
   const dollarVolume = Number(item.volume || market?.dollarVolume || market?.volumeDollar || quality?.dollarVolume20d || 0);
@@ -1389,7 +1401,7 @@ const renderStocksPage = () => {
             ${item.inWatchlist ? '<span class="stocks-mini-flag">自选</span>' : ""}
           </td>
           <td class="stocks-company-cell" data-label="公司">${escapeHtml(item.name || "--")}</td>
-          <td data-label="板块/行业">${escapeHtml(item.sector || "未分类")}</td>
+          <td data-label="板块/行业">${escapeHtml(sectorDisplayName(item.sector))}</td>
           <td class="stocks-num-cell" data-label="市值">${escapeHtml(item.marketCap || "--")}</td>
           <td class="stocks-num-cell" data-label="价格">${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</td>
           <td class="stocks-num-cell ${escapeHtml(changeClass(item.dayChange))}" data-label="1D">${escapeHtml(Number.isFinite(item.dayChange) ? formatSignedPct(item.dayChange) : "--")}</td>
@@ -1504,6 +1516,12 @@ const sectorFlowRows = () => {
     .slice(0, 16);
 };
 
+const sectorFlowDisplayRows = () => {
+  const rows = sectorFlowRows();
+  const filtered = rows.filter((row) => isKnownSector(row.sector));
+  return filtered.length >= 5 ? filtered : rows;
+};
+
 const formatSignedCompactMoney = (value, fallback = "") => {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback || "--";
@@ -1515,23 +1533,23 @@ const renderFlowsPage = () => {
   const body = document.querySelector("#flowsSectorBody");
   const sectorList = document.querySelector("#flowsSectorList");
   if (!body) return;
-  const rows = sectorFlowRows();
+  const rows = sectorFlowDisplayRows();
   const stockRows = flowRows();
   const top = rows[0];
   const activeSector = rows.slice().sort((a, b) => (b.activeValue || 0) - (a.activeValue || 0))[0];
   const positiveSectors = rows.filter((row) => (row.netFlowProxy || 0) > 0).length;
   const negativeSectors = rows.filter((row) => (row.netFlowProxy || 0) < 0).length;
   setText("#flowsAsOf", formatDisplayDate(state.sectorFlow?.asOf || state.meta?.volume?.updatedAt || state.meta?.day?.updatedAt));
-  setText("#flowsHeroTitle", top ? `${top.sector} · ${formatSignedCompactMoney(top.netFlowProxy, top.netFlowLabel)}` : "等待板块数据");
+  setText("#flowsHeroTitle", top ? `${sectorDisplayName(top.sector)} · ${formatSignedCompactMoney(top.netFlowProxy, top.netFlowLabel)}` : "等待板块数据");
   setText(
     "#flowsHeroLead",
     top
       ? `${top.status || "板块领先"}，上涨广度 ${Math.round(top.breadthPct || 0)}%，代表标的 ${(top.leaders || []).slice(0, 3).map((item) => item.symbol).join(" / ") || "--"}。`
       : "用板块层面的成交活跃和涨跌广度判断资金偏好。",
   );
-  setText("#flowsTopSymbol", top ? top.sector : "--");
+  setText("#flowsTopSymbol", top ? sectorDisplayName(top.sector) : "--");
   setText("#flowsTopNote", top ? `${formatSignedCompactMoney(top.netFlowProxy, top.netFlowLabel)} · ${top.status || "资金方向"}` : "等待数据。");
-  setText("#flowsTopSector", activeSector ? activeSector.sector : "--");
+  setText("#flowsTopSector", activeSector ? sectorDisplayName(activeSector.sector) : "--");
   setText("#flowsAccumulationCount", positiveSectors ? String(positiveSectors) : "--");
   setText("#flowsDistributionCount", negativeSectors ? String(negativeSectors) : "--");
   if (!rows.length) {
@@ -1546,7 +1564,7 @@ const renderFlowsPage = () => {
       const downCount = row.downCount || 0;
       return `
         <tr>
-          <td><button class="inline-stock-link" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">${escapeHtml(row.sector)}</button></td>
+          <td><button class="inline-stock-link" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">${escapeHtml(sectorDisplayName(row.sector))}</button></td>
           <td class="${changeClass}">${escapeHtml(formatSignedCompactMoney(row.netFlowProxy, row.netFlowLabel))}</td>
           <td class="${Number(row.avgChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(row.avgChange == null ? "--" : formatSignedPct(row.avgChange))}</td>
           <td class="${Number(weekChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(weekChange == null ? "--" : formatSignedPct(weekChange))}</td>
@@ -1572,7 +1590,7 @@ const renderFlowsPage = () => {
           <span>${escapeHtml(item.symbol)}</span>
           <i><b style="width:${Math.max(8, (parseRatio(item.volumeRatio) / max) * 100).toFixed(1)}%"></b></i>
           <strong>${escapeHtml(item.volumeRatio || "--")}</strong>
-          <small>${escapeHtml(`${item.sector || "未分类"} · ${formatSignedPct(item.change)}`)}</small>
+          <small>${escapeHtml(`${sectorDisplayName(item.sector)} · ${formatSignedPct(item.change)}`)}</small>
         </button>
       `).join("")
       : "<p>等待个股活跃度数据。</p>";
@@ -1672,7 +1690,7 @@ const signalToHistoryLabel = {
   short_squeeze: "空头压力变化",
 };
 
-const displayEventLabel = (rowOrLabel, fallback = "观察线索") => {
+const displayEventLabel = (rowOrLabel, fallback = "股票事件") => {
   const raw = typeof rowOrLabel === "string" ? rowOrLabel : rowOrLabel?.eventLabel || rowOrLabel?.eventType;
   const type = typeof rowOrLabel === "string" ? "" : rowOrLabel?.eventType;
   if (type && signalToHistoryLabel[type]) return signalToHistoryLabel[type];
@@ -1707,7 +1725,7 @@ const stockResearchSummary = ({ target, market, strength, quality, eventRow, sig
       ? `财报观察：${quality.userReason || quality.userAngle || "财报和预期数据正在补充"}`
       : strength
         ? `强弱观察：${strength.action || strength.label || "价格相对强弱正在跟踪"}`
-        : `${target} 暂无完整研究线索`;
+        : `${target} 暂无完整事件记录`;
   const currentState = strength?.label
     || (market ? getRiskLabel(getRiskBucket(market)) : "")
     || (signal ? directionLabel(signal.direction, signal.directionText) : "")
@@ -1717,9 +1735,9 @@ const stockResearchSummary = ({ target, market, strength, quality, eventRow, sig
     || market?.risk
     || "暂无独立风险标签，先看价格、成交额和大盘环境是否继续确认。";
   const nextStep = eventRow
-    ? "先加入自选，后续看价格是否继续站稳、成交额是否放大，以及市场温度是否恶化。"
+    ? "先加入自选，接下来检查价格是否继续站稳、成交额是否放大，以及市场温度是否恶化。"
     : quality
-      ? "先看财报后的价格承接，再观察后续几天是否继续强于大盘。"
+      ? "先看财报后的价格承接，再观察接下来几天是否继续强于大盘。"
       : "先保留观察，不急于下结论，等待更多数据确认。";
   return { title, currentState, risk, nextStep, evidence };
 };
@@ -1781,7 +1799,7 @@ const stockReviewPriority = ({ target, market, day, week, month, volume, strengt
   const reasons = [];
   if (Number.isFinite(strengthScore)) reasons.push(`强弱 ${Math.round(strengthScore)}`);
   if (Number.isFinite(qualityScore)) reasons.push(`财报分 ${qualityScore.toFixed(1)}`);
-  if (Number.isFinite(eventScore)) reasons.push(`线索分 ${eventScore.toFixed(1)}`);
+  if (Number.isFinite(eventScore)) reasons.push(`事件分 ${eventScore.toFixed(1)}`);
   if (volumeRatio >= 1.25) reasons.push(`成交额 ${volumeRatio}x`);
   if (Number.isFinite(monthChange)) reasons.push(`近月 ${formatSignedPct(monthChange)}`);
   if (sourceCount) reasons.push(`依据 ${sourceCount}项`);
@@ -1879,7 +1897,7 @@ const stockHeatSummary = ({ market, strength, month, volume }) => {
   }
   return {
     label: "等待确认",
-    note: "当前信息还不够集中，先看后续价格、成交额和新的财报/事件是否继续支持。",
+    note: "当前信息还不够集中，先看价格、成交额和新的财报/事件是否继续支持。",
   };
 };
 
@@ -1890,7 +1908,7 @@ const stockWatchlistState = (symbol) => {
     return {
       active: false,
       title: "未加入自选",
-      note: "如果这只股票需要继续跟踪，可以先加入自选，后续按复盘节奏复盘。",
+      note: "如果这只股票需要继续跟踪，可以先加入自选，并按复盘节奏检查。",
       source: "未加入",
       review: "--",
     };
@@ -1907,7 +1925,7 @@ const stockWatchlistState = (symbol) => {
 };
 
 const stockPrimarySource = ({ market, strength, quality, eventRow, signal }) => {
-  if (eventRow) return displayEventLabel(eventRow, "股票线索");
+  if (eventRow) return displayEventLabel(eventRow, "股票事件");
   if (quality) return quality.userAngle || "财报观察";
   if (signal) return "趋势信号";
   if (strength) return "全市场强弱";
@@ -1918,7 +1936,7 @@ const stockPrimarySource = ({ market, strength, quality, eventRow, signal }) => 
 const stockReviewPlan = ({ eventRow, quality, strength, signal, market }) => {
   if (signal) return "按信号周期复盘，方向切换时重新评估。";
   if (eventRow) return eventNextReview(eventRow);
-  if (quality) return "看财报后的价格承接、机构关注度和后续预期是否继续改善。";
+  if (quality) return "看财报后的价格承接、机构关注度和未来预期是否继续改善。";
   if (strength) return "看相对大盘和行业的强弱是否保持，回落时降低观察频率。";
   if (market) return "先看成交额是否连续放大，避免只被单日波动吸引。";
   return "先保留观察，等待更多行情、财报或线索数据补充。";
@@ -2217,7 +2235,7 @@ const renderWatchlistDailyPlan = (rows, reviewRows, priorityRows) => {
     focus.textContent = "先加入自选对象";
     reason.textContent = "自选会根据复盘分、到期时间和数据覆盖自动排序。";
     action.textContent = "等待观察对象";
-    next.textContent = "从涨跌幅榜、强弱、财报或股票线索加入股票后，这里会给出下一步。";
+    next.textContent = "从涨跌幅榜、强弱、财报或股票事件加入股票后，这里会给出下一步。";
     return;
   }
   const review = watchlistReviewPlan(top);
@@ -2234,9 +2252,11 @@ const renderWatchlistDailyPlan = (rows, reviewRows, priorityRows) => {
 const stockPeerRows = (symbol, limit = 6) => {
   const target = normalizeStockSymbol(symbol);
   const profile = stockDisplayName(target);
-  const byMarket = allMarketRows().filter((row) => row.symbol !== target && row.sector === profile.sector);
+  const byMarket = isKnownSector(profile.sector)
+    ? allMarketRows().filter((row) => row.symbol !== target && row.sector === profile.sector)
+    : [];
   const byStrength = (state.strength?.rows || [])
-    .filter((row) => normalizeStockSymbol(row.symbol) !== target && row.sectorProxy === profile.sector)
+    .filter((row) => isKnownSector(profile.sector) && normalizeStockSymbol(row.symbol) !== target && row.sectorProxy === profile.sector)
     .map((row) => ({
       symbol: row.symbol,
       company: row.name,
@@ -2250,7 +2270,9 @@ const stockPeerRows = (symbol, limit = 6) => {
       risk: row.label,
       actionNote: row.action,
     }));
-  return uniqueBySymbol([...byMarket, ...byStrength]).slice(0, limit);
+  return uniqueBySymbol([...byMarket, ...byStrength])
+    .sort((a, b) => (marketCapNumber(b.marketCap) || 0) - (marketCapNumber(a.marketCap) || 0) || Math.abs(getChange(b)) - Math.abs(getChange(a)))
+    .slice(0, limit);
 };
 
 const stockTimelineItems = (symbol) => {
@@ -2259,7 +2281,7 @@ const stockTimelineItems = (symbol) => {
   ["day", "week", "month", "ytd", "volume"].forEach((board) => {
     const row = getBoardRow(board, target);
     if (row) {
-      const label = board === "day" ? "24h榜" : board === "week" ? "周榜" : board === "month" ? "月榜" : board === "ytd" ? "年内榜" : "成交额榜";
+      const label = board === "day" ? "1D榜" : board === "week" ? "周榜" : board === "month" ? "月榜" : board === "ytd" ? "年内榜" : "成交额榜";
       items.push({
         label,
         title: `进入${label}`,
@@ -2286,8 +2308,8 @@ const stockTimelineItems = (symbol) => {
   }
   if (eventRow) {
     items.push({
-      label: "观察线索",
-      title: displayEventLabel(eventRow, "股票线索"),
+      label: "股票事件",
+      title: displayEventLabel(eventRow, "股票事件"),
       value: `${eventRow.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct)} · ${eventRow.eventDate || "--"}`,
     });
   }
@@ -2313,7 +2335,7 @@ const stockActionChecklist = (symbol) => {
   if (strength) items.push(`先看强弱是否保持：${strength.label}，20日表现 ${strength.periods?.["20d"] || "--"}。`);
   if (market) items.push(`再看风险是否可接受：${market.risk}，不只看涨幅，也看成交额是否连续。`);
   if (quality) items.push(`财报角度：${quality.userReason || quality.userAngle || "等待更多财报解释"}。`);
-  if (eventRow) items.push(`观察线索：${eventRow.reason || displayEventLabel(eventRow) || "先看线索是否继续被价格确认"}。`);
+  if (eventRow) items.push(`股票事件：${eventRow.reason || displayEventLabel(eventRow) || "先看事件是否继续被价格确认"}。`);
   if (signal) items.push(`趋势信号：${directionLabel(signal.direction, signal.directionText)}，当前表现 ${signal.marketChangePct || "--"}。`);
   if (!items.length) items.push("先加入自选，等待更多行情、强弱、财报或信号数据补充。");
   return items.slice(0, 4);
@@ -2370,7 +2392,7 @@ const renderWatchlist = () => {
       <article class="watchlist-card" data-watchlist-symbol="${escapeHtml(item.symbol)}">
         <div class="watchlist-card-head">
           <div>
-            <span>${escapeHtml(item.sector)}</span>
+            <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
             <strong>${escapeHtml(item.symbol)}</strong>
             <p>${escapeHtml(item.name)}${item.company && item.company !== item.name ? ` · ${escapeHtml(item.company)}` : ""}</p>
           </div>
@@ -2455,7 +2477,7 @@ const renderStockHub = (symbol) => {
     content.innerHTML = `
       <div class="empty-detail">
         <strong>选择一只股票</strong>
-        <p>从股票线索、涨跌幅榜、全市场强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
+        <p>从股票事件、涨跌幅榜、全市场强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
       </div>
     `;
     return;
@@ -2481,8 +2503,11 @@ const renderStockHub = (symbol) => {
   const signalPerformance = signal?.marketChangePct || signal?.directionalChangePct || "--";
   const peers = stockPeerRows(target, 6);
   const strongestPeer = peers.slice().sort((a, b) => getChange(b) - getChange(a))[0];
-  const sectorRankRows = uniqueBySymbol(allMarketRows().filter((row) => row.sector === profile.sector))
-    .sort((a, b) => getChange(b) - getChange(a));
+  const sectorKnown = isKnownSector(profile.sector);
+  const sectorRankRows = sectorKnown
+    ? uniqueBySymbol(allMarketRows().filter((row) => row.sector === profile.sector))
+        .sort((a, b) => getChange(b) - getChange(a))
+    : [];
   const sectorRank = sectorRankRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
   const sectorRankText = sectorRank > 0 ? `${sectorRank}/${sectorRankRows.length}` : "--";
   const volumeRatioText = volume?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio || "--";
@@ -2498,6 +2523,10 @@ const renderStockHub = (symbol) => {
   const marketCapRank = marketCapRankRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
   const marketCapPosition = marketCapRank > 0 ? `板块市值 ${marketCapRank}/${marketCapRankRows.length}` : capLabel(market || { marketCap: marketCapText });
   const peerRows = peers.slice(0, 5);
+  const peerTableRows = uniqueBySymbol([market || day || { symbol: target, company: profile.company, sector: profile.sector, marketCap: marketCapText, change: getChange(day || {}) }, ...peers])
+    .filter((row) => normalizeStockSymbol(row.symbol))
+    .sort((a, b) => (marketCapNumber(b.marketCap) || 0) - (marketCapNumber(a.marketCap) || 0) || getChange(b) - getChange(a))
+    .slice(0, 7);
   const eventSummary = eventRow
     ? `${displayEventLabel(eventRow, eventTypeLabel(eventRow.eventType))} · ${eventRow.eventDate || "日期待补"}`
     : "暂无事件线索";
@@ -2590,6 +2619,12 @@ const renderStockHub = (symbol) => {
       </article>
     `
     : "";
+  const riskFacts = [
+    ["行情风险", market?.risk || "先看价格、成交额和板块是否同步确认"],
+    ["财报风险", quality?.userRisk || "暂无独立财报风险标签"],
+    ["事件风险", eventRow?.risk || "暂无独立事件风险标签"],
+    ["宏观背景", macroExposure.label || "按市场温度辅助判断"],
+  ];
 
   setText("#stockHubSymbol", target);
   setText(
@@ -2681,7 +2716,7 @@ const renderStockHub = (symbol) => {
         </div>
         <p>${escapeHtml(volumeSummary.note)}</p>
         <div class="stock-mini-grid">
-          <b>24h ${formatChangeValue(day)}</b>
+          <b>1D ${formatChangeValue(day)}</b>
           <b>近周 ${formatChangeValue(week)}</b>
           <b>近月 ${formatChangeValue(month)}</b>
         </div>
@@ -2693,6 +2728,79 @@ const renderStockHub = (symbol) => {
         </div>
         <p>${escapeHtml(eventSummary)}</p>
         <p>${escapeHtml(earningsSummary)}${quality?.avgPriceTargetUpsidePct == null ? "" : ` · 目标价空间 ${escapeHtml(targetUpside)}`}</p>
+      </article>
+    </section>
+
+    <section class="stock-terminal-grid" aria-label="单股工作台事实表">
+      <article class="stock-terminal-panel">
+        <div class="stock-terminal-head">
+          <div>
+            <span>同板块排序</span>
+            <strong>${escapeHtml(profile.sector)}</strong>
+          </div>
+          <em>${escapeHtml(sectorRankText)}</em>
+        </div>
+        <div class="stock-terminal-table stock-terminal-peer-table">
+          <div class="stock-terminal-row is-head">
+            <span>代码</span>
+            <span>公司</span>
+            <span>涨跌</span>
+            <span>市值</span>
+            <span>成交</span>
+          </div>
+          ${
+            peerTableRows.length
+              ? peerTableRows.map((peer) => {
+                  const isTarget = normalizeStockSymbol(peer.symbol) === target;
+                  const change = getChange(peer);
+                  return `
+                    <button class="stock-terminal-row ${isTarget ? "is-current" : ""}" type="button" data-stock-open="${escapeHtml(peer.symbol)}">
+                      <strong>${escapeHtml(peer.symbol)}</strong>
+                      <span>${escapeHtml(peer.chineseName || peer.company || peer.name || peer.symbol)}</span>
+                      <b class="${change >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatChangeValue(peer))}</b>
+                      <em>${escapeHtml(peer.marketCap || "--")}</em>
+                      <small>${escapeHtml(peer.volumeRatio || peer.volume || "--")}</small>
+                    </button>
+                  `;
+                }).join("")
+              : `<div class="stock-terminal-empty">该标的暂无可比板块样本，先看自身行情、成交额和事件数据。</div>`
+          }
+        </div>
+      </article>
+      <article class="stock-terminal-panel">
+        <div class="stock-terminal-head">
+          <div>
+            <span>事件 / 财报 / 风险</span>
+            <strong>事实表</strong>
+          </div>
+          <em>研究</em>
+        </div>
+        <div class="stock-fact-matrix">
+          <section>
+            <h3>事件</h3>
+            <dl>
+              <dt>类型</dt><dd>${escapeHtml(eventRow ? displayEventLabel(eventRow) : "--")}</dd>
+              <dt>日期</dt><dd>${escapeHtml(eventRow?.eventDate || "--")}</dd>
+              <dt>20日表现</dt><dd class="${Number(eventRow?.return20dPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct))}</dd>
+              <dt>理由</dt><dd>${escapeHtml(eventRow?.reason || "暂无明确事件")}</dd>
+            </dl>
+          </section>
+          <section>
+            <h3>财报</h3>
+            <dl>
+              <dt>口径</dt><dd>${escapeHtml(quality?.userAngle || "--")}</dd>
+              <dt>财报日</dt><dd>${escapeHtml(quality?.latestEarningsDate || "--")}</dd>
+              <dt>目标空间</dt><dd class="${Number(quality?.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(targetUpside)}</dd>
+              <dt>理由</dt><dd>${escapeHtml(quality?.userReason || "暂无财报摘要")}</dd>
+            </dl>
+          </section>
+          <section class="stock-risk-facts">
+            <h3>风险</h3>
+            <dl>
+              ${riskFacts.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join("")}
+            </dl>
+          </section>
+        </div>
       </article>
     </section>
 
@@ -2733,7 +2841,7 @@ const renderStockHub = (symbol) => {
         <h2>${escapeHtml(research.title)}</h2>
         <p>${escapeHtml(research.nextStep)}</p>
         <div class="stock-research-actions">
-          ${watchlistActionButton(target, eventRow ? "股票线索" : "股票详情")}
+          ${watchlistActionButton(target, eventRow ? "股票事件" : "股票详情")}
           <button class="ghost-action" type="button" data-page-link="watchlist">去自选</button>
         </div>
       </article>
@@ -2777,7 +2885,7 @@ const renderStockHub = (symbol) => {
           <em>基础</em>
         </div>
         <div class="stock-metric-grid">
-          ${stockMetric("24h", formatChangeValue(day), day && getChange(day) < 0 ? "is-negative" : "is-positive")}
+          ${stockMetric("1D", formatChangeValue(day), day && getChange(day) < 0 ? "is-negative" : "is-positive")}
           ${stockMetric("近一周", formatChangeValue(week), week && getChange(week) < 0 ? "is-negative" : "is-positive")}
           ${stockMetric("近一月", formatChangeValue(month), month && getChange(month) < 0 ? "is-negative" : "is-positive")}
           ${stockMetric("今年以来", formatChangeValue(ytd), ytd && getChange(ytd) < 0 ? "is-negative" : "is-positive")}
@@ -2823,38 +2931,6 @@ const renderStockHub = (symbol) => {
       </article>
 
       ${signalCard}
-
-      <article class="stock-hub-card stock-hub-card-wide desk-panel" data-lockable-module="stock-hub-catalyst">
-        <div class="stock-card-head">
-          <div>
-            <span>财报 / 事件摘要</span>
-            <strong>${escapeHtml(eventRow || quality ? "当前催化" : "等待催化")}</strong>
-          </div>
-          <em>研究</em>
-        </div>
-        <div class="stock-catalyst-grid">
-          <div>
-            <span>事件</span>
-            <strong>${escapeHtml(eventSummary)}</strong>
-            <dl class="stock-fact-list">
-              <dt>类型</dt><dd>${escapeHtml(eventRow ? displayEventLabel(eventRow) : "--")}</dd>
-              <dt>日期</dt><dd>${escapeHtml(eventRow?.eventDate || "--")}</dd>
-              <dt>20日表现</dt><dd>${escapeHtml(eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct))}</dd>
-            </dl>
-            <p>${escapeHtml(eventRow?.reason || "暂无明确事件，先以行情、成交额和板块共振观察。")}</p>
-          </div>
-          <div>
-            <span>财报</span>
-            <strong>${escapeHtml(earningsSummary)}</strong>
-            <dl class="stock-fact-list">
-              <dt>综合分</dt><dd>${escapeHtml(quality?.score == null ? "--" : Number(quality.score).toFixed(2))}</dd>
-              <dt>财报日</dt><dd>${escapeHtml(quality?.latestEarningsDate || "--")}</dd>
-              <dt>目标空间</dt><dd>${escapeHtml(targetUpside)}</dd>
-            </dl>
-            <p>${escapeHtml(quality?.userReason || "暂无财报摘要，先看行情和事件线索是否给出确认。")}</p>
-          </div>
-        </div>
-      </article>
 
       <article class="stock-hub-card desk-panel" data-lockable-module="stock-hub-action-plan">
         <div class="stock-card-head">
@@ -2944,7 +3020,7 @@ const renderStockHub = (symbol) => {
                     <p>${escapeHtml(item.value)}</p>
                   </div>
                 `).join("")
-            : "<p class=\"stock-card-note\">暂无观察记录。后续会记录它在哪些模块、什么原因、什么价格进入观察。</p>"
+            : "<p class=\"stock-card-note\">暂无观察记录。先看行情、成交额、板块和事件事实表。</p>"
           }
         </div>
       </article>
@@ -3494,9 +3570,9 @@ const pageModules = [
   },
   {
     id: "stock-events",
-    kicker: "股票线索",
-    title: "股票线索",
-    nav: "线索",
+    kicker: "股票事件",
+    title: "股票事件",
+    nav: "事件",
     summary: "把业绩预期变好、财报超预期、机构观点和空头压力翻译成个股复盘入口。",
     status: "数据驱动",
   },
@@ -3666,7 +3742,7 @@ const renderDashboardFocus = () => {
       : "优先从强于大盘和行业的股票里找线索。",
   );
 
-  setText("#dashboardFocusEvent", eventTop ? `${normalizeStockSymbol(eventTop.ticker || eventTop.symbol)} · ${displayEventLabel(eventTop, "股票线索")}` : "等待股票线索");
+  setText("#dashboardFocusEvent", eventTop ? `${normalizeStockSymbol(eventTop.ticker || eventTop.symbol)} · ${displayEventLabel(eventTop, "股票事件")}` : "等待股票事件");
   setText(
     "#dashboardFocusEventNote",
     eventTop ? eventReasonForUser(eventTop) : "用财报、业绩预期和机构观点解释为什么需要继续跟踪。",
@@ -3739,7 +3815,7 @@ const renderDashboardVisualBoard = () => {
   const tempLabel = temp.overall?.label || "等待数据";
   const dayRows = state.boards?.day || [];
   const direction = boardDirectionStats(dayRows);
-  const sectorRows = marketSectorStats(dayRows).slice(0, 5);
+  const sectorRows = knownSectorRows(marketSectorStats(dayRows)).slice(0, 5);
   const maxSectorCount = Math.max(...sectorRows.map((item) => item.count), 1);
   const strengthMix = dashboardStrengthMix();
   const maxStrength = Math.max(...strengthMix.map((item) => item[1]), 1);
@@ -3783,7 +3859,7 @@ const renderDashboardVisualBoard = () => {
       <div class="dashboard-sector-bars">
         ${sectorRows.length ? sectorRows.map((item) => `
           <div>
-            <span>${escapeHtml(item.sector)}</span>
+            <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
             <i style="--level:${Math.max(8, (item.count / maxSectorCount) * 100).toFixed(1)}%"></i>
             <b>${escapeHtml(String(item.count))}</b>
           </div>
@@ -3822,7 +3898,7 @@ const renderDashboardVisualBoard = () => {
           </div>
         `).join("") : '<em>等待事件数据</em>'}
       </div>
-      <p>财报、指引和机构观点变化会进入研究线索。</p>
+      <p>财报、指引和机构观点变化会进入股票事件页。</p>
     </article>
   `;
   renderDashboardIntelligence();
@@ -3854,7 +3930,7 @@ const renderDashboardIntelligence = () => {
   const flowPulse = document.querySelector("#dashboardFlowPulse");
   const calendarLog = document.querySelector("#dashboardCalendarLog");
   const dayRows = state.boards?.day || state.rows || [];
-  const sectors = marketSectorStats(dayRows).slice(0, 5);
+  const sectors = knownSectorRows(marketSectorStats(dayRows)).slice(0, 5);
   const sectorMax = Math.max(...sectors.map((item) => item.dollarVolume || item.count), 1);
   const topSector = sectors[0];
 
@@ -3870,7 +3946,7 @@ const renderDashboardIntelligence = () => {
         return `
           <button type="button" data-sector-open="${escapeHtml(item.sector)}">
             <em>${String(index + 1).padStart(2, "0")}</em>
-            <span>${escapeHtml(item.sector)}</span>
+            <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
             <i><b style="width:${width}%"></b></i>
             <strong class="${tone}">${escapeHtml(formatSignedPct(item.avgChange))}</strong>
           </button>
@@ -3879,7 +3955,7 @@ const renderDashboardIntelligence = () => {
       : "<p>等待行情板块排行。</p>";
   }
 
-  const flowRowsSorted = sectorFlowRows().slice(0, 5);
+  const flowRowsSorted = sectorFlowDisplayRows().slice(0, 5);
   const flowTop = flowRowsSorted[0];
   const flowMax = Math.max(...flowRowsSorted.map((item) => Math.abs(item.netFlowProxy || 0)), 1);
   setText(
@@ -3893,7 +3969,7 @@ const renderDashboardIntelligence = () => {
         const width = Math.max(8, (Math.abs(item.netFlowProxy || 0) / flowMax) * 100).toFixed(1);
         return `
           <button type="button" data-flow-sector-open="${escapeHtml(item.sector)}">
-            <span>${escapeHtml(item.sector)}</span>
+            <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
             <i class="${positive ? "is-positive" : "is-negative"}"><b style="width:${width}%"></b></i>
             <strong class="${positive ? "is-positive" : "is-negative"}">${escapeHtml(item.netFlowLabel || formatCompactMoney(item.netFlowProxy || 0))}</strong>
             <small>${escapeHtml(`${Math.round(item.breadthPct || 0)}%上涨`)}</small>
@@ -3931,11 +4007,11 @@ const renderDashboardIntelligence = () => {
 
 const dataStatusItems = () => [
   {
-    label: "股票线索",
+    label: "股票事件",
     date: state.eventOpportunities?.asOf,
     generatedAt: state.eventOpportunities?.generatedAt,
     cadence: "按数据批次更新",
-    note: "查看财报、指引和机构观点变化后的研究线索。",
+    note: "查看财报、指引和机构观点变化后的股票事件。",
   },
   {
     label: "市场温度计",
@@ -4342,12 +4418,17 @@ const renderLeader = (leader, updatedAt) => {
 
 const renderSectorOptions = () => {
   const sectorFilter = document.querySelector("#sectorFilter");
-  const sectors = Array.from(new Set(state.rows.map((row) => row.sector))).sort((a, b) =>
+  if (!sectorFilter) return;
+  const sectors = Array.from(new Set(state.rows.map((row) => row.sector).filter(isKnownSector))).sort((a, b) =>
     a.localeCompare(b, "zh-CN"),
   );
   sectorFilter.innerHTML =
     '<option value="all">全部板块</option>' +
-    sectors.map((sector) => `<option value="${sector}">${sector}</option>`).join("");
+    sectors.map((sector) => `<option value="${escapeHtml(sector)}">${escapeHtml(sector)}</option>`).join("");
+  if (!sectors.includes(state.sectorFilter)) {
+    state.sectorFilter = "all";
+  }
+  sectorFilter.value = state.sectorFilter;
 };
 
 const renderStats = () => {
@@ -4357,28 +4438,49 @@ const renderStats = () => {
   const extremeRisk = state.rows.filter((row) => getRiskBucket(row) === "extreme").length;
   const topUp = state.rows.filter((row) => getChange(row) >= 0)[0];
   const topDown = state.rows.filter((row) => getChange(row) < 0).sort((a, b) => getChange(a) - getChange(b))[0];
+  const countEl = document.querySelector("#statCount");
+  const topEl = document.querySelector("#statTopGain");
+  const thirdLabelEl = document.querySelector("#statThirdLabel");
+  const thirdEl = document.querySelector("#statTenBaggers");
+  const fourthLabelEl = document.querySelector("#statFourthLabel");
+  const fourthEl = document.querySelector("#statSmallCap");
+  const clearTone = (node) => node?.classList.remove("is-positive", "is-negative");
 
-  document.querySelector("#statCount").textContent = total ? `${formatNumber(total)}只` : "--";
-  document.querySelector("#statTopGain").textContent = topUp
-    ? "+" + formatPercent(getChange(topUp))
-    : "--";
-  document.querySelector("#statThirdLabel").textContent =
-    state.activeBoard === "ytd" ? "十倍股数量" : state.activeBoard === "volume" ? "最高成交额倍数" : "最大下跌";
-  document.querySelector("#statTenBaggers").textContent = topDown
-    ? state.activeBoard === "volume"
-      ? ((state.rows[0] && state.rows[0].volumeRatio) || "--")
-      : formatPercent(getChange(topDown))
-    : `${tenBaggers}只`;
-  document.querySelector("#statFourthLabel").textContent =
-    state.activeBoard === "ytd" ? "小市值占比" : state.activeBoard === "volume" ? "高热度标的" : "极高风险";
-  document.querySelector("#statSmallCap").textContent =
-    state.activeBoard === "ytd"
-      ? total
-        ? `${Math.round((smallCap / total) * 100)}%`
-        : "--"
-      : state.activeBoard === "volume"
-        ? `${state.rows.filter((row) => parseRatio(row.volumeRatio) >= 2).length}只`
-      : `${extremeRisk}只`;
+  [countEl, topEl, thirdEl, fourthEl].forEach(clearTone);
+  if (countEl) countEl.textContent = state.activeBoard === "volume" ? "成交额排序" : total ? "流动性过滤" : "--";
+  if (topEl) {
+    topEl.textContent = topUp ? "+" + formatPercent(getChange(topUp)) : "--";
+    if (topUp) topEl.classList.add("is-positive");
+  }
+  if (thirdLabelEl) {
+    thirdLabelEl.textContent =
+      state.activeBoard === "ytd" ? "十倍股数量" : state.activeBoard === "volume" ? "最高成交额倍数" : "最大下跌";
+  }
+  if (thirdEl) {
+    thirdEl.textContent =
+      state.activeBoard === "ytd"
+        ? `${tenBaggers}只`
+        : state.activeBoard === "volume"
+          ? ((state.rows[0] && state.rows[0].volumeRatio) || "--")
+          : topDown
+            ? formatPercent(getChange(topDown))
+            : "--";
+    if (state.activeBoard !== "ytd" && state.activeBoard !== "volume" && topDown) thirdEl.classList.add("is-negative");
+  }
+  if (fourthLabelEl) {
+    fourthLabelEl.textContent =
+      state.activeBoard === "ytd" ? "小市值占比" : state.activeBoard === "volume" ? "高热度标的" : "极高风险";
+  }
+  if (fourthEl) {
+    fourthEl.textContent =
+      state.activeBoard === "ytd"
+        ? total
+          ? `${Math.round((smallCap / total) * 100)}%`
+          : "--"
+        : state.activeBoard === "volume"
+          ? `${state.rows.filter((row) => parseRatio(row.volumeRatio) >= 2).length}只`
+          : `${extremeRisk}只`;
+  }
 };
 
 const marketBoardBrief = (rows) => {
@@ -4475,15 +4577,15 @@ const marketVisualTabs = () => `
 `;
 
 const renderMarketSectorRankingView = (rows) => {
-  const flowSectors = sectorFlowRows();
-  const sectors = (flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
+  const flowSectors = sectorFlowDisplayRows();
+  const sectors = knownSectorRows(flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
   const maxVolume = Math.max(...sectors.map((item) => item.activeValue || item.dollarVolume || 0), 1);
   return `
     ${marketVisualTabs()}
     <section class="market-sector-ranking professional-market-board">
       <div class="market-visual-copy">
         <span>板块主线</span>
-        <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
+        <strong>${escapeHtml(sectorDisplayName(sectors[0]?.sector))}</strong>
         <p>按板块合计成交额、涨跌方向和上涨广度排序。先看资金集中在哪些方向，再进入热力图确认个股贡献。</p>
       </div>
       <div class="market-sector-rank-list">
@@ -4496,9 +4598,9 @@ const renderMarketSectorRankingView = (rows) => {
           return `
             <button type="button" data-sector-open="${escapeHtml(item.sector)}">
               <em>${String(index + 1).padStart(2, "0")}</em>
-              <span>${escapeHtml(item.sector)}</span>
+              <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
               <i><b style="width:${Math.max(6, (value / maxVolume) * 100).toFixed(1)}%"></b></i>
-              <strong class="${changeClass}">${escapeHtml(item.netFlowLabel || formatSignedPct(item.avgChange || 0))}</strong>
+              <strong class="${changeClass}">${escapeHtml(item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong>
               <small>${escapeHtml(`${Math.round(breadth)}%上涨${leaders ? ` · ${leaders}` : ""}`)}</small>
             </button>
           `;
@@ -4516,7 +4618,8 @@ const marketHeatmapSize = (row) => {
 };
 
 const renderMarketHeatmapView = (rows) => {
-  const tiles = [...rows]
+  const displayRows = knownSectorRows(rows);
+  const tiles = [...displayRows]
     .map((row) => ({ ...row, heatSize: marketHeatmapSize(row) }))
     .sort((a, b) => b.heatSize - a.heatSize)
     .slice(0, 24);
@@ -4536,7 +4639,7 @@ const renderMarketHeatmapView = (rows) => {
           const span = row.heatSize / max > 0.55 ? "is-large" : row.heatSize / max > 0.25 ? "is-mid" : "";
           return `
             <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}">
-              <small>${escapeHtml(row.sector || "未分类")}</small>
+              <small>${escapeHtml(sectorDisplayName(row.sector))}</small>
               <strong>${escapeHtml(row.symbol)}</strong>
               <span>${escapeHtml(formatSignedPct(change))}</span>
             </button>
@@ -4549,7 +4652,7 @@ const renderMarketHeatmapView = (rows) => {
 
 const renderMarketOverviewView = (rows) => {
   const total = rows.length;
-  const sectors = marketSectorStats(rows).slice(0, 7);
+  const sectors = knownSectorRows(marketSectorStats(rows)).slice(0, 7);
   const maxSectorCount = Math.max(...sectors.map((item) => item.count), 1);
   const upCount = rows.filter((row) => getChange(row) >= 0).length;
   const downCount = total - upCount;
@@ -4583,12 +4686,12 @@ const renderMarketOverviewView = (rows) => {
       <article class="market-chart-card market-sector-chart">
         <div class="market-chart-head">
           <span>板块集中度</span>
-          <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
+        <strong>${escapeHtml(sectorDisplayName(sectors[0]?.sector))}</strong>
         </div>
         <div class="market-sector-bars">
           ${sectors.map((item) => `
             <div>
-              <b>${escapeHtml(item.sector)}</b>
+              <b>${escapeHtml(sectorDisplayName(item.sector))}</b>
               <i><em style="width:${Math.max(5, (item.count / maxSectorCount) * 100).toFixed(1)}%"></em></i>
               <strong>${escapeHtml(String(item.count))}</strong>
             </div>
@@ -4726,7 +4829,7 @@ const renderSectorDetail = (row) => {
       <div class="module-head">
         <div>
           <span>板块详情</span>
-          <strong>${escapeHtml(row.sector)}</strong>
+          <strong>${escapeHtml(sectorDisplayName(row.sector))}</strong>
         </div>
       </div>
       <div class="sector-detail-grid">
@@ -4781,7 +4884,7 @@ const renderMarketCards = (rows) => {
       <article class="market-observation-card ${selected ? "is-selected" : ""}" data-market-symbol="${escapeHtml(row.symbol)}">
         <div class="market-card-head">
           <div>
-            <span>${escapeHtml(row.sector)}</span>
+            <span>${escapeHtml(sectorDisplayName(row.sector))}</span>
             <strong>${escapeHtml(row.symbol)}</strong>
             <p>${escapeHtml(row.chineseName || row.company || row.symbol)}</p>
           </div>
@@ -4854,7 +4957,7 @@ const renderMarketDetail = (symbol) => {
       </div>
       <div class="market-detail-actions">
         <div class="tag-row">
-          <span>${escapeHtml(row.sector)}</span>
+          <span>${escapeHtml(sectorDisplayName(row.sector))}</span>
           <span>${escapeHtml(row.risk)}</span>
           <span>${capLabel(row)}</span>
         </div>
@@ -4928,7 +5031,7 @@ const renderMarketDetail = (symbol) => {
         <div class="reason-list">
           ${moveReasons.map((reason) => `<b>${escapeHtml(reason)}</b>`).join("")}
         </div>
-        <p>先用成交额、涨跌幅、风险标签和板块热度拆解；公告、财报和新闻会在后续数据源补充后增强。</p>
+        <p>先用成交额、涨跌幅、风险标签和板块热度拆解；若同时有财报或事件线索，再进入完整画像确认。</p>
       </div>
       ${renderSectorDetail(row)}
     </div>
@@ -4989,7 +5092,7 @@ const renderTable = () => {
             <strong>${escapeHtml(row.chineseName || row.symbol)}</strong>
             <span>${escapeHtml(row.company || row.symbol)}</span>
           </td>
-          <td data-label="板块"><span class="sector-chip">${escapeHtml(row.sector || "未分类")}</span></td>
+          <td data-label="板块"><span class="sector-chip">${escapeHtml(sectorDisplayName(row.sector))}</span></td>
           <td data-label="${escapeHtml(state.meta[state.activeBoard].changeLabel)}" class="${change >= 0 ? "gain-cell" : "loss-cell"}">${change >= 0 ? "+" : ""}${formatPercent(change)}</td>
           <td data-label="最近价">${formatMoney(row.price)}</td>
           <td data-label="1D" class="${day && getChange(day) < 0 ? "loss-cell" : "gain-cell"}">${escapeHtml(formatChangeValue(day))}</td>
@@ -5111,7 +5214,7 @@ const riskSignalDisplay = {
 
 const readableRuleCopy = (rule, index) => {
   const fallback = [
-    ["大盘站稳", "大盘不弱时，股票线索的参考价值会更高。"],
+    ["大盘站稳", "大盘不弱时，股票事件的参考价值会更高。"],
     ["科技股带路", "科技股更强时，市场通常还有愿意承担风险的资金。"],
     ["波动和利率别太高", "市场太紧张或利率压力太大时，线索需要更多确认。"],
     ["信用风险别恶化", "如果公司借钱明显变难，防守观察优先级会上升。"],
@@ -5531,7 +5634,7 @@ const renderMacroStockPools = () => {
   setText(
     "#macroStockSummary",
     activeCount
-      ? `已整理 ${activeCount} 条宏观相关股票线索。点击股票可进入完整画像。`
+      ? `已整理 ${activeCount} 条宏观相关股票事件。点击股票可进入完整画像。`
       : "根据利率、美元、原油和通胀，把相关板块里的强弱线索整理成复盘池。",
   );
   grid.innerHTML = visiblePools
@@ -5562,7 +5665,7 @@ const renderMacroStockPools = () => {
                       <small>${escapeHtml(`复盘分 ${row.score} · ${row.macroPriorityReason || "等待更多数据"}`)}</small>
                     </button>
                   `).join("")
-                : "<p>当前没有足够匹配的股票线索。</p>"
+                : "<p>当前没有足够匹配的股票事件。</p>"
             }
           </div>
           <small>${watchCount ? `${watchCount} 个宏观因子偏高，复盘时先看确认。` : "宏观压力不算极端，继续看价格和成交确认。"}</small>
@@ -6366,7 +6469,7 @@ const temperatureWatchPlan = (score, label, position) => {
   if (score >= 70) {
     return [
       ["先看大盘", "SPY 和 QQQ 不破短线趋势时，可以保留较高频率的观察节奏。", true],
-      ["再看主线", "从强弱榜、七姐妹和股票线索里查看资金已经关注的股票。", true],
+      ["再看主线", "从强弱榜、七姐妹和股票事件里查看资金已经关注的股票。", true],
       ["控制高热度", `观察强度参考 ${position}，但单只股票仍要看确认，不把结论一次打满。`, false],
       ["留意失效条件", "如果 VIX 或利率快速走高，新增线索需要重新确认。", false],
     ];
@@ -6680,7 +6783,7 @@ const renderStrengthInsightGrid = () => {
     <article>
       <span>当前怎么看</span>
       <strong>${escapeHtml(summary.leader ? `先看 ${summary.leader}` : "先看相对强弱")}</strong>
-      <p>${escapeHtml(strongest ? `${strongest.symbol} 当前${strongest.label}，相对大盘 ${strongest.relative?.spy || "--"}。` : "优先从强于大盘、强于行业的股票里找研究线索。")}</p>
+      <p>${escapeHtml(strongest ? `${strongest.symbol} 当前${strongest.label}，相对大盘 ${strongest.relative?.spy || "--"}。` : "优先从强于大盘、强于行业的股票里找可复盘标的。")}</p>
     </article>
     <article>
       <span>为什么入选</span>
@@ -7195,7 +7298,7 @@ const renderEarningsQuality = (payload) => {
 };
 
 const eventBoardFallbacks = {
-  all: { title: "股票线索总览", subtitle: "汇总业绩预期变好、财报超预期、机构观点和空头压力变化，用于找到值得复盘的股票。" },
+  all: { title: "股票事件总览", subtitle: "汇总业绩预期变好、财报超预期、机构观点和空头压力变化，用于找到值得复盘的股票。" },
   guidance_up: { title: "业绩预期变好", subtitle: "公司或市场开始认为后续收入、利润或订单可能比之前想得更好，先看价格和成交是否确认。" },
   earnings_beat: { title: "财报超预期观察", subtitle: "业绩明显好于市场预期后，观察资金是否继续确认。" },
   analyst_positive: { title: "机构观点变化", subtitle: "目标价、评级或观点明显转好时，先看股价是否同步确认。" },
@@ -7232,13 +7335,13 @@ const getEventBoard = () => {
 const syncEventPageChrome = () => {
   const board = eventBoardFallbacks[state.eventBoard];
   const isBoardRoute = window.location.hash.startsWith(`#stock-events/${state.eventBoard}`);
-  setText("#stockEventsEyebrow", "股票线索");
-  setText("#stockEventsPageTitle", isBoardRoute && board ? board.title.replace(/观察$/, "") : "股票线索");
+  setText("#stockEventsEyebrow", "股票事件");
+  setText("#stockEventsPageTitle", isBoardRoute && board ? board.title.replace(/观察$/, "") : "股票事件");
   setText(
     "#stockEventsPageSubtitle",
     isBoardRoute && board
       ? board.subtitle
-      : "把财报、业绩预期、机构观点和空头压力翻译成可复盘的个股线索。",
+      : "把财报、业绩预期、机构观点和空头压力翻译成可复盘的股票名单。",
   );
   document.querySelectorAll(".event-tab").forEach((item) => {
     const active = item.dataset.eventBoard === state.eventBoard;
@@ -7538,7 +7641,7 @@ const renderExpectationEvidence = () => {
   const rows = getEventRows();
   const asOf = state.eventOpportunities?.asOf || state.eventOpportunities?.generatedAt;
   setText("#expectationCandidateCount", rows.length ? `${rows.length}只` : "--");
-  setText("#expectationCandidateNote", rows.length ? "当前筛选后的观察线索" : "当前筛选暂无结果");
+  setText("#expectationCandidateNote", rows.length ? "当前筛选后的股票名单" : "当前筛选暂无结果");
   setText("#expectationDataDate", formatDisplayDate(asOf));
   setText("#expectationSampleCount", count ? formatNumber(count) : "--");
   setText(
@@ -7557,14 +7660,14 @@ const renderExpectationEvidence = () => {
   setText(
     "#expectationHeroTitle",
     rows.length
-      ? `股票线索：${eventBoardFallbacks[state.eventBoard]?.title || "观察线索"} · ${rows.length} 只候选`
-      : "股票线索：等待更清晰的确认信号",
+      ? `${eventBoardFallbacks[state.eventBoard]?.title || "观察名单"} · ${rows.length} 只候选`
+      : "股票事件：等待更清晰的确认信号",
   );
   setText(
     "#expectationHeroLead",
     rows.length
-      ? "这里把研究线索落到可复盘股票，先看理由，再看价格、成交和市场环境是否确认。"
-      : "股票线索等待数据生成后再进入复盘；财经日历只保留事件时间和背景。",
+      ? "这里把事件落到可复盘股票，先看理由，再看价格、成交和市场环境是否确认。"
+      : "股票事件等待数据生成后再进入复盘；财经日历只保留事件时间和影响范围。",
   );
 };
 
@@ -7575,7 +7678,7 @@ const renderEventDetail = (row) => {
     panel.innerHTML = `
       <div class="empty-detail">
         <strong>点击榜单股票查看详情</strong>
-        <p>这里会显示事件日期、事件类型、核心理由、主要风险和后续观察窗口。</p>
+        <p>这里会显示事件日期、事件类型、核心理由、主要风险和复盘窗口。</p>
       </div>
     `;
     return;
@@ -7593,7 +7696,7 @@ const renderEventDetail = (row) => {
         <p>${escapeHtml(row.companyName || row.name || "")}</p>
       </div>
       <div class="quality-head-actions">
-        ${watchlistActionButton(ticker, "股票线索")}
+        ${watchlistActionButton(ticker, "股票事件")}
         <button class="ghost-action" type="button" data-stock-open="${escapeHtml(ticker)}">股票详情</button>
       </div>
     </div>
@@ -7603,7 +7706,7 @@ const renderEventDetail = (row) => {
         <strong>${escapeHtml(String(priority.score))}</strong>
       </div>
       <div>
-        <span>线索分</span>
+        <span>事件分</span>
         <strong>${escapeHtml(row.signalScore == null ? "--" : Number(row.signalScore).toFixed(1))}</strong>
       </div>
     </div>
@@ -7633,7 +7736,7 @@ const renderEventDetail = (row) => {
     <section class="event-report-box">
       <span>下一步复盘</span>
       <strong>${escapeHtml(eventNextReview(row))}</strong>
-      <p>加入自选后，后续可以按价格确认、成交变化和市场温度变化继续复盘。</p>
+      <p>加入自选后，按价格确认、成交变化和市场温度变化继续复盘。</p>
     </section>
     <div class="event-detail-grid">
       ${eventMetric(eventDateLabel(row), row.eventDate || "--")}
@@ -7681,7 +7784,7 @@ const renderEventTable = () => {
   setText("#eventBoardTitle", board.title || eventBoardFallbacks[state.eventBoard]?.title || "--");
   setText(
     "#eventBoardSubtitle",
-    board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是独立的股票研究线索，不属于财经日历。",
+    board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是独立的股票事件页面，不属于财经日历。",
   );
   setText("#eventActiveTitle", board.title || "--");
   setText("#eventActiveSubtitle", board.subtitle || "加载后显示当前线索口径。");
@@ -7752,7 +7855,7 @@ const renderEventTable = () => {
           </section>
           <div class="event-card-actions">
             <button class="ghost-action" type="button" data-stock-open="${escapeHtml(ticker)}">股票详情</button>
-            ${watchlistActionButton(ticker, "股票线索")}
+            ${watchlistActionButton(ticker, "股票事件")}
           </div>
         </article>
       `;
@@ -7773,7 +7876,7 @@ const renderEventTable = () => {
               <span>${escapeHtml(row.companyName || row.name || "")}</span>
               <div class="inline-action-row">
                 <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(ticker)}">详情</button>
-                <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="股票线索">${isInWatchlist(ticker) ? "已自选" : "加入自选"}</button>
+                <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(ticker)}" data-watchlist-source="股票事件">${isInWatchlist(ticker) ? "已自选" : "加入自选"}</button>
               </div>
             </div>
           </td>
@@ -8905,6 +9008,7 @@ const init = async () => {
 };
 
 init().catch((error) => {
+  console.error(error && error.stack ? error.stack : error);
   document.querySelector("#gainersBody").innerHTML = `
     <tr>
       <td colspan="11">数据加载失败：${error.message}</td>
