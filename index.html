@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-stocks1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-market1" />
   </head>
   <body>
     <div class="app-shell">
@@ -132,7 +132,7 @@
                 <button class="ghost-action" type="button" data-market-section="flows">更多</button>
               </div>
               <div class="dashboard-flow-pulse" id="dashboardFlowPulse">
-                <p>等待板块资金流向代理。</p>
+                <p>等待板块资金方向数据。</p>
               </div>
             </article>
 
@@ -1675,7 +1675,7 @@
             <div>
               <p class="eyebrow">市场与资金</p>
               <h1 id="pageTitle">美股市场工作区</h1>
-              <p class="subtitle" id="pageSubtitle">把涨跌幅榜、板块排行、资金流向和热力图放到同一条研究路径里。</p>
+              <p class="subtitle" id="pageSubtitle">先看市场主线，再看资金方向、热力分布和个股异动。</p>
             </div>
             <div class="source">
               <span>数据日期</span>
@@ -1686,8 +1686,8 @@
           <div class="market-workspace-tabs segmented-tabs" aria-label="市场与资金二级导航">
             <button class="is-active" type="button" data-market-section="movers">涨跌幅榜</button>
             <button type="button" data-market-section="sectors">板块排行</button>
-            <button type="button" data-market-section="flows">资金流向</button>
-            <button type="button" data-market-section="heatmap">热力图</button>
+            <button type="button" data-market-section="flows">板块资金</button>
+            <button type="button" data-market-section="heatmap">成交热力图</button>
           </div>
 
           <div class="content-layout">
@@ -1788,7 +1788,7 @@
               <section class="market-detail-panel" id="marketDetailPanel" aria-label="单股详情" hidden>
                 <div class="empty-detail">
                   <strong>点击榜单股票查看详情</strong>
-                  <p>集中查看 24h、周、月、年内表现、成交额异动、风险标签和同板块对比。</p>
+                  <p>集中查看 1D、周、月、年内表现、成交额异动、风险标签和同板块对比。</p>
                 </div>
               </section>
 
@@ -1796,7 +1796,7 @@
                 <div class="panel-head">
                   <div class="board-tabs" aria-label="榜单切换">
                     <button class="board-tab is-active" type="button" data-board="ytd">今年以来</button>
-                    <button class="board-tab" type="button" data-board="day">24h 涨跌幅</button>
+                    <button class="board-tab" type="button" data-board="day">1D 涨跌幅</button>
                     <button class="board-tab" type="button" data-board="week">近一周涨跌幅</button>
                     <button class="board-tab" type="button" data-board="month">近一月涨跌幅</button>
                     <button class="board-tab" type="button" data-board="volume">成交额异动</button>
@@ -1846,27 +1846,27 @@
                 </div>
 
                 <div class="market-table-title">
-                  <span>Market Scanner</span>
-                  <strong>价格、成交额、风险和下一步动作</strong>
+                  <span>行情异动表</span>
+                  <strong>价格、成交额、市值、风险和下一步动作</strong>
                 </div>
 
                 <div class="table-wrap">
                   <table class="market-table">
                     <thead>
                       <tr>
-                        <th>Rank</th>
-                        <th>Ticker</th>
+                        <th>排名</th>
+                        <th>代码</th>
                         <th>公司</th>
                         <th>板块</th>
-                        <th id="changeHeader">Chg%</th>
-                        <th>Price</th>
+                        <th id="changeHeader">涨跌幅</th>
+                        <th>价格</th>
                         <th>1D</th>
                         <th>5D</th>
                         <th>成交额</th>
-                        <th>Vol Ratio</th>
+                        <th>成交异动</th>
                         <th>市值</th>
-                        <th>Risk</th>
-                        <th>Reason / Action</th>
+                        <th>风险</th>
+                        <th>原因 / 动作</th>
                       </tr>
                     </thead>
                     <tbody id="gainersBody"></tbody>
@@ -1877,7 +1877,7 @@
               <section class="flows-terminal-panel desk-panel" id="marketFlowsPanel" aria-label="资金流向扫描器" hidden>
                 <div class="flows-panel-head desk-panel-header">
                   <div>
-                    <span>Flow Scanner</span>
+                    <span>板块资金方向</span>
                     <strong id="flowsHeroTitle">等待板块数据</strong>
                   </div>
                   <p id="flowsHeroLead">按板块聚合成交额、涨跌方向和上涨广度，和涨跌幅榜一起判断资金偏好。</p>
@@ -1885,9 +1885,9 @@
 
                 <section class="flows-summary-grid workspace-summary-row metric-row" aria-label="资金流向指标">
                   <article class="metric-cell"><span>流入领先</span><strong id="flowsTopSymbol">--</strong><p id="flowsTopNote">等待数据。</p></article>
-                  <article class="metric-cell"><span>活跃板块</span><strong id="flowsTopSector">--</strong><p>按成交额代理观察市场关注度。</p></article>
-                  <article class="metric-cell"><span>流入板块</span><strong id="flowsAccumulationCount">--</strong><p>净流向代理为正的板块数量。</p></article>
-                  <article class="metric-cell"><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>净流向代理为负的板块数量。</p></article>
+                  <article class="metric-cell"><span>成交最活跃</span><strong id="flowsTopSector">--</strong><p>按板块合计成交额观察市场关注度。</p></article>
+                  <article class="metric-cell"><span>流入板块</span><strong id="flowsAccumulationCount">--</strong><p>上涨股票贡献成交额更多的板块数。</p></article>
+                  <article class="metric-cell"><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>下跌股票贡献成交额更多的板块数。</p></article>
                 </section>
 
                 <div class="table-wrap flows-table-wrap desk-panel-body">
@@ -1895,7 +1895,7 @@
                     <thead>
                       <tr>
                         <th>板块</th>
-                        <th>净流向代理</th>
+                        <th>资金方向</th>
                         <th>1D</th>
                         <th>5D</th>
                         <th>成交额</th>
@@ -2686,6 +2686,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-stocks1"></script>
+    <script src="./app.js?v=20260610-market1"></script>
   </body>
 </html>

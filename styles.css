@@ -14412,6 +14412,10 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   margin-bottom: 8px;
 }
 
+.market-workspace .market-visual-board {
+  margin-bottom: 8px;
+}
+
 .market-workspace .market-strip div {
   padding: 9px 12px;
 }
@@ -14455,6 +14459,86 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   display: none;
 }
 
+.market-workspace .market-visual-tabs {
+  border-bottom-color: var(--line);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.market-workspace .market-visual-tabs button {
+  height: 28px;
+  border-color: var(--line);
+  background: rgba(8, 13, 23, 0.62);
+  color: var(--muted);
+  font-weight: 560;
+}
+
+.market-workspace .market-visual-tabs button.is-active {
+  border-color: rgba(53, 167, 255, 0.36);
+  background: rgba(53, 167, 255, 0.12);
+  color: var(--blue);
+}
+
+.market-workspace .professional-market-board,
+.market-workspace .market-chart-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: rgba(12, 19, 32, 0.84);
+}
+
+.market-workspace .market-overview-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.market-workspace .market-chart-card {
+  min-height: 150px;
+  padding: 12px;
+}
+
+.market-workspace .market-chart-head {
+  margin-bottom: 10px;
+}
+
+.market-workspace .market-chart-head strong {
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 560;
+}
+
+.market-workspace .market-chart-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.market-workspace .market-sector-bars b,
+.market-workspace .market-volume-rank b {
+  color: var(--ink);
+  font-weight: 560;
+}
+
+.market-workspace .market-sector-bars i,
+.market-workspace .market-volume-rank i,
+.market-workspace .market-direction-meter {
+  background: rgba(146, 166, 197, 0.16);
+}
+
+.market-workspace .market-risk-donut {
+  background:
+    radial-gradient(circle at center, rgb(12, 19, 32) 0 48%, transparent 49%),
+    conic-gradient(
+      var(--negative) 0 var(--extreme),
+      var(--amber) var(--extreme) calc(var(--extreme) + var(--high)),
+      var(--positive) calc(var(--extreme) + var(--high)) 100%
+    );
+}
+
+.market-workspace .market-risk-donut b {
+  color: var(--ink);
+}
+
 .market-workspace .toolbar {
   gap: 8px;
   border: 1px solid var(--line);
@@ -14491,9 +14575,11 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 12px;
   padding: 10px;
+  border-bottom: 0;
 }
 
 .market-workspace .market-visual-copy strong {
+  color: var(--ink);
   font-size: 19px;
   font-weight: 560;
 }
@@ -14506,11 +14592,23 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 .market-workspace .market-sector-rank-list button {
   min-height: 38px;
   grid-template-columns: 32px 122px minmax(0, 1fr) 70px 64px;
+  border-bottom-color: var(--line);
+}
+
+.market-workspace .market-sector-rank-list button:hover {
+  background: rgba(53, 167, 255, 0.07);
+}
+
+.market-workspace .market-sector-rank-list span {
+  color: var(--ink);
+  font-weight: 560;
 }
 
 .market-workspace .market-heatmap-grid {
   min-height: 320px;
   grid-auto-rows: 66px;
+  background: rgba(146, 166, 197, 0.16);
+  border-color: var(--line);
 }
 
 #marketFlowsPanel {
@@ -14675,6 +14773,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 
   .market-workspace .market-board-brief,
   .market-workspace .market-strip,
+  .market-workspace .market-overview-grid,
   .flows-view .flows-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -14689,6 +14788,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   .dashboard-tools-strip .module-grid,
   .market-workspace .market-board-brief,
   .market-workspace .market-strip,
+  .market-workspace .market-overview-grid,
   .flows-view .flows-summary-grid {
     grid-template-columns: 1fr;
   }

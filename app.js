@@ -369,10 +369,14 @@ const hasPaidAccess = () =>
   );
 
 const marketCapNumber = (label) => {
-  const match = String(label).match(/^([\d.]+)([MB])$/);
+  const match = String(label || "").trim().replace(/[$,]/g, "").match(/^([\d.]+)([KMBT])$/i);
   if (!match) return null;
   const value = Number(match[1]);
-  return match[2] === "B" ? value * 1000 : value;
+  const unit = match[2].toUpperCase();
+  if (unit === "T") return value * 1_000_000;
+  if (unit === "B") return value * 1000;
+  if (unit === "K") return value / 1000;
+  return value;
 };
 
 const getChange = (row) => (typeof row.change === "number" ? row.change : row.changeYtd);
@@ -1517,7 +1521,7 @@ const renderFlowsPage = () => {
       : "用板块层面的成交活跃和涨跌广度判断资金偏好。",
   );
   setText("#flowsTopSymbol", top ? top.sector : "--");
-  setText("#flowsTopNote", top ? `${top.netFlowLabel || formatCompactMoney(top.netFlowProxy || 0)} · ${top.status || "代理流向"}` : "等待数据。");
+  setText("#flowsTopNote", top ? `${top.netFlowLabel || formatCompactMoney(top.netFlowProxy || 0)} · ${top.status || "资金方向"}` : "等待数据。");
   setText("#flowsTopSector", activeSector ? activeSector.sector : "--");
   setText("#flowsAccumulationCount", positiveSectors ? String(positiveSectors) : "--");
   setText("#flowsDistributionCount", negativeSectors ? String(negativeSectors) : "--");
@@ -1572,17 +1576,20 @@ const syncMarketWorkspacePanels = () => {
   const showFlows = section === "flows";
   if (scanner) scanner.hidden = showFlows;
   if (flows) flows.hidden = !showFlows;
-  if (visual) visual.hidden = !(section === "sectors" || section === "heatmap");
+  if (visual) visual.hidden = showFlows;
   if (brief) brief.hidden = showFlows;
   if (showFlows) {
-    if (pageTitle) pageTitle.textContent = "资金流向";
-    if (pageSubtitle) pageSubtitle.textContent = "按板块聚合成交额、涨跌扩散和领涨股票，观察资金正在流向哪些方向。";
+    if (pageTitle) pageTitle.textContent = "板块资金方向";
+    if (pageSubtitle) pageSubtitle.textContent = "按板块聚合成交额、涨跌扩散和领涨股票，观察主线是否有成交额确认。";
   } else if (section === "sectors") {
     if (pageTitle) pageTitle.textContent = "板块排行";
     if (pageSubtitle) pageSubtitle.textContent = "按板块涨跌、成交活跃度和领涨股票观察市场主线。";
   } else if (section === "heatmap") {
-    if (pageTitle) pageTitle.textContent = "市场热力图";
-    if (pageSubtitle) pageSubtitle.textContent = "用市值和涨跌幅观察个股、板块与市场结构的相对强弱。";
+    if (pageTitle) pageTitle.textContent = "成交额热力图";
+    if (pageSubtitle) pageSubtitle.textContent = "用成交额活跃度和涨跌方向观察个股、板块与市场结构的相对强弱。";
+  } else {
+    if (pageTitle) pageTitle.textContent = "行情异动";
+    if (pageSubtitle) pageSubtitle.textContent = "从涨跌幅、成交额、市值和风险标签筛出需要复盘的股票。";
   }
 };
 
@@ -3879,7 +3886,7 @@ const renderDashboardIntelligence = () => {
           </button>
         `;
       }).join("")
-      : "<p>等待板块资金流向代理。</p>";
+      : "<p>等待板块资金方向数据。</p>";
   }
 
   const events = dashboardEventRows();
@@ -3958,7 +3965,7 @@ const dataStatusItems = () => [
     date: state.meta?.ytd?.updatedAt || state.meta?.day?.updatedAt,
     generatedAt: "",
     cadence: "行情批次更新",
-    note: "查看年内、24h、周度、月度和成交额变化。",
+    note: "查看年内、1D、周度、月度和成交额变化。",
   },
   {
     label: "历史验证",
@@ -4337,7 +4344,7 @@ const renderStats = () => {
   const topUp = state.rows.filter((row) => getChange(row) >= 0)[0];
   const topDown = state.rows.filter((row) => getChange(row) < 0).sort((a, b) => getChange(a) - getChange(b))[0];
 
-  document.querySelector("#statCount").textContent = total ? "已过滤" : "--";
+  document.querySelector("#statCount").textContent = total ? `${formatNumber(total)}只` : "--";
   document.querySelector("#statTopGain").textContent = topUp
     ? "+" + formatPercent(getChange(topUp))
     : "--";
@@ -4369,7 +4376,7 @@ const marketBoardBrief = (rows) => {
   const top = rows[0];
   const topChange = top ? formatChangeValue(top) : "--";
   const boardLabel = state.activeBoard === "day"
-    ? "24h涨跌"
+    ? "1D涨跌"
     : state.activeBoard === "week"
       ? "周度强弱"
       : state.activeBoard === "month"
@@ -4444,9 +4451,9 @@ const marketSectorStats = (rows) => {
 const marketVisualTabs = () => `
   <div class="market-visual-tabs" aria-label="市场视图">
     ${[
-      ["overview", "概览"],
+      ["overview", "市场概览"],
       ["sectors", "板块排行"],
-      ["heatmap", "热力图"],
+      ["heatmap", "成交热力"],
     ].map(([key, label]) => `
       <button type="button" data-market-visual-mode="${key}" class="${state.marketVisualMode === key ? "is-active" : ""}" aria-pressed="${state.marketVisualMode === key ? "true" : "false"}">${label}</button>
     `).join("")}
@@ -4454,26 +4461,31 @@ const marketVisualTabs = () => `
 `;
 
 const renderMarketSectorRankingView = (rows) => {
-  const sectors = marketSectorStats(rows).slice(0, 10);
-  const maxVolume = Math.max(...sectors.map((item) => item.dollarVolume), 1);
+  const flowSectors = sectorFlowRows();
+  const sectors = (flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
+  const maxVolume = Math.max(...sectors.map((item) => item.activeValue || item.dollarVolume || 0), 1);
   return `
     ${marketVisualTabs()}
-    <section class="market-sector-ranking">
+    <section class="market-sector-ranking professional-market-board">
       <div class="market-visual-copy">
-        <span>板块排行榜</span>
+        <span>板块主线</span>
         <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
-        <p>按当前榜单的成交额活跃度排序，先看主线集中在哪些板块，再进入热力图确认个股贡献。</p>
+        <p>按板块合计成交额、涨跌方向和上涨广度排序。先看资金集中在哪些方向，再进入热力图确认个股贡献。</p>
       </div>
       <div class="market-sector-rank-list">
         ${sectors.map((item, index) => {
-          const changeClass = item.avgChange >= 0 ? "is-positive" : "is-negative";
+          const value = item.activeValue || item.dollarVolume || 0;
+          const flowValue = item.netFlowProxy ?? item.avgChange ?? 0;
+          const breadth = item.breadthPct == null ? 0 : item.breadthPct;
+          const leaders = (item.leaders || []).slice(0, 3).map((leader) => leader.symbol).join(" / ");
+          const changeClass = flowValue >= 0 ? "is-positive" : "is-negative";
           return `
             <button type="button" data-sector-open="${escapeHtml(item.sector)}">
               <em>${String(index + 1).padStart(2, "0")}</em>
               <span>${escapeHtml(item.sector)}</span>
-              <i><b style="width:${Math.max(6, (item.dollarVolume / maxVolume) * 100).toFixed(1)}%"></b></i>
-              <strong class="${changeClass}">${escapeHtml(formatSignedPct(item.avgChange))}</strong>
-              <small>${escapeHtml(`${Math.round(item.breadthPct)}%上涨`)}</small>
+              <i><b style="width:${Math.max(6, (value / maxVolume) * 100).toFixed(1)}%"></b></i>
+              <strong class="${changeClass}">${escapeHtml(item.netFlowLabel || formatSignedPct(item.avgChange || 0))}</strong>
+              <small>${escapeHtml(`${Math.round(breadth)}%上涨${leaders ? ` · ${leaders}` : ""}`)}</small>
             </button>
           `;
         }).join("")}
@@ -4497,11 +4509,11 @@ const renderMarketHeatmapView = (rows) => {
   const max = Math.max(...tiles.map((row) => row.heatSize), 1);
   return `
     ${marketVisualTabs()}
-    <section class="market-heatmap-view">
+    <section class="market-heatmap-view professional-market-board">
       <div class="market-visual-copy">
         <span>成交额权重热力图</span>
         <strong>${escapeHtml(tiles[0]?.symbol || "--")}</strong>
-        <p>面积先用成交额活跃度做代理，颜色表示当前榜单涨跌；补齐市值字段后可切换为市值权重。</p>
+        <p>面积按成交额活跃度排序，颜色表示涨跌方向。先确认市场热度集中在哪些股票和板块。</p>
       </div>
       <div class="market-heatmap-grid">
         ${tiles.map((row) => {
@@ -4553,10 +4565,10 @@ const renderMarketOverviewView = (rows) => {
   const maxVolumeRatio = Math.max(...fallbackVolumeRows.map((row) => row.ratio), 1);
   return `
     ${marketVisualTabs()}
-    <div class="market-overview-grid">
+    <div class="market-overview-grid professional-market-board">
       <article class="market-chart-card market-sector-chart">
         <div class="market-chart-head">
-          <span>板块热度</span>
+          <span>板块集中度</span>
           <strong>${escapeHtml(sectors[0]?.sector || "--")}</strong>
         </div>
         <div class="market-sector-bars">
@@ -4571,7 +4583,7 @@ const renderMarketOverviewView = (rows) => {
       </article>
       <article class="market-chart-card">
         <div class="market-chart-head">
-          <span>涨跌结构</span>
+          <span>涨跌扩散</span>
           <strong>${escapeHtml(`${upCount} / ${downCount}`)}</strong>
         </div>
         <div class="market-direction-meter">
@@ -4585,7 +4597,7 @@ const renderMarketOverviewView = (rows) => {
       </article>
       <article class="market-chart-card">
         <div class="market-chart-head">
-          <span>风险标签</span>
+          <span>波动风险</span>
           <strong>${escapeHtml(`${riskStats[0][1]}只`)}</strong>
         </div>
         <div class="market-risk-donut" style="--extreme:${(riskStats[0][1] / total * 100).toFixed(1)}%; --high:${(riskStats[1][1] / total * 100).toFixed(1)}%">
@@ -4597,7 +4609,7 @@ const renderMarketOverviewView = (rows) => {
       </article>
       <article class="market-chart-card">
         <div class="market-chart-head">
-          <span>成交额放大</span>
+          <span>成交异动</span>
           <strong>${escapeHtml(hotVolumeRows[0]?.symbol || "--")}</strong>
         </div>
         <div class="market-volume-rank">
@@ -4702,7 +4714,6 @@ const renderSectorDetail = (row) => {
           <span>板块详情</span>
           <strong>${escapeHtml(row.sector)}</strong>
         </div>
-        <em>后续开放</em>
       </div>
       <div class="sector-detail-grid">
         <article><span>成交额放大</span><strong>${hot}只</strong></article>
@@ -4806,7 +4817,7 @@ const renderMarketDetail = (symbol) => {
     panel.innerHTML = `
       <div class="empty-detail">
         <strong>点击榜单股票查看详情</strong>
-        <p>集中查看 24h、周、月、年内表现、成交额异动、风险标签和同板块对比。</p>
+        <p>集中查看 1D、周、月、年内表现、成交额异动、风险标签和同板块对比。</p>
       </div>
     `;
     return;
@@ -4841,9 +4852,9 @@ const renderMarketDetail = (symbol) => {
     </div>
     <div class="market-detail-grid">
       <article>
-        <span>24h</span>
+        <span>1D</span>
         <strong class="${day && getChange(day) < 0 ? "loss-cell" : "gain-cell"}">${formatChangeValue(day)}</strong>
-        <p>${day ? `排名 ${escapeHtml(day.rank)}` : "暂无 24h 榜单记录"}</p>
+        <p>${day ? `排名 ${escapeHtml(day.rank)}` : "暂无 1D 榜单记录"}</p>
       </article>
       <article>
         <span>近一周</span>
@@ -4878,14 +4889,12 @@ const renderMarketDetail = (symbol) => {
       <div class="market-paid-module" data-lockable-module="observe-action">
         <div class="module-head">
           <span>观察动作</span>
-          <em>后续开放</em>
         </div>
         <p>${escapeHtml(row.actionNote)}</p>
       </div>
       <div class="market-paid-module" data-lockable-module="sector-peers">
         <div class="module-head">
           <span>同板块对比</span>
-          <em>后续开放</em>
         </div>
         ${
           peers.length
@@ -4901,12 +4910,11 @@ const renderMarketDetail = (symbol) => {
             <span>成交额异动原因</span>
             <strong>初步拆解</strong>
           </div>
-          <em>后续开放</em>
         </div>
         <div class="reason-list">
           ${moveReasons.map((reason) => `<b>${escapeHtml(reason)}</b>`).join("")}
         </div>
-        <p>后续可接公告、财报、新闻和板块热度数据，展示更完整的原因链。</p>
+        <p>先用成交额、涨跌幅、风险标签和板块热度拆解；公告、财报和新闻会在后续数据源补充后增强。</p>
       </div>
       ${renderSectorDetail(row)}
     </div>
@@ -4958,16 +4966,16 @@ const renderTable = () => {
       const volumeRatio = volume?.volumeRatio || row.volumeRatio || "--";
       return `
         <tr class="market-row ${state.selectedMarketSymbol === row.symbol ? "is-selected" : ""}" data-market-symbol="${escapeHtml(row.symbol)}">
-          <td class="rank-cell" data-label="排名">${row.displayRank || row.rank}</td>
+          <td class="rank-cell" data-label="排名">${escapeHtml(row.displayRank || row.rank || "--")}</td>
           <td class="symbol-cell" data-label="股票">
-            <strong>${row.symbol}</strong>
-            <span>${capLabel(row)}</span>
+            <strong>${escapeHtml(row.symbol)}</strong>
+            <span>${escapeHtml(capLabel(row))}</span>
           </td>
           <td class="company-cell" data-label="中文简称">
-            <strong>${row.chineseName}</strong>
-            <span>${row.company}</span>
+            <strong>${escapeHtml(row.chineseName || row.symbol)}</strong>
+            <span>${escapeHtml(row.company || row.symbol)}</span>
           </td>
-          <td data-label="板块"><span class="sector-chip">${row.sector}</span></td>
+          <td data-label="板块"><span class="sector-chip">${escapeHtml(row.sector || "未分类")}</span></td>
           <td data-label="${escapeHtml(state.meta[state.activeBoard].changeLabel)}" class="${change >= 0 ? "gain-cell" : "loss-cell"}">${change >= 0 ? "+" : ""}${formatPercent(change)}</td>
           <td data-label="最近价">${formatMoney(row.price)}</td>
           <td data-label="1D" class="${day && getChange(day) < 0 ? "loss-cell" : "gain-cell"}">${escapeHtml(formatChangeValue(day))}</td>
@@ -4977,15 +4985,15 @@ const renderTable = () => {
           <td data-label="市值">${escapeHtml(row.marketCap || "--")}</td>
           <td data-label="风险">
             <div class="risk-score risk-${riskBucket}">
-              <strong>${riskLabel}</strong>
+              <strong>${escapeHtml(riskLabel)}</strong>
               <div class="risk-bar"><i style="width: ${riskScore}%"></i></div>
-              <span>${row.risk}</span>
+              <span>${escapeHtml(row.risk || "--")}</span>
             </div>
           </td>
           <td class="action-cell" data-label="原因和动作">
             <strong>${escapeHtml(preview.title)}</strong>
             <span>${escapeHtml(row.actionNote || preview.note)}</span>
-            <small class="macro-rank-reason">${escapeHtml(`复盘分 ${priority.score} · ${priority.reason || "等待更多数据"}`)}</small>
+            <small class="macro-rank-reason">${escapeHtml(`研究优先级 ${priority.score} · ${priority.reason || "等待更多数据"}`)}</small>
             <div class="inline-action-row">
               <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">详情</button>
               <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="涨跌幅榜">${isInWatchlist(row.symbol) ? "已自选" : "加入自选"}</button>
@@ -8185,14 +8193,7 @@ const bindEvents = () => {
         return;
       }
       state.marketVisualMode = section === "sectors" ? "sectors" : section === "heatmap" ? "heatmap" : "overview";
-      if (!document.querySelector('[data-view="market"]').classList.contains("is-active")) {
-        showPage("market");
-        return;
-      }
-      syncMarketWorkspaceTabs();
-      syncMarketWorkspacePanels();
-      renderMarketVisualBoard(getFilteredRows());
-      if (section === "movers") renderTable();
+      showPage("market", { hash: "#market" });
       return;
     }
     const sectorOpen = event.target.closest("[data-sector-open]");
@@ -8815,8 +8816,8 @@ const init = async () => {
     },
     day: {
       ...moversData.boards.day,
-      subtitle: "同时看 24h 大涨和大跌，快速识别日内异动、风险释放和短线情绪。",
-      badge: "24h 最大上涨",
+      subtitle: "同时看上一交易日大涨和大跌，快速识别异动、风险释放和短线情绪。",
+      badge: "1D 最大上涨",
       updatedAt: moversData.updatedAt,
     },
     week: {
@@ -8839,7 +8840,7 @@ const init = async () => {
       title: "美股成交额异动榜",
       subtitle: "按成交额相对平时的放大倍数排序，适合发现资金突然聚集的标的。",
       badge: "成交额异动第一",
-      periodLabel: "24h",
+      periodLabel: "1D",
       referenceLabel: "成交额",
       volumeLabel: "成交额倍数",
       multipleLabel: "成交额倍数",

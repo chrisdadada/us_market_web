@@ -20,8 +20,8 @@ const mimeTypes = new Map([
 
 const routeCases = [
   { hash: "", view: "dashboard", text: "市场快照", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#market", view: "market", text: "涨跌幅榜", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#flows", view: "market", text: "Flow Scanner", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "#market", view: "market", text: "行情异动", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "#flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#events", view: "events", text: "财经日历", absentText: "股票线索" },
   { hash: "#stock-events", view: "stock-events", text: "股票线索" },
   { hash: "#stock-events/guidance_up", view: "stock-events", text: "业绩预期变好" },
@@ -32,17 +32,17 @@ const routeCases = [
 ];
 
 const marketSectionCases = [
-  { section: "movers", view: "market", text: "涨跌幅榜", maxHeight: workspaceMaxDocumentHeight },
+  { section: "movers", view: "market", text: "行情异动", maxHeight: workspaceMaxDocumentHeight },
   { section: "sectors", view: "market", text: "板块排行", maxHeight: workspaceMaxDocumentHeight },
-  { section: "heatmap", view: "market", text: "热力图", maxHeight: workspaceMaxDocumentHeight },
-  { section: "flows", view: "market", text: "Flow Scanner", maxHeight: workspaceMaxDocumentHeight },
+  { section: "heatmap", view: "market", text: "成交额热力图", maxHeight: workspaceMaxDocumentHeight },
+  { section: "flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
 ];
 
 const flowsToMarketSectionCases = [
-  { section: "movers", view: "market", text: "涨跌幅榜", maxHeight: workspaceMaxDocumentHeight },
+  { section: "movers", view: "market", text: "行情异动", maxHeight: workspaceMaxDocumentHeight },
   { section: "sectors", view: "market", text: "板块排行", maxHeight: workspaceMaxDocumentHeight },
-  { section: "heatmap", view: "market", text: "热力图", maxHeight: workspaceMaxDocumentHeight },
-  { section: "flows", view: "market", text: "Flow Scanner", maxHeight: workspaceMaxDocumentHeight },
+  { section: "heatmap", view: "market", text: "成交额热力图", maxHeight: workspaceMaxDocumentHeight },
+  { section: "flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
 ];
 
 function startStaticServer() {
