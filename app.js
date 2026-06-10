@@ -2675,7 +2675,7 @@ const renderStockHub = (symbol) => {
       <article>
         <div>
           <span>事件 / 财报</span>
-          <strong>${escapeHtml(eventRow || quality ? "有线索" : "等待线索")}</strong>
+          <strong>${escapeHtml(eventRow || quality ? "有线索" : "暂无线索")}</strong>
         </div>
         <p>${escapeHtml(eventSummary)}</p>
         <p>${escapeHtml(earningsSummary)}${quality?.avgPriceTargetUpsidePct == null ? "" : ` · 目标价空间 ${escapeHtml(targetUpside)}`}</p>
@@ -6866,7 +6866,7 @@ const qualityRiskSummary = (row) => {
 };
 
 const qualityConclusion = (row) => {
-  if (!row) return "等待候选";
+  if (!row) return "暂无候选";
   const score = Number(row.score);
   if (qualityRiskFlag(row)) return "可观察，但先控制节奏";
   if (Number.isFinite(score) && score >= 3) return "复盘优先级高";
@@ -6909,12 +6909,12 @@ const renderQualityFocusGrid = (rows) => {
   const preview = top ? qualityDetailPreview(top) : null;
   const priority = top ? reviewPriorityForQualityRow(top) : null;
   const riskRows = rows.filter(qualityRiskFlag);
-  setText("#qualityFocusLeader", top ? `${ticker} · ${top.userAngle || "财报观察"}` : "等待候选");
+  setText("#qualityFocusLeader", top ? `${ticker} · ${top.userAngle || "财报观察"}` : "暂无候选");
   setText(
     "#qualityFocusLeaderNote",
     top ? `${top.companyName || top.name || ticker}：复盘分 ${priority.score}，${priority.reason}。` : "先看财报、预期和价格同时改善的股票。",
   );
-  setText("#qualityFocusReason", top ? qualityConclusion(top) : "等待理由");
+  setText("#qualityFocusReason", top ? qualityConclusion(top) : "暂无理由");
   setText(
     "#qualityFocusReasonNote",
     top?.userReason || "这里会把财报、预期和价格变化翻译成容易理解的观察理由。",
@@ -7249,46 +7249,62 @@ const eventTypeLabel = (type) => {
   return type || "事件";
 };
 
+const calendarEventSort = (a, b) =>
+  parseEventDateValue(a.date) - parseEventDateValue(b.date) || String(a.time || "").localeCompare(String(b.time || ""));
+
+const renderCalendarRows = (events) =>
+  events.map((item) => {
+    const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
+    const related = [...(item.relatedModules || []), ...(item.relatedAssets || [])].slice(0, 5).join(" / ");
+    return `
+      <tr>
+        <td>
+          <strong>${escapeHtml(item.date || "--")}</strong>
+          <span>${escapeHtml(item.time || "")}</span>
+        </td>
+        <td>
+          <strong>${escapeHtml(item.title || "--")}</strong>
+          <p>${escapeHtml(item.summary || "")}</p>
+        </td>
+        <td>${escapeHtml(related || "--")}</td>
+        <td><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
+      </tr>
+    `;
+  }).join("");
+
 const renderEventsCalendar = (payload) => {
   state.eventsCalendar = payload || state.eventsCalendar;
   const data = state.eventsCalendar || {};
   const events = Array.isArray(data.events) ? data.events : [];
   const rules = Array.isArray(data.impactRules) ? data.impactRules : [];
+  const scheduledEvents = events.filter((item) => item.type !== "manual").sort(calendarEventSort);
+  const manualEvents = events.filter((item) => item.type === "manual").sort(calendarEventSort);
   const body = document.querySelector("#calendarEventBody");
+  const manualPanel = document.querySelector("#calendarManualPanel");
+  const manualBody = document.querySelector("#calendarManualBody");
   const impactList = document.querySelector("#calendarImpactList");
   setText("#eventsAsOf", formatDisplayDate(data.asOf || data.generatedAt || state.eventOpportunities?.asOf));
-  const highEvents = events.filter((item) => item.impact === "high");
-  const first = highEvents[0] || events[0];
-  setText("#calendarHeroTitle", first ? `${first.title}` : "等待财经日历");
+  const highEvents = scheduledEvents.filter((item) => item.impact === "high");
+  const first = highEvents[0] || scheduledEvents[0];
+  const macroCount = scheduledEvents.filter((item) => item.type === "macro").length;
+  const earningsCount = scheduledEvents.filter((item) => item.type === "earnings").length;
+  setText("#calendarHeroTitle", first ? `${first.date} · ${first.title}` : "未来事件总览");
   setText(
     "#calendarHeroLead",
     first
       ? `${first.summary || "先看事件会影响哪些模块。"}`
-      : "宏观和财报事件会在这里按影响等级和关联模块统一展示。",
+      : "宏观和财报事件会在这里按时间、影响等级和关联模块统一展示。",
   );
-  setText("#calendarMacroStatus", events.some((item) => item.type === "macro") ? "已同步" : "待同步");
-  setText("#calendarEarningsStatus", events.some((item) => item.type === "earnings") ? "待确认" : "待接入");
+  setText("#calendarMacroStatus", macroCount ? `${macroCount}项` : "暂无");
+  setText("#calendarEarningsStatus", earningsCount ? `${earningsCount}项` : "暂无");
   if (body) {
-    body.innerHTML = events.length
-      ? events.map((item) => {
-        const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
-        const related = [...(item.relatedModules || []), ...(item.relatedAssets || [])].slice(0, 5).join(" / ");
-        return `
-          <tr>
-            <td>
-              <strong>${escapeHtml(item.date || "--")}</strong>
-              <span>${escapeHtml(item.time || "")}</span>
-            </td>
-            <td>
-              <strong>${escapeHtml(item.title || "--")}</strong>
-              <p>${escapeHtml(item.summary || "")}</p>
-            </td>
-            <td>${escapeHtml(related || "--")}</td>
-            <td><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
-          </tr>
-        `;
-      }).join("")
+    body.innerHTML = scheduledEvents.length
+      ? renderCalendarRows(scheduledEvents)
       : '<tr><td colspan="4">财经日历暂无数据。</td></tr>';
+  }
+  if (manualPanel && manualBody) {
+    manualPanel.hidden = !manualEvents.length;
+    manualBody.innerHTML = manualEvents.length ? renderCalendarRows(manualEvents) : "";
   }
   if (impactList) {
     impactList.innerHTML = rules.length
@@ -7477,12 +7493,12 @@ const renderEventFocusGrid = (rows) => {
   const preview = top ? eventDetailPreview(top) : null;
   const priority = top ? reviewPriorityForEventRow(top) : null;
   const riskRows = rows.filter(eventRiskFlag);
-  setText("#eventFocusLeader", top ? `${ticker} · ${displayEventLabel(top)}` : "等待线索");
+  setText("#eventFocusLeader", top ? `${ticker} · ${displayEventLabel(top)}` : "暂无线索");
   setText(
     "#eventFocusLeaderNote",
     top ? `${top.companyName || top.name || ticker}：复盘分 ${priority.score}，${priority.reason}。` : "先看理由清楚、价格已经确认、流动性够用的股票。",
   );
-  setText("#eventFocusReason", top ? eventConclusion(top) : "等待理由");
+  setText("#eventFocusReason", top ? eventConclusion(top) : "暂无理由");
   setText(
     "#eventFocusReasonNote",
     top ? eventReasonForUser(top) : "这里会把专业事件翻译成普通投资者能看懂的观察理由。",
@@ -7522,7 +7538,7 @@ const renderExpectationEvidence = () => {
   const overall = state.marketTemperature?.overall || {};
   const score = Number(overall.score);
   setText("#expectationTemperatureScore", Number.isFinite(score) ? String(score) : "--");
-  setText("#expectationTemperatureLabel", overall.label ? `${overall.label}环境` : "等待数据");
+  setText("#expectationTemperatureLabel", overall.label ? `${overall.label}环境` : "暂无环境数据");
   setText("#expectationTemperatureAction", overall.action || "市场环境只用于辅助判断观察频率。");
   setText(
     "#expectationHeroTitle",
@@ -7617,21 +7633,21 @@ const renderEventDetail = (row) => {
       ${eventMetric("空头比例", row.shortInterest == null ? "--" : `${row.shortInterest}`)}
       ${eventMetric("回补天数", row.daysToCover == null ? "--" : `${row.daysToCover}`)}
     </div>
-    <div class="event-lock-row" data-lockable-module="event-detail-premium">
+    <div class="event-lock-row event-workbench-row">
       <article>
-        <span>深度样本</span>
-        <strong>后续开放</strong>
-        <p>展示同类线索在不同市场温度下的历史表现。</p>
+        <span>历史样本</span>
+        <strong>${escapeHtml(evidence.count ? `${formatNumber(evidence.count)}条` : "样本不足")}</strong>
+        <p>正向占比 ${escapeHtml(formatEvidencePct(evidence.positiveRate, evidence.count))}，中位表现 ${escapeHtml(formatEvidenceSignedPct(evidence.median, evidence.count))}。</p>
       </article>
       <article>
-        <span>完整解释</span>
-        <strong>后续开放</strong>
-        <p>后续展开原文、关键变化和需要确认的价格条件。</p>
+        <span>价格确认</span>
+        <strong>${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</strong>
+        <p>先看事件后价格是否继续站稳，再结合成交额判断资金是否确认。</p>
       </article>
       <article>
-        <span>同类复盘</span>
-        <strong>后续开放</strong>
-        <p>后续回看相似事件 5/20/60 日后的真实表现。</p>
+        <span>复盘动作</span>
+        <strong>${escapeHtml(eventRiskFlag(row) ? "降低频率" : "加入候选")}</strong>
+        <p>${escapeHtml(eventNextReview(row))}</p>
       </article>
     </div>
   `;
@@ -7654,7 +7670,7 @@ const renderEventTable = () => {
     board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是独立的股票研究线索，不属于财经日历。",
   );
   setText("#eventActiveTitle", board.title || "--");
-  setText("#eventActiveSubtitle", board.subtitle || "等待数据加载。");
+  setText("#eventActiveSubtitle", board.subtitle || "加载后显示当前线索口径。");
   const [decisionValue, decisionNote] = eventDecisionCopy(rows);
   setText("#eventDecisionValue", decisionValue);
   setText("#eventDecisionNote", decisionNote);
@@ -7789,7 +7805,7 @@ const renderEventOpportunities = (payload) => {
   setText("#dashboardEventCount", rows.length ? `${rows.length}` : "--");
   setText("#dashboardEventCopy", first ? eventReasonForUser(first) : "业绩预期变好、财报和机构观点变化会集中展示。");
   setText("#dashboardEventNote", first ? displayEventLabel(first) : "适合先加入自选，再看价格是否确认。");
-  setText("#eventForwardSummary", stats.length ? `${stats.length}组记录` : "待接入");
+  setText("#eventForwardSummary", stats.length ? `${stats.length}组记录` : "样本待补");
   renderEventTable();
   renderDashboardFocus();
 };
