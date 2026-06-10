@@ -17,12 +17,13 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterator
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 
 DB_PATH = Path(os.environ.get("APP_DB", "/var/lib/ytd-gainers/app.db"))
 STATIC_ROOT = Path(os.environ.get("APP_STATIC_ROOT", str(Path(__file__).resolve().parents[1]))).resolve()
 API_DATA_ROOT = Path(os.environ.get("APP_API_DATA_ROOT", str(STATIC_ROOT / "data" / "api"))).resolve()
+PRODUCT_DB_ENV = os.environ.get("PRODUCT_DB") or os.environ.get("APP_PRODUCT_DB")
 HOST = os.environ.get("APP_HOST", "127.0.0.1")
 PORT = int(os.environ.get("APP_PORT", "8787"))
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "")
@@ -104,6 +105,240 @@ def db() -> Iterator[sqlite3.Connection]:
             yield conn
     finally:
         conn.close()
+
+
+def product_db_candidates() -> list[Path]:
+    candidates: list[Path] = []
+    if PRODUCT_DB_ENV:
+        candidates.append(Path(PRODUCT_DB_ENV))
+    candidates.extend(
+        [
+            STATIC_ROOT / "data" / "product.db",
+            Path("/opt/dongbimao-prod/data/product.db"),
+            Path("/opt/dongbimao-dev/data/product.db"),
+            Path(__file__).resolve().parents[1] / "data" / "product.db",
+        ]
+    )
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        key = str(resolved)
+        if key not in seen:
+            seen.add(key)
+            unique.append(resolved)
+    return unique
+
+
+def product_db_path() -> Path | None:
+    for candidate in product_db_candidates():
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+@contextmanager
+def product_db() -> Iterator[sqlite3.Connection]:
+    path = product_db_path()
+    if not path:
+        raise FileNotFoundError("product.db not found")
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+def row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    return {key: row[key] for key in row.keys()}
+
+
+def parse_json_field(value: Any, fallback: Any) -> Any:
+    if value is None:
+        return fallback
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return fallback
+
+
+def int_param(params: dict[str, list[str]], name: str, default: int, *, minimum: int = 1, maximum: int = 500) -> int:
+    raw = params.get(name, [str(default)])[0]
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, min(maximum, value))
+
+
+def product_dataset_meta(conn: sqlite3.Connection) -> dict[str, Any]:
+    info = {
+        row["key"]: row["value"]
+        for row in conn.execute("SELECT key, value FROM product_db_info").fetchall()
+    }
+    datasets = [
+        {
+            "name": row["name"],
+            "asOf": row["as_of"],
+            "generatedAt": row["generated_at"],
+            "rowCount": row["row_count"],
+            "sourcePath": row["source_path"],
+        }
+        for row in conn.execute(
+            """
+            SELECT name, source_path, as_of, generated_at, row_count
+            FROM datasets
+            ORDER BY name
+            """
+        ).fetchall()
+    ]
+    counts = parse_json_field(info.get("table_counts"), {})
+    return {
+        "schemaVersion": info.get("schema_version"),
+        "generatedAt": info.get("generated_at"),
+        "counts": counts,
+        "datasets": datasets,
+    }
+
+
+def product_symbol_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "symbol": row["symbol"],
+        "company": row["company"],
+        "chineseName": row["chinese_name"],
+        "sector": row["sector"],
+        "marketCap": row["market_cap_label"],
+        "marketCapValue": row["market_cap_value"],
+        "price": row["latest_price"],
+        "dollarVolume": row["latest_dollar_volume"],
+        "volumeRatio": row["latest_volume_ratio"],
+        "latestSource": row["latest_source"],
+        "sources": parse_json_field(row["sources_json"], []),
+        "updatedAt": row["updated_at"],
+    }
+
+
+def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "board": row["board"],
+        "rank": row["rank"],
+        "symbol": row["symbol"],
+        "tradeDate": row["trade_date"],
+        "company": row["company"],
+        "chineseName": row["chinese_name"],
+        "sector": row["sector"],
+        "risk": row["risk"],
+        "actionNote": row["action_note"],
+        "price": row["price"],
+        "changePct": row["change_pct"],
+        "volume": row["volume_label"],
+        "dollarVolume": row["dollar_volume"],
+        "volumeRatio": row["volume_ratio"],
+        "marketCap": row["market_cap_label"],
+        "marketCapValue": row["market_cap_value"],
+    }
+
+
+def product_sector_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "asOf": row["as_of"],
+        "rank": row["rank"],
+        "sector": row["sector"],
+        "status": row["status"],
+        "count": row["stock_count"],
+        "upCount": row["up_count"],
+        "downCount": row["down_count"],
+        "breadthPct": row["breadth_pct"],
+        "avgChangePct": row["avg_change_pct"],
+        "activeValue": row["active_value"],
+        "netFlowProxy": row["net_flow_proxy"],
+        "inflowProxy": row["inflow_proxy"],
+        "outflowProxy": row["outflow_proxy"],
+        "leaders": parse_json_field(row["leaders_json"], []),
+    }
+
+
+def product_event_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "board": row["board"],
+        "rank": row["rank"],
+        "symbol": row["symbol"],
+        "companyName": row["company_name"],
+        "eventDate": row["event_date"],
+        "eventType": row["event_type"],
+        "eventLabel": row["event_label"],
+        "reason": row["reason"],
+        "risk": row["risk"],
+        "close": row["close"],
+        "signalScore": row["signal_score"],
+        "return20dPct": row["return_20d_pct"],
+        "fwd5dPct": row["fwd_5d_pct"],
+        "fwd20dPct": row["fwd_20d_pct"],
+        "fwd60dPct": row["fwd_60d_pct"],
+        "liquidity": row["liquidity_label"],
+        "priceTargetUpsidePct": row["price_target_upside_pct"],
+        "shortInterest": row["short_interest"],
+        "daysToCover": row["days_to_cover"],
+    }
+
+
+def product_earnings_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "board": row["board"],
+        "rank": row["rank"],
+        "symbol": row["symbol"],
+        "companyName": row["company_name"],
+        "score": row["score"],
+        "qualityScore": row["quality_score"],
+        "confluenceScore": row["confluence_score"],
+        "userAngle": row["user_angle"],
+        "userReason": row["user_reason"],
+        "userRisk": row["user_risk"],
+        "return20dPct": row["return_20d_pct"],
+        "close": row["close"],
+        "dollarVolume20d": row["dollar_volume_20d"],
+        "latestEarningsDate": row["latest_earnings_date"],
+        "latestGuidanceDate": row["latest_guidance_date"],
+    }
+
+
+def product_calendar_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["event_id"],
+        "date": row["event_date"],
+        "time": row["event_time"],
+        "title": row["title"],
+        "type": row["event_type"],
+        "impact": row["impact"],
+        "sourceName": row["source_name"],
+        "relatedModules": parse_json_field(row["related_modules_json"], []),
+        "relatedAssets": parse_json_field(row["related_assets_json"], []),
+        "summary": row["summary"],
+    }
+
+
+def product_strength_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "rank": row["rank"],
+        "bucket": row["bucket"],
+        "symbol": row["symbol"],
+        "company": row["company"],
+        "exchange": row["exchange"],
+        "sector": row["sector"],
+        "price": row["price"],
+        "score": row["score"],
+        "label": row["label"],
+        "action": row["action"],
+        "primaryFactor": row["primary_factor"],
+        "liquidity": row["liquidity_label"],
+        "marketCap": row["market_cap_label"],
+        "marketCapValue": row["market_cap_value"],
+        "periods": parse_json_field(row["periods_json"], {}),
+        "relative": parse_json_field(row["relative_json"], {}),
+    }
 
 
 def init_db() -> None:
@@ -665,6 +900,221 @@ class Handler(BaseHTTPRequestHandler):
             return
         self.send_json(payload)
 
+    def send_product_api(self, request_path: str) -> None:
+        parsed = urlparse(request_path)
+        parts = [part for part in unquote(parsed.path).split("/") if part]
+        params = parse_qs(parsed.query)
+        try:
+            with product_db() as conn:
+                if len(parts) == 2 or (len(parts) == 3 and parts[2] in {"health", "meta"}):
+                    meta = product_dataset_meta(conn)
+                    self.send_json({"ok": True, **meta})
+                    return
+
+                if len(parts) >= 3 and parts[2] == "symbols":
+                    if len(parts) >= 4:
+                        self.send_product_symbol_detail(conn, parts[3])
+                        return
+                    self.send_product_symbol_search(conn, params)
+                    return
+
+                if len(parts) >= 3 and parts[2] == "market":
+                    self.send_product_market_board(conn, params)
+                    return
+
+                if len(parts) >= 3 and parts[2] == "sectors":
+                    self.send_product_sectors(conn, params)
+                    return
+
+                if len(parts) >= 3 and parts[2] == "calendar":
+                    self.send_product_calendar(conn, params)
+                    return
+
+                if len(parts) >= 3 and parts[2] == "events":
+                    self.send_product_events(conn, params)
+                    return
+
+                self.send_json({"error": "产品数据接口不存在"}, HTTPStatus.NOT_FOUND)
+        except FileNotFoundError:
+            self.send_json({"error": "产品数据库不存在，请先运行 scripts/build_product_db.py", "code": "product_db_missing"}, HTTPStatus.SERVICE_UNAVAILABLE)
+        except sqlite3.Error as exc:
+            self.send_json({"error": f"产品数据库读取失败：{exc}", "code": "product_db_error"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def send_product_symbol_search(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
+        limit = int_param(params, "limit", 20, maximum=100)
+        query = str(params.get("query", [""])[0] or params.get("q", [""])[0]).strip().upper()
+        sector = str(params.get("sector", [""])[0]).strip()
+        where = []
+        values: list[Any] = []
+        if query:
+            like = f"%{query}%"
+            where.append("(symbol LIKE ? OR UPPER(COALESCE(company, '')) LIKE ? OR UPPER(COALESCE(chinese_name, '')) LIKE ?)")
+            values.extend([like, like, like])
+        if sector:
+            where.append("sector = ?")
+            values.append(sector)
+        where_sql = "WHERE " + " AND ".join(where) if where else ""
+        rows = conn.execute(
+            f"""
+            SELECT *
+            FROM symbols
+            {where_sql}
+            ORDER BY
+              CASE WHEN symbol = ? THEN 0 WHEN symbol LIKE ? THEN 1 ELSE 2 END,
+              COALESCE(market_cap_value, 0) DESC,
+              symbol
+            LIMIT ?
+            """,
+            (*values, query, f"{query}%", limit),
+        ).fetchall()
+        self.send_json({"rows": [product_symbol_payload(row) for row in rows]})
+
+    def send_product_symbol_detail(self, conn: sqlite3.Connection, symbol: str) -> None:
+        target = str(symbol or "").strip().upper()
+        profile = conn.execute("SELECT * FROM symbols WHERE symbol = ?", (target,)).fetchone()
+        if not profile:
+            self.send_json({"error": "股票不存在", "symbol": target}, HTTPStatus.NOT_FOUND)
+            return
+        market_rows = conn.execute(
+            """
+            SELECT *
+            FROM market_board_rows
+            WHERE symbol = ?
+            ORDER BY CASE board
+              WHEN 'day' THEN 1
+              WHEN 'week' THEN 2
+              WHEN 'month' THEN 3
+              WHEN 'ytd' THEN 4
+              WHEN 'volume' THEN 5
+              ELSE 99
+            END
+            """,
+            (target,),
+        ).fetchall()
+        peers = conn.execute(
+            """
+            SELECT *
+            FROM symbols
+            WHERE sector = ? AND symbol != ?
+            ORDER BY COALESCE(market_cap_value, 0) DESC
+            LIMIT 8
+            """,
+            (profile["sector"], target),
+        ).fetchall() if profile["sector"] else []
+        events = conn.execute(
+            """
+            SELECT *
+            FROM stock_event_rows
+            WHERE symbol = ?
+            ORDER BY event_date DESC, rank ASC
+            LIMIT 10
+            """,
+            (target,),
+        ).fetchall()
+        earnings = conn.execute(
+            """
+            SELECT *
+            FROM earnings_quality_rows
+            WHERE symbol = ?
+            ORDER BY CASE board WHEN 'quality' THEN 1 WHEN 'confluence' THEN 2 ELSE 99 END
+            LIMIT 10
+            """,
+            (target,),
+        ).fetchall()
+        strength = conn.execute("SELECT * FROM strength_rows WHERE symbol = ?", (target,)).fetchone()
+        self.send_json(
+            {
+                "profile": product_symbol_payload(profile),
+                "marketRows": [product_market_row_payload(row) for row in market_rows],
+                "peers": [product_symbol_payload(row) for row in peers],
+                "events": [product_event_payload(row) for row in events],
+                "earnings": [product_earnings_payload(row) for row in earnings],
+                "strength": product_strength_payload(strength) if strength else None,
+            }
+        )
+
+    def send_product_market_board(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
+        board = str(params.get("board", ["ytd"])[0] or "ytd")
+        if board not in {"ytd", "day", "week", "month", "volume"}:
+            self.send_json({"error": "榜单不存在", "board": board}, HTTPStatus.BAD_REQUEST)
+            return
+        limit = int_param(params, "limit", 100, maximum=500)
+        sector = str(params.get("sector", [""])[0]).strip()
+        where = ["board = ?"]
+        values: list[Any] = [board]
+        if sector:
+            where.append("sector = ?")
+            values.append(sector)
+        rows = conn.execute(
+            f"""
+            SELECT *
+            FROM market_board_rows
+            WHERE {" AND ".join(where)}
+            ORDER BY rank ASC
+            LIMIT ?
+            """,
+            (*values, limit),
+        ).fetchall()
+        self.send_json({"board": board, "rows": [product_market_row_payload(row) for row in rows]})
+
+    def send_product_sectors(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
+        limit = int_param(params, "limit", 20, maximum=100)
+        include_unknown = str(params.get("includeUnknown", ["false"])[0]).lower() in {"1", "true", "yes"}
+        where_sql = "" if include_unknown else "WHERE sector NOT IN ('未分类', '板块待补', '--')"
+        rows = conn.execute(
+            f"""
+            SELECT *
+            FROM sector_flow_rows
+            {where_sql}
+            ORDER BY COALESCE(net_flow_proxy, 0) DESC, rank ASC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        self.send_json({"rows": [product_sector_payload(row) for row in rows]})
+
+    def send_product_calendar(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
+        limit = int_param(params, "limit", 50, maximum=200)
+        impact = str(params.get("impact", [""])[0]).strip()
+        where = []
+        values: list[Any] = []
+        if impact:
+            where.append("impact = ?")
+            values.append(impact)
+        where_sql = "WHERE " + " AND ".join(where) if where else ""
+        rows = conn.execute(
+            f"""
+            SELECT *
+            FROM calendar_events
+            {where_sql}
+            ORDER BY event_date ASC, event_time ASC, title ASC
+            LIMIT ?
+            """,
+            (*values, limit),
+        ).fetchall()
+        self.send_json({"rows": [product_calendar_payload(row) for row in rows]})
+
+    def send_product_events(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
+        limit = int_param(params, "limit", 100, maximum=500)
+        board = str(params.get("board", [""])[0]).strip()
+        where = []
+        values: list[Any] = []
+        if board:
+            where.append("board = ?")
+            values.append(board)
+        where_sql = "WHERE " + " AND ".join(where) if where else ""
+        rows = conn.execute(
+            f"""
+            SELECT *
+            FROM stock_event_rows
+            {where_sql}
+            ORDER BY COALESCE(signal_score, 0) DESC, rank ASC
+            LIMIT ?
+            """,
+            (*values, limit),
+        ).fetchall()
+        self.send_json({"rows": [product_event_payload(row) for row in rows]})
+
     def current_user(self) -> sqlite3.Row | None:
         cookie = SimpleCookie(self.headers.get("Cookie"))
         morsel = cookie.get("mg_session")
@@ -720,6 +1170,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/data" or self.path.startswith("/api/data/"):
             self.send_api_data(self.path)
+            return
+
+        if self.path == "/api/product" or self.path.startswith("/api/product/"):
+            self.send_product_api(self.path)
             return
 
         if self.path == "/api/signals":

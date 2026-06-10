@@ -67,6 +67,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         auth_api.DB_PATH = Path(self.tempdir.name) / "app.db"
+        auth_api.PRODUCT_DB_ENV = None
         auth_api.SESSION_SECRET = "release-gate-test-secret"
         auth_api.SESSION_TTL = 3600
         auth_api.SUPER_ADMIN_EMAIL = "admin@example.test"
@@ -218,6 +219,51 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 ).fetchone()
                 self.assertIsNotNone(sample)
                 self.assertTrue(sample[0])
+
+    def test_product_database_api_serves_core_workbench_data(self) -> None:
+        db_path = Path(self.tempdir.name) / "product.db"
+        subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "build_product_db.py"), "--output", str(db_path)],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        auth_api.PRODUCT_DB_ENV = str(db_path)
+        client = self.client()
+
+        status, payload = client.get("/api/product/health")
+        self.assertEqual(status, 200, payload)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["schemaVersion"], "1")
+        self.assertGreaterEqual(payload["counts"]["market_board_rows"], 800)
+
+        status, payload = client.get("/api/product/symbols?query=MU&limit=5")
+        self.assertEqual(status, 200, payload)
+        self.assertGreaterEqual(len(payload["rows"]), 1)
+        self.assertEqual(payload["rows"][0]["symbol"], "MU")
+
+        status, payload = client.get("/api/product/symbols/MU")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["profile"]["symbol"], "MU")
+        self.assertEqual(payload["profile"]["sector"], "科技")
+        self.assertGreaterEqual(len(payload["marketRows"]), 1)
+        self.assertIn("peers", payload)
+
+        status, payload = client.get("/api/product/sectors?limit=5")
+        self.assertEqual(status, 200, payload)
+        self.assertGreaterEqual(len(payload["rows"]), 5)
+        self.assertIn("netFlowProxy", payload["rows"][0])
+
+        status, payload = client.get("/api/product/calendar")
+        self.assertEqual(status, 200, payload)
+        self.assertGreaterEqual(len(payload["rows"]), 1)
+        self.assertIn("title", payload["rows"][0])
+
+        status, payload = client.get("/api/product/market?board=day&limit=3")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["board"], "day")
+        self.assertEqual(len(payload["rows"]), 3)
 
     def test_frontend_routes_keep_inactive_pages_hidden(self) -> None:
         styles = (ROOT / "styles.css").read_text(encoding="utf-8")

@@ -762,7 +762,7 @@ def build_database(output: Path) -> dict[str, int]:
         conn.row_factory = sqlite3.Row
         try:
             create_schema(conn)
-            counts = {
+            import_counts = {
                 "market_board_rows": import_market_boards(conn),
                 "sector_flow_rows": import_sector_flow(conn),
                 "stock_event_rows": import_stock_events(conn),
@@ -776,7 +776,22 @@ def build_database(output: Path) -> dict[str, int]:
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('generated_at', ?)", (now_iso(),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('source_data_dir', ?)", (str(DATA_DIR),))
-            conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('table_counts', ?)", (json_text(counts),))
+            table_counts = {
+                name: table_count(conn, name)
+                for name in [
+                    "symbols",
+                    "market_board_rows",
+                    "sector_flow_rows",
+                    "stock_event_rows",
+                    "calendar_events",
+                    "earnings_quality_rows",
+                    "strength_rows",
+                    "market_temperature_indicators",
+                    "options_flow_rows",
+                ]
+            }
+            conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('table_counts', ?)", (json_text(table_counts),))
+            conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('import_counts', ?)", (json_text(import_counts),))
             conn.commit()
             conn.execute("PRAGMA optimize")
         finally:
