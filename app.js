@@ -230,8 +230,10 @@ const formatMoney = (value) =>
 const formatCompactMoney = (value) => {
   const number = Number(value);
   if (!Number.isFinite(number)) return "--";
-  if (Math.abs(number) >= 1_000_000_000) return `$${(number / 1_000_000_000).toFixed(1)}B`;
-  if (Math.abs(number) >= 1_000_000) return `$${(number / 1_000_000).toFixed(1)}M`;
+  const sign = number < 0 ? "-" : "";
+  const absolute = Math.abs(number);
+  if (absolute >= 1_000_000_000) return `${sign}$${(absolute / 1_000_000_000).toFixed(1)}B`;
+  if (absolute >= 1_000_000) return `${sign}$${(absolute / 1_000_000).toFixed(1)}M`;
   return formatMoney(number);
 };
 
@@ -1502,6 +1504,13 @@ const sectorFlowRows = () => {
     .slice(0, 16);
 };
 
+const formatSignedCompactMoney = (value, fallback = "") => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback || "--";
+  const label = formatCompactMoney(number);
+  return number > 0 ? `+${label}` : label;
+};
+
 const renderFlowsPage = () => {
   const body = document.querySelector("#flowsSectorBody");
   const sectorList = document.querySelector("#flowsSectorList");
@@ -1513,7 +1522,7 @@ const renderFlowsPage = () => {
   const positiveSectors = rows.filter((row) => (row.netFlowProxy || 0) > 0).length;
   const negativeSectors = rows.filter((row) => (row.netFlowProxy || 0) < 0).length;
   setText("#flowsAsOf", formatDisplayDate(state.sectorFlow?.asOf || state.meta?.volume?.updatedAt || state.meta?.day?.updatedAt));
-  setText("#flowsHeroTitle", top ? `${top.sector} · ${top.netFlowLabel || formatCompactMoney(top.netFlowProxy || 0)}` : "等待板块数据");
+  setText("#flowsHeroTitle", top ? `${top.sector} · ${formatSignedCompactMoney(top.netFlowProxy, top.netFlowLabel)}` : "等待板块数据");
   setText(
     "#flowsHeroLead",
     top
@@ -1521,7 +1530,7 @@ const renderFlowsPage = () => {
       : "用板块层面的成交活跃和涨跌广度判断资金偏好。",
   );
   setText("#flowsTopSymbol", top ? top.sector : "--");
-  setText("#flowsTopNote", top ? `${top.netFlowLabel || formatCompactMoney(top.netFlowProxy || 0)} · ${top.status || "资金方向"}` : "等待数据。");
+  setText("#flowsTopNote", top ? `${formatSignedCompactMoney(top.netFlowProxy, top.netFlowLabel)} · ${top.status || "资金方向"}` : "等待数据。");
   setText("#flowsTopSector", activeSector ? activeSector.sector : "--");
   setText("#flowsAccumulationCount", positiveSectors ? String(positiveSectors) : "--");
   setText("#flowsDistributionCount", negativeSectors ? String(negativeSectors) : "--");
@@ -1533,14 +1542,19 @@ const renderFlowsPage = () => {
       const leaders = (row.leaders || []).slice(0, 4);
       const leader = leaders[0];
       const weekChange = sectorPeriodChange(row.sector, "week");
+      const upCount = row.upCount || 0;
+      const downCount = row.downCount || 0;
       return `
         <tr>
           <td><button class="inline-stock-link" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">${escapeHtml(row.sector)}</button></td>
-          <td class="${changeClass}">${escapeHtml(row.netFlowLabel || formatCompactMoney(row.netFlowProxy || 0))}</td>
+          <td class="${changeClass}">${escapeHtml(formatSignedCompactMoney(row.netFlowProxy, row.netFlowLabel))}</td>
           <td class="${Number(row.avgChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(row.avgChange == null ? "--" : formatSignedPct(row.avgChange))}</td>
           <td class="${Number(weekChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(weekChange == null ? "--" : formatSignedPct(weekChange))}</td>
           <td>${escapeHtml(row.activeValueLabel || formatCompactMoney(row.activeValue || 0))}</td>
-          <td>${escapeHtml(`${Math.round(row.breadthPct || 0)}% · ${row.upCount || 0}涨/${row.downCount || 0}跌`)}</td>
+          <td class="flow-breadth-cell">
+            <strong>${escapeHtml(`${Math.round(row.breadthPct || 0)}%`)}</strong>
+            <span><b class="is-positive">${escapeHtml(`${upCount}涨`)}</b><i>/</i><b class="is-negative">${escapeHtml(`${downCount}跌`)}</b></span>
+          </td>
           <td>${escapeHtml(leader?.symbol || "--")}</td>
           <td class="${Number(leader?.change) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(leader?.change == null ? "--" : formatSignedPct(leader.change))}</td>
           <td>${escapeHtml(leaders.map((item) => item.symbol).join(" / ") || "--")}</td>

@@ -14675,6 +14675,50 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   table-layout: fixed;
 }
 
+#marketFlowsPanel .flows-table :where(td.is-positive, .gain-cell, .flow-breadth-cell .is-positive) {
+  color: var(--positive);
+}
+
+#marketFlowsPanel .flows-table :where(td.is-negative, .loss-cell, .flow-breadth-cell .is-negative) {
+  color: var(--negative);
+}
+
+#marketFlowsPanel .flows-table :where(td.is-positive, td.is-negative, .gain-cell, .loss-cell) {
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+}
+
+#marketFlowsPanel .flow-breadth-cell {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+#marketFlowsPanel .flow-breadth-cell strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+#marketFlowsPanel .flow-breadth-cell span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #718299;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#marketFlowsPanel .flow-breadth-cell b {
+  font-weight: 720;
+}
+
+#marketFlowsPanel .flow-breadth-cell i {
+  color: rgba(143, 160, 184, 0.56);
+  font-style: normal;
+}
+
 #marketFlowsPanel .flows-rail {
   display: none;
 }
@@ -14895,10 +14939,6 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 /* Risk workspace density: keep research depth without turning the page into a long report. */
 .page-view[data-view="risk"] .risk-dashboard {
   gap: 14px;
-}
-
-.page-view[data-view="risk"] :where(.macro-pressure-panel, .macro-series-panel, .macro-stock-panel, #riskSignalGrid, .model-card, .temperature-reminder) {
-  display: none;
 }
 
 .page-view[data-view="risk"] :where(.macro-monitor-board, .macro-pressure-panel, .macro-series-panel, .macro-stock-panel, .model-card, .temperature-reminder) {
@@ -15191,6 +15231,116 @@ body .page-view[data-view="risk"] .macro-series-visual {
   background: rgba(12, 19, 32, 0.86);
 }
 
+body .page-view[data-view="risk"] .macro-series-panel {
+  max-height: 1180px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body .page-view[data-view="risk"] .macro-series-grid {
+  gap: 10px;
+}
+
+body .page-view[data-view="risk"] .macro-series-card {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+body .page-view[data-view="risk"] .macro-series-info {
+  gap: 9px;
+  border-color: var(--line);
+  background: rgba(7, 12, 21, 0.58);
+  padding: 16px;
+}
+
+body .page-view[data-view="risk"] .macro-series-info > span,
+body .page-view[data-view="risk"] .macro-series-empty span,
+body .page-view[data-view="risk"] .macro-series-verdict span,
+body .page-view[data-view="risk"] .macro-series-metrics span {
+  color: #8fa0b8;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-series-info h3 {
+  color: #dce7f5;
+  font-size: 17px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-series-info p,
+body .page-view[data-view="risk"] .macro-series-foot {
+  color: #7f8da2;
+  font-weight: 520;
+}
+
+body .page-view[data-view="risk"] .macro-series-reading strong {
+  color: #e8edf6;
+  font-size: 28px;
+  font-weight: 720;
+}
+
+body .page-view[data-view="risk"] .macro-series-reading em,
+body .page-view[data-view="risk"] .macro-series-metrics strong {
+  color: #a9b6c8;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-series-verdict,
+body .page-view[data-view="risk"] .macro-series-metrics {
+  border-color: var(--line);
+}
+
+body .page-view[data-view="risk"] .macro-series-verdict strong,
+body .page-view[data-view="risk"] .macro-series-chart-head strong {
+  color: #dce7f5;
+  font-size: 15px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-series-meta b,
+body .page-view[data-view="risk"] .macro-series-meta em {
+  background: rgba(53, 167, 255, 0.12);
+  color: #8fc7ff;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-series-visual {
+  padding: 14px;
+}
+
+body .page-view[data-view="risk"] .macro-series-chart {
+  height: 280px;
+}
+
+body .page-view[data-view="risk"] .macro-series-plot-bg {
+  fill: rgba(7, 12, 21, 0.58);
+  stroke: rgba(128, 151, 183, 0.2);
+}
+
+body .page-view[data-view="risk"] .macro-series-area {
+  fill: rgba(53, 167, 255, 0.12);
+}
+
+body .page-view[data-view="risk"] .macro-series-line {
+  stroke: #79bdf5;
+}
+
+body .page-view[data-view="risk"] .macro-series-y-tick line,
+body .page-view[data-view="risk"] .macro-series-ref line {
+  stroke: rgba(128, 151, 183, 0.16);
+}
+
+body .page-view[data-view="risk"] .macro-series-y-tick text,
+body .page-view[data-view="risk"] .macro-series-x-label,
+body .page-view[data-view="risk"] .macro-series-ref-label,
+body .page-view[data-view="risk"] .macro-series-current-callout text {
+  fill: #8fa0b8;
+}
+
+body .page-view[data-view="risk"] .macro-series-current-callout rect {
+  fill: rgba(12, 19, 32, 0.94);
+  stroke: rgba(128, 151, 183, 0.28);
+}
+
 body .page-view[data-view="risk"] :where(.macro-monitor-head, .macro-composite-copy, .macro-factor-board, .macro-asset-board) {
   background: transparent;
 }
@@ -15202,6 +15352,39 @@ body .page-view[data-view="risk"] .macro-composite-chart {
 body .page-view[data-view="risk"] .macro-monitor-plot {
   fill: rgba(8, 13, 23, 0.92);
   stroke: rgba(128, 151, 183, 0.24);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone {
+  opacity: 0.72;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone.is-low {
+  fill: rgba(51, 193, 142, 0.09);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone.is-mid {
+  fill: rgba(255, 203, 102, 0.085);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone.is-high {
+  fill: rgba(255, 95, 95, 0.095);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone-label text {
+  font-size: 12px;
+  font-weight: 640;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone-label.is-low text {
+  fill: #53d7a2;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone-label.is-mid text {
+  fill: #ffc95e;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone-label.is-high text {
+  fill: #ff7777;
 }
 
 body .page-view[data-view="risk"] .macro-monitor-gridline line {
@@ -15228,6 +15411,11 @@ body .page-view[data-view="risk"] .macro-monitor-dot {
 
 body .page-view[data-view="risk"] .macro-monitor-guide {
   stroke: rgba(147, 161, 181, 0.5);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-current-level {
+  stroke: rgba(255, 255, 255, 0.42);
+  stroke-dasharray: 6 6;
 }
 
 body .page-view[data-view="risk"] .macro-asset-list div,
@@ -15409,6 +15597,14 @@ body .valuation-hover text {
 body :where(.market-workspace .data-table td, .market-workspace .market-row, .ranking-panel .market-row) {
   background: rgba(10, 16, 27, 0.42) !important;
   color: var(--ink) !important;
+}
+
+body .market-workspace #marketFlowsPanel .flows-table :where(td.is-positive, .gain-cell, .flow-breadth-cell .is-positive) {
+  color: var(--positive) !important;
+}
+
+body .market-workspace #marketFlowsPanel .flows-table :where(td.is-negative, .loss-cell, .flow-breadth-cell .is-negative) {
+  color: var(--negative) !important;
 }
 
 body :where(.market-workspace .data-table th, .ranking-panel .data-table th) {
