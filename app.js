@@ -467,7 +467,17 @@ const ensurePageData = (page) => {
   }
   if (page === "stocks") {
     jobs.push(
-      Promise.all([loadProductMeta(), loadGlobalSearchUniverse(), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities")])
+      Promise.all([
+        loadProductMeta(),
+        loadGlobalSearchUniverse(),
+        loadProductCalendar().then((calendar) => {
+          if (calendar) renderEventsCalendar(calendar);
+          return calendar;
+        }),
+        loadProductSectors(),
+        loadLazyDataset("earningsQuality"),
+        loadLazyDataset("eventOpportunities"),
+      ])
         .then(() => renderStocksPage()),
     );
   }
@@ -1634,6 +1644,11 @@ const normalizeStockLibraryItem = (item) => {
     hasEvent: Boolean(eventRow),
     inWatchlist: isInWatchlist(symbol),
     sources: [...sources],
+    market,
+    strength,
+    quality,
+    eventRow,
+    signal,
   };
 };
 
@@ -1729,6 +1744,42 @@ const stockLibraryDecision = (item) => {
   };
 };
 
+const stockLibrarySectorFlow = (item) => {
+  const sector = sectorDisplayName(item.sector);
+  const sectorRows = isKnownSector(sector)
+    ? uniqueBySymbol(allMarketRows().filter((row) => sectorDisplayName(row.sector) === sector))
+    : [];
+  return stockSectorFlowDetail({ ...stockDisplayName(item.symbol), sector }, sectorRows);
+};
+
+const stockLibraryCalendarSummary = (item) => {
+  const target = normalizeStockSymbol(item.symbol);
+  const profile = stockDisplayName(target);
+  const macroExposure = stockMacroExposure(profile, item.market || findMarketRow(target));
+  const rows = stockLinkedCalendarRows({ target, profile, macroExposure, quality: item.quality || findQualityRow(target) });
+  const direct = rows.find((row) => row.matchType === "direct") || rows[0];
+  if (!direct) {
+    return {
+      title: item.eventLabel || item.qualityLabel || "暂无日程",
+      meta: item.eventDate || item.quality?.latestEarningsDate || "先看财经日历整体事件",
+      className: "is-muted",
+    };
+  }
+  return {
+    title: direct.title || eventTypeLabel(direct.type),
+    meta: `${formatDisplayDate(direct.date)} · ${eventTypeLabel(direct.type)}${rows.length > 1 ? ` · ${rows.length}条` : ""}`,
+    className: direct.impact === "high" ? "is-negative" : direct.impact === "medium" ? "is-neutral" : "is-muted",
+  };
+};
+
+const stockLibrarySourceChips = (item) => {
+  const preferred = ["自选", "事件", "财报", "强弱", "行情", "产品库"];
+  const sources = preferred.filter((source) => item.sources.includes(source));
+  return (sources.length ? sources : item.sources.slice(0, 3))
+    .map((source) => `<b>${escapeHtml(source)}</b>`)
+    .join("");
+};
+
 const renderStocksPage = () => {
   const body = document.querySelector("#stocksTableBody");
   if (!body) return;
@@ -1759,40 +1810,53 @@ const renderStocksPage = () => {
   setText("#stocksEventCount", `${formatNumber(eventCount)}只`);
   setText("#stocksQualityCount", `${formatNumber(qualityCount)}只`);
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="14">当前筛选下暂无结果。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6">当前筛选下暂无结果。</td></tr>`;
     return;
   }
   body.innerHTML = rows
     .map((item) => {
       const changeClass = (value) => Number.isFinite(value) && value !== 0 ? (value > 0 ? "is-positive" : "is-negative") : "";
       const price = Number(item.price);
-      const relativeClass = stockSignedClass(item.relativeStrength);
-      const eventTitle = item.eventLabel || (item.hasEvent ? "事件线索" : "无事件");
-      const eventMeta = item.eventDate || (item.sources.includes("事件") ? "日期待补" : item.sources.slice(0, 2).join(" / ") || "--");
-      const qualityOrRisk = item.qualityLabel || item.strengthLabel || (item.sources.includes("行情") ? "行情观察" : "无评分");
-      const qualityScoreText = item.qualityScore == null
-        ? item.strengthScore == null ? "无评分" : `${item.strengthScore}分`
-        : `${Number(item.qualityScore).toFixed(1)}分`;
       const decision = stockLibraryDecision(item);
+      const sectorFlow = stockLibrarySectorFlow(item);
+      const calendar = stockLibraryCalendarSummary(item);
+      const sourceChips = stockLibrarySourceChips(item);
+      const relativeClass = stockSignedClass(item.relativeStrength);
+      const volumeRatioLabel = formatVolumeRatioLabel(item.volumeRatio);
       return `
         <tr>
-          <td class="stocks-symbol-cell" data-label="代码">
-            <button class="inline-stock-link stocks-symbol-link" type="button" data-stock-open="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</button>
-            ${item.inWatchlist ? '<span class="stocks-mini-flag">自选</span>' : ""}
+          <td class="stocks-symbol-cell stocks-profile-cell" data-label="股票">
+            <div class="stocks-profile-head">
+              <button class="inline-stock-link stocks-symbol-link" type="button" data-stock-open="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</button>
+              ${item.inWatchlist ? '<span class="stocks-mini-flag">自选</span>' : ""}
+            </div>
+            <strong>${escapeHtml(item.name || "--")}</strong>
+            <p>${escapeHtml(sectorDisplayName(item.sector))} · ${escapeHtml(item.marketCap || "--")}</p>
+            <div class="stocks-source-chips">${sourceChips}</div>
           </td>
-          <td class="stocks-company-cell" data-label="公司">${escapeHtml(item.name || "--")}</td>
-          <td data-label="板块/行业">${escapeHtml(sectorDisplayName(item.sector))}</td>
-          <td class="stocks-num-cell" data-label="市值">${escapeHtml(item.marketCap || "--")}</td>
-          <td class="stocks-num-cell" data-label="价格">${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</td>
-          <td class="stocks-num-cell ${escapeHtml(changeClass(item.dayChange))}" data-label="1D">${escapeHtml(Number.isFinite(item.dayChange) ? formatSignedPct(item.dayChange) : "--")}</td>
-          <td class="stocks-num-cell ${escapeHtml(changeClass(item.monthChange))}" data-label="20D">${escapeHtml(Number.isFinite(item.monthChange) ? formatSignedPct(item.monthChange) : "--")}</td>
-          <td class="stocks-num-cell ${escapeHtml(changeClass(item.ytdChange))}" data-label="YTD">${escapeHtml(Number.isFinite(item.ytdChange) ? formatSignedPct(item.ytdChange) : "--")}</td>
-          <td class="stocks-num-cell ${escapeHtml(relativeClass)}" data-label="相对SPY">${escapeHtml(item.relativeStrength || "--")}</td>
-          <td class="stocks-num-cell" data-label="成交额">${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")}</td>
-          <td class="stocks-num-cell" data-label="成交异动">${escapeHtml(formatVolumeRatioLabel(item.volumeRatio))}</td>
-          <td class="stocks-signal-cell ${escapeHtml(decision.className)}" data-label="研究看点"><strong>${escapeHtml(decision.title)}</strong><span>${escapeHtml(decision.note)}</span></td>
-          <td class="stocks-signal-cell" data-label="事件/财报"><strong>${escapeHtml(eventTitle)}</strong><span>${escapeHtml(eventMeta)} · ${escapeHtml(qualityOrRisk)} ${escapeHtml(qualityScoreText)}</span></td>
-          <td class="stocks-action-cell" data-label="操作"><button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button></td>
+          <td class="stocks-market-cell" data-label="行情">
+            <strong>${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</strong>
+            <p>1D <b class="${escapeHtml(changeClass(item.dayChange))}">${escapeHtml(Number.isFinite(item.dayChange) ? formatSignedPct(item.dayChange) : "--")}</b> · 20D <b class="${escapeHtml(changeClass(item.monthChange))}">${escapeHtml(Number.isFinite(item.monthChange) ? formatSignedPct(item.monthChange) : "--")}</b> · YTD <b class="${escapeHtml(changeClass(item.ytdChange))}">${escapeHtml(Number.isFinite(item.ytdChange) ? formatSignedPct(item.ytdChange) : "--")}</b></p>
+            <small>成交额 ${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")} · 异动 ${escapeHtml(volumeRatioLabel)} · <em class="${escapeHtml(relativeClass)}">相对SPY ${escapeHtml(item.relativeStrength || "--")}</em></small>
+          </td>
+          <td class="stocks-flow-cell" data-label="板块资金">
+            <strong class="${escapeHtml(sectorFlow.className)}">${escapeHtml(sectorFlow.netFlow)}</strong>
+            <p>${escapeHtml(sectorFlow.label)} · 广度 ${escapeHtml(sectorFlow.breadth)}</p>
+            <small>活跃成交 ${escapeHtml(sectorFlow.activeValue)}</small>
+          </td>
+          <td class="stocks-calendar-cell ${escapeHtml(calendar.className)}" data-label="日程/事件">
+            <strong>${escapeHtml(calendar.title)}</strong>
+            <p>${escapeHtml(calendar.meta)}</p>
+            <small>${escapeHtml(item.eventLabel || item.qualityLabel || item.strengthLabel || "暂无独立事件")}</small>
+          </td>
+          <td class="stocks-signal-cell ${escapeHtml(decision.className)}" data-label="研究看点">
+            <strong>${escapeHtml(decision.title)}</strong>
+            <span>${escapeHtml(decision.note)}</span>
+          </td>
+          <td class="stocks-action-cell" data-label="操作">
+            <button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button>
+            <button class="table-action" type="button" data-watchlist-toggle="${escapeHtml(item.symbol)}" data-watchlist-source="股票库">${item.inWatchlist ? "已自选" : "自选"}</button>
+          </td>
         </tr>
       `;
     })
