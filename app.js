@@ -1512,6 +1512,46 @@ const setGlobalSearchActive = (index) => {
   });
 };
 
+const ensureGlobalSearchContext = (query) => {
+  const refreshIfCurrent = () => {
+    if (document.querySelector("#globalSearchInput")?.value.trim() === query) renderGlobalSearchResults();
+  };
+  if (!state.searchUniverse && !state.loading.searchUniverse) {
+    loadGlobalSearchUniverse().then(refreshIfCurrent);
+  }
+  if (state.productSectors === undefined && !state.loading.productSectors) {
+    loadProductSectors().then(refreshIfCurrent);
+  }
+  if (state.productCalendar === undefined && !state.loading.productCalendar) {
+    loadProductCalendar().then(refreshIfCurrent);
+  }
+};
+
+const globalSearchStockContext = (item) => {
+  const row = normalizeStockLibraryItem(item);
+  const change = Number.isFinite(row.dayChange) ? row.dayChange : parseSignedPercent(item.change);
+  const decision = stockLibraryDecision(row);
+  const sectorFlow = stockLibrarySectorFlow(row);
+  const calendar = stockLibraryCalendarSummary(row);
+  const changeClass = Number.isFinite(change) && change !== 0 ? (change > 0 ? "is-positive" : "is-negative") : "";
+  const profile = [row.name, sectorDisplayName(row.sector), row.marketCap && row.marketCap !== "--" ? row.marketCap : ""]
+    .filter(Boolean)
+    .join(" · ");
+  const calendarText = calendar.title === "暂无日程"
+    ? calendar.meta
+    : `${calendar.meta} · ${compactText(calendar.title, 28)}`;
+  return {
+    row,
+    change,
+    changeClass,
+    profile,
+    decision,
+    sectorFlow,
+    calendar,
+    calendarText,
+  };
+};
+
 const renderGlobalSearchResults = () => {
   const input = document.querySelector("#globalSearchInput");
   const panel = document.querySelector("#globalSearchResults");
@@ -1522,11 +1562,7 @@ const renderGlobalSearchResults = () => {
     closeGlobalSearch();
     return;
   }
-  if (!state.searchUniverse && !state.loading.searchUniverse) {
-    loadGlobalSearchUniverse().then(() => {
-      if (document.querySelector("#globalSearchInput")?.value.trim() === query) renderGlobalSearchResults();
-    });
-  }
+  ensureGlobalSearchContext(query);
   const { stocks, pages } = globalSearchResults(query);
   if (!stocks.length && state.loading.searchUniverse) {
     panel.hidden = false;
@@ -1558,16 +1594,17 @@ const renderGlobalSearchResults = () => {
     ${stocks.length ? `
       <div class="global-search-group">股票</div>
       ${stocks.map((item) => {
-        const change = parseSignedPercent(item.change);
-        const changeClass = Number.isFinite(change) && change !== 0 ? (change > 0 ? "is-positive" : "is-negative") : "";
-        const detail = [item.name, item.sector, item.marketCap && item.marketCap !== "--" ? item.marketCap : ""]
-          .filter(Boolean)
-          .join(" · ");
+        const context = globalSearchStockContext(item);
+        const sourceChips = stockLibrarySourceChips(context.row);
         return `
-          <button class="global-search-result" type="button" role="option" data-global-search-result data-result-type="stock" data-symbol="${escapeHtml(item.symbol)}">
+          <button class="global-search-result global-search-stock-result" type="button" role="option" data-global-search-result data-result-type="stock" data-symbol="${escapeHtml(item.symbol)}">
             <strong>${escapeHtml(item.symbol)}</strong>
-            <span>${escapeHtml(detail || item.sources.join(" / "))}</span>
-            <em class="${escapeHtml(changeClass)}">${escapeHtml(Number.isFinite(change) ? formatSignedPct(change) : item.sources[0] || "股票")}</em>
+            <span>${escapeHtml(context.profile || item.sources.join(" / "))}</span>
+            <em class="${escapeHtml(context.changeClass)}">${escapeHtml(Number.isFinite(context.change) ? formatSignedPct(context.change) : context.row.sources[0] || "股票")}</em>
+            <small class="global-search-flow">资金 ${escapeHtml(context.sectorFlow.netFlow)} · ${escapeHtml(context.sectorFlow.label)} · 广度 ${escapeHtml(context.sectorFlow.breadth)}</small>
+            <small class="global-search-calendar">日程 ${escapeHtml(context.calendarText || "先看财经日历")}</small>
+            <i class="${escapeHtml(context.decision.className)}">${escapeHtml(context.decision.title)}</i>
+            <span class="global-search-source-chips">${sourceChips}</span>
           </button>
         `;
       }).join("")}

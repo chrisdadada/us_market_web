@@ -491,7 +491,7 @@ body.is-sidebar-collapsed .app-sidebar {
 
 .global-search {
   position: relative;
-  width: min(460px, 40vw);
+  width: min(580px, 46vw);
 }
 
 .global-search input {
@@ -512,6 +512,8 @@ body.is-sidebar-collapsed .app-sidebar {
   border-radius: var(--radius-card);
   background: #0b1220;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  max-height: min(72vh, 620px);
+  overflow: auto;
 }
 
 .global-search-group {
@@ -573,6 +575,92 @@ body.is-sidebar-collapsed .app-sidebar {
 
 .global-search-result em.is-negative {
   color: var(--red);
+}
+
+.global-search-stock-result {
+  min-height: 84px;
+  grid-template-columns: 64px minmax(0, 1fr) 70px;
+  grid-template-areas:
+    "symbol profile change"
+    "symbol flow action"
+    "symbol calendar sources";
+  row-gap: 5px;
+  background: linear-gradient(180deg, rgba(12, 19, 33, 0.98), rgba(8, 13, 23, 0.98));
+}
+
+.global-search-stock-result strong {
+  grid-area: symbol;
+  align-self: start;
+  padding-top: 2px;
+}
+
+.global-search-stock-result > span:not(.global-search-source-chips) {
+  grid-area: profile;
+}
+
+.global-search-stock-result em {
+  grid-area: change;
+  align-self: start;
+}
+
+.global-search-stock-result small,
+.global-search-stock-result i {
+  min-width: 0;
+  overflow: hidden;
+  color: #8796aa;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-flow {
+  grid-area: flow;
+}
+
+.global-search-calendar {
+  grid-area: calendar;
+}
+
+.global-search-stock-result i {
+  grid-area: action;
+  justify-self: end;
+  color: #9fb0c5;
+}
+
+.global-search-stock-result i.is-positive {
+  color: var(--positive);
+}
+
+.global-search-stock-result i.is-negative {
+  color: var(--red);
+}
+
+.global-search-stock-result i.is-muted {
+  color: #64748b;
+}
+
+.global-search-source-chips {
+  grid-area: sources;
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.global-search-source-chips b {
+  display: inline-flex;
+  min-height: 18px;
+  align-items: center;
+  border: 1px solid rgba(94, 112, 136, 0.42);
+  border-radius: 4px;
+  color: #8fa2ba;
+  font-size: 10px;
+  font-weight: 650;
+  padding: 0 5px;
 }
 
 .global-search-empty {
@@ -11610,6 +11698,24 @@ tbody tr:last-child td {
   .global-search-results {
     position: static;
     margin-top: 8px;
+  }
+
+  .global-search-stock-result {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "symbol change"
+      "profile profile"
+      "flow action"
+      "calendar sources";
+  }
+
+  .global-search-stock-result {
+    min-height: 96px;
+  }
+
+  .global-search-stock-result strong {
+    align-self: center;
+    padding-top: 0;
   }
 
   .stocks-toolbar,
