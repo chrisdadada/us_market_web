@@ -14070,6 +14070,18 @@ body {
   color: #9fb0c5;
 }
 
+.signal-status-text.is-long {
+  color: var(--positive);
+}
+
+.signal-status-text.is-short {
+  color: var(--red);
+}
+
+.signal-status-text.is-neutral {
+  color: #aebcd0;
+}
+
 .signal-status-chip {
   max-width: 180px;
 }

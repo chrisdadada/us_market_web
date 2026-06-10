@@ -3244,7 +3244,7 @@ const renderStockHub = (symbol) => {
         <div class="stock-card-head">
           <div>
             <span>趋势信号</span>
-            <strong><i class="signal-side-pill ${escapeHtml(signalSide.className)}">${escapeHtml(signalSide.label)}</i>${escapeHtml(signalStatusText(signalSide))}</strong>
+            <strong class="signal-status-text ${escapeHtml(signalSide.className)}"><i class="signal-side-pill ${escapeHtml(signalSide.className)}">${escapeHtml(signalSide.label)}</i>${escapeHtml(signalStatusText(signalSide))}</strong>
           </div>
           <em>${escapeHtml(signal.intervalLabel || signal.interval || "基础")}</em>
         </div>
@@ -3265,7 +3265,7 @@ const renderStockHub = (symbol) => {
         <div class="stock-card-head">
           <div>
             <span>趋势信号</span>
-            <strong><i class="signal-side-pill is-neutral">无信号</i>当前趋势信号：无信号</strong>
+            <strong class="signal-status-text is-neutral"><i class="signal-side-pill is-neutral">无信号</i>当前趋势信号：无信号</strong>
           </div>
           <em>未触发</em>
         </div>
