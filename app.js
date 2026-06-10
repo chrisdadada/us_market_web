@@ -85,6 +85,8 @@ const state = {
   searchUniverse: null,
   productMeta: null,
   productSymbols: null,
+  productSectors: null,
+  productCalendar: null,
   productStockDetails: {},
   stocksQuery: "",
   stocksPresetFilter: "all",
@@ -218,6 +220,41 @@ const normalizeProductEventRow = (row = {}) => ({
   companyName: row.companyName || row.company || "",
 });
 
+const normalizeProductSectorRow = (row = {}) => ({
+  ...row,
+  sector: sectorDisplayName(row.sector),
+  count: Number(row.count || row.stock_count || 0),
+  upCount: Number(row.upCount || row.up_count || 0),
+  downCount: Number(row.downCount || row.down_count || 0),
+  breadthPct: Number(row.breadthPct ?? row.breadth_pct ?? 0),
+  avgChange: Number(row.avgChangePct ?? row.avgChange ?? row.avg_change_pct ?? 0),
+  activeValue: Number(row.activeValue ?? row.active_value ?? 0),
+  netFlowProxy: Number(row.netFlowProxy ?? row.net_flow_proxy ?? 0),
+  netFlowLabel: formatSignedCompactMoney(row.netFlowProxy ?? row.net_flow_proxy ?? 0),
+  activeValueLabel: formatCompactMoney(row.activeValue ?? row.active_value ?? 0),
+  status: row.status || "板块资金观察",
+  leaders: (row.leaders || []).map((leader) => ({
+    ...leader,
+    symbol: normalizeStockSymbol(leader.symbol || leader.ticker),
+    change: Number(leader.changePct ?? leader.change ?? 0),
+    liquidity: leader.liquidity || leader.volumeRatio || "",
+    marketCap: leader.marketCap || "",
+  })),
+});
+
+const normalizeProductCalendarRow = (row = {}) => ({
+  id: row.id || row.eventId || row.event_id,
+  date: row.date || row.eventDate || row.event_date,
+  time: row.time || row.eventTime || row.event_time || "",
+  title: row.title || "--",
+  type: row.type || row.eventType || row.event_type || "macro",
+  impact: row.impact || "medium",
+  sourceName: row.sourceName || row.source_name || "",
+  relatedModules: row.relatedModules || row.related_modules || [],
+  relatedAssets: row.relatedAssets || row.related_assets || [],
+  summary: row.summary || "",
+});
+
 const loadProductMeta = () => {
   if (state.productMeta) return Promise.resolve(state.productMeta);
   if (state.loading.productMeta) return state.loading.productMeta;
@@ -290,6 +327,62 @@ const loadProductStockDetail = (symbol) => {
   return state.loading[key];
 };
 
+const loadProductSectors = () => {
+  if (state.productSectors) return Promise.resolve(state.productSectors);
+  if (state.loading.productSectors) return state.loading.productSectors;
+  state.loading.productSectors = productApiJson("/sectors?limit=100")
+    .then((payload) => {
+      const rows = Array.isArray(payload?.rows) ? payload.rows.map(normalizeProductSectorRow) : [];
+      state.productSectors = rows;
+      if (rows.length) {
+        state.sectorFlow = {
+          ...(state.sectorFlow || {}),
+          asOf: payload?.asOf || state.sectorFlow?.asOf || state.productMeta?.generatedAt,
+          rows,
+        };
+      }
+      return rows;
+    })
+    .catch((error) => {
+      console.warn("Product sectors unavailable", error);
+      state.productSectors = null;
+      return [];
+    })
+    .finally(() => {
+      delete state.loading.productSectors;
+    });
+  return state.loading.productSectors;
+};
+
+const loadProductCalendar = () => {
+  if (state.productCalendar) return Promise.resolve(state.productCalendar);
+  if (state.loading.productCalendar) return state.loading.productCalendar;
+  state.loading.productCalendar = productApiJson("/calendar?limit=200")
+    .then((payload) => {
+      const rows = Array.isArray(payload?.rows) ? payload.rows.map(normalizeProductCalendarRow) : [];
+      const calendar = rows.length
+        ? {
+            ...(state.eventsCalendar || {}),
+            asOf: payload?.asOf || state.eventsCalendar?.asOf || state.productMeta?.generatedAt,
+            generatedAt: state.productMeta?.generatedAt || state.eventsCalendar?.generatedAt,
+            events: rows,
+          }
+        : null;
+      state.productCalendar = calendar;
+      if (calendar) state.eventsCalendar = calendar;
+      return calendar;
+    })
+    .catch((error) => {
+      console.warn("Product calendar unavailable", error);
+      state.productCalendar = null;
+      return null;
+    })
+    .finally(() => {
+      delete state.loading.productCalendar;
+    });
+  return state.loading.productCalendar;
+};
+
 const lazyDatasets = {
   macroSeries: {
     url: MACRO_SERIES_URL,
@@ -348,7 +441,16 @@ const ensurePageData = (page) => {
   if (page === "valuation") jobs.push(loadLazyDataset("indexValuation"));
   if (page === "options") jobs.push(loadLazyDataset("optionsFlow"));
   if (page === "earnings") jobs.push(loadLazyDataset("earningsQuality"));
-  if (page === "events") jobs.push(loadLazyDataset("eventsCalendar"));
+  if (page === "events") {
+    jobs.push(loadProductCalendar().then((calendar) => (calendar ? renderEventsCalendar(calendar) : loadLazyDataset("eventsCalendar"))));
+  }
+  if (page === "market" || page === "dashboard") jobs.push(loadProductSectors().then(() => {
+    renderDashboardIntelligence();
+    if (page === "market") {
+      renderFlowsPage();
+      renderMarketVisualBoard(getFilteredRows());
+    }
+  }));
   if (page === "stock-events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
   if (page === "stock") jobs.push(loadProductStockDetail(state.selectedStockSymbol), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
@@ -4161,19 +4263,24 @@ const renderDashboardIntelligence = () => {
   const flowPulse = document.querySelector("#dashboardFlowPulse");
   const calendarLog = document.querySelector("#dashboardCalendarLog");
   const dayRows = state.boards?.day || state.rows || [];
-  const sectors = knownSectorRows(marketSectorStats(dayRows)).slice(0, 5);
-  const sectorMax = Math.max(...sectors.map((item) => item.dollarVolume || item.count), 1);
+  const productSectorRows = sectorFlowDisplayRows();
+  const sectors = (
+    productSectorRows.length
+      ? productSectorRows.slice().sort((a, b) => (b.avgChange || 0) - (a.avgChange || 0))
+      : knownSectorRows(marketSectorStats(dayRows))
+  ).slice(0, 5);
+  const sectorMax = Math.max(...sectors.map((item) => item.activeValue || item.dollarVolume || item.count), 1);
   const topSector = sectors[0];
 
   setText(
     "#dashboardSectorLead",
-    topSector ? `${topSector.sector} · ${formatSignedPct(topSector.avgChange)}` : "等待板块数据",
+    topSector ? `${sectorDisplayName(topSector.sector)} · ${formatSignedPct(topSector.avgChange)}` : "等待板块数据",
   );
   if (sectorRank) {
     sectorRank.innerHTML = sectors.length
       ? sectors.map((item, index) => {
         const tone = item.avgChange >= 0 ? "is-positive" : "is-negative";
-        const width = Math.max(8, ((item.dollarVolume || item.count) / sectorMax) * 100).toFixed(1);
+        const width = Math.max(8, ((item.activeValue || item.dollarVolume || item.count) / sectorMax) * 100).toFixed(1);
         return `
           <button type="button" data-sector-open="${escapeHtml(item.sector)}">
             <em>${String(index + 1).padStart(2, "0")}</em>
@@ -7630,6 +7737,12 @@ const renderCalendarRows = (events) =>
   }).join("");
 
 const renderEventsCalendar = (payload) => {
+  if (Array.isArray(payload?.rows)) {
+    payload = {
+      ...(state.eventsCalendar || {}),
+      events: payload.rows.map(normalizeProductCalendarRow),
+    };
+  }
   state.eventsCalendar = payload || state.eventsCalendar;
   const data = state.eventsCalendar || {};
   const events = Array.isArray(data.events) ? data.events : [];
@@ -9242,8 +9355,15 @@ const init = async () => {
   await refreshAuth();
   showPage(getPageFromHash(), { syncHash: false });
   window.setTimeout(() => {
+    loadProductSectors().then(() => {
+      renderDashboardIntelligence();
+      if (state.marketWorkspaceSection === "flows") renderFlowsPage();
+    });
     loadLazyDataset("eventOpportunities");
-    loadLazyDataset("eventsCalendar");
+    loadProductCalendar().then((calendar) => {
+      if (calendar) renderEventsCalendar(calendar);
+      else loadLazyDataset("eventsCalendar");
+    });
   }, 300);
 };
 
