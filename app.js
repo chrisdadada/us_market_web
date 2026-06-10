@@ -1893,6 +1893,7 @@ const renderFlowsPage = () => {
   const stockRows = flowRows();
   const top = rows[0];
   const activeSector = rows.slice().sort((a, b) => (b.activeValue || 0) - (a.activeValue || 0))[0];
+  const maxAbsFlow = Math.max(...rows.map((row) => Math.abs(Number(row.netFlowProxy) || 0)), 1);
   const positiveSectors = rows.filter((row) => (row.netFlowProxy || 0) > 0).length;
   const negativeSectors = rows.filter((row) => (row.netFlowProxy || 0) < 0).length;
   setText("#flowsAsOf", formatDisplayDate(state.sectorFlow?.asOf || state.meta?.volume?.updatedAt || state.meta?.day?.updatedAt));
@@ -1912,16 +1913,24 @@ const renderFlowsPage = () => {
     body.innerHTML = `<tr><td colspan="10">等待板块资金流向数据。</td></tr>`;
   } else {
     body.innerHTML = rows.slice(0, 16).map((row) => {
-      const changeClass = (row.netFlowProxy || 0) >= 0 ? "is-positive" : "is-negative";
+      const flowValue = Number(row.netFlowProxy) || 0;
+      const changeClass = flowValue >= 0 ? "is-positive" : "is-negative";
       const leaders = (row.leaders || []).slice(0, 4);
       const leader = leaders[0];
       const weekChange = sectorPeriodChange(row.sector, "week");
       const upCount = row.upCount || 0;
       const downCount = row.downCount || 0;
+      const flowWidth = Math.max(5, (Math.abs(flowValue) / maxAbsFlow) * 100);
       return `
         <tr>
           <td><button class="inline-stock-link" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">${escapeHtml(sectorDisplayName(row.sector))}</button></td>
-          <td class="${changeClass}">${escapeHtml(formatSignedCompactMoney(row.netFlowProxy, row.netFlowLabel))}</td>
+          <td>
+            <div class="flow-direction-cell ${changeClass}">
+              <strong>${escapeHtml(formatSignedCompactMoney(row.netFlowProxy, row.netFlowLabel))}</strong>
+              <i><b style="width:${flowWidth.toFixed(1)}%"></b></i>
+              <span>${escapeHtml(row.status || "资金方向")}</span>
+            </div>
+          </td>
           <td class="${Number(row.avgChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(row.avgChange == null ? "--" : formatSignedPct(row.avgChange))}</td>
           <td class="${Number(weekChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(weekChange == null ? "--" : formatSignedPct(weekChange))}</td>
           <td>${escapeHtml(row.activeValueLabel || formatCompactMoney(row.activeValue || 0))}</td>
@@ -4108,6 +4117,21 @@ const getPageFromHash = () => {
     state.eventBoard = symbol && eventBoardFallbacks[symbol] ? symbol : "all";
     return "stock-events";
   }
+  if (page === "market") {
+    if (symbol === "sectors" || symbol === "heatmap") {
+      state.marketVisualMode = symbol === "sectors" ? "sectors" : "heatmap";
+      state.marketWorkspaceSection = symbol;
+    } else {
+      state.marketVisualMode = "overview";
+      state.marketWorkspaceSection = "movers";
+    }
+    return "market";
+  }
+  if (page === "flows") {
+    state.marketVisualMode = "overview";
+    state.marketWorkspaceSection = "flows";
+    return "flows";
+  }
   return pageMeta[page] ? page : "dashboard";
 };
 
@@ -5010,7 +5034,7 @@ const marketVisualTabs = () => `
 const renderMarketSectorRankingView = (rows) => {
   const flowSectors = sectorFlowDisplayRows();
   const sectors = knownSectorRows(flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
-  const maxVolume = Math.max(...sectors.map((item) => item.activeValue || item.dollarVolume || 0), 1);
+  const maxAbsFlow = Math.max(...sectors.map((item) => Math.abs(Number(item.netFlowProxy ?? item.avgChange) || 0)), 1);
   return `
     ${marketVisualTabs()}
     <section class="market-sector-ranking professional-market-board">
@@ -5026,13 +5050,14 @@ const renderMarketSectorRankingView = (rows) => {
           const breadth = item.breadthPct == null ? 0 : item.breadthPct;
           const leaders = (item.leaders || []).slice(0, 3).map((leader) => leader.symbol).join(" / ");
           const changeClass = flowValue >= 0 ? "is-positive" : "is-negative";
+          const flowWidth = Math.max(5, (Math.abs(Number(flowValue) || 0) / maxAbsFlow) * 100);
           return `
             <button type="button" data-sector-open="${escapeHtml(item.sector)}">
               <em>${String(index + 1).padStart(2, "0")}</em>
               <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
-              <i><b style="width:${Math.max(6, (value / maxVolume) * 100).toFixed(1)}%"></b></i>
+              <i class="${changeClass}"><b style="width:${flowWidth.toFixed(1)}%"></b></i>
               <strong class="${changeClass}">${escapeHtml(item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong>
-              <small>${escapeHtml(`${Math.round(breadth)}%上涨${leaders ? ` · ${leaders}` : ""}`)}</small>
+              <small><mark>${escapeHtml(`${Math.round(breadth)}%上涨`)}</mark>${escapeHtml(leaders ? ` · ${leaders}` : "")}</small>
             </button>
           `;
         }).join("")}
@@ -6310,7 +6335,7 @@ const macroMonitorSvg = (points) => {
     return `<rect class="${className}" x="${pad.left}" y="${yTop.toFixed(1)}" width="${plotW}" height="${(yBottom - yTop).toFixed(1)}"></rect>`;
   };
   const zoneLabel = (value, label, range, className) => `
-    <g class="macro-monitor-zone-label ${className}" transform="translate(${(pad.left + plotW - 132).toFixed(1)}, ${(yFor(value) + 4).toFixed(1)})">
+    <g class="macro-monitor-zone-label ${className}" transform="translate(${(pad.left + 16).toFixed(1)}, ${(yFor(value) + 4).toFixed(1)})">
       <text>${escapeHtml(label)}</text>
       <text class="macro-monitor-zone-range" x="0" y="17">${escapeHtml(range)}</text>
     </g>
@@ -6345,7 +6370,7 @@ const macroMonitorSvg = (points) => {
       <line class="macro-monitor-guide" x1="${lastX.toFixed(1)}" x2="${lastX.toFixed(1)}" y1="${pad.top}" y2="${pad.top + plotH}"></line>
       <line class="macro-monitor-current-level" x1="${pad.left}" x2="${width - pad.right}" y1="${lastY.toFixed(1)}" y2="${lastY.toFixed(1)}"></line>
       <circle class="macro-monitor-dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="5.5"></circle>
-      <g class="macro-monitor-callout" transform="translate(${Math.min(width - 176, Math.max(pad.left + 10, lastX - 154)).toFixed(1)}, ${Math.max(pad.top + 8, Math.min(pad.top + plotH - 82, lastY - 72)).toFixed(1)})">
+      <g class="macro-monitor-callout" transform="translate(${(width - pad.right - 176).toFixed(1)}, ${Math.max(pad.top + 10, Math.min(pad.top + plotH - 84, lastY - 38)).toFixed(1)})">
         <rect width="162" height="74" rx="7"></rect>
         <text x="13" y="19">${escapeHtml(stateLabel)}</text>
         <text class="macro-monitor-callout-value" x="13" y="45">${Math.round(last.value)}</text>
@@ -8782,7 +8807,7 @@ const bindEvents = () => {
         return;
       }
       state.marketVisualMode = section === "sectors" ? "sectors" : section === "heatmap" ? "heatmap" : "overview";
-      showPage("market", { hash: "#market" });
+      showPage("market", { hash: section === "sectors" ? "#market/sectors" : section === "heatmap" ? "#market/heatmap" : "#market" });
       return;
     }
     const sectorOpen = event.target.closest("[data-sector-open]");

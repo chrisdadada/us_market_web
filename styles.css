@@ -14797,7 +14797,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 
 .market-workspace .market-sector-rank-list button {
   min-height: 38px;
-  grid-template-columns: 32px 122px minmax(0, 1fr) 70px 64px;
+  grid-template-columns: 32px 122px minmax(120px, 1fr) 92px minmax(150px, 0.8fr);
   border-bottom-color: var(--line);
 }
 
@@ -14808,6 +14808,27 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 .market-workspace .market-sector-rank-list span {
   color: var(--ink);
   font-weight: 560;
+}
+
+.market-workspace .market-sector-rank-list i.is-positive b {
+  background: var(--positive);
+}
+
+.market-workspace .market-sector-rank-list i.is-negative b {
+  background: var(--negative);
+}
+
+.market-workspace .market-sector-rank-list small {
+  overflow: hidden;
+  color: #8494aa;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-workspace .market-sector-rank-list mark {
+  background: transparent;
+  color: #cfd9e7;
+  font-weight: 620;
 }
 
 .market-workspace .market-heatmap-grid {
@@ -14859,8 +14880,51 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 #marketFlowsPanel .flows-table {
-  min-width: 1120px;
+  min-width: 1180px;
   table-layout: fixed;
+}
+
+#marketFlowsPanel .flow-direction-cell {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+#marketFlowsPanel .flow-direction-cell strong {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 720;
+}
+
+#marketFlowsPanel .flow-direction-cell i {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(146, 166, 197, 0.16);
+}
+
+#marketFlowsPanel .flow-direction-cell b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+#marketFlowsPanel .flow-direction-cell.is-positive b {
+  background: var(--positive);
+}
+
+#marketFlowsPanel .flow-direction-cell.is-negative b {
+  background: var(--negative);
+}
+
+#marketFlowsPanel .flow-direction-cell span {
+  overflow: hidden;
+  color: #8494aa;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #marketFlowsPanel .flows-table :where(td.is-positive, .gain-cell, .flow-breadth-cell .is-positive) {
@@ -16011,9 +16075,12 @@ body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row:last-child 
 body .page-view[data-view="risk"] .macro-factor-bars b {
   display: grid;
   gap: 3px;
+  border-radius: 0;
+  background: transparent;
   color: #dce7f5;
   font-size: 12px;
   font-weight: 560;
+  padding: 0;
 }
 
 body .page-view[data-view="risk"] .macro-factor-bars b span {
