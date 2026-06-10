@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-flowdesk1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-homedesk1" />
   </head>
   <body>
     <div class="app-shell">
@@ -82,12 +82,12 @@
           </div>
         </header>
 
-        <section class="page-view workspace-page is-active" data-view="dashboard">
+        <section class="page-view workspace-page dashboard-terminal is-active" data-view="dashboard">
           <div class="cockpit-hero workspace-header">
             <div>
               <p class="eyebrow">市场总览</p>
               <h1>今日市场工作台</h1>
-              <p class="subtitle">先看环境，再看资金流向和板块主线，最后确认本周事件。</p>
+              <p class="subtitle">把市场环境、板块排行、资金方向、财经日历和个股异动放到同一个首屏里。</p>
             </div>
             <div class="market-regime-card market-radar-card desk-panel">
               <span>当前结构</span>
@@ -102,7 +102,7 @@
             </div>
           </div>
 
-          <section class="dashboard-snapshot-board workspace-summary-row" id="dashboardSnapshotBoard" aria-label="市场图形化快照">
+          <section class="dashboard-snapshot-board workspace-summary-row" id="dashboardSnapshotBoard" aria-label="市场摘要快照">
             <article class="dashboard-snapshot-card metric-cell">
               <span>市场快照</span>
               <strong>等待数据</strong>
@@ -152,25 +152,25 @@
 
           <section class="dashboard-focus-grid workspace-summary-row" aria-label="当前先看">
             <article class="metric-cell">
-              <span>01 · 先看环境</span>
+              <span>01 · 市场环境</span>
               <strong id="dashboardFocusTemperature">市场温度加载中</strong>
               <p id="dashboardFocusTemperatureNote">先看当前环境偏强、偏中性还是偏防守。</p>
               <button type="button" data-page-link="risk">看温度</button>
             </article>
             <article class="metric-cell">
-              <span>02 · 再看异动</span>
+              <span>02 · 个股异动</span>
               <strong id="dashboardFocusMover">涨跌异动加载中</strong>
               <p id="dashboardFocusMoverNote">看当前最明显的涨跌、成交额和风险标签。</p>
               <button type="button" data-page-link="market">看市场与资金</button>
             </article>
             <article class="metric-cell">
-              <span>03 · 找强势</span>
+              <span>03 · 强弱线索</span>
               <strong id="dashboardFocusStrength">强弱扫描加载中</strong>
               <p id="dashboardFocusStrengthNote">优先从强于大盘和行业的股票里找线索。</p>
               <button type="button" data-page-link="strength">看强弱榜</button>
             </article>
             <article class="metric-cell">
-              <span>04 · 看理由</span>
+              <span>04 · 事件催化</span>
               <strong id="dashboardFocusEvent">股票事件加载中</strong>
               <p id="dashboardFocusEventNote">看财报、业绩预期、机构观点和空头压力背后的个股理由。</p>
               <button type="button" data-page-link="stock-events">看股票事件</button>
@@ -2708,6 +2708,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-flowdesk1"></script>
+    <script src="./app.js?v=20260610-homedesk1"></script>
   </body>
 </html>

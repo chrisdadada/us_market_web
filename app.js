@@ -4260,21 +4260,17 @@ const renderDashboardVisualBoard = () => {
   const maxSectorCount = Math.max(...sectorRows.map((item) => item.count), 1);
   const strengthMix = dashboardStrengthMix();
   const maxStrength = Math.max(...strengthMix.map((item) => item[1]), 1);
-  const eventBoards = state.eventOpportunities?.boards || {};
-  const eventRows = Object.values(eventBoards).flatMap((item) => item.rows || []);
   const calendarEvents = state.eventsCalendar?.events || [];
-  const eventTypes = Object.values(eventBoards)
-    .map((item) => [item.title || "事件", item.rows?.length || 0])
-    .filter((item) => item[1])
-    .slice(0, 4);
-  const calendarTypes = calendarEvents.length
+  const scheduledCalendarEvents = calendarEvents.filter((item) => item.type !== "manual");
+  const calendarTypes = scheduledCalendarEvents.length
     ? [
-        ["宏观日历", calendarEvents.filter((item) => item.type === "macro").length],
-        ["财报日历", calendarEvents.filter((item) => item.type === "earnings").length],
+        ["宏观", scheduledCalendarEvents.filter((item) => item.type === "macro").length],
+        ["财报", scheduledCalendarEvents.filter((item) => item.type === "earnings").length],
+        ["高影响", scheduledCalendarEvents.filter((item) => item.impact === "high").length],
       ].filter((item) => item[1])
     : [];
-  const eventDisplayTypes = calendarTypes.length ? calendarTypes : eventTypes;
-  const eventTotal = calendarEvents.length || eventRows.length;
+  const eventDisplayTypes = calendarTypes;
+  const eventTotal = scheduledCalendarEvents.length;
   const maxEvent = Math.max(...eventDisplayTypes.map((item) => item[1]), 1);
 
   board.innerHTML = `
@@ -4327,7 +4323,7 @@ const renderDashboardVisualBoard = () => {
 
     <article class="dashboard-snapshot-card">
       <div class="dashboard-snapshot-head">
-        <span>事件密度</span>
+        <span>财经日历</span>
         <strong>${eventTotal ? `${eventTotal}条` : "--"}</strong>
       </div>
       <div class="dashboard-event-bars">
@@ -4337,9 +4333,9 @@ const renderDashboardVisualBoard = () => {
             <i style="--level:${Math.max(8, (value / maxEvent) * 100).toFixed(1)}%"></i>
             <b>${escapeHtml(String(value))}</b>
           </div>
-        `).join("") : '<em>等待事件数据</em>'}
+        `).join("") : '<em>等待财经日历</em>'}
       </div>
-      <p>财报、指引和机构观点变化会进入股票事件页。</p>
+      <p>只展示宏观和财报时间点；个股理由进入股票事件页。</p>
     </article>
   `;
   renderDashboardIntelligence();
@@ -4354,16 +4350,11 @@ const parseEventDateValue = (value) => {
 
 const dashboardEventRows = () => {
   const events = state.eventsCalendar?.events || [];
-  const manualEvents = events
-    .filter((item) => item.type === "manual")
-    .sort((a, b) => parseEventDateValue(a.date) - parseEventDateValue(b.date))
-    .slice(0, 2);
   const scheduledEvents = events
     .filter((item) => item.type !== "manual")
     .sort((a, b) => parseEventDateValue(a.date) - parseEventDateValue(b.date))
     .slice(0, 4);
-  return [...scheduledEvents.slice(0, 2), ...manualEvents, ...scheduledEvents.slice(2)]
-    .slice(0, 4);
+  return scheduledEvents;
 };
 
 const renderDashboardIntelligence = () => {
