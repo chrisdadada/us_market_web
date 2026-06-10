@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-risk1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-stocks1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1944,14 +1944,42 @@
           <div class="page-heading stocks-heading workspace-header">
             <div>
               <p class="eyebrow">股票库</p>
-              <h1>搜索和筛选美股研究标的</h1>
-              <p class="subtitle">按代码、公司名、板块、流动性和事件线索查找股票；具体判断进入个股详情页。</p>
+              <h1>股票库</h1>
+              <p class="subtitle">按代码、公司名、板块、流动性、事件和财报线索筛选；点击代码进入个股工作台。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
               <strong id="stocksAsOf">--</strong>
             </div>
           </div>
+
+          <section class="stocks-overview" aria-label="股票库摘要">
+            <article>
+              <span>当前结果</span>
+              <strong id="stocksCurrentCount">--</strong>
+              <p id="stocksCurrentNote">按筛选条件显示</p>
+            </article>
+            <article>
+              <span>流动性阈值</span>
+              <strong>$5M</strong>
+              <p>按成交额筛掉高噪音标的</p>
+            </article>
+            <article>
+              <span>事件关联</span>
+              <strong id="stocksEventCount">--</strong>
+              <p>有事件或线索记录</p>
+            </article>
+            <article>
+              <span>财报线索</span>
+              <strong id="stocksQualityCount">--</strong>
+              <p>有财报质量数据</p>
+            </article>
+            <article>
+              <span>排序口径</span>
+              <strong>成交额</strong>
+              <p>默认按活跃度降序</p>
+            </article>
+          </section>
 
           <section class="stocks-toolbar filter-bar" aria-label="股票库筛选">
             <label>
@@ -2003,14 +2031,19 @@
                       <th>板块/行业</th>
                       <th>市值</th>
                       <th>价格</th>
-                      <th>涨跌幅</th>
+                      <th>1D</th>
+                      <th>20D</th>
+                      <th>YTD</th>
+                      <th>相对SPY</th>
                       <th>成交额</th>
                       <th>成交异动 <button class="info-tip" type="button" aria-label="成交异动解释" data-tip="当前成交额相对平时成交额的倍数。1.00x 约等于平时水平，1.17x 约高于平时 17%，4.90x 表示成交额接近平时的 4.9 倍。">?</button></th>
+                      <th>线索</th>
+                      <th>财报/风险</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody id="stocksTableBody">
-                    <tr><td colspan="9">正在加载股票库。</td></tr>
+                    <tr><td colspan="14">正在加载股票库。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -2653,6 +2686,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-risk1"></script>
+    <script src="./app.js?v=20260610-stocks1"></script>
   </body>
 </html>

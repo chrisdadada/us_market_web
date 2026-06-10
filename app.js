@@ -16,7 +16,8 @@ const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260610-expand1";
 const WATCHLIST_STORAGE_KEY = "meigu_strategy_watchlist_v1";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "meigu_strategy_sidebar_collapsed_v1";
 const GLOBAL_SEARCH_LIMIT = 12;
-const STOCK_LIBRARY_DISPLAY_LIMIT = 200;
+const STOCK_LIBRARY_DISPLAY_LIMIT = 240;
+const STOCK_LIQUID_DOLLAR_VOLUME_MIN = 5_000_000;
 
 const state = {
   activeBoard: "ytd",
@@ -197,7 +198,12 @@ const ensurePageData = (page) => {
   if (page === "stock-events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
   if (page === "stock") jobs.push(loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
-  if (page === "stocks") jobs.push(loadGlobalSearchUniverse().then(() => renderStocksPage()));
+  if (page === "stocks") {
+    jobs.push(
+      Promise.all([loadGlobalSearchUniverse(), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities")])
+        .then(() => renderStocksPage()),
+    );
+  }
   return Promise.all(jobs).catch(() => []);
 };
 
@@ -1238,12 +1244,16 @@ const stockCapBucketFromItem = (item) => {
 };
 
 const normalizeStockLibraryItem = (item) => {
-  const symbol = normalizeStockSymbol(item.symbol);
+  const symbol = normalizeStockSymbol(item.symbol || item.ticker);
   const market = findMarketRow(symbol);
   const strength = findStrengthRow(symbol);
   const quality = findQualityRow(symbol);
   const eventRow = findEventRow(symbol);
   const signal = signalStateForSymbol(symbol);
+  const day = getBoardRow("day", symbol) || market;
+  const week = getBoardRow("week", symbol);
+  const month = getBoardRow("month", symbol);
+  const ytd = getBoardRow("ytd", symbol);
   const name = item.name || market?.company || market?.chineseName || strength?.name || quality?.companyName || "";
   const sector = item.sector || market?.sector || strength?.sectorProxy || signal?.theme || "未分类";
   const change = market ? getChange(market) : parseSignedPercent(item.change);
@@ -1266,6 +1276,10 @@ const normalizeStockLibraryItem = (item) => {
     capBucket: stockCapBucketFromItem({ marketCap }),
     dollarVolume,
     volumeRatio,
+    dayChange: day ? getChange(day) : change,
+    weekChange: week ? getChange(week) : null,
+    monthChange: month ? getChange(month) : null,
+    ytdChange: ytd ? getChange(ytd) : null,
     strengthRank: strength?.rank,
     strengthScore: strength?.score,
     strengthLabel: strength?.label,
@@ -1299,7 +1313,7 @@ const filteredStockLibraryRows = () => {
     const matchesQuery = !query || [item.symbol, item.name, item.sector].join(" ").toLowerCase().includes(query);
     const matchesPreset =
       state.stocksPresetFilter === "all" ||
-      (state.stocksPresetFilter === "liquid" && item.dollarVolume > 0) ||
+      (state.stocksPresetFilter === "liquid" && item.dollarVolume >= STOCK_LIQUID_DOLLAR_VOLUME_MIN) ||
       (state.stocksPresetFilter === "watchlist" && item.inWatchlist) ||
       (state.stocksPresetFilter === "event" && item.hasEvent);
     const matchesSector = state.stocksSectorFilter === "all" || item.sector === state.stocksSectorFilter;
@@ -1329,24 +1343,39 @@ const renderStocksPage = () => {
   const allRows = stockLibraryRows();
   renderStocksSectorOptions(allRows);
   const rows = filteredStockLibraryRows().slice(0, STOCK_LIBRARY_DISPLAY_LIMIT);
+  const filteredRows = filteredStockLibraryRows();
+  const liquidCount = filteredRows.filter((item) => item.dollarVolume >= STOCK_LIQUID_DOLLAR_VOLUME_MIN).length;
+  const eventCount = filteredRows.filter((item) => item.hasEvent).length;
+  const qualityCount = filteredRows.filter((item) => item.qualityScore != null || item.qualityLabel).length;
   const label = state.stocksQuery
     ? `搜索：${state.stocksQuery}`
     : state.stocksPresetFilter === "liquid"
-      ? "高流动性"
+      ? "高流动性 · 成交额 $5M+"
       : state.stocksPresetFilter === "watchlist"
         ? "自选"
         : state.stocksPresetFilter === "event"
           ? "事件关联"
-          : "按当前筛选展示";
+          : "按成交额排序";
   setText("#stocksResultLabel", label);
+  setText("#stocksCurrentCount", `${formatNumber(filteredRows.length)}只`);
+  setText("#stocksCurrentNote", rows.length < filteredRows.length ? `显示前 ${rows.length} 只` : "当前筛选全部显示");
+  setText("#stocksEventCount", `${formatNumber(eventCount)}只`);
+  setText("#stocksQualityCount", `${formatNumber(qualityCount)}只`);
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="9">当前筛选下暂无结果。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14">当前筛选下暂无结果。</td></tr>`;
     return;
   }
   body.innerHTML = rows
     .map((item) => {
-      const changeClass = Number.isFinite(item.change) && item.change !== 0 ? (item.change > 0 ? "is-positive" : "is-negative") : "";
+      const changeClass = (value) => Number.isFinite(value) && value !== 0 ? (value > 0 ? "is-positive" : "is-negative") : "";
       const price = Number(item.price);
+      const relativeClass = stockSignedClass(item.relativeStrength);
+      const eventTitle = item.eventLabel || (item.hasEvent ? "事件线索" : "无事件");
+      const eventMeta = item.eventDate || (item.sources.includes("事件") ? "日期待补" : item.sources.slice(0, 2).join(" / ") || "--");
+      const qualityOrRisk = item.qualityLabel || item.strengthLabel || (item.sources.includes("行情") ? "行情观察" : "无评分");
+      const qualityScoreText = item.qualityScore == null
+        ? item.strengthScore == null ? "无评分" : `${item.strengthScore}分`
+        : `${Number(item.qualityScore).toFixed(1)}分`;
       return `
         <tr>
           <td class="stocks-symbol-cell" data-label="代码">
@@ -1357,9 +1386,14 @@ const renderStocksPage = () => {
           <td data-label="板块/行业">${escapeHtml(item.sector || "未分类")}</td>
           <td class="stocks-num-cell" data-label="市值">${escapeHtml(item.marketCap || "--")}</td>
           <td class="stocks-num-cell" data-label="价格">${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</td>
-          <td class="stocks-num-cell ${escapeHtml(changeClass)}" data-label="涨跌幅">${escapeHtml(Number.isFinite(item.change) ? formatSignedPct(item.change) : "--")}</td>
+          <td class="stocks-num-cell ${escapeHtml(changeClass(item.dayChange))}" data-label="1D">${escapeHtml(Number.isFinite(item.dayChange) ? formatSignedPct(item.dayChange) : "--")}</td>
+          <td class="stocks-num-cell ${escapeHtml(changeClass(item.monthChange))}" data-label="20D">${escapeHtml(Number.isFinite(item.monthChange) ? formatSignedPct(item.monthChange) : "--")}</td>
+          <td class="stocks-num-cell ${escapeHtml(changeClass(item.ytdChange))}" data-label="YTD">${escapeHtml(Number.isFinite(item.ytdChange) ? formatSignedPct(item.ytdChange) : "--")}</td>
+          <td class="stocks-num-cell ${escapeHtml(relativeClass)}" data-label="相对SPY">${escapeHtml(item.relativeStrength || "--")}</td>
           <td class="stocks-num-cell" data-label="成交额">${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")}</td>
           <td class="stocks-num-cell" data-label="成交异动">${escapeHtml(item.volumeRatio || "--")}</td>
+          <td class="stocks-signal-cell" data-label="线索"><strong>${escapeHtml(eventTitle)}</strong><span>${escapeHtml(eventMeta)}</span></td>
+          <td class="stocks-signal-cell" data-label="财报/风险"><strong>${escapeHtml(qualityOrRisk)}</strong><span>${escapeHtml(qualityScoreText)}</span></td>
           <td class="stocks-action-cell" data-label="操作"><button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button></td>
         </tr>
       `;
@@ -2502,7 +2536,7 @@ const renderStockHub = (symbol) => {
             <span>趋势信号</span>
             <strong><i class="signal-side-pill is-neutral">无信号</i>当前趋势信号：无信号</strong>
           </div>
-          <em>待接入</em>
+          <em>未触发</em>
         </div>
         <div class="stock-metric-grid">
           ${stockMetric("当前多空", "无信号", "is-neutral")}
@@ -2510,7 +2544,7 @@ const renderStockHub = (symbol) => {
           ${stockMetric("触发价", "--")}
           ${stockMetric("当前表现", "--")}
         </div>
-        <p class="stock-card-note">该标的暂未进入趋势信号状态表，先以行情、成交额、板块和事件数据为主。</p>
+        <p class="stock-card-note">该标的当前没有趋势信号，先以行情、成交额、板块和事件数据为主。</p>
       </article>
     `;
   const signalHistoryCard = events.length
@@ -2604,15 +2638,6 @@ const renderStockHub = (symbol) => {
       </article>
     </section>
 
-    <section class="stock-evidence-tabs segmented-tabs" aria-label="单股证据导航">
-      <button type="button">行情</button>
-      <button type="button">强弱</button>
-      <button type="button">资金</button>
-      <button type="button">事件/财报</button>
-      <button type="button">期权</button>
-      <button type="button">估值</button>
-    </section>
-
     <section class="stock-research-strip" aria-label="单股研究摘要">
       <article>
         <div>
@@ -2672,9 +2697,9 @@ const renderStockHub = (symbol) => {
               `).join("")
             : `
               <article>
-                <span>等待宏观数据</span>
-                <strong>暂未生成</strong>
-                <p>宏观背景数据生成后，会显示这只股票更该关注哪些指标。</p>
+                <span>宏观背景</span>
+                <strong>暂无匹配指标</strong>
+                <p>当前先以价格、成交额、板块和事件线索复盘。</p>
               </article>
             `
         }
@@ -2756,7 +2781,7 @@ const renderStockHub = (symbol) => {
           ${stockMetric("相对 SPY", strength?.relative?.spy || "--", stockSignedClass(strength?.relative?.spy))}
           ${stockMetric("成交额热度", strength?.crowding?.volumeRatio || "--")}
         </div>
-        <p class="stock-card-note">${escapeHtml(strength?.action || "后续接入强弱数据后，会显示它相对大盘、纳指和行业的位置。")}</p>
+        <p class="stock-card-note">${escapeHtml(strength?.action || "暂无强弱扫描记录，先看价格、成交额和同板块对比。")}</p>
       </article>
 
       <article class="stock-hub-card desk-panel">
@@ -2773,7 +2798,7 @@ const renderStockHub = (symbol) => {
           ${stockMetric("目标价空间", targetUpside, Number(quality?.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative")}
           ${stockMetric("覆盖机构", quality?.firms30d == null ? "--" : `${quality.firms30d} 家`)}
         </div>
-        <p class="stock-card-note">${escapeHtml(quality?.userReason || "后续接入财报数据后，会显示业绩、指引、分析师和股价是否同向改善。")}</p>
+        <p class="stock-card-note">${escapeHtml(quality?.userReason || "暂无财报质量记录，先看事件、价格和成交额是否确认。")}</p>
       </article>
 
       ${signalCard}
@@ -2805,7 +2830,7 @@ const renderStockHub = (symbol) => {
               <dt>财报日</dt><dd>${escapeHtml(quality?.latestEarningsDate || "--")}</dd>
               <dt>目标空间</dt><dd>${escapeHtml(targetUpside)}</dd>
             </dl>
-            <p>${escapeHtml(quality?.userReason || "暂无财报摘要，后续接入后展示业绩、指引和分析师变化。")}</p>
+            <p>${escapeHtml(quality?.userReason || "暂无财报摘要，先看行情和事件线索是否给出确认。")}</p>
           </div>
         </div>
       </article>
@@ -2856,7 +2881,7 @@ const renderStockHub = (symbol) => {
                     <small>${escapeHtml(peer.volumeRatio || "--")}</small>
                   </button>
                 `).join("")
-              : "<p class=\"stock-card-note\">暂无同板块对比，后续接入更多标的后会显示谁更强、谁更弱。</p>"
+              : "<p class=\"stock-card-note\">暂无同板块样本，先看个股自身行情和事件线索。</p>"
           }
         </div>
       </article>

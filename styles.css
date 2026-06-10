@@ -700,6 +700,49 @@ body :where(.is-negative) {
   border-bottom: 1px solid var(--line);
 }
 
+.stocks-overview {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: rgba(12, 19, 32, 0.78);
+  margin-top: 14px;
+}
+
+.stocks-overview article {
+  min-width: 0;
+  min-height: 92px;
+  border-right: 1px solid var(--line);
+  padding: 12px 14px;
+}
+
+.stocks-overview article:last-child {
+  border-right: 0;
+}
+
+.stocks-overview span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.stocks-overview strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.stocks-overview p {
+  margin: 8px 0 0;
+  color: #7f8da2;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .stocks-toolbar label {
   display: grid;
   gap: 6px;
@@ -743,7 +786,7 @@ body :where(.is-negative) {
 }
 
 .stocks-table-wrap table {
-  min-width: 940px;
+  min-width: 1380px;
 }
 
 .stocks-table-wrap td {
@@ -800,13 +843,26 @@ body :where(.is-negative) {
 .stocks-terminal-table th:nth-child(7),
 .stocks-terminal-table td:nth-child(7),
 .stocks-terminal-table th:nth-child(8),
-.stocks-terminal-table td:nth-child(8) {
+.stocks-terminal-table td:nth-child(8),
+.stocks-terminal-table th:nth-child(9),
+.stocks-terminal-table td:nth-child(9),
+.stocks-terminal-table th:nth-child(10),
+.stocks-terminal-table td:nth-child(10),
+.stocks-terminal-table th:nth-child(11),
+.stocks-terminal-table td:nth-child(11) {
   width: 92px;
   text-align: right;
 }
 
-.stocks-terminal-table th:nth-child(9),
-.stocks-terminal-table td:nth-child(9) {
+.stocks-terminal-table th:nth-child(12),
+.stocks-terminal-table td:nth-child(12),
+.stocks-terminal-table th:nth-child(13),
+.stocks-terminal-table td:nth-child(13) {
+  width: 132px;
+}
+
+.stocks-terminal-table th:nth-child(14),
+.stocks-terminal-table td:nth-child(14) {
   width: 72px;
   text-align: right;
 }
@@ -13958,9 +14014,13 @@ body {
   margin-top: 10px;
 }
 
+.stock-research-workspace .stock-peer-table-head {
+  grid-template-columns: 70px minmax(180px, 1fr) 82px 92px 92px;
+}
+
 .stock-research-workspace .stock-peer-table button {
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr) 76px;
+  grid-template-columns: 70px minmax(180px, 1fr) 82px 92px 92px;
   align-items: center;
   min-height: 38px;
   border: 0;
@@ -13976,7 +14036,31 @@ body {
   text-align: right;
 }
 
+.stock-research-workspace .stock-peer-table em,
+.stock-research-workspace .stock-peer-table small {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  text-align: right;
+}
+
 @media (max-width: 1100px) {
+  .stocks-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stocks-overview article {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .stocks-overview article:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .stocks-overview article:last-child {
+    border-bottom: 0;
+  }
+
   .stock-research-workspace .stock-identity-strip,
   .stock-research-workspace .stock-macro-panel,
   .stock-research-workspace .stock-research-panel {
@@ -13998,6 +14082,56 @@ body {
   .stock-research-workspace .stock-evidence-grid .metric-cell {
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 760px) {
+  .stock-research-workspace .stock-peer-table-head {
+    display: none;
+  }
+
+  .stock-research-workspace .stock-peer-table button {
+    grid-template-columns: 60px minmax(0, 1fr);
+    gap: 3px 10px;
+    min-height: 0;
+    padding: 9px 0;
+  }
+
+  .stock-research-workspace .stock-peer-table b,
+  .stock-research-workspace .stock-peer-table em,
+  .stock-research-workspace .stock-peer-table small {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .stock-research-workspace .stock-peer-table b::before,
+  .stock-research-workspace .stock-peer-table em::before,
+  .stock-research-workspace .stock-peer-table small::before {
+    margin-right: 6px;
+    color: var(--muted);
+    font-weight: 520;
+  }
+
+  .stock-research-workspace .stock-peer-table b::before {
+    content: "涨跌幅";
+  }
+
+  .stock-research-workspace .stock-peer-table em::before {
+    content: "市值";
+  }
+
+  .stock-research-workspace .stock-peer-table small::before {
+    content: "成交异动";
+  }
+}
+
+@media (max-width: 560px) {
+  .stocks-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .stocks-overview article {
+    border-right: 0;
   }
 }
 
