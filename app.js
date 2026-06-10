@@ -6200,9 +6200,9 @@ const macroMonitorCompositePoints = () => {
 
 const macroMonitorSvg = (points) => {
   if (points.length < 2) return '<div class="macro-chart-empty">等待图表</div>';
-  const width = 1040;
-  const height = 300;
-  const pad = { left: 56, right: 44, top: 26, bottom: 44 };
+  const width = 1100;
+  const height = 360;
+  const pad = { left: 66, right: 62, top: 34, bottom: 62 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const min = 0;
@@ -6212,43 +6212,61 @@ const macroMonitorSvg = (points) => {
   const path = points.map((point, index) => `${index ? "L" : "M"}${xFor(index).toFixed(1)} ${yFor(point.value).toFixed(1)}`).join(" ");
   const area = `${path} L${xFor(points.length - 1).toFixed(1)} ${pad.top + plotH} L${pad.left} ${pad.top + plotH} Z`;
   const last = points.at(-1);
+  const previous = points.at(Math.max(0, points.length - 11));
+  const delta = Number.isFinite(last.value) && Number.isFinite(previous?.value) ? last.value - previous.value : 0;
+  const deltaLabel = Math.abs(delta) < 1 ? "近10点持平" : delta > 0 ? `近10点 +${delta.toFixed(1)}` : `近10点 ${delta.toFixed(1)}`;
+  const stateLabel = last.value >= 65 ? "高压力" : last.value >= 35 ? "中性" : "低压力";
   const lastX = xFor(points.length - 1);
   const lastY = yFor(last.value);
-  const ticks = [100, 65, 35, 0];
+  const ticks = [100, 80, 65, 50, 35, 20, 0];
   const labels = [points[0], points[Math.floor(points.length / 2)], points.at(-1)];
   const zone = (from, to, className) => {
     const yTop = yFor(to);
     const yBottom = yFor(from);
     return `<rect class="${className}" x="${pad.left}" y="${yTop.toFixed(1)}" width="${plotW}" height="${(yBottom - yTop).toFixed(1)}"></rect>`;
   };
-  const zoneLabel = (value, label, className) => `
-    <g class="macro-monitor-zone-label ${className}" transform="translate(${(pad.left + 12).toFixed(1)}, ${(yFor(value) + 4).toFixed(1)})">
+  const zoneLabel = (value, label, range, className) => `
+    <g class="macro-monitor-zone-label ${className}" transform="translate(${(pad.left + plotW - 132).toFixed(1)}, ${(yFor(value) + 4).toFixed(1)})">
       <text>${escapeHtml(label)}</text>
+      <text class="macro-monitor-zone-range" x="0" y="17">${escapeHtml(range)}</text>
     </g>
   `;
+  const thresholdLine = (value, label) => {
+    const y = yFor(value);
+    return `
+      <g class="macro-monitor-threshold">
+        <line x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line>
+        <text x="${pad.left + 10}" y="${(y - 7).toFixed(1)}">${escapeHtml(label)}</text>
+      </g>
+    `;
+  };
   return `
     <svg class="macro-monitor-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="宏观综合压力走势">
       <rect class="macro-monitor-plot" x="${pad.left}" y="${pad.top}" width="${plotW}" height="${plotH}"></rect>
       ${zone(0, 35, "macro-monitor-zone is-low")}
       ${zone(35, 65, "macro-monitor-zone is-mid")}
       ${zone(65, 100, "macro-monitor-zone is-high")}
-      ${zoneLabel(18, "低压力 0-35", "is-low")}
-      ${zoneLabel(50, "中性 35-65", "is-mid")}
-      ${zoneLabel(83, "高压力 65+", "is-high")}
+      ${zoneLabel(18, "低压力", "0-35", "is-low")}
+      ${zoneLabel(50, "中性", "35-65", "is-mid")}
+      ${zoneLabel(83, "高压力", "65+", "is-high")}
+      ${thresholdLine(65, "高压力阈值")}
+      ${thresholdLine(35, "低压力阈值")}
       ${ticks.map((tick) => {
         const y = yFor(tick);
         return `<g class="macro-monitor-gridline"><line x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line><text x="${pad.left - 12}" y="${(y + 4).toFixed(1)}" text-anchor="end">${tick}</text></g>`;
       }).join("")}
+      <text class="macro-monitor-axis-title" x="${pad.left}" y="20">压力指数 0-100</text>
       <path class="macro-monitor-area" d="${area}"></path>
       <path class="macro-monitor-line" d="${path}"></path>
       <line class="macro-monitor-guide" x1="${lastX.toFixed(1)}" x2="${lastX.toFixed(1)}" y1="${pad.top}" y2="${pad.top + plotH}"></line>
       <line class="macro-monitor-current-level" x1="${pad.left}" x2="${width - pad.right}" y1="${lastY.toFixed(1)}" y2="${lastY.toFixed(1)}"></line>
       <circle class="macro-monitor-dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="5.5"></circle>
-      <g class="macro-monitor-callout" transform="translate(${Math.min(width - 148, Math.max(pad.left + 10, lastX - 124)).toFixed(1)}, ${Math.max(pad.top + 6, Math.min(pad.top + plotH - 64, lastY - 58)).toFixed(1)})">
-        <rect width="132" height="58" rx="7"></rect>
-        <text x="12" y="20">当前压力</text>
-        <text class="macro-monitor-callout-value" x="12" y="42">${Math.round(last.value)}</text>
-        <text class="macro-monitor-callout-date" x="54" y="42">${escapeHtml(formatDisplayDate(last.date).slice(0, 10))}</text>
+      <g class="macro-monitor-callout" transform="translate(${Math.min(width - 176, Math.max(pad.left + 10, lastX - 154)).toFixed(1)}, ${Math.max(pad.top + 8, Math.min(pad.top + plotH - 82, lastY - 72)).toFixed(1)})">
+        <rect width="162" height="74" rx="7"></rect>
+        <text x="13" y="19">${escapeHtml(stateLabel)}</text>
+        <text class="macro-monitor-callout-value" x="13" y="45">${Math.round(last.value)}</text>
+        <text class="macro-monitor-callout-date" x="64" y="44">${escapeHtml(formatDisplayDate(last.date).slice(0, 10))}</text>
+        <text class="macro-monitor-callout-delta" x="13" y="62">${escapeHtml(deltaLabel)}</text>
       </g>
       ${labels.map((point, index) => {
         const pointIndex = index === 0 ? 0 : index === 1 ? Math.floor(points.length / 2) : points.length - 1;
@@ -6329,8 +6347,8 @@ const renderMacroMonitor = () => {
   setText(
     "#macroMonitorSummary",
     points.length
-      ? `当前处于${band.label}，综合压力由 VIX、10Y、美元、原油和 CPI 近似合成。`
-      : "读取宏观历史数据后，会把利率、美元、油价、通胀和波动率合成一张观察图。",
+      ? `压力指数处于${band.label}，由 VIX、10Y、美元、原油和 CPI 近似合成；数值越高代表宏观扰动越强。`
+      : "读取宏观历史数据后，会把利率、美元、油价、通胀和波动率合成一张压力图。",
   );
   chart.innerHTML = macroMonitorSvg(points);
 
@@ -6340,10 +6358,11 @@ const renderMacroMonitor = () => {
       ? factorDrivers.map((indicator) => {
           const score = indicator.factorScore;
           return `
-            <div class="${signalClass(indicator.status || indicator.riskLevel)}">
-              <b>${escapeHtml(indicator.name || "宏观因子")}</b>
+            <div class="macro-factor-row ${signalClass(indicator.status || indicator.riskLevel)}">
+              <b>${escapeHtml(indicator.name || "宏观因子")}<span>${escapeHtml(indicator.level || indicator.riskLabel || "--")}</span></b>
               <i><em style="width: ${score}%"></em></i>
-              <strong>${escapeHtml(`${score}`)} · ${escapeHtml(indicator.level || indicator.riskLabel || "--")}</strong>
+              <strong>${escapeHtml(`${score}`)}</strong>
+              <small>${escapeHtml(indicator.value || "--")} / ${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</small>
             </div>
           `;
         }).join("")
@@ -6353,7 +6372,7 @@ const renderMacroMonitor = () => {
   const impact = document.querySelector("#macroAssetImpact");
   if (impact) {
     impact.innerHTML = macroAssetImpactRows(macroRows, Number(lastScore)).map(([asset, stateLabel, note, stateClass]) => `
-      <div class="${escapeHtml(stateClass)}">
+      <div class="macro-asset-row ${escapeHtml(stateClass)}">
         <b>${escapeHtml(asset)}</b>
         <strong>${escapeHtml(stateLabel)}</strong>
         <em>${escapeHtml(note)}</em>

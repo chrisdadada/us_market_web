@@ -15810,6 +15810,325 @@ body :where(.market-workspace .market-row.is-selected, .ranking-panel .market-ro
   background: rgba(53, 167, 255, 0.1) !important;
 }
 
+/* Risk chart redesign: denser terminal-style reading, clearer zones and table-like factor rows. */
+body .page-view[data-view="risk"] .macro-monitor-board {
+  border-radius: 4px;
+  background: rgba(8, 13, 23, 0.92);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-head {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 620px);
+  gap: 16px;
+  padding: 14px 16px;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-head h2 {
+  color: #e7edf7;
+  font-size: 18px;
+  font-weight: 560;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-head p {
+  color: #8998ad;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-layout {
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+}
+
+body .page-view[data-view="risk"] .macro-composite-card {
+  grid-template-columns: 228px minmax(0, 1fr);
+  border-bottom-color: rgba(128, 151, 183, 0.18);
+}
+
+body .page-view[data-view="risk"] .macro-composite-copy {
+  gap: 9px;
+  padding: 18px;
+}
+
+body .page-view[data-view="risk"] .macro-composite-copy strong {
+  color: #eef4ff;
+  font-size: 44px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-composite-copy p {
+  color: #8d9bb0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-legend {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+body .page-view[data-view="risk"] .macro-composite-chart {
+  min-height: 322px;
+  height: 322px;
+  border-left: 1px solid rgba(128, 151, 183, 0.14);
+  background: #07101d;
+  padding: 8px 10px 4px;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-svg {
+  min-height: 310px;
+  height: 310px;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-plot {
+  fill: #070d18;
+  stroke: rgba(128, 151, 183, 0.22);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone {
+  opacity: 1;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone.is-low {
+  fill: rgba(36, 180, 126, 0.07);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone.is-mid {
+  fill: rgba(255, 203, 102, 0.075);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone.is-high {
+  fill: rgba(255, 92, 92, 0.085);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone-label text {
+  fill: #d8e3f2;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-zone-label .macro-monitor-zone-range {
+  fill: #71839b;
+  font-size: 11px;
+  font-weight: 520;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-axis-title {
+  fill: #8fa0b8;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-threshold line {
+  stroke: rgba(225, 233, 245, 0.3);
+  stroke-dasharray: 5 5;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-threshold text {
+  fill: #8fa0b8;
+  font-size: 11px;
+  font-weight: 520;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-gridline line {
+  stroke: rgba(128, 151, 183, 0.12);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-gridline text,
+body .page-view[data-view="risk"] .macro-monitor-x {
+  fill: #8392a8;
+  font-weight: 520;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-area {
+  fill: rgba(83, 167, 255, 0.11);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-line {
+  stroke: #7fc3ff;
+  stroke-width: 2.6;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-dot {
+  fill: #7fc3ff;
+  stroke: #07101d;
+  stroke-width: 4;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-callout rect {
+  fill: rgba(11, 18, 32, 0.96);
+  stroke: rgba(142, 165, 195, 0.3);
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.24));
+}
+
+body .page-view[data-view="risk"] .macro-monitor-callout text {
+  fill: #9fb0c6;
+  font-size: 11px;
+  font-weight: 520;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-callout .macro-monitor-callout-value {
+  fill: #eef4ff;
+  font-size: 24px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-callout .macro-monitor-callout-date,
+body .page-view[data-view="risk"] .macro-monitor-callout .macro-monitor-callout-delta {
+  fill: #8fa0b8;
+  font-size: 11px;
+}
+
+body .page-view[data-view="risk"] .macro-factor-board,
+body .page-view[data-view="risk"] .macro-asset-board {
+  padding: 14px;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars,
+body .page-view[data-view="risk"] .macro-asset-list {
+  gap: 0;
+  margin-top: 10px;
+  border: 1px solid rgba(128, 151, 183, 0.16);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
+  display: grid;
+  grid-template-columns: 132px minmax(92px, 1fr) 42px 138px;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.12);
+  background: rgba(7, 12, 21, 0.46);
+  padding: 8px 10px;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row:last-child,
+body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row:last-child {
+  border-bottom: 0;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars b {
+  display: grid;
+  gap: 3px;
+  color: #dce7f5;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars b span {
+  color: #7f8da2;
+  font-size: 11px;
+  font-weight: 520;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars i {
+  height: 6px;
+  background: rgba(128, 151, 183, 0.16);
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars strong {
+  color: #e6eef9;
+  font-size: 13px;
+  font-weight: 620;
+  text-align: right;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars small {
+  color: #8392a8;
+  font-size: 11px;
+  font-weight: 520;
+  line-height: 1.3;
+  text-align: right;
+}
+
+body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 88px minmax(0, 1.25fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.12);
+  border-radius: 0;
+  background: rgba(7, 12, 21, 0.46);
+  padding: 8px 10px;
+}
+
+body .page-view[data-view="risk"] .macro-asset-list strong {
+  min-height: 22px;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+body .page-view[data-view="risk"] .macro-asset-list em {
+  grid-column: auto;
+  color: #8392a8;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+body .page-view[data-view="risk"] .macro-series-panel {
+  border-radius: 4px;
+}
+
+body .page-view[data-view="risk"] .macro-series-card {
+  grid-template-columns: 210px minmax(0, 1fr);
+  border-radius: 4px;
+}
+
+body .page-view[data-view="risk"] .macro-series-info {
+  padding: 13px 14px;
+}
+
+body .page-view[data-view="risk"] .macro-series-info h3 {
+  font-size: 16px;
+  font-weight: 560;
+}
+
+body .page-view[data-view="risk"] .macro-series-reading strong {
+  font-size: 24px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-series-verdict strong {
+  font-size: 14px;
+  font-weight: 560;
+}
+
+body .page-view[data-view="risk"] .macro-series-visual {
+  padding: 12px;
+}
+
+body .page-view[data-view="risk"] .macro-series-chart {
+  height: 292px;
+}
+
+body .page-view[data-view="risk"] .macro-series-chart-head {
+  min-height: 28px;
+}
+
+body .page-view[data-view="risk"] .macro-series-chart-head p {
+  font-weight: 520;
+}
+
+body .page-view[data-view="risk"] .macro-series-current-dot {
+  fill: #7fc3ff;
+  stroke: #07101d;
+  stroke-width: 4;
+}
+
+body .page-view[data-view="risk"] .macro-series-current-guide {
+  stroke: rgba(143, 160, 184, 0.42);
+  stroke-dasharray: 4 4;
+}
+
+body .page-view[data-view="risk"] .macro-series-foot {
+  color: #7f8da2;
+  font-size: 11px;
+}
+
 @media (max-width: 760px) {
   body .stock-research-workspace .stock-terminal-grid {
     grid-template-columns: 1fr;
@@ -15831,5 +16150,29 @@ body :where(.market-workspace .market-row.is-selected, .ranking-panel .market-ro
 
   body .stock-research-workspace .stock-fact-matrix .stock-risk-facts {
     grid-column: auto;
+  }
+
+  body .page-view[data-view="risk"] .macro-monitor-head,
+  body .page-view[data-view="risk"] .macro-monitor-layout,
+  body .page-view[data-view="risk"] .macro-composite-card {
+    grid-template-columns: 1fr;
+  }
+
+  body .page-view[data-view="risk"] .macro-composite-chart {
+    border-left: 0;
+  }
+
+  body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row,
+  body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row {
+    grid-template-columns: 1fr;
+  }
+
+  body .page-view[data-view="risk"] .macro-factor-bars small,
+  body .page-view[data-view="risk"] .macro-factor-bars strong {
+    text-align: left;
+  }
+
+  body .page-view[data-view="risk"] .macro-series-card {
+    grid-template-columns: 1fr;
   }
 }
