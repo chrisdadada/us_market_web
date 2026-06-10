@@ -243,6 +243,10 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertGreaterEqual(len(payload["rows"]), 1)
         self.assertEqual(payload["rows"][0]["symbol"], "MU")
 
+        status, payload = client.get("/api/product/symbols?limit=3000")
+        self.assertEqual(status, 200, payload)
+        self.assertGreater(len(payload["rows"]), 100)
+
         status, payload = client.get("/api/product/symbols/MU")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["profile"]["symbol"], "MU")

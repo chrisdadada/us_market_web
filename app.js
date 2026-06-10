@@ -13,10 +13,12 @@ const VALIDATION_CENTER_URL = "./data/validation-center.json?v=20260610-expand1"
 const INDEX_VALUATION_URL = "./data/index-valuation.json?v=20260610-expand1";
 const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260610-expand1";
 const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260610-expand1";
+const PRODUCT_API_BASE = "/api/product";
 const WATCHLIST_STORAGE_KEY = "meigu_strategy_watchlist_v1";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "meigu_strategy_sidebar_collapsed_v1";
 const GLOBAL_SEARCH_LIMIT = 12;
-const STOCK_LIBRARY_DISPLAY_LIMIT = 240;
+const PRODUCT_SYMBOL_LIMIT = 3000;
+const STOCK_LIBRARY_DISPLAY_LIMIT = 360;
 const STOCK_LIQUID_DOLLAR_VOLUME_MIN = 5_000_000;
 
 const state = {
@@ -81,6 +83,9 @@ const state = {
   globalSearchQuery: "",
   globalSearchIndex: -1,
   searchUniverse: null,
+  productMeta: null,
+  productSymbols: null,
+  productStockDetails: {},
   stocksQuery: "",
   stocksPresetFilter: "all",
   stocksSectorFilter: "all",
@@ -111,6 +116,16 @@ const neutralCopy = (value) =>
     .replace(/更适合控制/g, "更偏向控制")
     .replace(/只看/g, "仅看");
 
+const compactText = (value, maxLength = 140) => {
+  const text = String(value || "")
+    .replace(/\*\*/g, "")
+    .replace(/[`#>-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return "";
+  return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
+};
+
 const apiFetch = async (url, options = {}) => {
   const response = await fetch(url, {
     credentials: "same-origin",
@@ -134,6 +149,145 @@ const fetchOptionalJson = async (url) => {
   const response = await fetch(url).catch(() => null);
   if (!response || !response.ok) return null;
   return response.json().catch(() => null);
+};
+
+const productApiJson = (path) => fetchOptionalJson(`${PRODUCT_API_BASE}${path}`);
+
+const normalizeProductSymbolRow = (row = {}) => {
+  const symbol = normalizeStockSymbol(row.symbol);
+  const marketCap = row.marketCap || row.marketCapLabel || "";
+  return {
+    ...row,
+    symbol,
+    ticker: symbol,
+    name: row.company || row.chineseName || row.name || "",
+    company: row.company || row.name || "",
+    chineseName: row.chineseName || "",
+    sector: sectorDisplayName(row.sector),
+    marketCap,
+    marketCapValue: row.marketCapValue,
+    price: row.price,
+    dollarVolume: Number(row.dollarVolume || 0),
+    volumeRatio: row.volumeRatio || "",
+    sources: [...new Set([...(row.sources || []), "产品库"])],
+  };
+};
+
+const normalizeProductMarketRow = (row = {}) => ({
+  ...row,
+  symbol: normalizeStockSymbol(row.symbol),
+  company: row.company || row.name || "",
+  chineseName: row.chineseName || "",
+  sector: sectorDisplayName(row.sector),
+  change: Number(row.changePct),
+  changeYtd: Number(row.changePct),
+  price: row.price,
+  volume: row.volume,
+  dollarVolume: Number(row.dollarVolume || 0),
+  volumeRatio: row.volumeRatio || "",
+  marketCap: row.marketCap || "",
+  risk: row.risk || "按行情和成交额复盘",
+  actionNote: row.actionNote || "",
+});
+
+const normalizeProductStrengthRow = (row = {}) => ({
+  ...row,
+  symbol: normalizeStockSymbol(row.symbol),
+  name: row.company || row.name || "",
+  sectorProxy: sectorDisplayName(row.sector),
+  periods: row.periods || {},
+  relative: row.relative || {},
+  crowding: {
+    volumeRatio: row.volumeRatio || row.liquidity || "",
+  },
+  liquidity: row.liquidity || row.marketCap || "",
+});
+
+const normalizeProductQualityRow = (row = {}) => ({
+  ...row,
+  ticker: normalizeStockSymbol(row.symbol || row.ticker),
+  symbol: normalizeStockSymbol(row.symbol || row.ticker),
+  companyName: row.companyName || row.company || "",
+  avgPriceTargetUpsidePct: row.priceTargetUpsidePct ?? row.avgPriceTargetUpsidePct,
+});
+
+const normalizeProductEventRow = (row = {}) => ({
+  ...row,
+  ticker: normalizeStockSymbol(row.symbol || row.ticker),
+  symbol: normalizeStockSymbol(row.symbol || row.ticker),
+  companyName: row.companyName || row.company || "",
+});
+
+const loadProductMeta = () => {
+  if (state.productMeta) return Promise.resolve(state.productMeta);
+  if (state.loading.productMeta) return state.loading.productMeta;
+  state.loading.productMeta = productApiJson("/health")
+    .then((payload) => {
+      state.productMeta = payload || null;
+      return state.productMeta;
+    })
+    .catch((error) => {
+      console.warn("Product metadata unavailable", error);
+      state.productMeta = null;
+      return null;
+    })
+    .finally(() => {
+      delete state.loading.productMeta;
+    });
+  return state.loading.productMeta;
+};
+
+const loadProductSymbols = () => {
+  if (state.productSymbols) return Promise.resolve(state.productSymbols);
+  if (state.loading.productSymbols) return state.loading.productSymbols;
+  state.loading.productSymbols = productApiJson(`/symbols?limit=${PRODUCT_SYMBOL_LIMIT}`)
+    .then((payload) => {
+      const rows = Array.isArray(payload?.rows) ? payload.rows.map(normalizeProductSymbolRow) : null;
+      state.productSymbols = rows;
+      if (rows?.length) {
+        state.searchUniverse = rows;
+      }
+      return rows || [];
+    })
+    .catch((error) => {
+      console.warn("Product symbols unavailable", error);
+      state.productSymbols = null;
+      return [];
+    })
+    .finally(() => {
+      delete state.loading.productSymbols;
+    });
+  return state.loading.productSymbols;
+};
+
+const loadProductStockDetail = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  if (!target) return Promise.resolve(null);
+  if (state.productStockDetails[target]) return Promise.resolve(state.productStockDetails[target]);
+  const key = `productStock:${target}`;
+  if (state.loading[key]) return state.loading[key];
+  state.loading[key] = productApiJson(`/symbols/${encodeURIComponent(target)}`)
+    .then((payload) => {
+      if (!payload?.profile) return null;
+      const detail = {
+        profile: normalizeProductSymbolRow(payload.profile),
+        marketRows: (payload.marketRows || []).map(normalizeProductMarketRow),
+        peers: (payload.peers || []).map(normalizeProductSymbolRow),
+        events: (payload.events || []).map(normalizeProductEventRow),
+        earnings: (payload.earnings || []).map(normalizeProductQualityRow),
+        strength: payload.strength ? normalizeProductStrengthRow(payload.strength) : null,
+      };
+      state.productStockDetails[target] = detail;
+      return detail;
+    })
+    .catch((error) => {
+      console.warn(`Product detail unavailable: ${target}`, error);
+      return null;
+    })
+    .finally(() => {
+      delete state.loading[key];
+    });
+  return state.loading[key];
 };
 
 const lazyDatasets = {
@@ -197,10 +351,10 @@ const ensurePageData = (page) => {
   if (page === "events") jobs.push(loadLazyDataset("eventsCalendar"));
   if (page === "stock-events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
-  if (page === "stock") jobs.push(loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
+  if (page === "stock") jobs.push(loadProductStockDetail(state.selectedStockSymbol), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities"));
   if (page === "stocks") {
     jobs.push(
-      Promise.all([loadGlobalSearchUniverse(), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities")])
+      Promise.all([loadProductMeta(), loadGlobalSearchUniverse(), loadLazyDataset("earningsQuality"), loadLazyDataset("eventOpportunities")])
         .then(() => renderStocksPage()),
     );
   }
@@ -411,6 +565,14 @@ const parseRatio = (value) => {
   return Number.isFinite(number) ? number : 0;
 };
 
+const formatVolumeRatioLabel = (value) => {
+  if (value == null || value === "") return "--";
+  const number = parseRatio(value);
+  if (!Number.isFinite(number) || number <= 0) return String(value);
+  const text = number >= 10 ? number.toFixed(1) : number.toFixed(2);
+  return `${text.replace(/\.?0+$/, "")}x`;
+};
+
 const parseMoneyLabel = (value) => {
   const text = String(value || "").trim().replace("$", "").replace(/,/g, "");
   if (!text || text === "--") return 0;
@@ -421,8 +583,24 @@ const parseMoneyLabel = (value) => {
   return Number.isFinite(number) ? number * multiplier : 0;
 };
 
-const isKnownSector = (sector) => {
+const normalizeSectorName = (sector) => {
   const value = String(sector || "").trim();
+  if (!value || value === "未分类" || value === "板块待补" || value === "--") return "";
+  if (/半导体|科技|软件|芯片|AI|云|网络安全|XLK|SMH/i.test(value)) return "科技";
+  if (/金融|银行|保险|支付|XLF/i.test(value)) return "金融";
+  if (/医疗|医药|生物|制药|XLV|IBB/i.test(value)) return "医疗";
+  if (/能源|油气|XLE/i.test(value)) return "能源";
+  if (/消费|零售|电商|汽车|XLY|XLP/i.test(value)) return "消费";
+  if (/通信|互联网|媒体|XLC/i.test(value)) return "通信";
+  if (/工业|制造|航空|国防|XLI/i.test(value)) return "工业";
+  if (/材料|金属|化工|XLB/i.test(value)) return "材料";
+  if (/地产|房托|XLRE/i.test(value)) return "地产";
+  if (/公用|电力|水务|XLU/i.test(value)) return "公用事业";
+  return value;
+};
+
+const isKnownSector = (sector) => {
+  const value = normalizeSectorName(sector);
   return Boolean(value && value !== "未分类" && value !== "板块待补" && value !== "--");
 };
 
@@ -431,7 +609,7 @@ const knownSectorRows = (rows = []) => {
   return filtered.length >= 5 ? filtered : rows;
 };
 
-const sectorDisplayName = (sector) => (isKnownSector(sector) ? sector : "板块待补");
+const sectorDisplayName = (sector) => (isKnownSector(sector) ? normalizeSectorName(sector) : "板块待补");
 
 const formatChangeValue = (row) => {
   if (!row) return "--";
@@ -1010,16 +1188,26 @@ const findEventRow = (symbol) => {
   return orderedRows.find((row) => normalizeStockSymbol(row.ticker || row.symbol) === target) || null;
 };
 
+const findProductProfile = (symbol) => {
+  const target = normalizeStockSymbol(symbol);
+  return (
+    state.productStockDetails[target]?.profile ||
+    (state.productSymbols || []).find((row) => normalizeStockSymbol(row.symbol) === target) ||
+    null
+  );
+};
+
 const stockDisplayName = (symbol) => {
+  const product = findProductProfile(symbol);
   const market = findMarketRow(symbol);
   const strength = findStrengthRow(symbol);
   const quality = findQualityRow(symbol);
   const event = findEventRow(symbol);
   return {
     symbol: normalizeStockSymbol(symbol),
-    chineseName: market?.chineseName || "",
-    company: market?.company || quality?.companyName || event?.companyName || quality?.name || strength?.name || "",
-    sector: sectorDisplayName(market?.sector || strength?.sectorProxy || signalStateForSymbol(symbol)?.theme),
+    chineseName: product?.chineseName || market?.chineseName || "",
+    company: product?.company || market?.company || quality?.companyName || event?.companyName || quality?.name || strength?.name || "",
+    sector: sectorDisplayName(product?.sector || market?.sector || strength?.sectorProxy || signalStateForSymbol(symbol)?.theme),
   };
 };
 
@@ -1070,8 +1258,16 @@ const extractSearchRows = (value, rows = []) => {
 const loadGlobalSearchUniverse = () => {
   if (state.searchUniverse) return Promise.resolve(state.searchUniverse);
   if (state.loading.searchUniverse) return state.loading.searchUniverse;
-  state.loading.searchUniverse = fetchOptionalJson(SITE_DATA_INDEX_URL)
+  state.loading.searchUniverse = loadProductSymbols()
+    .then((productRows) => {
+      if (productRows?.length) return productRows;
+      return fetchOptionalJson(SITE_DATA_INDEX_URL);
+    })
     .then((payload) => {
+      if (Array.isArray(payload)) {
+        state.searchUniverse = payload;
+        return state.searchUniverse;
+      }
       const rows = extractSearchRows(payload?.payloads || payload || []);
       const map = new Map();
       rows.forEach((row) => mergeSearchRow(map, row, "覆盖池"));
@@ -1090,6 +1286,7 @@ const loadGlobalSearchUniverse = () => {
 
 const buildGlobalSearchItems = () => {
   const map = new Map();
+  (state.productSymbols || []).forEach((row) => mergeSearchRow(map, row, "产品库"));
   (state.searchUniverse || []).forEach((row) => mergeSearchRow(map, row, "覆盖池"));
   allMarketRows().forEach((row) => mergeSearchRow(map, row, "行情"));
   (state.strength?.rows || []).forEach((row) => mergeSearchRow(map, row, "强弱"));
@@ -1263,6 +1460,7 @@ const stockCapBucketFromItem = (item) => {
 
 const normalizeStockLibraryItem = (item) => {
   const symbol = normalizeStockSymbol(item.symbol || item.ticker);
+  const product = findProductProfile(symbol) || item;
   const market = findMarketRow(symbol);
   const strength = findStrengthRow(symbol);
   const quality = findQualityRow(symbol);
@@ -1272,13 +1470,14 @@ const normalizeStockLibraryItem = (item) => {
   const week = getBoardRow("week", symbol);
   const month = getBoardRow("month", symbol);
   const ytd = getBoardRow("ytd", symbol);
-  const name = item.name || market?.company || market?.chineseName || strength?.name || quality?.companyName || "";
-  const sector = sectorDisplayName(item.sector || market?.sector || strength?.sectorProxy || signal?.theme);
+  const name = product?.name || product?.company || item.name || market?.company || market?.chineseName || strength?.name || quality?.companyName || "";
+  const sector = sectorDisplayName(product?.sector || item.sector || market?.sector || strength?.sectorProxy || signal?.theme);
   const change = market ? getChange(market) : parseSignedPercent(item.change);
-  const marketCap = item.marketCap || market?.marketCap || "--";
-  const dollarVolume = Number(item.volume || market?.dollarVolume || market?.volumeDollar || quality?.dollarVolume20d || 0);
-  const volumeRatio = market?.volumeRatio || strength?.crowding?.volumeRatio || "";
+  const marketCap = product?.marketCap || item.marketCap || market?.marketCap || "--";
+  const dollarVolume = Number(product?.dollarVolume || item.dollarVolume || item.volume || market?.dollarVolume || market?.volumeDollar || quality?.dollarVolume20d || 0);
+  const volumeRatio = product?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio || "";
   const sources = new Set([...(item.sources || [])]);
+  if (product) sources.add("产品库");
   if (market) sources.add("行情");
   if (strength) sources.add("强弱");
   if (quality) sources.add("财报");
@@ -1289,7 +1488,7 @@ const normalizeStockLibraryItem = (item) => {
     name,
     sector,
     change,
-    price: market?.price ?? strength?.price ?? quality?.close ?? eventRow?.close,
+    price: product?.price ?? market?.price ?? strength?.price ?? quality?.close ?? eventRow?.close,
     marketCap,
     capBucket: stockCapBucketFromItem({ marketCap }),
     dollarVolume,
@@ -1314,6 +1513,7 @@ const normalizeStockLibraryItem = (item) => {
 
 const stockLibraryRows = () => {
   const map = new Map();
+  (state.productSymbols || []).forEach((row) => mergeSearchRow(map, row, "产品库"));
   (state.searchUniverse || []).forEach((row) => mergeSearchRow(map, row, "覆盖池"));
   buildGlobalSearchItems().forEach((row) => mergeSearchRow(map, row, row.sources?.[0] || "搜索"));
   return [...map.values()]
@@ -1409,7 +1609,7 @@ const renderStocksPage = () => {
           <td class="stocks-num-cell ${escapeHtml(changeClass(item.ytdChange))}" data-label="YTD">${escapeHtml(Number.isFinite(item.ytdChange) ? formatSignedPct(item.ytdChange) : "--")}</td>
           <td class="stocks-num-cell ${escapeHtml(relativeClass)}" data-label="相对SPY">${escapeHtml(item.relativeStrength || "--")}</td>
           <td class="stocks-num-cell" data-label="成交额">${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")}</td>
-          <td class="stocks-num-cell" data-label="成交异动">${escapeHtml(item.volumeRatio || "--")}</td>
+          <td class="stocks-num-cell" data-label="成交异动">${escapeHtml(formatVolumeRatioLabel(item.volumeRatio))}</td>
           <td class="stocks-signal-cell" data-label="线索"><strong>${escapeHtml(eventTitle)}</strong><span>${escapeHtml(eventMeta)}</span></td>
           <td class="stocks-signal-cell" data-label="财报/风险"><strong>${escapeHtml(qualityOrRisk)}</strong><span>${escapeHtml(qualityScoreText)}</span></td>
           <td class="stocks-action-cell" data-label="操作"><button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button></td>
@@ -2483,25 +2683,52 @@ const renderStockHub = (symbol) => {
     return;
   }
 
-  const market = findMarketRow(target);
-  const ytd = getBoardRow("ytd", target);
-  const day = getBoardRow("day", target);
-  const week = getBoardRow("week", target);
-  const month = getBoardRow("month", target);
-  const volume = getBoardRow("volume", target);
-  const strength = findStrengthRow(target);
-  const quality = findQualityRow(target);
-  const eventRow = findEventRow(target);
+  const productDetail = state.productStockDetails[target] || null;
+  const productMarketRows = productDetail?.marketRows || [];
+  const productBoardRow = (board) => productMarketRows.find((row) => row.board === board) || null;
+  const ytd = productBoardRow("ytd") || getBoardRow("ytd", target);
+  const day = productBoardRow("day") || getBoardRow("day", target);
+  const week = productBoardRow("week") || getBoardRow("week", target);
+  const month = productBoardRow("month") || getBoardRow("month", target);
+  const volume = productBoardRow("volume") || getBoardRow("volume", target);
+  const market = day || findMarketRow(target) || ytd || month || volume || null;
+  const strength = productDetail?.strength || findStrengthRow(target);
+  const quality = productDetail?.earnings?.[0] || findQualityRow(target);
+  const eventRow = productDetail?.events?.[0] || findEventRow(target);
   const signal = signalStateForSymbol(target);
   const events = signalEventsForSymbol(target);
   const profile = stockDisplayName(target);
-  const currentPrice = market?.price || strength?.price || quality?.close || eventRow?.close || signal?.livePrice || "--";
+  const currentPrice = productDetail?.profile?.price || market?.price || strength?.price || quality?.close || eventRow?.close || signal?.livePrice || "--";
   const moveReasons = market ? inferMoveReason(market, volume) : [];
   const riskBucket = market ? getRiskBucket(market) : null;
   const riskScore = market ? getRiskScore(market) : 0;
   const targetUpside = quality?.avgPriceTargetUpsidePct == null ? "--" : formatSignedPct(quality.avgPriceTargetUpsidePct);
   const signalPerformance = signal?.marketChangePct || signal?.directionalChangePct || "--";
-  const peers = stockPeerRows(target, 6);
+  const productPeers = (productDetail?.peers || []).map((peer) => {
+    const marketPeer = findMarketRow(peer.symbol) || getBoardRow("day", peer.symbol) || getBoardRow("ytd", peer.symbol) || {};
+    return {
+      ...marketPeer,
+      ...peer,
+      company: peer.company || marketPeer.company,
+      chineseName: peer.chineseName || marketPeer.chineseName,
+      sector: peer.sector || marketPeer.sector,
+      marketCap: peer.marketCap || marketPeer.marketCap,
+      change: Number.isFinite(Number(marketPeer.change)) ? Number(marketPeer.change) : marketPeer.change,
+      changeYtd: Number.isFinite(Number(marketPeer.changeYtd)) ? Number(marketPeer.changeYtd) : marketPeer.changeYtd,
+      volumeRatio: peer.volumeRatio || marketPeer.volumeRatio,
+      volume: peer.volume || marketPeer.volume,
+    };
+  });
+  const peers = uniqueBySymbol([...stockPeerRows(target, 6), ...productPeers])
+    .filter((row) => normalizeStockSymbol(row.symbol) !== target)
+    .sort((a, b) => {
+      const capDiff = (marketCapNumber(b.marketCap) || 0) - (marketCapNumber(a.marketCap) || 0);
+      if (capDiff) return capDiff;
+      const changeA = Number.isFinite(getChange(a)) ? getChange(a) : -Infinity;
+      const changeB = Number.isFinite(getChange(b)) ? getChange(b) : -Infinity;
+      return changeB - changeA;
+    })
+    .slice(0, 8);
   const strongestPeer = peers.slice().sort((a, b) => getChange(b) - getChange(a))[0];
   const sectorKnown = isKnownSector(profile.sector);
   const sectorRankRows = sectorKnown
@@ -2510,8 +2737,8 @@ const renderStockHub = (symbol) => {
     : [];
   const sectorRank = sectorRankRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
   const sectorRankText = sectorRank > 0 ? `${sectorRank}/${sectorRankRows.length}` : "--";
-  const volumeRatioText = volume?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio || "--";
-  const marketCapText = market?.marketCap || quality?.marketCap || "--";
+  const volumeRatioText = formatVolumeRatioLabel(volume?.volumeRatio || market?.volumeRatio || strength?.crowding?.volumeRatio);
+  const marketCapText = productDetail?.profile?.marketCap || market?.marketCap || quality?.marketCap || "--";
   const sectorFlow = stockSectorFlowSummary(sectorRankRows);
   const volumeSummary = volumeRatioSummary(volumeRatioText, market ? getChange(market) : getChange(day || {}));
   const sectorChanges = sectorRankRows.map(getChange).filter(Number.isFinite);
@@ -2547,6 +2774,7 @@ const renderStockHub = (symbol) => {
   const primarySource = stockPrimarySource({ market, strength, quality, eventRow, signal });
   const reviewPlan = stockReviewPlan({ eventRow, quality, strength, signal, market });
   const dataDates = [
+    productDetail?.profile?.updatedAt,
     state.eventOpportunities?.asOf,
     state.earningsQuality?.asOf,
     state.marketTemperature?.asOf,
@@ -2756,10 +2984,10 @@ const renderStockHub = (symbol) => {
                   return `
                     <button class="stock-terminal-row ${isTarget ? "is-current" : ""}" type="button" data-stock-open="${escapeHtml(peer.symbol)}">
                       <strong>${escapeHtml(peer.symbol)}</strong>
-                      <span>${escapeHtml(peer.chineseName || peer.company || peer.name || peer.symbol)}</span>
+                      <span>${escapeHtml(peer.company || peer.name || peer.chineseName || peer.symbol)}</span>
                       <b class="${change >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatChangeValue(peer))}</b>
                       <em>${escapeHtml(peer.marketCap || "--")}</em>
-                      <small>${escapeHtml(peer.volumeRatio || peer.volume || "--")}</small>
+                      <small>${escapeHtml(formatVolumeRatioLabel(peer.volumeRatio) || peer.volume || "--")}</small>
                     </button>
                   `;
                 }).join("")
@@ -2782,7 +3010,7 @@ const renderStockHub = (symbol) => {
               <dt>类型</dt><dd>${escapeHtml(eventRow ? displayEventLabel(eventRow) : "--")}</dd>
               <dt>日期</dt><dd>${escapeHtml(eventRow?.eventDate || "--")}</dd>
               <dt>20日表现</dt><dd class="${Number(eventRow?.return20dPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct))}</dd>
-              <dt>理由</dt><dd>${escapeHtml(eventRow?.reason || "暂无明确事件")}</dd>
+              <dt>理由</dt><dd>${escapeHtml(compactText(eventRow?.reason, 120) || "暂无明确事件")}</dd>
             </dl>
           </section>
           <section>
@@ -2791,13 +3019,13 @@ const renderStockHub = (symbol) => {
               <dt>口径</dt><dd>${escapeHtml(quality?.userAngle || "--")}</dd>
               <dt>财报日</dt><dd>${escapeHtml(quality?.latestEarningsDate || "--")}</dd>
               <dt>目标空间</dt><dd class="${Number(quality?.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(targetUpside)}</dd>
-              <dt>理由</dt><dd>${escapeHtml(quality?.userReason || "暂无财报摘要")}</dd>
+              <dt>理由</dt><dd>${escapeHtml(compactText(quality?.userReason, 120) || "暂无财报摘要")}</dd>
             </dl>
           </section>
           <section class="stock-risk-facts">
             <h3>风险</h3>
             <dl>
-              ${riskFacts.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join("")}
+              ${riskFacts.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(compactText(value, 96) || "--")}</dd>`).join("")}
             </dl>
           </section>
         </div>
@@ -2889,7 +3117,7 @@ const renderStockHub = (symbol) => {
           ${stockMetric("近一周", formatChangeValue(week), week && getChange(week) < 0 ? "is-negative" : "is-positive")}
           ${stockMetric("近一月", formatChangeValue(month), month && getChange(month) < 0 ? "is-negative" : "is-positive")}
           ${stockMetric("今年以来", formatChangeValue(ytd), ytd && getChange(ytd) < 0 ? "is-negative" : "is-positive")}
-          ${stockMetric("成交额倍数", volume?.volumeRatio || market?.volumeRatio || "--")}
+          ${stockMetric("成交额倍数", formatVolumeRatioLabel(volume?.volumeRatio || market?.volumeRatio))}
           ${stockMetric("成交额 / 成交量", volume?.volume || market?.volume || "--")}
         </div>
       </article>
@@ -2908,7 +3136,7 @@ const renderStockHub = (symbol) => {
           ${stockMetric("5D", strength?.periods?.["5d"] || "--", stockSignedClass(strength?.periods?.["5d"]))}
           ${stockMetric("20D", strength?.periods?.["20d"] || "--", stockSignedClass(strength?.periods?.["20d"]))}
           ${stockMetric("相对 SPY", strength?.relative?.spy || "--", stockSignedClass(strength?.relative?.spy))}
-          ${stockMetric("成交额热度", strength?.crowding?.volumeRatio || "--")}
+          ${stockMetric("成交额热度", formatVolumeRatioLabel(strength?.crowding?.volumeRatio))}
         </div>
         <p class="stock-card-note">${escapeHtml(strength?.action || "暂无强弱扫描记录，先看价格、成交额和同板块对比。")}</p>
       </article>
@@ -2972,10 +3200,10 @@ const renderStockHub = (symbol) => {
               ? peers.map((peer) => `
                   <button type="button" data-stock-open="${escapeHtml(peer.symbol)}">
                     <strong>${escapeHtml(peer.symbol)}</strong>
-                    <span>${escapeHtml(peer.chineseName || peer.company || peer.symbol)}</span>
+                    <span>${escapeHtml(peer.company || peer.name || peer.chineseName || peer.symbol)}</span>
                     <b>${formatChangeValue(peer)}</b>
                     <em>${escapeHtml(peer.marketCap || "--")}</em>
-                    <small>${escapeHtml(peer.volumeRatio || "--")}</small>
+                    <small>${escapeHtml(formatVolumeRatioLabel(peer.volumeRatio))}</small>
                   </button>
                 `).join("")
               : "<p class=\"stock-card-note\">暂无同板块样本，先看个股自身行情和事件线索。</p>"
@@ -3038,6 +3266,9 @@ const openStockHub = (symbol) => {
   state.selectedStockSymbol = target;
   showPage("stock", { hash: `#stock/${encodeURIComponent(target)}` });
   renderStockHub(target);
+  loadProductStockDetail(target).then((detail) => {
+    if (detail && state.selectedStockSymbol === target) renderStockHub(target);
+  });
   if (!state.signals) {
     loadSignals().then(() => renderStockHub(target));
   }
@@ -4328,7 +4559,16 @@ const showPage = (page, options = {}) => {
   if (page === "watchlist") {
     renderWatchlist();
   }
-  ensurePageData(page);
+  const dataPromise = ensurePageData(page);
+  if (page === "stock") {
+    const symbolAtRequest = state.selectedStockSymbol;
+    dataPromise.then(() => {
+      const activeView = document.querySelector(".page-view.is-active")?.dataset.view;
+      if (activeView === "stock" && state.selectedStockSymbol === symbolAtRequest) {
+        renderStockHub(symbolAtRequest);
+      }
+    });
+  }
 };
 
 const syncMarketWorkspaceTabs = () => {

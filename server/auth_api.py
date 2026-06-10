@@ -941,7 +941,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": f"产品数据库读取失败：{exc}", "code": "product_db_error"}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def send_product_symbol_search(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
-        limit = int_param(params, "limit", 20, maximum=100)
+        limit = int_param(params, "limit", 50, maximum=3000)
         query = str(params.get("query", [""])[0] or params.get("q", [""])[0]).strip().upper()
         sector = str(params.get("sector", [""])[0]).strip()
         where = []
