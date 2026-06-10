@@ -471,6 +471,19 @@ const ensurePageData = (page) => {
         .then(() => renderStocksPage()),
     );
   }
+  if (page === "watchlist") {
+    jobs.push(
+      Promise.all([
+        loadProductCalendar().then((calendar) => {
+          if (calendar) renderEventsCalendar(calendar);
+          return calendar;
+        }),
+        loadProductSectors(),
+        loadLazyDataset("earningsQuality"),
+        loadLazyDataset("eventOpportunities"),
+      ]).then(() => renderWatchlist()),
+    );
+  }
   return Promise.all(jobs).catch(() => []);
 };
 
@@ -2625,6 +2638,41 @@ const renderWatchlistDailyPlan = (rows, reviewRows, priorityRows) => {
   next.textContent = watchlistNextStep(top);
 };
 
+const watchlistSectorFlow = (item) => {
+  const profile = stockDisplayName(item.symbol);
+  const sector = sectorDisplayName(profile.sector || item.sector);
+  const sectorRows = isKnownSector(sector) ? uniqueBySymbol(allMarketRows().filter((row) => sectorDisplayName(row.sector) === sector)) : [];
+  return stockSectorFlowDetail({ ...profile, sector }, sectorRows);
+};
+
+const watchlistCalendarSummary = (item) => {
+  const target = normalizeStockSymbol(item.symbol);
+  const profile = stockDisplayName(target);
+  const macroExposure = stockMacroExposure(profile, item.market || findMarketRow(target));
+  const rows = stockLinkedCalendarRows({ target, profile, macroExposure, quality: item.quality || findQualityRow(target) });
+  const first = rows[0];
+  if (!first) return { label: "暂无日程", detail: "先看财经日历整体事件", count: 0 };
+  return {
+    label: `${formatDisplayDate(first.date)} · ${eventTypeLabel(first.type)}`,
+    detail: first.title || first.summary || "关联日程",
+    count: rows.length,
+  };
+};
+
+const watchlistTrendLabel = (item) => {
+  if (item.signal) return directionLabel(item.signal.direction, item.signal.directionText);
+  if (item.strength?.label) return item.strength.label;
+  if (item.market) return "行情异动";
+  return "--";
+};
+
+const watchlistTrendClass = (item) => {
+  if (item.signal?.direction === "short") return "is-negative";
+  if (item.signal?.direction === "long") return "is-positive";
+  const change = getChange(item.month || item.market || {});
+  return Number.isFinite(change) && change < 0 ? "is-negative" : Number.isFinite(change) && change > 0 ? "is-positive" : "";
+};
+
 const stockPeerRows = (symbol, limit = 6) => {
   const target = normalizeStockSymbol(symbol);
   const profile = stockDisplayName(target);
@@ -2731,7 +2779,7 @@ const renderWatchlist = () => {
   setText("#watchlistCount", `${allRows.length}只`);
   setText("#watchlistReviewCount", `${reviewRows.length}只`);
   setText("#watchlistPriorityCount", `${priorityRows.length}只`);
-  setText("#watchlistCoverageCount", allRows.length ? `${Math.round((allRows.filter((item) => watchlistDataCount(item) > 0).length / allRows.length) * 100)}%` : "--");
+  setText("#watchlistCoverageCount", allRows.length ? `${allRows.filter((item) => watchlistDataCount(item) > 0).length}只` : "--");
   setText("#watchlistResultSummary", `${rows.length} / ${allRows.length} 只`);
   setText(
     "#watchlistDataAsOf",
@@ -2750,13 +2798,23 @@ const renderWatchlist = () => {
     ? "换一个复盘状态、加入来源或搜索词再看。"
     : "在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入自选”。";
 
-  body.innerHTML = rows
-    .map((item) => {
+  body.innerHTML = rows.length
+    ? `
+      <div class="watchlist-workbench-table" role="table" aria-label="自选复盘队列">
+        <div class="watchlist-workbench-row is-head" role="row">
+          <span>股票</span>
+          <span>复盘</span>
+          <span>走势</span>
+          <span>板块资金</span>
+          <span>日程</span>
+          <span>下一步</span>
+          <span>操作</span>
+        </div>
+        ${rows.map((item) => {
       const status = watchlistStatus(item);
       const dataSources = watchlistDataSources(item);
       const review = watchlistReviewPlan(item);
       const priority = watchlistReviewPriority(item);
-      const checklist = stockActionChecklist(item.symbol).slice(0, 3);
       const reason = item.eventRow?.reason || item.quality?.userReason || item.strength?.action || item.market?.actionNote || "等待更多数据补充。";
       const itemDataAsOf = latestDisplayDate(
         item.eventRow?.eventDate,
@@ -2764,73 +2822,59 @@ const renderWatchlist = () => {
         state.strength?.asOf,
         state.meta?.ytd?.updatedAt,
       );
+      const sectorFlow = watchlistSectorFlow(item);
+      const calendar = watchlistCalendarSummary(item);
+      const trendClass = watchlistTrendClass(item);
+      const sourceChips = dataSources
+        .filter(([, active]) => active)
+        .map(([label]) => `<b>${escapeHtml(label)}</b>`)
+        .join("") || "<b>待接入</b>";
+      const marketCap = item.market?.marketCap || item.quality?.marketCap || findProductProfile(item.symbol)?.marketCap || "--";
       return `
-      <article class="watchlist-card" data-watchlist-symbol="${escapeHtml(item.symbol)}">
-        <div class="watchlist-card-head">
-          <div>
-            <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
-            <strong>${escapeHtml(item.symbol)}</strong>
-            <p>${escapeHtml(item.name)}${item.company && item.company !== item.name ? ` · ${escapeHtml(item.company)}` : ""}</p>
-          </div>
-          <button class="icon-action" type="button" data-watchlist-remove="${escapeHtml(item.symbol)}" aria-label="移除 ${escapeHtml(item.symbol)}">×</button>
-        </div>
-        <div class="watchlist-status-row">
-          <b class="${status.className}">${escapeHtml(status.label)}</b>
-          <span>${escapeHtml(item.source || "自选")}</span>
-          <span>${escapeHtml(`复盘分 ${priority.score}`)}</span>
-          <em>${escapeHtml(watchlistReviewLabel(item))}</em>
-        </div>
-        <section class="watchlist-score-box">
-          <div>
-            <span>复盘分</span>
-            <strong>${escapeHtml(String(priority.score))}</strong>
-          </div>
-          <p>${escapeHtml(priority.reason)}</p>
-        </section>
-        <div class="watchlist-metrics">
-          <div><span>近一月</span><strong class="${item.month && getChange(item.month) < 0 ? "is-negative" : "is-positive"}">${formatChangeValue(item.month)}</strong></div>
-          <div><span>今年以来</span><strong class="${item.ytd && getChange(item.ytd) < 0 ? "is-negative" : "is-positive"}">${formatChangeValue(item.ytd)}</strong></div>
-          <div><span>强弱</span><strong>${escapeHtml(item.strength?.label || "--")}</strong></div>
-          <div><span>趋势</span><strong>${escapeHtml(item.signal ? directionLabel(item.signal.direction, item.signal.directionText) : "--")}</strong></div>
-        </div>
-        <section class="watchlist-reason">
-          <span>为什么跟踪</span>
-          <p>${escapeHtml(reason)}</p>
-        </section>
-        <section class="watchlist-next">
-          <span>下一步看什么</span>
-          <strong>${escapeHtml(watchlistNextStep(item))}</strong>
-        </section>
-        <section class="watchlist-next">
-          <span>数据日期</span>
-          <strong>${escapeHtml(itemDataAsOf)}</strong>
-        </section>
-        <section class="watchlist-review-flow">
-          <div>
-            <span>复盘节奏</span>
-            <strong>${escapeHtml(review.label)}</strong>
-            <p>复盘分 ${escapeHtml(String(priority.score))} · ${escapeHtml(review.actionLabel)}${item.reviewCount ? ` · 已复盘 ${escapeHtml(String(item.reviewCount))} 次` : ""}</p>
-          </div>
-          <div class="watchlist-review-actions">
-            <button type="button" data-watchlist-review="reviewed" data-watchlist-symbol="${escapeHtml(item.symbol)}">标记已复盘</button>
-            <button type="button" data-watchlist-review="continue" data-watchlist-symbol="${escapeHtml(item.symbol)}">继续观察</button>
-            <button type="button" data-watchlist-review="lower" data-watchlist-symbol="${escapeHtml(item.symbol)}">降低频率</button>
-          </div>
-        </section>
-        <div class="watchlist-data-row">
-          ${dataSources.map(([label, active]) => `<span class="${active ? "is-ready" : "is-muted"}">${escapeHtml(label)}</span>`).join("")}
-        </div>
-        <div class="watchlist-checklist" data-lockable-module="watchlist-review">
-          ${checklist.map((entry) => `<div>${escapeHtml(entry)}</div>`).join("")}
-        </div>
-        <div class="watchlist-card-actions">
-          <button class="ghost-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">查看详情</button>
-          <span>${escapeHtml(item.addedAt ? `加入 ${formatDisplayDate(item.addedAt)}` : "自选")}</span>
-        </div>
-      </article>
+          <article class="watchlist-workbench-row" role="row" data-watchlist-symbol="${escapeHtml(item.symbol)}">
+            <div class="watchlist-stock-cell">
+              <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</button>
+              <strong>${escapeHtml(item.name)}${item.company && item.company !== item.name ? ` · ${escapeHtml(item.company)}` : ""}</strong>
+              <p>${escapeHtml(sectorDisplayName(item.sector))} · ${escapeHtml(marketCap)} · ${escapeHtml(item.source || "自选")}</p>
+              <div class="watchlist-source-chips">${sourceChips}</div>
+            </div>
+            <div class="watchlist-score-cell">
+              <strong>${escapeHtml(String(priority.score))}</strong>
+              <span class="${escapeHtml(status.className)}">${escapeHtml(status.label)}</span>
+              <p>${escapeHtml(review.label)} · ${escapeHtml(review.actionLabel)}${item.reviewCount ? ` · ${escapeHtml(String(item.reviewCount))}次` : ""}</p>
+            </div>
+            <div class="watchlist-trend-cell">
+              <strong class="${escapeHtml(trendClass)}">${escapeHtml(watchlistTrendLabel(item))}</strong>
+              <p>1M <b class="${item.month && getChange(item.month) < 0 ? "is-negative" : "is-positive"}">${formatChangeValue(item.month)}</b> · YTD <b class="${item.ytd && getChange(item.ytd) < 0 ? "is-negative" : "is-positive"}">${formatChangeValue(item.ytd)}</b></p>
+              <small>${escapeHtml(item.strength?.relative?.spy ? `相对SPY ${item.strength.relative.spy}` : item.signal?.marketChangePct ? `信号表现 ${item.signal.marketChangePct}` : "等待相对强弱")}</small>
+            </div>
+            <div class="watchlist-flow-cell">
+              <strong class="${escapeHtml(sectorFlow.className)}">${escapeHtml(sectorFlow.netFlow)}</strong>
+              <p>${escapeHtml(sectorFlow.label)} · 广度 ${escapeHtml(sectorFlow.breadth)}</p>
+              <small>活跃成交 ${escapeHtml(sectorFlow.activeValue)}</small>
+            </div>
+            <div class="watchlist-calendar-cell">
+              <strong>${escapeHtml(calendar.label)}</strong>
+              <p>${escapeHtml(compactText(calendar.detail, 70))}</p>
+              <small>${escapeHtml(calendar.count ? `${calendar.count}条关联` : itemDataAsOf)}</small>
+            </div>
+            <div class="watchlist-next-cell">
+              <strong>${escapeHtml(compactText(priority.reason, 70))}</strong>
+              <p>${escapeHtml(compactText(reason, 84))}</p>
+              <small>${escapeHtml(compactText(watchlistNextStep(item), 92))}</small>
+            </div>
+            <div class="watchlist-actions-cell">
+              <button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button>
+              <button type="button" data-watchlist-review="reviewed" data-watchlist-symbol="${escapeHtml(item.symbol)}">已复盘</button>
+              <button type="button" data-watchlist-review="continue" data-watchlist-symbol="${escapeHtml(item.symbol)}">继续</button>
+              <button class="icon-action" type="button" data-watchlist-remove="${escapeHtml(item.symbol)}" aria-label="移除 ${escapeHtml(item.symbol)}">×</button>
+            </div>
+          </article>
     `;
-    })
-    .join("");
+    }).join("")}
+      </div>
+    `
+    : "";
 };
 
 const refreshWatchlistViews = () => {
