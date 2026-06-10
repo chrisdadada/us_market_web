@@ -11,6 +11,7 @@ fi
 rm -rf /opt/dongbimao-prod/* /var/www/dongbimao-prod/*
 cp -a /opt/dongbimao-dev/. /opt/dongbimao-prod/
 cp -a /var/www/dongbimao-dev/. /var/www/dongbimao-prod/
+find /var/www/dongbimao-prod/data -maxdepth 1 -name "*.db*" -delete
 nginx -t
 systemctl reload nginx
 '
