@@ -74,6 +74,7 @@ const state = {
   signals: null,
   selectedSignalSymbol: "",
   selectedMarketSymbol: "",
+  selectedMarketSector: "",
   selectedStockSymbol: "",
   stockBackPage: "market",
   watchlist: [],
@@ -5297,6 +5298,77 @@ const marketVisualTabs = () => `
   </div>
 `;
 
+const sectorDetailRows = (rows, sector) =>
+  knownSectorRows(rows)
+    .filter((row) => (row.sector || "未分类") === sector)
+    .map((row) => {
+      const day = getBoardRow("day", row.symbol);
+      const week = getBoardRow("week", row.symbol);
+      const volume = getBoardRow("volume", row.symbol);
+      return {
+        ...row,
+        dayChange: day ? getChange(day) : getChange(row),
+        weekChange: week ? getChange(week) : null,
+        heatSize: marketHeatmapSize(row),
+        volumeRatio: volume?.volumeRatio || row.volumeRatio || "--",
+        dollarVolume: Number(volume?.dollarVolume || row.dollarVolume || 0),
+      };
+    })
+    .sort((a, b) => b.heatSize - a.heatSize || Math.abs(getChange(b)) - Math.abs(getChange(a)));
+
+const renderMarketSectorDetail = (rows, sectors) => {
+  const fallback = sectors[0]?.sector || "";
+  const selected = sectors.some((item) => item.sector === state.selectedMarketSector)
+    ? state.selectedMarketSector
+    : fallback;
+  state.selectedMarketSector = selected;
+  const sector = sectors.find((item) => item.sector === selected);
+  const detailRows = sectorDetailRows(rows, selected).slice(0, 8);
+  const maxHeat = Math.max(...detailRows.map((row) => row.heatSize), 1);
+  const flowValue = Number(sector?.netFlowProxy ?? sector?.avgChange ?? 0);
+  const flowTone = flowValue >= 0 ? "is-positive" : "is-negative";
+  const leaders = (sector?.leaders || detailRows).slice(0, 3).map((item) => item.symbol).filter(Boolean).join(" / ");
+  return `
+    <aside class="market-sector-detail-pane" aria-label="板块详情">
+      <div class="market-sector-detail-head">
+        <span>板块详情</span>
+        <strong>${escapeHtml(sectorDisplayName(selected))}</strong>
+        <button class="table-action" type="button" data-sector-open="${escapeHtml(selected)}">筛到涨跌榜</button>
+      </div>
+      <div class="market-sector-detail-metrics">
+        <div><span>资金方向</span><b class="${flowTone}">${escapeHtml(sector?.netFlowProxy == null ? formatSignedPct(sector?.avgChange || 0) : formatSignedCompactMoney(sector.netFlowProxy, sector.netFlowLabel))}</b></div>
+        <div><span>上涨广度</span><b>${escapeHtml(`${Math.round(sector?.breadthPct || 0)}%`)}</b></div>
+        <div><span>覆盖标的</span><b>${escapeHtml(String(sector?.count || detailRows.length || "--"))}</b></div>
+        <div><span>代表标的</span><b>${escapeHtml(leaders || "--")}</b></div>
+      </div>
+      <div class="market-sector-detail-table">
+        <div class="market-sector-detail-row is-head">
+          <span>股票</span>
+          <span>成交热度</span>
+          <span>1D</span>
+          <span>5D</span>
+        </div>
+        ${
+          detailRows.length
+            ? detailRows.map((row) => {
+                const change = getChange(row);
+                const tone = change >= 0 ? "is-positive" : "is-negative";
+                return `
+                  <button class="market-sector-detail-row" type="button" data-stock-open="${escapeHtml(row.symbol)}">
+                    <span><b>${escapeHtml(row.symbol)}</b><small>${escapeHtml(capLabel(row))}</small></span>
+                    <i><em style="width:${Math.max(7, (row.heatSize / maxHeat) * 100).toFixed(1)}%"></em></i>
+                    <strong class="${row.dayChange >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatSignedPct(row.dayChange))}</strong>
+                    <strong class="${row.weekChange == null || row.weekChange >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(row.weekChange == null ? "--" : formatSignedPct(row.weekChange))}</strong>
+                  </button>
+                `;
+              }).join("")
+            : "<p>当前筛选下暂无该板块股票。</p>"
+        }
+      </div>
+    </aside>
+  `;
+};
+
 const renderMarketSectorRankingView = (rows) => {
   const flowSectors = sectorFlowDisplayRows();
   const sectors = knownSectorRows(flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
@@ -5305,6 +5377,9 @@ const renderMarketSectorRankingView = (rows) => {
   const negativeCount = sectors.length - positiveCount;
   const activeSector = sectors.slice().sort((a, b) => (b.activeValue || b.dollarVolume || 0) - (a.activeValue || a.dollarVolume || 0))[0];
   const topSector = sectors[0];
+  if (!sectors.some((item) => item.sector === state.selectedMarketSector)) {
+    state.selectedMarketSector = topSector?.sector || "";
+  }
   return `
     ${marketVisualTabs()}
     <section class="market-sector-ranking professional-market-board">
@@ -5327,14 +5402,13 @@ const renderMarketSectorRankingView = (rows) => {
           <span>广度 / 龙头</span>
         </div>
         ${sectors.map((item, index) => {
-          const value = item.activeValue || item.dollarVolume || 0;
           const flowValue = item.netFlowProxy ?? item.avgChange ?? 0;
           const breadth = item.breadthPct == null ? 0 : item.breadthPct;
           const leaders = (item.leaders || []).slice(0, 3).map((leader) => leader.symbol).join(" / ");
           const changeClass = flowValue >= 0 ? "is-positive" : "is-negative";
           const flowWidth = Math.max(5, (Math.abs(Number(flowValue) || 0) / maxAbsFlow) * 100);
           return `
-            <button type="button" data-sector-open="${escapeHtml(item.sector)}">
+            <button class="${item.sector === state.selectedMarketSector ? "is-selected" : ""}" type="button" data-market-sector-focus="${escapeHtml(item.sector)}">
               <em>${String(index + 1).padStart(2, "0")}</em>
               <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
               <i class="${changeClass}"><b style="width:${flowWidth.toFixed(1)}%"></b></i>
@@ -5344,6 +5418,7 @@ const renderMarketSectorRankingView = (rows) => {
           `;
         }).join("")}
       </div>
+      ${renderMarketSectorDetail(rows, sectors)}
     </section>
   `;
 };
@@ -5360,12 +5435,25 @@ const renderMarketHeatmapView = (rows) => {
   const tiles = [...displayRows]
     .map((row) => ({ ...row, heatSize: marketHeatmapSize(row) }))
     .sort((a, b) => b.heatSize - a.heatSize)
-    .slice(0, 24);
+    .slice(0, 48);
   const max = Math.max(...tiles.map((row) => row.heatSize), 1);
   const upTiles = tiles.filter((row) => getChange(row) > 0).length;
   const downTiles = tiles.filter((row) => getChange(row) < 0).length;
   const sectorCount = new Set(tiles.map((row) => sectorDisplayName(row.sector))).size;
   const topTile = tiles[0];
+  const sectorGroups = [...tiles.reduce((map, row) => {
+    const key = row.sector || "未分类";
+    const current = map.get(key) || { sector: key, rows: [], heatSize: 0, upCount: 0, downCount: 0 };
+    current.rows.push(row);
+    current.heatSize += row.heatSize;
+    if (getChange(row) >= 0) current.upCount += 1;
+    else current.downCount += 1;
+    map.set(key, current);
+    return map;
+  }, new Map()).values()]
+    .sort((a, b) => b.heatSize - a.heatSize)
+    .slice(0, 8);
+  const maxGroupHeat = Math.max(...sectorGroups.map((group) => group.heatSize), 1);
   return `
     ${marketVisualTabs()}
     <section class="market-heatmap-view professional-market-board">
@@ -5385,19 +5473,29 @@ const renderMarketHeatmapView = (rows) => {
           <span><i class="is-down"></i>下跌</span>
           <span><i></i>面积=成交活跃度</span>
         </div>
-        <div class="market-heatmap-grid">
-          ${tiles.map((row) => {
-            const change = getChange(row);
-            const tone = change > 0 ? "is-up" : change < 0 ? "is-down" : "is-flat";
-            const span = row.heatSize / max > 0.55 ? "is-large" : row.heatSize / max > 0.25 ? "is-mid" : "";
-            return `
-              <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}">
-                <small>${escapeHtml(sectorDisplayName(row.sector))}</small>
-                <strong>${escapeHtml(row.symbol)}</strong>
-                <span>${escapeHtml(formatSignedPct(change))}</span>
-              </button>
-            `;
-          }).join("")}
+        <div class="market-heatmap-groups">
+          ${sectorGroups.map((group) => `
+            <section class="market-heatmap-sector" style="--sector-weight:${Math.max(0.65, group.heatSize / maxGroupHeat).toFixed(2)}">
+              <header>
+                <span>${escapeHtml(sectorDisplayName(group.sector))}</span>
+                <strong><b class="is-positive">${escapeHtml(`${group.upCount}涨`)}</b><i>/</i><b class="is-negative">${escapeHtml(`${group.downCount}跌`)}</b></strong>
+              </header>
+              <div class="market-heatmap-grid">
+                ${group.rows.slice(0, 8).map((row) => {
+                  const change = getChange(row);
+                  const tone = change > 0 ? "is-up" : change < 0 ? "is-down" : "is-flat";
+                  const span = row.heatSize / max > 0.46 ? "is-large" : row.heatSize / max > 0.18 ? "is-mid" : "";
+                  return `
+                    <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}">
+                      <small>${escapeHtml(row.chineseName || sectorDisplayName(row.sector))}</small>
+                      <strong>${escapeHtml(row.symbol)}</strong>
+                      <span>${escapeHtml(formatSignedPct(change))}</span>
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+            </section>
+          `).join("")}
         </div>
       </div>
     </section>
@@ -9206,6 +9304,17 @@ const bindEvents = () => {
       }
       state.marketVisualMode = section === "sectors" ? "sectors" : section === "heatmap" ? "heatmap" : "overview";
       showPage("market", { hash: section === "sectors" ? "#market/sectors" : section === "heatmap" ? "#market/heatmap" : "#market" });
+      return;
+    }
+    const marketSectorFocus = event.target.closest("[data-market-sector-focus]");
+    if (marketSectorFocus) {
+      event.preventDefault();
+      state.selectedMarketSector = marketSectorFocus.dataset.marketSectorFocus || "";
+      state.marketWorkspaceSection = "sectors";
+      state.marketVisualMode = "sectors";
+      syncMarketWorkspaceTabs();
+      renderMarketVisualBoard(getFilteredRows());
+      renderMarketSectionContext();
       return;
     }
     const sectorOpen = event.target.closest("[data-sector-open]");
