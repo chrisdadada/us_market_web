@@ -1,0 +1,814 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import os
+import sqlite3
+import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Iterable
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "data"
+DEFAULT_OUTPUT = DATA_DIR / "product.db"
+SCHEMA_VERSION = 1
+KNOWN_SECTORS = {
+    "ETF",
+    "科技",
+    "通信",
+    "能源",
+    "金融",
+    "消费",
+    "工业",
+    "材料",
+    "医疗",
+    "生物医药",
+    "地产",
+    "公用事业",
+}
+UNKNOWN_SECTORS = {"", "--", "未分类", "板块待补", "None", "null", "nan"}
+
+
+def now_iso() -> str:
+    return datetime.now(UTC).isoformat()
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid JSON: {path}: {exc}") from exc
+
+
+def json_text(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def scalar(value: Any) -> Any:
+    if isinstance(value, (dict, list)):
+        return json_text(value)
+    return value
+
+
+def text_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text if text else None
+
+
+def symbol_value(value: Any) -> str | None:
+    text = text_value(value)
+    return text.upper() if text else None
+
+
+def normalize_sector(value: Any) -> str | None:
+    text = text_value(value)
+    if not text or text in UNKNOWN_SECTORS:
+        return None
+    if text in KNOWN_SECTORS:
+        return text
+    parts = text.replace("/", " ").split()
+    for part in reversed(parts):
+        if part in KNOWN_SECTORS:
+            return part
+    return text
+
+
+def float_value(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)) and math.isfinite(float(value)):
+        return float(value)
+    text = str(value).strip().replace(",", "").replace("$", "").replace("+", "")
+    if not text or text in {"--", "None", "null", "nan"}:
+        return None
+    multiplier = 1.0
+    suffix = text[-1:].upper()
+    if suffix in {"K", "M", "B", "T"}:
+        text = text[:-1]
+        multiplier = {"K": 1_000.0, "M": 1_000_000.0, "B": 1_000_000_000.0, "T": 1_000_000_000_000.0}[suffix]
+    try:
+        number = float(text)
+    except ValueError:
+        return None
+    if not math.isfinite(number):
+        return None
+    return number * multiplier
+
+
+def percent_value(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)) and math.isfinite(float(value)):
+        return float(value)
+    text = str(value).strip().replace("%", "").replace("+", "")
+    return float_value(text)
+
+
+def ratio_value(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)) and math.isfinite(float(value)):
+        return float(value)
+    text = str(value).strip().replace("x", "").replace("X", "")
+    return float_value(text)
+
+
+def payload_hash(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def table_count(conn: sqlite3.Connection, table: str) -> int:
+    return int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+
+
+def create_schema(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        PRAGMA journal_mode=WAL;
+        PRAGMA foreign_keys=ON;
+
+        CREATE TABLE product_db_info (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        );
+
+        CREATE TABLE datasets (
+          name TEXT PRIMARY KEY,
+          source_path TEXT NOT NULL,
+          as_of TEXT,
+          generated_at TEXT,
+          row_count INTEGER NOT NULL DEFAULT 0,
+          content_sha256 TEXT,
+          payload_json TEXT NOT NULL
+        );
+
+        CREATE TABLE symbols (
+          symbol TEXT PRIMARY KEY,
+          company TEXT,
+          chinese_name TEXT,
+          sector TEXT,
+          market_cap_label TEXT,
+          market_cap_value REAL,
+          latest_price REAL,
+          latest_dollar_volume REAL,
+          latest_volume_ratio REAL,
+          latest_source TEXT,
+          updated_at TEXT,
+          sources_json TEXT NOT NULL DEFAULT '[]',
+          payload_json TEXT NOT NULL
+        );
+
+        CREATE TABLE market_board_rows (
+          board TEXT NOT NULL,
+          rank INTEGER,
+          symbol TEXT NOT NULL,
+          trade_date TEXT,
+          company TEXT,
+          chinese_name TEXT,
+          sector TEXT,
+          risk TEXT,
+          action_note TEXT,
+          price REAL,
+          change_pct REAL,
+          volume_label TEXT,
+          dollar_volume REAL,
+          volume_ratio REAL,
+          market_cap_label TEXT,
+          market_cap_value REAL,
+          payload_json TEXT NOT NULL,
+          PRIMARY KEY (board, symbol)
+        );
+
+        CREATE TABLE sector_flow_rows (
+          as_of TEXT,
+          rank INTEGER,
+          sector TEXT NOT NULL,
+          status TEXT,
+          stock_count INTEGER,
+          up_count INTEGER,
+          down_count INTEGER,
+          breadth_pct REAL,
+          avg_change_pct REAL,
+          active_value REAL,
+          net_flow_proxy REAL,
+          inflow_proxy REAL,
+          outflow_proxy REAL,
+          leaders_json TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          PRIMARY KEY (as_of, sector)
+        );
+
+        CREATE TABLE stock_event_rows (
+          board TEXT NOT NULL,
+          rank INTEGER,
+          symbol TEXT NOT NULL,
+          company_name TEXT,
+          event_date TEXT,
+          event_type TEXT,
+          event_label TEXT,
+          reason TEXT,
+          risk TEXT,
+          close REAL,
+          signal_score REAL,
+          return_20d_pct REAL,
+          fwd_5d_pct REAL,
+          fwd_20d_pct REAL,
+          fwd_60d_pct REAL,
+          liquidity_label TEXT,
+          price_target_upside_pct REAL,
+          short_interest REAL,
+          days_to_cover REAL,
+          payload_json TEXT NOT NULL,
+          PRIMARY KEY (board, symbol, rank)
+        );
+
+        CREATE TABLE calendar_events (
+          event_id TEXT PRIMARY KEY,
+          event_date TEXT,
+          event_time TEXT,
+          title TEXT NOT NULL,
+          event_type TEXT,
+          impact TEXT,
+          source_name TEXT,
+          related_modules_json TEXT NOT NULL,
+          related_assets_json TEXT NOT NULL,
+          summary TEXT,
+          payload_json TEXT NOT NULL
+        );
+
+        CREATE TABLE earnings_quality_rows (
+          board TEXT NOT NULL,
+          rank INTEGER,
+          symbol TEXT NOT NULL,
+          company_name TEXT,
+          score REAL,
+          quality_score REAL,
+          confluence_score REAL,
+          user_angle TEXT,
+          user_reason TEXT,
+          user_risk TEXT,
+          return_20d_pct REAL,
+          close REAL,
+          dollar_volume_20d REAL,
+          latest_earnings_date TEXT,
+          latest_guidance_date TEXT,
+          payload_json TEXT NOT NULL,
+          PRIMARY KEY (board, symbol)
+        );
+
+        CREATE TABLE strength_rows (
+          rank INTEGER,
+          bucket TEXT,
+          symbol TEXT PRIMARY KEY,
+          company TEXT,
+          exchange TEXT,
+          sector TEXT,
+          price REAL,
+          score REAL,
+          label TEXT,
+          action TEXT,
+          primary_factor TEXT,
+          liquidity_label TEXT,
+          market_cap_label TEXT,
+          market_cap_value REAL,
+          periods_json TEXT NOT NULL,
+          relative_json TEXT NOT NULL,
+          payload_json TEXT NOT NULL
+        );
+
+        CREATE TABLE market_temperature_indicators (
+          indicator_key TEXT PRIMARY KEY,
+          as_of TEXT,
+          name TEXT,
+          category TEXT,
+          impact TEXT,
+          value_label TEXT,
+          previous_label TEXT,
+          change_label TEXT,
+          status TEXT,
+          level TEXT,
+          payload_json TEXT NOT NULL
+        );
+
+        CREATE TABLE options_flow_rows (
+          board TEXT NOT NULL,
+          rank INTEGER NOT NULL,
+          ticker TEXT NOT NULL,
+          premium REAL,
+          payload_json TEXT NOT NULL,
+          PRIMARY KEY (board, rank, ticker)
+        );
+
+        CREATE TABLE raw_payloads (
+          name TEXT PRIMARY KEY,
+          source_path TEXT NOT NULL,
+          payload_json TEXT NOT NULL
+        );
+
+        CREATE INDEX idx_symbols_sector ON symbols(sector);
+        CREATE INDEX idx_market_board_symbol ON market_board_rows(symbol);
+        CREATE INDEX idx_market_board_sector ON market_board_rows(board, sector);
+        CREATE INDEX idx_stock_event_symbol ON stock_event_rows(symbol);
+        CREATE INDEX idx_stock_event_type ON stock_event_rows(event_type);
+        CREATE INDEX idx_calendar_events_date ON calendar_events(event_date);
+        CREATE INDEX idx_earnings_quality_symbol ON earnings_quality_rows(symbol);
+        CREATE INDEX idx_strength_sector ON strength_rows(sector);
+        """
+    )
+
+
+def record_dataset(conn: sqlite3.Connection, name: str, path: Path, payload: dict[str, Any], row_count: int) -> None:
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO datasets
+        (name, source_path, as_of, generated_at, row_count, content_sha256, payload_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            name,
+            str(path.relative_to(ROOT)) if path.exists() else str(path),
+            text_value(payload.get("asOf") or payload.get("updatedAt")),
+            text_value(payload.get("generatedAt")),
+            row_count,
+            payload_hash(path),
+            json_text(payload),
+        ),
+    )
+    conn.execute(
+        "INSERT OR REPLACE INTO raw_payloads (name, source_path, payload_json) VALUES (?, ?, ?)",
+        (name, str(path.relative_to(ROOT)) if path.exists() else str(path), json_text(payload)),
+    )
+
+
+def upsert_symbol(conn: sqlite3.Connection, row: dict[str, Any], source: str) -> None:
+    symbol = symbol_value(row.get("symbol") or row.get("ticker"))
+    if not symbol:
+        return
+    existing = conn.execute("SELECT * FROM symbols WHERE symbol = ?", (symbol,)).fetchone()
+    sources: list[str] = []
+    if existing:
+        try:
+            sources = json.loads(existing["sources_json"] or "[]")
+        except json.JSONDecodeError:
+            sources = []
+    if source not in sources:
+        sources.append(source)
+    market_cap_label = text_value(row.get("marketCap") or row.get("market_cap"))
+    sector = normalize_sector(row.get("sector") or row.get("sectorProxy"))
+    latest_price = float_value(row.get("price") or row.get("close"))
+    latest_dollar_volume = float_value(row.get("dollarVolume") or row.get("dollar_volume") or row.get("dollarVolume20d"))
+    payload = dict(row)
+    if existing:
+        conn.execute(
+            """
+            UPDATE symbols
+            SET company = COALESCE(?, company),
+                chinese_name = COALESCE(?, chinese_name),
+                sector = COALESCE(NULLIF(?, ''), sector),
+                market_cap_label = COALESCE(?, market_cap_label),
+                market_cap_value = COALESCE(?, market_cap_value),
+                latest_price = COALESCE(?, latest_price),
+                latest_dollar_volume = COALESCE(?, latest_dollar_volume),
+                latest_volume_ratio = COALESCE(?, latest_volume_ratio),
+                latest_source = ?,
+                updated_at = ?,
+                sources_json = ?,
+                payload_json = ?
+            WHERE symbol = ?
+            """,
+            (
+                text_value(row.get("company") or row.get("companyName") or row.get("name")),
+                text_value(row.get("chineseName")),
+                sector,
+                market_cap_label,
+                float_value(market_cap_label),
+                latest_price,
+                latest_dollar_volume,
+                ratio_value(row.get("volumeRatio")),
+                source,
+                now_iso(),
+                json_text(sources),
+                json_text(payload),
+                symbol,
+            ),
+        )
+        return
+    conn.execute(
+        """
+        INSERT INTO symbols
+        (symbol, company, chinese_name, sector, market_cap_label, market_cap_value,
+         latest_price, latest_dollar_volume, latest_volume_ratio, latest_source,
+         updated_at, sources_json, payload_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            symbol,
+            text_value(row.get("company") or row.get("companyName") or row.get("name")),
+            text_value(row.get("chineseName")),
+            sector,
+            market_cap_label,
+            float_value(market_cap_label),
+            latest_price,
+            latest_dollar_volume,
+            ratio_value(row.get("volumeRatio")),
+            source,
+            now_iso(),
+            json_text(sources),
+            json_text(payload),
+        ),
+    )
+
+
+def import_market_boards(conn: sqlite3.Connection) -> int:
+    count = 0
+    ytd_path = DATA_DIR / "ytd-gainers.json"
+    ytd = read_json(ytd_path)
+    record_dataset(conn, "ytd-gainers", ytd_path, ytd, len(ytd.get("rows") or []))
+    for row in ytd.get("rows") or []:
+        import_market_row(conn, "ytd", ytd.get("updatedAt"), row, "ytd-gainers")
+        count += 1
+
+    movers_path = DATA_DIR / "market-movers.json"
+    movers = read_json(movers_path)
+    board_count = 0
+    for board, board_payload in (movers.get("boards") or {}).items():
+        rows = board_payload.get("rows") if isinstance(board_payload, dict) else []
+        for row in rows or []:
+            import_market_row(conn, str(board), movers.get("updatedAt"), row, "market-movers")
+            board_count += 1
+    record_dataset(conn, "market-movers", movers_path, movers, board_count)
+    return count + board_count
+
+
+def import_market_row(conn: sqlite3.Connection, board: str, trade_date: Any, row: dict[str, Any], source: str) -> None:
+    symbol = symbol_value(row.get("symbol"))
+    if not symbol:
+        return
+    upsert_symbol(conn, row, source)
+    change = row.get("changeYtd") if board == "ytd" else row.get("change")
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO market_board_rows
+        (board, rank, symbol, trade_date, company, chinese_name, sector, risk, action_note,
+         price, change_pct, volume_label, dollar_volume, volume_ratio, market_cap_label,
+         market_cap_value, payload_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            board,
+            row.get("rank"),
+            symbol,
+            text_value(trade_date),
+            text_value(row.get("company")),
+            text_value(row.get("chineseName")),
+            normalize_sector(row.get("sector")),
+            text_value(row.get("risk")),
+            text_value(row.get("actionNote")),
+            float_value(row.get("price")),
+            percent_value(change),
+            text_value(row.get("volume")),
+            float_value(row.get("dollarVolume")),
+            ratio_value(row.get("volumeRatio")),
+            text_value(row.get("marketCap")),
+            float_value(row.get("marketCap")),
+            json_text(row),
+        ),
+    )
+
+
+def import_sector_flow(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "sector-flow.json"
+    payload = read_json(path)
+    rows = payload.get("rows") or []
+    record_dataset(conn, "sector-flow", path, payload, len(rows))
+    for row in rows:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO sector_flow_rows
+            (as_of, rank, sector, status, stock_count, up_count, down_count, breadth_pct,
+             avg_change_pct, active_value, net_flow_proxy, inflow_proxy, outflow_proxy,
+             leaders_json, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                payload.get("asOf"),
+                row.get("rank"),
+                normalize_sector(row.get("sector")) or text_value(row.get("sector")) or "",
+                text_value(row.get("status")),
+                row.get("count"),
+                row.get("upCount"),
+                row.get("downCount"),
+                percent_value(row.get("breadthPct")),
+                percent_value(row.get("avgChange")),
+                float_value(row.get("activeValue")),
+                float_value(row.get("netFlowProxy")),
+                float_value(row.get("inflowProxy")),
+                float_value(row.get("outflowProxy")),
+                json_text(row.get("leaders") or []),
+                json_text(row),
+            ),
+        )
+    return len(rows)
+
+
+def import_stock_events(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "event-opportunities.json"
+    payload = read_json(path)
+    count = 0
+    for board, board_payload in (payload.get("boards") or {}).items():
+        rows = board_payload.get("rows") if isinstance(board_payload, dict) else []
+        for row in rows or []:
+            symbol = symbol_value(row.get("ticker") or row.get("symbol"))
+            if not symbol:
+                continue
+            upsert_symbol(conn, {"symbol": symbol, **row}, "event-opportunities")
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO stock_event_rows
+                (board, rank, symbol, company_name, event_date, event_type, event_label,
+                 reason, risk, close, signal_score, return_20d_pct, fwd_5d_pct,
+                 fwd_20d_pct, fwd_60d_pct, liquidity_label, price_target_upside_pct,
+                 short_interest, days_to_cover, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(board),
+                    row.get("rank"),
+                    symbol,
+                    text_value(row.get("companyName") or row.get("name")),
+                    text_value(row.get("eventDate")),
+                    text_value(row.get("eventType")),
+                    text_value(row.get("eventLabel")),
+                    text_value(row.get("reason")),
+                    text_value(row.get("risk")),
+                    float_value(row.get("close")),
+                    float_value(row.get("signalScore")),
+                    percent_value(row.get("return20dPct")),
+                    percent_value(row.get("fwd5dPct")),
+                    percent_value(row.get("fwd20dPct")),
+                    percent_value(row.get("fwd60dPct")),
+                    text_value(row.get("liquidity")),
+                    percent_value(row.get("priceTargetUpsidePct")),
+                    float_value(row.get("shortInterest")),
+                    float_value(row.get("daysToCover")),
+                    json_text(row),
+                ),
+            )
+            count += 1
+    record_dataset(conn, "event-opportunities", path, payload, count)
+    return count
+
+
+def import_calendar(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "events-calendar.json"
+    payload = read_json(path)
+    events = payload.get("events") or []
+    for row in events:
+        basis = json_text([row.get("date"), row.get("time"), row.get("title"), row.get("sourceName")])
+        event_id = hashlib.sha1(basis.encode("utf-8")).hexdigest()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO calendar_events
+            (event_id, event_date, event_time, title, event_type, impact, source_name,
+             related_modules_json, related_assets_json, summary, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event_id,
+                text_value(row.get("date")),
+                text_value(row.get("time")),
+                text_value(row.get("title")) or "",
+                text_value(row.get("type")),
+                text_value(row.get("impact")),
+                text_value(row.get("sourceName")),
+                json_text(row.get("relatedModules") or []),
+                json_text(row.get("relatedAssets") or []),
+                text_value(row.get("summary")),
+                json_text(row),
+            ),
+        )
+    record_dataset(conn, "events-calendar", path, payload, len(events))
+    return len(events)
+
+
+def import_earnings_quality(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "earnings-quality.json"
+    payload = read_json(path)
+    count = 0
+    for board, board_payload in (payload.get("boards") or {}).items():
+        rows = board_payload.get("rows") if isinstance(board_payload, dict) else []
+        for row in rows or []:
+            symbol = symbol_value(row.get("ticker") or row.get("symbol"))
+            if not symbol:
+                continue
+            upsert_symbol(conn, {"symbol": symbol, **row}, "earnings-quality")
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO earnings_quality_rows
+                (board, rank, symbol, company_name, score, quality_score, confluence_score,
+                 user_angle, user_reason, user_risk, return_20d_pct, close,
+                 dollar_volume_20d, latest_earnings_date, latest_guidance_date, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(board),
+                    row.get("rank"),
+                    symbol,
+                    text_value(row.get("companyName") or row.get("name")),
+                    float_value(row.get("score")),
+                    float_value(row.get("qualityScore")),
+                    float_value(row.get("confluenceScore")),
+                    text_value(row.get("userAngle")),
+                    text_value(row.get("userReason")),
+                    text_value(row.get("userRisk")),
+                    percent_value(row.get("return20dPct")),
+                    float_value(row.get("close")),
+                    float_value(row.get("dollarVolume20d")),
+                    text_value(row.get("latestEarningsDate")),
+                    text_value(row.get("latestGuidanceDate")),
+                    json_text(row),
+                ),
+            )
+            count += 1
+    record_dataset(conn, "earnings-quality", path, payload, count)
+    return count
+
+
+def import_strength(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "strength-scanner.json"
+    payload = read_json(path)
+    rows = payload.get("rows") or []
+    for row in rows:
+        symbol = symbol_value(row.get("symbol"))
+        if not symbol:
+            continue
+        upsert_symbol(conn, row, "strength-scanner")
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO strength_rows
+            (rank, bucket, symbol, company, exchange, sector, price, score, label,
+             action, primary_factor, liquidity_label, market_cap_label, market_cap_value,
+             periods_json, relative_json, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                row.get("rank"),
+                text_value(row.get("bucket")),
+                symbol,
+                text_value(row.get("name")),
+                text_value(row.get("exchange")),
+                normalize_sector(row.get("sectorProxy")),
+                float_value(row.get("price")),
+                float_value(row.get("score")),
+                text_value(row.get("label")),
+                text_value(row.get("action")),
+                text_value(row.get("primaryFactor")),
+                text_value(row.get("liquidity")),
+                text_value(row.get("marketCap")),
+                float_value(row.get("marketCap")),
+                json_text(row.get("periods") or {}),
+                json_text(row.get("relative") or {}),
+                json_text(row),
+            ),
+        )
+    record_dataset(conn, "strength-scanner", path, payload, len(rows))
+    return len(rows)
+
+
+def import_market_temperature(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "market-temperature.json"
+    payload = read_json(path)
+    rows = payload.get("indicators") or []
+    for row in rows:
+        key = text_value(row.get("key") or row.get("name"))
+        if not key:
+            continue
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO market_temperature_indicators
+            (indicator_key, as_of, name, category, impact, value_label, previous_label,
+             change_label, status, level, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                key,
+                text_value(row.get("asOf") or payload.get("asOf")),
+                text_value(row.get("name")),
+                text_value(row.get("category")),
+                text_value(row.get("impact")),
+                text_value(row.get("value")),
+                text_value(row.get("previous")),
+                text_value(row.get("change")),
+                text_value(row.get("status")),
+                text_value(row.get("level")),
+                json_text(row),
+            ),
+        )
+    record_dataset(conn, "market-temperature", path, payload, len(rows))
+    return len(rows)
+
+
+def import_options_flow(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "options-flow-snapshot.json"
+    payload = read_json(path)
+    count = 0
+    for board, rows in (payload.get("boards") or {}).items():
+        if not isinstance(rows, list):
+            continue
+        for rank, row in enumerate(rows, start=1):
+            ticker = symbol_value(row.get("ticker") or row.get("symbol"))
+            if not ticker:
+                continue
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO options_flow_rows
+                (board, rank, ticker, premium, payload_json)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (str(board), rank, ticker, float_value(row.get("premium")), json_text(row)),
+            )
+            count += 1
+    record_dataset(conn, "options-flow-snapshot", path, payload, count)
+    return count
+
+
+def import_raw_only(conn: sqlite3.Connection, names: Iterable[str]) -> None:
+    for name in names:
+        path = DATA_DIR / f"{name}.json"
+        payload = read_json(path)
+        record_dataset(conn, name, path, payload, 0)
+
+
+def build_database(output: Path) -> dict[str, int]:
+    output = output.resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(prefix=f".{output.name}.", suffix=".tmp", dir=output.parent, delete=False) as handle:
+        temp_path = Path(handle.name)
+    try:
+        if temp_path.exists():
+            temp_path.unlink()
+        conn = sqlite3.connect(temp_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            create_schema(conn)
+            counts = {
+                "market_board_rows": import_market_boards(conn),
+                "sector_flow_rows": import_sector_flow(conn),
+                "stock_event_rows": import_stock_events(conn),
+                "calendar_events": import_calendar(conn),
+                "earnings_quality_rows": import_earnings_quality(conn),
+                "strength_rows": import_strength(conn),
+                "market_temperature_indicators": import_market_temperature(conn),
+                "options_flow_rows": import_options_flow(conn),
+            }
+            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation"])
+            conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
+            conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('generated_at', ?)", (now_iso(),))
+            conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('source_data_dir', ?)", (str(DATA_DIR),))
+            conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('table_counts', ?)", (json_text(counts),))
+            conn.commit()
+            conn.execute("PRAGMA optimize")
+        finally:
+            conn.close()
+        os.replace(temp_path, output)
+        with sqlite3.connect(output) as verify:
+            verify_counts = {name: table_count(verify, name) for name in [
+                "symbols",
+                "market_board_rows",
+                "sector_flow_rows",
+                "stock_event_rows",
+                "calendar_events",
+                "earnings_quality_rows",
+                "strength_rows",
+                "market_temperature_indicators",
+                "options_flow_rows",
+            ]}
+        return verify_counts
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build the Dongbimao product SQLite database from data/*.json snapshots.")
+    parser.add_argument("--output", type=Path, default=Path(os.environ.get("PRODUCT_DB", DEFAULT_OUTPUT)))
+    args = parser.parse_args()
+    counts = build_database(args.output)
+    print(f"Product DB built: {args.output}")
+    for table, count in counts.items():
+        print(f"  {table}: {count}")
+
+
+if __name__ == "__main__":
+    main()

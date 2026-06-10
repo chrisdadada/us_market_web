@@ -1,5 +1,7 @@
 import http.cookiejar
 import json
+import sqlite3
+import subprocess
 import sys
 import tempfile
 import threading
@@ -171,6 +173,51 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertIn("tradable universe", sector_flow.get("source", ""))
         self.assertIn("fallbackReason", sector_flow)
         self.assertGreaterEqual(len(sector_flow.get("rows", [])), 8)
+
+    def test_product_database_builder_shape_is_present(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            db_path = Path(tempdir) / "product.db"
+            subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "build_product_db.py"), "--output", str(db_path)],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertTrue(db_path.exists())
+            with sqlite3.connect(db_path) as conn:
+                counts = {
+                    table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                    for table in (
+                        "symbols",
+                        "market_board_rows",
+                        "sector_flow_rows",
+                        "stock_event_rows",
+                        "calendar_events",
+                        "earnings_quality_rows",
+                        "strength_rows",
+                    )
+                }
+                self.assertGreaterEqual(counts["symbols"], 800)
+                self.assertGreaterEqual(counts["market_board_rows"], 800)
+                self.assertGreaterEqual(counts["sector_flow_rows"], 8)
+                self.assertGreaterEqual(counts["stock_event_rows"], 100)
+                self.assertGreaterEqual(counts["calendar_events"], 1)
+                self.assertGreaterEqual(counts["earnings_quality_rows"], 100)
+                self.assertGreaterEqual(counts["strength_rows"], 50)
+                schema_version = conn.execute(
+                    "SELECT value FROM product_db_info WHERE key = 'schema_version'"
+                ).fetchone()
+                self.assertIsNotNone(schema_version)
+                sample = conn.execute(
+                    """
+                    SELECT symbol, sector, market_cap_value
+                    FROM symbols
+                    WHERE symbol = 'MU'
+                    """
+                ).fetchone()
+                self.assertIsNotNone(sample)
+                self.assertTrue(sample[0])
 
     def test_frontend_routes_keep_inactive_pages_hidden(self) -> None:
         styles = (ROOT / "styles.css").read_text(encoding="utf-8")

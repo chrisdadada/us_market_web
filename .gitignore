@@ -25,6 +25,8 @@ build/
 market-data-lab/data/
 data/raw/
 data/processed/
+data/*.db
+data/*.db-*
 
 # Design and QA screenshots are useful locally but noisy in git.
 screenshots/

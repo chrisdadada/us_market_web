@@ -17,5 +17,6 @@ ${PYTHON_BIN} scripts/build_sector_flow.py
 ${PYTHON_BIN} scripts/build_product_data.py
 ${PYTHON_BIN} scripts/build_core_signals.py
 ${PYTHON_BIN} scripts/data_agent.py
+${PYTHON_BIN} scripts/build_product_db.py
 
 echo "Data update complete. Review data/*.json before deployment."
