@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260610-marketdesk1" />
+    <link rel="stylesheet" href="./styles.css?v=20260610-calendardesk1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1355,13 +1355,14 @@
 
           <section class="calendar-hero desk-panel" aria-label="财经日历摘要">
             <div class="calendar-hero-copy">
-              <span>本周事件</span>
+              <span>未来事件</span>
               <strong id="calendarHeroTitle">未来事件总览</strong>
-              <p id="calendarHeroLead">宏观和财报事件会按时间、影响等级和关联模块统一展示。</p>
+              <p id="calendarHeroLead">宏观事件和财报日期分开展示，先看时间，再看影响范围和相关资产。</p>
             </div>
             <div class="calendar-source-board">
               <div><span>宏观事件</span><strong id="calendarMacroStatus">--</strong></div>
               <div><span>财报日期</span><strong id="calendarEarningsStatus">--</strong></div>
+              <div><span>高影响</span><strong id="calendarHighImpactStatus">--</strong></div>
             </div>
           </section>
 
@@ -1369,22 +1370,46 @@
             <section class="calendar-main-panel desk-panel">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
-                  <span>官方事件日历</span>
-                  <strong>按时间、影响和关联模块排序</strong>
+                  <span>宏观事件</span>
+                  <strong>利率、通胀、就业和政策时间点</strong>
                 </div>
               </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
                 <table class="calendar-table data-table">
                   <thead>
                     <tr>
-                      <th>日期</th>
+                      <th>时间</th>
                       <th>事件</th>
-                      <th>关联</th>
+                      <th>资产 / 模块</th>
                       <th>影响</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEventBody">
                     <tr><td colspan="4">正在加载财经日历。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="calendar-earnings-panel desk-panel">
+              <div class="calendar-panel-head desk-panel-header">
+                <div>
+                  <span>财报日期</span>
+                  <strong>接下来需要确认的公司财报</strong>
+                </div>
+              </div>
+              <div class="table-wrap calendar-table-wrap desk-panel-body">
+                <table class="calendar-table data-table">
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>公司 / 事件</th>
+                      <th>关联</th>
+                      <th>影响</th>
+                    </tr>
+                  </thead>
+                  <tbody id="calendarEarningsBody">
+                    <tr><td colspan="4">暂无已接入财报日期。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1414,7 +1439,7 @@
 
             <aside class="calendar-impact-panel workspace-side">
               <section>
-                <h2>影响规则</h2>
+                <h2>事件影响映射</h2>
                 <div id="calendarImpactList" class="calendar-impact-list">
                   <p>加载后显示事件如何影响市场、风险、估值和股票库。</p>
                 </div>
@@ -2708,6 +2733,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260610-marketdesk1"></script>
+    <script src="./app.js?v=20260610-calendardesk1"></script>
   </body>
 </html>
