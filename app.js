@@ -862,6 +862,12 @@ const knownSectorRows = (rows = []) => {
   return filtered.length >= 5 ? filtered : rows;
 };
 
+const industrySectorRows = (rows = []) => {
+  const known = knownSectorRows(rows);
+  const filtered = known.filter((row) => normalizeSectorName(row.sector) !== "ETF");
+  return filtered.length >= 5 ? filtered : known;
+};
+
 const sectorDisplayName = (sector) => (isKnownSector(sector) ? normalizeSectorName(sector) : "板块待补");
 
 const formatChangeValue = (row) => {
@@ -2669,7 +2675,7 @@ const marketSectionContext = (section, rows) => {
   const downCount = Math.max(0, total - upCount);
   const top = rows[0];
   if (section === "sectors") {
-    const sectorRows = knownSectorRows(sectorFlowDisplayRows().length ? sectorFlowDisplayRows() : marketSectorStats(rows));
+    const sectorRows = industrySectorRows(sectorFlowDisplayRows().length ? sectorFlowDisplayRows() : marketSectorStats(rows));
     const topSector = sectorRows[0];
     const positiveCount = sectorRows.filter((item) => Number(item.netFlowProxy ?? item.avgChange) >= 0).length;
     const negativeCount = Math.max(0, sectorRows.length - positiveCount);
@@ -2765,6 +2771,7 @@ const renderFlowsPage = () => {
   const inflowList = document.querySelector("#flowsInflowList");
   const outflowList = document.querySelector("#flowsOutflowList");
   const balance = document.querySelector("#flowsMapBalance");
+  const directionMatrix = document.querySelector("#flowsDirectionMatrix");
   if (!body) return;
   const rows = sectorFlowDisplayRows();
   const stockRows = flowRows();
@@ -2787,7 +2794,7 @@ const renderFlowsPage = () => {
   setText(
     "#flowsHeroLead",
     top
-      ? `${top.status || "板块领先"}，上涨广度 ${Math.round(top.breadthPct || 0)}%，代表标的 ${(top.leaders || []).slice(0, 3).map((item) => item.symbol).join(" / ") || "--"}。`
+      ? `${top.status || "板块领先"}，上涨广度 ${Math.round(top.breadthPct || 0)}%，代表标的 ${(top.leaders || []).slice(0, 3).map((item) => item.symbol).join(" / ") || "--"}。这里的资金方向用成交额和涨跌方向估算。`
       : "用板块层面的成交活跃和涨跌广度判断资金偏好。",
   );
   setText("#flowsTopSymbol", top ? sectorDisplayName(top.sector) : "--");
@@ -2812,6 +2819,14 @@ const renderFlowsPage = () => {
       <i class="is-positive" style="width:${Math.max(4, inflowShare).toFixed(1)}%"></i>
       <i class="is-negative" style="width:${Math.max(4, 100 - inflowShare).toFixed(1)}%"></i>
     `;
+  }
+  if (directionMatrix) {
+    directionMatrix.innerHTML = renderMarketFlowMatrix(rows, getFilteredRows(), {
+      title: "板块资金矩阵",
+      note: "按成交额加权涨跌估算资金方向，再用上涨广度和龙头确认。",
+      limit: 8,
+      flowOpen: true,
+    });
   }
   const renderFlowMapList = (items, direction) => {
     const max = Math.max(...items.map((item) => Math.abs(Number(item.netFlowProxy) || 0)), 1);
@@ -5331,8 +5346,7 @@ const dashboardStrengthMix = () => {
 };
 
 const dashboardIndustryRows = (rows = []) => {
-  const filtered = knownSectorRows(rows).filter((item) => normalizeSectorName(item.sector) !== "ETF");
-  return filtered.length ? filtered : knownSectorRows(rows);
+  return industrySectorRows(rows);
 };
 
 const renderDashboardVisualBoard = () => {
@@ -6153,6 +6167,65 @@ const renderMarketSectorFocusList = (sectors, options = {}) => {
   `;
 };
 
+const marketSectorSignal = (item) => {
+  const flowValue = Number(item.netFlowProxy ?? item.avgChange) || 0;
+  const breadth = Number(item.breadthPct || 0);
+  if (flowValue > 0 && breadth >= 58) return { label: "流入扩散", className: "is-positive" };
+  if (flowValue > 0) return { label: "局部流入", className: "is-positive" };
+  if (flowValue < 0 && breadth <= 45) return { label: "流出扩散", className: "is-negative" };
+  if (flowValue < 0) return { label: "流出压力", className: "is-negative" };
+  return { label: "多空分歧", className: "is-neutral" };
+};
+
+const renderMarketFlowMatrix = (sectors, rows, options = {}) => {
+  const display = industrySectorRows(sectors).slice(0, options.limit || 8);
+  if (!display.length) return `<p class="market-flow-empty">等待板块资金矩阵。</p>`;
+  const maxAbsFlow = Math.max(...display.map((item) => Math.abs(Number(item.netFlowProxy ?? item.avgChange) || 0)), 1);
+  const title = options.title || "板块资金矩阵";
+  const note = options.note || "同一张表里看资金方向、上涨广度、成交活跃和龙头，避免只盯单一指标。";
+  const actionAttr = options.flowOpen ? "data-flow-sector-open" : "data-market-sector-pick";
+  return `
+    <div class="market-flow-matrix">
+      <header>
+        <div>
+          <span>${escapeHtml(title)}</span>
+          <strong>${escapeHtml(note)}</strong>
+        </div>
+        <em>绿=流入或上涨占优，红=流出或下跌占优</em>
+      </header>
+      <div class="market-flow-matrix-head">
+        <span>板块</span>
+        <span>资金方向</span>
+        <span>上涨广度</span>
+        <span>成交活跃</span>
+        <span>龙头</span>
+        <span>信号</span>
+      </div>
+      <div class="market-flow-matrix-body">
+        ${display.map((item) => {
+          const flowValue = Number(item.netFlowProxy ?? item.avgChange) || 0;
+          const tone = flowValue >= 0 ? "is-positive" : "is-negative";
+          const width = Math.max(5, (Math.abs(flowValue) / maxAbsFlow) * 100);
+          const detailRows = sectorDetailRows(rows, item.sector);
+          const leaders = (item.leaders?.length ? item.leaders : detailRows).slice(0, 3);
+          const leader = leaders[0];
+          const signal = marketSectorSignal(item);
+          return `
+            <button class="market-flow-matrix-row ${item.sector === state.selectedMarketSector ? "is-selected" : ""}" type="button" ${actionAttr}="${escapeHtml(item.sector)}">
+              <span><b>${escapeHtml(sectorDisplayName(item.sector))}</b><small>${escapeHtml(`${item.count || detailRows.length || 0}只样本`)}</small></span>
+              <span class="market-flow-bar ${tone}"><strong>${escapeHtml(item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong><i><b style="width:${width.toFixed(1)}%"></b></i></span>
+              <span class="market-flow-breadth"><strong>${escapeHtml(`${Math.round(item.breadthPct || 0)}%`)}</strong><small><b class="is-positive">${escapeHtml(`${item.upCount || 0}涨`)}</b>/<b class="is-negative">${escapeHtml(`${item.downCount || 0}跌`)}</b></small></span>
+              <span>${escapeHtml(item.activeValueLabel || formatCompactMoney(item.activeValue || item.dollarVolume || 0))}</span>
+              <span>${leader?.symbol ? `<b>${escapeHtml(leader.symbol)}</b><small class="${Number(leader.change) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(leader.change == null ? "--" : formatSignedPct(leader.change))}</small>` : "--"}</span>
+              <span class="${escapeHtml(signal.className)}">${escapeHtml(signal.label)}</span>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+};
+
 const sectorDetailRows = (rows, sector) =>
   knownSectorRows(rows)
     .filter((row) => (row.sector || "未分类") === sector)
@@ -6228,7 +6301,7 @@ const renderMarketSectorDetail = (rows, sectors) => {
 
 const renderMarketSectorRankingView = (rows) => {
   const flowSectors = sectorFlowDisplayRows();
-  const sectors = knownSectorRows(flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
+  const sectors = industrySectorRows(flowSectors.length ? flowSectors : marketSectorStats(rows)).slice(0, 12);
   const maxAbsFlow = Math.max(...sectors.map((item) => Math.abs(Number(item.netFlowProxy ?? item.avgChange) || 0)), 1);
   const positiveCount = sectors.filter((item) => Number(item.netFlowProxy ?? item.avgChange) >= 0).length;
   const negativeCount = sectors.length - positiveCount;
@@ -6249,8 +6322,9 @@ const renderMarketSectorRankingView = (rows) => {
           <div><span>流出板块</span><b class="is-negative">${escapeHtml(String(negativeCount))}</b></div>
           <div><span>成交最活跃</span><b>${escapeHtml(sectorDisplayName(activeSector?.sector))}</b></div>
         </div>
-        ${renderMarketSectorFocusList(sectors, { title: "主线排序", subtitle: "点击板块切换右侧详情，表格保留完整字段。" })}
+        ${renderMarketSectorFocusList(sectors, { title: "板块快选", subtitle: "切换右侧详情，查看该板块前排股票。" })}
       </div>
+      ${renderMarketFlowMatrix(sectors, rows, { title: "主线矩阵", note: "先看资金方向，再用广度和成交额确认是否是板块级主线。", limit: 8 })}
       <div class="market-sector-table-wrap">
         <table class="market-sector-terminal-table data-table">
           <thead>
@@ -6320,7 +6394,7 @@ const marketHeatmapIntensity = (change) => {
 };
 
 const renderMarketHeatmapView = (rows) => {
-  const displayRows = knownSectorRows(rows);
+  const displayRows = industrySectorRows(rows);
   const tiles = [...displayRows]
     .map((row) => ({ ...row, heatSize: marketHeatmapSize(row) }))
     .sort((a, b) => b.heatSize - a.heatSize)
@@ -6344,7 +6418,7 @@ const renderMarketHeatmapView = (rows) => {
     .slice(0, 8);
   const maxGroupHeat = Math.max(...sectorGroups.map((group) => group.heatSize), 1);
   const flowSectors = sectorFlowDisplayRows();
-  const detailSectors = knownSectorRows(flowSectors.length ? flowSectors : marketSectorStats(displayRows)).slice(0, 12);
+  const detailSectors = industrySectorRows(flowSectors.length ? flowSectors : marketSectorStats(displayRows)).slice(0, 12);
   if (!detailSectors.some((item) => item.sector === state.selectedMarketSector)) {
     state.selectedMarketSector = sectorGroups[0]?.sector || detailSectors[0]?.sector || "";
   }
@@ -6360,8 +6434,8 @@ const renderMarketHeatmapView = (rows) => {
           <div><span>下跌</span><b class="is-negative">${escapeHtml(String(downTiles))}</b></div>
           <div><span>热区板块</span><b>${escapeHtml(String(sectorCount))}</b></div>
         </div>
-        ${renderMarketSectorFocusList(detailSectors, { title: "板块热度", subtitle: "点击板块联动热力图详情，不离开当前页面。" })}
       </div>
+      ${renderMarketFlowMatrix(detailSectors, displayRows, { title: "热区矩阵", note: "把热力图里的成交集中度，落回板块资金和上涨广度。", limit: 5 })}
       <div class="market-heatmap-shell">
         <div class="market-heatmap-legend">
           <span><i class="is-up"></i>上涨</span>
