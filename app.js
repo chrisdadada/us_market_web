@@ -5820,17 +5820,7 @@ const marketSectorStats = (rows) => {
     .sort((a, b) => b.dollarVolume - a.dollarVolume || b.count - a.count || b.avgChange - a.avgChange);
 };
 
-const marketVisualTabs = () => `
-  <div class="market-visual-tabs" aria-label="市场视图">
-    ${[
-      ["overview", "市场概览"],
-      ["sectors", "板块排行"],
-      ["heatmap", "成交热力"],
-    ].map(([key, label]) => `
-      <button type="button" data-market-visual-mode="${key}" class="${state.marketVisualMode === key ? "is-active" : ""}" aria-pressed="${state.marketVisualMode === key ? "true" : "false"}">${label}</button>
-    `).join("")}
-  </div>
-`;
+const marketVisualTabs = () => "";
 
 const sectorDetailRows = (rows, sector) =>
   knownSectorRows(rows)
