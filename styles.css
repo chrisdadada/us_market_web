@@ -19008,6 +19008,161 @@ body .stock-fact-row .is-negative {
   color: var(--negative);
 }
 
+body .stock-research-workspace .stock-peer-workbench-table {
+  display: grid;
+  overflow-x: auto;
+  border-top: 1px solid rgba(128, 151, 183, 0.12);
+  -webkit-overflow-scrolling: touch;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row {
+  display: grid;
+  grid-template-columns: 54px 92px minmax(220px, 1fr) 72px 72px 72px 104px 104px 112px;
+  min-width: 920px;
+  min-height: 42px;
+  align-items: center;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.1);
+  background: rgba(7, 12, 21, 0.3);
+  color: #dce7f5;
+  cursor: pointer;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row:hover {
+  background: rgba(53, 167, 255, 0.08);
+}
+
+body .stock-research-workspace .stock-peer-workbench-row.is-current {
+  background: rgba(53, 167, 255, 0.1);
+  box-shadow: inset 2px 0 0 #35a7ff;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row.is-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 34px;
+  background: #09111e;
+  cursor: default;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row > * {
+  display: block;
+  overflow: hidden;
+  min-width: 0;
+  border-right: 1px solid rgba(128, 151, 183, 0.08);
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 10px;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row > *:last-child {
+  border-right: 0;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row.is-head > * {
+  color: #8fa0b8;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row b,
+body .stock-research-workspace .stock-peer-workbench-row em,
+body .stock-research-workspace .stock-peer-workbench-row small {
+  font-style: normal;
+  font-weight: 620;
+  text-align: right;
+}
+
+body .stock-research-workspace .stock-peer-workbench-row b.is-positive,
+body .stock-research-workspace .stock-detail-fact-table .is-positive {
+  color: var(--positive);
+}
+
+body .stock-research-workspace .stock-peer-workbench-row b.is-negative,
+body .stock-research-workspace .stock-detail-fact-table .is-negative {
+  color: var(--negative);
+}
+
+body .stock-research-workspace .stock-peer-rank {
+  color: #75869d;
+  font-weight: 620;
+}
+
+body .stock-research-workspace .stock-peer-symbol strong {
+  display: block;
+  color: #eef4ff;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+body .stock-research-workspace .stock-peer-symbol small {
+  display: block;
+  margin-top: 2px;
+  color: #7f8da2;
+  font-size: 10px;
+  font-weight: 560;
+  text-align: left;
+}
+
+body .stock-research-workspace .stock-peer-company {
+  color: #aab7c8;
+}
+
+body .stock-research-workspace .stock-detail-fact-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid rgba(128, 151, 183, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+body .stock-research-workspace .stock-detail-fact-table th,
+body .stock-research-workspace .stock-detail-fact-table td {
+  height: 38px;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.1);
+  color: #8797ad;
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+body .stock-research-workspace .stock-detail-fact-table thead th {
+  height: 30px;
+  background: rgba(128, 151, 183, 0.06);
+  color: #7f90a8;
+  font-weight: 620;
+}
+
+body .stock-research-workspace .stock-detail-fact-table tbody th {
+  width: 92px;
+  color: #8fa0b8;
+  font-weight: 620;
+}
+
+body .stock-research-workspace .stock-detail-fact-table td:nth-child(2) {
+  width: 32%;
+}
+
+body .stock-research-workspace .stock-detail-fact-table strong {
+  display: block;
+  overflow: hidden;
+  color: #eef4ff;
+  font-size: 12px;
+  font-weight: 660;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .stock-research-workspace .stock-detail-fact-table tr:last-child th,
+body .stock-research-workspace .stock-detail-fact-table tr:last-child td {
+  border-bottom: 0;
+}
+
 /* Watchlist terminal pass: convert card pile into a compact review queue. */
 body .watchlist-view .watchlist-daily-plan,
 body .watchlist-view .watchlist-panel,

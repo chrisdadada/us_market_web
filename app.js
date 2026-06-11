@@ -3490,25 +3490,28 @@ const renderStockHub = (symbol) => {
     const peerRank = peerRankMap.get(peerSymbol);
     const rankText = isTarget ? "本股" : String(peerRank || "--").padStart(2, "0");
     return `
-      <button class="stock-terminal-row ${isTarget ? "is-current" : ""}" type="button" data-stock-open="${escapeHtml(peerSymbol)}">
-        <i>${escapeHtml(rankText)}</i>
-        <strong>${escapeHtml(peerSymbol)}</strong>
-        <span>${escapeHtml(peer.company || peer.name || peer.chineseName || peerSymbol)}</span>
+      <div class="stock-peer-workbench-row ${isTarget ? "is-current" : ""}" data-stock-open="${escapeHtml(peerSymbol)}" role="button" tabindex="0">
+        <span class="stock-peer-rank">${escapeHtml(rankText)}</span>
+        <span class="stock-peer-symbol">
+          <strong>${escapeHtml(peerSymbol)}</strong>
+          <small>${escapeHtml(isTarget ? "当前标的" : `板块第 ${peerRank || "--"}`)}</small>
+        </span>
+        <span class="stock-peer-company">${escapeHtml(peer.company || peer.name || peer.chineseName || peerSymbol)}</span>
         <b class="${signedNumberClass(dayChange)}">${escapeHtml(Number.isFinite(dayChange) ? formatSignedPct(dayChange) : "--")}</b>
         <b class="${signedNumberClass(weekChange)}">${escapeHtml(Number.isFinite(weekChange) ? formatSignedPct(weekChange) : "--")}</b>
         <b class="${signedNumberClass(monthChange)}">${escapeHtml(Number.isFinite(monthChange) ? formatSignedPct(monthChange) : "--")}</b>
         <em>${escapeHtml(peer.marketCap || "--")}</em>
         <small>${escapeHtml(formatVolumeRatioLabel(volumeRow?.volumeRatio || peer.volumeRatio) || volumeRow?.volume || "--")}</small>
         <small>${escapeHtml(note)}</small>
-      </button>
+      </div>
     `;
   };
   const stockFactRow = (label, value, note, className = "") => `
-    <div class="stock-fact-row">
-      <span>${escapeHtml(label)}</span>
-      <strong class="${escapeHtml(className)}">${escapeHtml(value || "--")}</strong>
-      <p>${escapeHtml(note || "--")}</p>
-    </div>
+    <tr>
+      <th scope="row">${escapeHtml(label)}</th>
+      <td><strong class="${escapeHtml(className)}">${escapeHtml(value || "--")}</strong></td>
+      <td>${escapeHtml(note || "--")}</td>
+    </tr>
   `;
   const calendarFactValue = nextCalendarRow
     ? `${formatDisplayDate(nextCalendarRow.date)} · ${eventTypeLabel(nextCalendarRow.type)}`
@@ -3682,8 +3685,8 @@ const renderStockHub = (symbol) => {
           </div>
           <em>${escapeHtml(sectorRankText)}</em>
         </div>
-        <div class="stock-terminal-table stock-terminal-peer-table">
-          <div class="stock-terminal-row is-head">
+        <div class="stock-peer-workbench-table" role="table" aria-label="同板块可比股票">
+          <div class="stock-peer-workbench-row is-head" role="row">
             <span>排序</span>
             <span>代码</span>
             <span>公司</span>
@@ -3722,17 +3725,17 @@ const renderStockHub = (symbol) => {
         <div class="stock-fact-matrix">
           <section>
             <h3>日程 / 财报事实</h3>
-            <div class="stock-fact-table">
-              <div class="stock-fact-row is-head"><span>字段</span><strong>当前值</strong><p>解读</p></div>
-              ${eventFactRows}
-            </div>
+            <table class="stock-detail-fact-table">
+              <thead><tr><th>字段</th><th>当前值</th><th>解读</th></tr></thead>
+              <tbody>${eventFactRows}</tbody>
+            </table>
           </section>
           <section class="stock-risk-facts">
             <h3>资金 / 风险</h3>
-            <div class="stock-fact-table">
-              <div class="stock-fact-row is-head"><span>字段</span><strong>当前值</strong><p>解读</p></div>
-              ${flowFactRows}
-            </div>
+            <table class="stock-detail-fact-table">
+              <thead><tr><th>字段</th><th>当前值</th><th>解读</th></tr></thead>
+              <tbody>${flowFactRows}</tbody>
+            </table>
           </section>
         </div>
       </article>
