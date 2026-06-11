@@ -18301,6 +18301,76 @@ body .stock-terminal-grid {
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
 }
 
+body .stock-move-link-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(9, 16, 28, 0.9);
+  margin-bottom: 10px;
+}
+
+body .stock-move-link-panel article {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  border-right: 1px solid rgba(128, 151, 183, 0.14);
+  padding: 11px 12px;
+}
+
+body .stock-move-link-panel article:last-child {
+  border-right: 0;
+}
+
+body .stock-move-link-panel div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body .stock-move-link-panel span {
+  color: #8fa0b8;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+body .stock-move-link-panel strong {
+  overflow: hidden;
+  color: #eef4ff;
+  font-size: 14px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .stock-move-link-panel p,
+body .stock-move-link-panel small {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 7px 0 0;
+  color: #8494aa;
+  font-size: 12px;
+  line-height: 1.38;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body .stock-move-link-panel small {
+  color: #718299;
+  font-size: 11px;
+}
+
+body .stock-move-link-panel .is-positive {
+  color: var(--positive);
+}
+
+body .stock-move-link-panel .is-negative {
+  color: var(--negative);
+}
+
 body .stock-terminal-panel {
   border-radius: 4px;
 }
@@ -18748,6 +18818,24 @@ body .watchlist-actions-cell .icon-action {
 @media (max-width: 760px) {
   body .stock-research-workspace .stock-terminal-grid {
     grid-template-columns: 1fr;
+  }
+
+  body .stock-research-workspace .stock-move-link-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body .stock-research-workspace .stock-move-link-panel article {
+    min-height: 132px;
+    border-right: 1px solid rgba(128, 151, 183, 0.14);
+    border-bottom: 1px solid rgba(128, 151, 183, 0.14);
+  }
+
+  body .stock-research-workspace .stock-move-link-panel article:nth-child(2n) {
+    border-right: 0;
+  }
+
+  body .stock-research-workspace .stock-move-link-panel article:nth-last-child(-n + 2) {
+    border-bottom: 0;
   }
 
   body .stock-research-workspace .stock-terminal-table {

@@ -3309,6 +3309,12 @@ const renderStockHub = (symbol) => {
     if (marketCapNumber(peer.marketCap) && marketCapNumber(marketCapText) && marketCapNumber(peer.marketCap) > marketCapNumber(marketCapText)) return "大市值参照";
     return "同板块参照";
   };
+  const stockMoveRow = targetPeerRow;
+  const moveInsight = marketMoveExplanation(stockMoveRow, volume);
+  const sectorUpCount = sectorRankRows.filter((row) => getChange(row) >= 0).length;
+  const sectorDownCount = Math.max(0, sectorRankRows.length - sectorUpCount);
+  const sectorBreadthText = sectorRankRows.length ? `${Math.round((sectorUpCount / sectorRankRows.length) * 100)}%上涨` : "--";
+  const sectorLeaderText = strongestPeer ? `${strongestPeer.symbol} ${formatChangeValue(strongestPeer)}` : "--";
   const eventSummary = eventRow
     ? `${displayEventLabel(eventRow, eventTypeLabel(eventRow.eventType))} · ${eventRow.eventDate || "日期待补"}`
     : "暂无事件线索";
@@ -3484,6 +3490,41 @@ const renderStockHub = (symbol) => {
         <span>风险与下一步</span>
         <strong>${escapeHtml(`${priority.score}分 · ${verdict}`)}</strong>
         <p>${escapeHtml(reviewPlan)}。${escapeHtml(research.risk)}</p>
+      </article>
+    </section>
+
+    <section class="stock-move-link-panel" aria-label="行情异动联动">
+      <article>
+        <div>
+          <span>异动解释</span>
+          <strong class="${escapeHtml(moveInsight.tone)}">${escapeHtml(moveInsight.title)}</strong>
+        </div>
+        <p>${escapeHtml(moveInsight.reasons.join(" / ") || "暂无明确异动标签")}</p>
+        <small>${escapeHtml(moveInsight.note)}</small>
+      </article>
+      <article>
+        <div>
+          <span>板块线索</span>
+          <strong>${escapeHtml(profile.sector)}</strong>
+        </div>
+        <p><b class="${sectorUpCount >= sectorDownCount ? "is-positive" : "is-negative"}">${escapeHtml(sectorBreadthText)}</b> · ${escapeHtml(`${sectorUpCount}涨/${sectorDownCount}跌`)}</p>
+        <small>板块龙头 ${escapeHtml(sectorLeaderText)} · 本股位置 ${escapeHtml(sectorRankText)}</small>
+      </article>
+      <article>
+        <div>
+          <span>成交额说明</span>
+          <strong>${escapeHtml(volumeRatioText)}</strong>
+        </div>
+        <p>${escapeHtml(`${volumeSummary.label} · 板块资金 ${sectorFlowDetailData.netFlow}`)}</p>
+        <small>${escapeHtml(`活跃成交 ${sectorFlowDetailData.activeValue} · 广度 ${sectorFlowDetailData.breadth}`)}</small>
+      </article>
+      <article>
+        <div>
+          <span>下一步动作</span>
+          <strong>${escapeHtml(`${priority.score}分`)}</strong>
+        </div>
+        <p>${escapeHtml(reviewPlan)}</p>
+        <small>${escapeHtml(priority.reason || "等待更多数据")}</small>
       </article>
     </section>
 
