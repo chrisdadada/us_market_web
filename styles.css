@@ -517,10 +517,16 @@ body.is-sidebar-collapsed .app-sidebar {
 }
 
 .global-search-group {
-  padding: 10px 12px 6px;
+  border-top: 1px solid rgba(128, 151, 183, 0.12);
+  background: rgba(7, 12, 21, 0.68);
+  padding: 8px 12px 6px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 620;
+}
+
+.global-search-group:first-child {
+  border-top: 0;
 }
 
 .global-search-result {
@@ -549,7 +555,7 @@ body.is-sidebar-collapsed .app-sidebar {
   color: #dce8f6;
   margin: 0;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 620;
 }
 
 .global-search-result span {
@@ -565,7 +571,7 @@ body.is-sidebar-collapsed .app-sidebar {
   color: #aebcd0;
   font-size: 12px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 620;
   text-align: right;
 }
 
@@ -586,6 +592,11 @@ body.is-sidebar-collapsed .app-sidebar {
     "symbol calendar sources";
   row-gap: 5px;
   background: linear-gradient(180deg, rgba(12, 19, 33, 0.98), rgba(8, 13, 23, 0.98));
+}
+
+.global-search-compact-result {
+  min-height: 44px;
+  grid-template-columns: 108px minmax(0, 1fr) 72px;
 }
 
 .global-search-stock-result strong {

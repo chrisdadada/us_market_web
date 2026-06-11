@@ -1731,9 +1731,76 @@ const globalPageSearchItems = () =>
       searchText: [item.title, item.nav, item.kicker, item.summary].join(" ").toLowerCase(),
     }));
 
+const globalSectorSearchItems = () =>
+  dashboardIndustryRows(sectorFlowDisplayRows())
+    .map((item) => ({
+      type: "sector",
+      sector: item.sector,
+      title: sectorDisplayName(item.sector),
+      summary: `${item.status || "板块资金观察"} · ${Math.round(item.breadthPct || 0)}%上涨`,
+      metric: item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel),
+      tone: Number(item.netFlowProxy ?? item.avgChange) >= 0 ? "is-positive" : "is-negative",
+      searchText: [item.sector, sectorDisplayName(item.sector), item.status, ...(item.leaders || []).map((leader) => leader.symbol)].join(" ").toLowerCase(),
+    }));
+
+const globalCalendarSearchItems = () =>
+  calendarRows()
+    .filter((item) => item.type !== "manual")
+    .slice(0, 120)
+    .map((item) => ({
+      type: "calendar",
+      id: item.id || `${item.date}-${item.title}`,
+      title: item.title || "财经日历",
+      summary: `${eventTypeLabel(item.type)} · ${calendarDayDistanceLabel(item)} · ${calendarScopeText(item)}`,
+      metric: eventImpactLabel(item.impact),
+      tone: item.impact === "high" ? "is-negative" : item.impact === "medium" ? "is-neutral" : "",
+      searchText: [
+        item.title,
+        item.summary,
+        item.sourceName,
+        item.type,
+        eventTypeLabel(item.type),
+        eventImpactLabel(item.impact),
+        ...splitReferenceList(item.relatedAssets),
+        ...splitReferenceList(item.relatedModules),
+      ].join(" ").toLowerCase(),
+    }));
+
+const globalEventSearchItems = () =>
+  allEventRows()
+    .slice(0, 120)
+    .map((item) => {
+      const symbol = normalizeStockSymbol(item.ticker || item.symbol);
+      const label = displayEventLabel(item, "股票事件");
+      return {
+        type: "event",
+        symbol,
+        title: symbol ? `${symbol} · ${label}` : label,
+        summary: eventReasonForUser(item),
+        metric: item.eventDate ? formatDisplayDate(item.eventDate) : "事件",
+        tone: "is-neutral",
+        searchText: [symbol, item.companyName, item.company, label, item.reason, item.eventType, eventReasonForUser(item)].join(" ").toLowerCase(),
+      };
+    });
+
+const filterGlobalSearchItems = (items, clean, limit) =>
+  items
+    .map((item) => {
+      const text = item.searchText || "";
+      const title = String(item.title || item.sector || item.symbol || "").toLowerCase();
+      const exact = title === clean;
+      const starts = title.startsWith(clean);
+      const includes = text.includes(clean);
+      if (!exact && !starts && !includes) return null;
+      return { ...item, score: exact ? 0 : starts ? 1 : 2 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score || String(a.title || a.symbol || "").localeCompare(String(b.title || b.symbol || "")))
+    .slice(0, limit);
+
 const globalSearchResults = (query) => {
   const clean = String(query || "").trim().toLowerCase();
-  if (!clean) return { stocks: [], pages: [] };
+  if (!clean) return { stocks: [], sectors: [], calendar: [], events: [], pages: [] };
   const dbSearch = state.globalSearchStocks?.key === clean ? state.globalSearchStocks : null;
   const stocks = dbSearch?.ok
     ? dbSearch.rows.slice(0, GLOBAL_SEARCH_LIMIT)
@@ -1748,10 +1815,11 @@ const globalSearchResults = (query) => {
       .filter(Boolean)
       .sort((a, b) => a.score - b.score || a.symbol.localeCompare(b.symbol))
       .slice(0, GLOBAL_SEARCH_LIMIT);
-  const pages = globalPageSearchItems()
-    .filter((item) => item.searchText.includes(clean))
-    .slice(0, 4);
-  return { stocks, pages };
+  const sectors = filterGlobalSearchItems(globalSectorSearchItems(), clean, 4);
+  const calendar = filterGlobalSearchItems(globalCalendarSearchItems(), clean, 4);
+  const events = filterGlobalSearchItems(globalEventSearchItems(), clean, 4);
+  const pages = filterGlobalSearchItems(globalPageSearchItems(), clean, 4);
+  return { stocks, sectors, calendar, events, pages };
 };
 
 const flattenGlobalResults = () =>
@@ -1779,6 +1847,29 @@ const openGlobalResult = (item) => {
   if (type === "page") {
     closeGlobalSearch();
     showPage(item.dataset.page);
+  }
+  if (type === "sector") {
+    closeGlobalSearch();
+    state.selectedMarketSector = item.dataset.sector || "";
+    state.marketWorkspaceSection = "sectors";
+    state.marketVisualMode = "sectors";
+    showPage("market", { hash: "#market/sectors" });
+    renderMarketVisualBoard();
+    return;
+  }
+  if (type === "calendar") {
+    closeGlobalSearch();
+    showPage("events");
+    return;
+  }
+  if (type === "event") {
+    closeGlobalSearch();
+    const symbol = item.dataset.symbol;
+    if (symbol) {
+      openStockHub(symbol);
+      return;
+    }
+    showPage("stock-events");
   }
 };
 
@@ -1812,6 +1903,9 @@ const ensureGlobalSearchContext = (query) => {
   }
   if (state.productCalendar === undefined && !state.loading.productCalendar) {
     loadProductCalendar().then(refreshIfCurrent);
+  }
+  if (!state.eventOpportunities && !state.loading.eventOpportunities) {
+    loadLazyDataset("eventOpportunities").then(refreshIfCurrent);
   }
 };
 
@@ -1851,7 +1945,7 @@ const renderGlobalSearchResults = () => {
     return;
   }
   ensureGlobalSearchContext(query);
-  const { stocks, pages } = globalSearchResults(query);
+  const { stocks, sectors, calendar, events, pages } = globalSearchResults(query);
   const queryKey = query.toLowerCase();
   const isLoadingStockSearch = state.loading.globalSearchStocks?.key === queryKey || (state.loading.searchUniverse && state.globalSearchStocks?.key === queryKey && state.globalSearchStocks?.ok === false);
   if (!stocks.length && isLoadingStockSearch) {
@@ -1866,13 +1960,13 @@ const renderGlobalSearchResults = () => {
     state.globalSearchIndex = -1;
     return;
   }
-  if (!stocks.length && !pages.length) {
+  if (!stocks.length && !sectors.length && !calendar.length && !events.length && !pages.length) {
     panel.hidden = false;
     input.setAttribute("aria-expanded", "true");
     panel.innerHTML = `
       <div class="global-search-empty">
         <strong>未找到匹配结果</strong>
-        <span>可以输入股票代码、公司名，或进入股票库查看覆盖范围。</span>
+        <span>可以输入股票代码、公司名、板块名、事件名称，或进入股票库查看覆盖范围。</span>
       </div>
     `;
     state.globalSearchIndex = -1;
@@ -1898,6 +1992,36 @@ const renderGlobalSearchResults = () => {
           </button>
         `;
       }).join("")}
+    ` : ""}
+    ${sectors.length ? `
+      <div class="global-search-group">板块</div>
+      ${sectors.map((item) => `
+        <button class="global-search-result global-search-compact-result" type="button" role="option" data-global-search-result data-result-type="sector" data-sector="${escapeHtml(item.sector)}">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span>${escapeHtml(item.summary)}</span>
+          <em class="${escapeHtml(item.tone)}">${escapeHtml(item.metric)}</em>
+        </button>
+      `).join("")}
+    ` : ""}
+    ${calendar.length ? `
+      <div class="global-search-group">财经日历</div>
+      ${calendar.map((item) => `
+        <button class="global-search-result global-search-compact-result" type="button" role="option" data-global-search-result data-result-type="calendar" data-calendar-id="${escapeHtml(item.id)}">
+          <strong>${escapeHtml(compactText(item.title, 14))}</strong>
+          <span>${escapeHtml(item.summary)}</span>
+          <em class="${escapeHtml(item.tone)}">${escapeHtml(item.metric)}</em>
+        </button>
+      `).join("")}
+    ` : ""}
+    ${events.length ? `
+      <div class="global-search-group">事件线索</div>
+      ${events.map((item) => `
+        <button class="global-search-result global-search-compact-result" type="button" role="option" data-global-search-result data-result-type="event" data-symbol="${escapeHtml(item.symbol)}">
+          <strong>${escapeHtml(compactText(item.title, 14))}</strong>
+          <span>${escapeHtml(compactText(item.summary, 58))}</span>
+          <em class="${escapeHtml(item.tone)}">${escapeHtml(item.metric)}</em>
+        </button>
+      `).join("")}
     ` : ""}
     ${pages.length ? `
       <div class="global-search-group">页面</div>
@@ -10153,6 +10277,13 @@ const bindEvents = () => {
       const item = event.target.closest("[data-global-search-result]");
       if (!item) return;
       event.preventDefault();
+      event.stopPropagation();
+    });
+    globalSearchResultsPanel.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-global-search-result]");
+      if (!item) return;
+      event.preventDefault();
+      event.stopPropagation();
       openGlobalResult(item);
     });
   }
@@ -10952,6 +11083,8 @@ const init = async () => {
   renderModuleGrid();
   renderDataStatus();
   bindEvents();
+  const globalSearchInput = document.querySelector("#globalSearchInput");
+  if (globalSearchInput?.value.trim()) renderGlobalSearchResults();
   await refreshAuth();
   showPage(getPageFromHash(), { syncHash: false });
   window.setTimeout(() => {
