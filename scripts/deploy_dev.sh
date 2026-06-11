@@ -26,8 +26,7 @@ ssh "${SERVER}" 'set -e
 rm -rf /opt/dongbimao-dev/*
 tar -xzf /tmp/dongbimao-site.tar.gz -C /opt/dongbimao-dev
 rm -rf /var/www/dongbimao-dev/*
-cp -a /opt/dongbimao-dev/index.html /opt/dongbimao-dev/styles.css /opt/dongbimao-dev/app.js /opt/dongbimao-dev/assets /opt/dongbimao-dev/data /opt/dongbimao-dev/mockups /var/www/dongbimao-dev/
-find /var/www/dongbimao-dev/data -maxdepth 1 -name "*.db*" -delete
+cp -a /opt/dongbimao-dev/index.html /opt/dongbimao-dev/styles.css /opt/dongbimao-dev/app.js /opt/dongbimao-dev/assets /opt/dongbimao-dev/mockups /var/www/dongbimao-dev/
 nginx -t
 systemctl reload nginx
 systemctl is-active ytd-gainers-auth >/dev/null

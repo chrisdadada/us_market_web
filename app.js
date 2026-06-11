@@ -1,18 +1,3 @@
-const DATA_URL = "./data/ytd-gainers.json?v=20260610-expand1";
-const MOVERS_URL = "./data/market-movers.json?v=20260610-expand1";
-const CORE_URL = "./data/core-signals.json?v=20260610-expand1";
-const STRENGTH_URL = "./data/strength-scanner.json?v=20260610-expand1";
-const STRENGTH_REVIEW_URL = "./data/strength-review.json?v=20260610-expand1";
-const SECTOR_FLOW_URL = "./data/sector-flow.json?v=20260610-expand1";
-const EARNINGS_QUALITY_URL = "./data/earnings-quality.json?v=20260610-expand1";
-const MARKET_TEMPERATURE_URL = "./data/market-temperature.json?v=20260610-expand1";
-const MACRO_SERIES_URL = "./data/macro-series.json?v=20260610-expand1";
-const EVENT_OPPORTUNITIES_URL = "./data/event-opportunities.json?v=20260610-expand1";
-const EVENTS_CALENDAR_URL = "./data/events-calendar.json?v=20260610-expand1";
-const VALIDATION_CENTER_URL = "./data/validation-center.json?v=20260610-expand1";
-const INDEX_VALUATION_URL = "./data/index-valuation.json?v=20260610-expand1";
-const OPTIONS_FLOW_URL = "./data/options-flow-snapshot.json?v=20260610-expand1";
-const SITE_DATA_INDEX_URL = "./data/site-data-index.json?v=20260610-expand1";
 const PRODUCT_API_BASE = "/api/product";
 const WATCHLIST_STORAGE_KEY = "meigu_strategy_watchlist_v1";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "meigu_strategy_sidebar_collapsed_v1";
@@ -386,31 +371,31 @@ const loadProductCalendar = () => {
 
 const lazyDatasets = {
   macroSeries: {
-    url: MACRO_SERIES_URL,
+    url: `${PRODUCT_API_BASE}/raw/macro-series`,
     render: (payload) => renderMacroSeries(payload),
   },
   indexValuation: {
-    url: INDEX_VALUATION_URL,
+    url: `${PRODUCT_API_BASE}/raw/index-valuation`,
     render: (payload) => renderIndexValuation(payload),
   },
   optionsFlow: {
-    url: OPTIONS_FLOW_URL,
+    url: `${PRODUCT_API_BASE}/raw/options-flow-snapshot`,
     render: (payload) => renderOptionsFlow(payload),
   },
   earningsQuality: {
-    url: EARNINGS_QUALITY_URL,
+    url: `${PRODUCT_API_BASE}/raw/earnings-quality`,
     render: (payload) => renderEarningsQuality(payload),
   },
   eventOpportunities: {
-    url: EVENT_OPPORTUNITIES_URL,
+    url: `${PRODUCT_API_BASE}/raw/event-opportunities`,
     render: (payload) => renderEventOpportunities(payload),
   },
   eventsCalendar: {
-    url: EVENTS_CALENDAR_URL,
+    url: `${PRODUCT_API_BASE}/raw/events-calendar`,
     render: (payload) => renderEventsCalendar(payload),
   },
   validationCenter: {
-    url: VALIDATION_CENTER_URL,
+    url: `${PRODUCT_API_BASE}/raw/validation-center`,
     render: (payload) => renderValidationCenter(payload),
   },
 };
@@ -1398,7 +1383,7 @@ const loadGlobalSearchUniverse = () => {
   state.loading.searchUniverse = loadProductSymbols()
     .then((productRows) => {
       if (productRows?.length) return productRows;
-      return fetchOptionalJson(SITE_DATA_INDEX_URL);
+      return productApiJson("/raw/site-data-index");
     })
     .then((payload) => {
       if (Array.isArray(payload)) {
@@ -8444,8 +8429,8 @@ const defaultCalendarImpactRules = [
   },
   {
     trigger: "财报指引上修",
-    effect: "进入股票事件和个股工作台，确认成交额、同板块扩散和价格承接。",
-    modules: ["股票事件", "个股详情"],
+    effect: "进入个股复盘，确认成交额、同板块扩散和价格承接。",
+    modules: ["个股复盘", "个股详情"],
   },
 ];
 
@@ -8455,8 +8440,9 @@ const calendarEventSort = (a, b) =>
 const renderCalendarRows = (events) =>
   events.map((item) => {
     const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
-    const relatedModules = (item.relatedModules || []).slice(0, 3).join(" / ");
     const relatedAssets = (item.relatedAssets || []).slice(0, 4).join(" / ");
+    const scopeText = relatedAssets || item.sourceName || eventTypeLabel(item.type);
+    const typeText = item.type === "earnings" ? "财报日期" : item.type === "macro" ? "宏观事件" : eventTypeLabel(item.type);
     const typeClass = item.type === "earnings" ? "is-earnings" : "is-macro";
     return `
       <tr class="calendar-event-row ${typeClass}">
@@ -8469,8 +8455,8 @@ const renderCalendarRows = (events) =>
           <p>${escapeHtml(item.summary || item.sourceName || "")}</p>
         </td>
         <td class="calendar-related-cell">
-          <strong>${escapeHtml(relatedAssets || item.sourceName || "--")}</strong>
-          <span>${escapeHtml(relatedModules || eventTypeLabel(item.type))}</span>
+          <strong>${escapeHtml(scopeText || "--")}</strong>
+          <span>${escapeHtml(typeText)}</span>
         </td>
         <td class="calendar-impact-cell"><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
       </tr>
@@ -9998,32 +9984,20 @@ const bindEvents = () => {
 };
 
 const init = async () => {
-  const [
-    ytdResponse,
-    moversResponse,
-    coreData,
-    strengthData,
-    strengthReviewData,
-    sectorFlowData,
-    marketTemperatureData,
-  ] = await Promise.all([
-    fetch(DATA_URL),
-    fetch(MOVERS_URL),
-    fetchOptionalJson(CORE_URL),
-    fetchOptionalJson(STRENGTH_URL),
-    fetchOptionalJson(STRENGTH_REVIEW_URL),
-    fetchOptionalJson(SECTOR_FLOW_URL),
-    fetchOptionalJson(MARKET_TEMPERATURE_URL),
-  ]);
-  const ytdData = await ytdResponse.json();
-  const moversData = await moversResponse.json();
+  const bootstrap = await productApiJson("/bootstrap");
+  if (!bootstrap?.ytd || !bootstrap?.movers) {
+    throw new Error("产品数据库启动数据不可用");
+  }
+  const ytdData = bootstrap.ytd;
+  const moversData = bootstrap.movers;
   state.watchlist = safeReadJson(WATCHLIST_STORAGE_KEY, []);
   initSidebarState();
-  state.core = coreData;
-  state.strength = strengthData;
-  state.strengthReview = strengthReviewData;
-  state.sectorFlow = sectorFlowData;
-  state.marketTemperature = marketTemperatureData;
+  state.productMeta = bootstrap.meta || null;
+  state.core = bootstrap.core;
+  state.strength = bootstrap.strength;
+  state.strengthReview = bootstrap.strengthReview;
+  state.sectorFlow = bootstrap.sectorFlow;
+  state.marketTemperature = bootstrap.marketTemperature;
   const knownRows = [
     ...ytdData.rows,
     ...moversData.boards.day.rows,

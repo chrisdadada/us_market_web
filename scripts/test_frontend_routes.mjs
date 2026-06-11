@@ -45,10 +45,134 @@ const flowsToMarketSectionCases = [
   { section: "flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
 ];
 
+async function readJson(relativePath) {
+  return JSON.parse(await readFile(join(root, relativePath), "utf8"));
+}
+
+function sendJson(response, payload, status = 200) {
+  response.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+  });
+  response.end(JSON.stringify(payload));
+}
+
+function normalizeProductSymbol(row) {
+  const symbol = String(row.symbol || row.ticker || "").toUpperCase();
+  return {
+    symbol,
+    company: row.company || row.companyName || row.name || row.chineseName || "",
+    chineseName: row.chineseName || "",
+    sector: row.sector || row.sectorProxy || "",
+    marketCap: row.marketCap || "",
+    marketCapValue: row.marketCapValue || null,
+    price: row.price || row.close || null,
+    dollarVolume: row.dollarVolume || row.dollarVolume20d || null,
+    volumeRatio: row.volumeRatio || "",
+    latestSource: row.latestSource || "test",
+    sources: row.sources || ["test"],
+    updatedAt: row.updatedAt || "",
+  };
+}
+
+function marketRow(row, board) {
+  const changeValue = board === "ytd" ? row.changeYtd : row.change;
+  return {
+    ...row,
+    board,
+    changePct: changeValue,
+    ...(board === "ytd" ? { changeYtd: changeValue } : { change: changeValue }),
+  };
+}
+
+async function productApiPayload(url) {
+  const ytd = await readJson("data/ytd-gainers.json");
+  const movers = await readJson("data/market-movers.json");
+  const sectorFlow = await readJson("data/sector-flow.json");
+  const calendar = await readJson("data/events-calendar.json");
+  const strength = await readJson("data/strength-scanner.json");
+  const eventOpportunities = await readJson("data/event-opportunities.json");
+  const earningsQuality = await readJson("data/earnings-quality.json");
+  const core = await readJson("data/core-signals.json");
+  const strengthReview = await readJson("data/strength-review.json");
+  const marketTemperature = await readJson("data/market-temperature.json");
+  const allMarketRows = [
+    ...(ytd.rows || []).map((row) => marketRow(row, "ytd")),
+    ...Object.entries(movers.boards || {}).flatMap(([board, payload]) => (payload.rows || []).map((row) => marketRow(row, board))),
+  ];
+  const symbolMap = new Map();
+  allMarketRows.forEach((row) => {
+    const symbol = String(row.symbol || "").toUpperCase();
+    if (symbol && !symbolMap.has(symbol)) symbolMap.set(symbol, normalizeProductSymbol(row));
+  });
+  (strength.rows || []).forEach((row) => {
+    const symbol = String(row.symbol || "").toUpperCase();
+    if (symbol && !symbolMap.has(symbol)) symbolMap.set(symbol, normalizeProductSymbol(row));
+  });
+
+  if (url.pathname === "/api/product/bootstrap") {
+    return {
+      meta: { schemaVersion: "test", generatedAt: ytd.updatedAt || movers.updatedAt || "", counts: {}, datasets: [] },
+      ytd: { ...ytd, rows: (ytd.rows || []).map((row) => marketRow(row, "ytd")) },
+      movers: {
+        ...movers,
+        boards: Object.fromEntries(
+          Object.entries(movers.boards || {}).map(([board, payload]) => [board, { ...payload, rows: (payload.rows || []).map((row) => marketRow(row, board)) }]),
+        ),
+      },
+      core,
+      strength,
+      strengthReview,
+      sectorFlow,
+      marketTemperature,
+    };
+  }
+
+  if (url.pathname.startsWith("/api/product/raw/")) {
+    const name = url.pathname.split("/").pop();
+    return readJson(`data/${name}.json`);
+  }
+
+  if (url.pathname === "/api/product/symbols") {
+    const query = String(url.searchParams.get("query") || url.searchParams.get("q") || "").toUpperCase();
+    const limit = Number(url.searchParams.get("limit") || 50);
+    const rows = [...symbolMap.values()]
+      .filter((row) => !query || row.symbol.includes(query) || String(row.company || "").toUpperCase().includes(query))
+      .sort((a, b) => a.symbol.localeCompare(b.symbol))
+      .slice(0, limit);
+    return { rows };
+  }
+
+  if (url.pathname.startsWith("/api/product/symbols/")) {
+    const symbol = url.pathname.split("/").pop().toUpperCase();
+    const profile = symbolMap.get(symbol) || normalizeProductSymbol({ symbol });
+    return {
+      profile,
+      marketRows: allMarketRows.filter((row) => String(row.symbol || "").toUpperCase() === symbol),
+      peers: [...symbolMap.values()].filter((row) => row.sector === profile.sector && row.symbol !== symbol).slice(0, 8),
+      events: Object.values(eventOpportunities.boards || {}).flatMap((board) => board.rows || []).filter((row) => String(row.ticker || row.symbol || "").toUpperCase() === symbol),
+      earnings: Object.values(earningsQuality.boards || {}).flatMap((board) => board.rows || []).filter((row) => String(row.ticker || row.symbol || "").toUpperCase() === symbol),
+      strength: (strength.rows || []).find((row) => String(row.symbol || "").toUpperCase() === symbol) || null,
+    };
+  }
+
+  if (url.pathname === "/api/product/sectors") return { rows: sectorFlow.rows || [] };
+  if (url.pathname === "/api/product/calendar") return { rows: calendar.events || [] };
+  if (url.pathname === "/api/product/market") {
+    const board = url.searchParams.get("board") || "ytd";
+    const rows = allMarketRows.filter((row) => row.board === board).slice(0, Number(url.searchParams.get("limit") || 100));
+    return { board, rows };
+  }
+  return { ok: true };
+}
+
 function startStaticServer() {
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://127.0.0.1");
+      if (url.pathname === "/api/product" || url.pathname.startsWith("/api/product/")) {
+        sendJson(response, await productApiPayload(url));
+        return;
+      }
       const requestedPath = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
       const filePath = normalize(join(root, requestedPath));
 

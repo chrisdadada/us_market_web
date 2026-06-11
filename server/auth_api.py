@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import sqlite3
 import time
@@ -222,7 +223,7 @@ def product_symbol_payload(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
-    return {
+    payload = {
         "board": row["board"],
         "rank": row["rank"],
         "symbol": row["symbol"],
@@ -239,6 +240,76 @@ def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
         "volumeRatio": row["volume_ratio"],
         "marketCap": row["market_cap_label"],
         "marketCapValue": row["market_cap_value"],
+    }
+    if row["board"] == "ytd":
+        payload["changeYtd"] = row["change_pct"]
+    else:
+        payload["change"] = row["change_pct"]
+    return payload
+
+
+def product_raw_payload(conn: sqlite3.Connection, name: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT payload_json FROM raw_payloads WHERE name = ?", (name,)).fetchone()
+    if not row:
+        return None
+    payload = parse_json_field(row["payload_json"], None)
+    return payload if isinstance(payload, dict) else None
+
+
+def product_market_board_payload(conn: sqlite3.Connection, board: str, limit: int = 500) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+        SELECT *
+        FROM market_board_rows
+        WHERE board = ?
+        ORDER BY rank ASC
+        LIMIT ?
+        """,
+        (board, limit),
+    ).fetchall()
+    return [product_market_row_payload(row) for row in rows]
+
+
+def product_bootstrap_payload(conn: sqlite3.Connection) -> dict[str, Any]:
+    meta = product_dataset_meta(conn)
+    ytd_raw = product_raw_payload(conn, "ytd-gainers") or {}
+    movers_raw = product_raw_payload(conn, "market-movers") or {}
+    core_raw = product_raw_payload(conn, "core-signals")
+    strength_raw = product_raw_payload(conn, "strength-scanner")
+    strength_review_raw = product_raw_payload(conn, "strength-review")
+    sector_flow_raw = product_raw_payload(conn, "sector-flow")
+    market_temperature_raw = product_raw_payload(conn, "market-temperature")
+    generated_at = meta.get("generatedAt")
+
+    ytd_rows = product_market_board_payload(conn, "ytd", 500)
+    ytd = {
+        **ytd_raw,
+        "updatedAt": ytd_raw.get("updatedAt") or generated_at,
+        "rows": ytd_rows,
+    }
+
+    raw_boards = movers_raw.get("boards") if isinstance(movers_raw.get("boards"), dict) else {}
+    boards: dict[str, Any] = {}
+    for board in ["day", "week", "month", "volume"]:
+        raw_board = raw_boards.get(board) if isinstance(raw_boards.get(board), dict) else {}
+        boards[board] = {
+            **raw_board,
+            "rows": product_market_board_payload(conn, board, 500),
+        }
+    movers = {
+        **movers_raw,
+        "updatedAt": movers_raw.get("updatedAt") or generated_at,
+        "boards": boards,
+    }
+    return {
+        "meta": meta,
+        "ytd": ytd,
+        "movers": movers,
+        "core": core_raw,
+        "strength": strength_raw,
+        "strengthReview": strength_review_raw,
+        "sectorFlow": sector_flow_raw,
+        "marketTemperature": market_temperature_raw,
     }
 
 
@@ -861,6 +932,9 @@ class Handler(BaseHTTPRequestHandler):
     def send_static(self, request_path: str) -> None:
         parsed = urlparse(request_path)
         raw_path = unquote(parsed.path)
+        if raw_path.startswith("/data/") and raw_path.endswith(".json"):
+            self.send_error(HTTPStatus.NOT_FOUND, "Static JSON datasets are not public")
+            return
         relative = raw_path.lstrip("/") or "index.html"
         candidate = (STATIC_ROOT / relative).resolve()
 
@@ -909,6 +983,22 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts) == 2 or (len(parts) == 3 and parts[2] in {"health", "meta"}):
                     meta = product_dataset_meta(conn)
                     self.send_json({"ok": True, **meta})
+                    return
+
+                if len(parts) >= 3 and parts[2] == "bootstrap":
+                    self.send_json(product_bootstrap_payload(conn))
+                    return
+
+                if len(parts) >= 4 and parts[2] == "raw":
+                    name = parts[3]
+                    if not re.fullmatch(r"[a-z0-9-]+", name):
+                        self.send_json({"error": "数据集名称不正确"}, HTTPStatus.BAD_REQUEST)
+                        return
+                    payload = product_raw_payload(conn, name)
+                    if payload is None:
+                        self.send_json({"error": "数据集不存在", "dataset": name}, HTTPStatus.NOT_FOUND)
+                        return
+                    self.send_json(payload)
                     return
 
                 if len(parts) >= 3 and parts[2] == "symbols":

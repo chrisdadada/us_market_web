@@ -772,7 +772,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "market_temperature_indicators": import_market_temperature(conn),
                 "options_flow_rows": import_options_flow(conn),
             }
-            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation"])
+            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review"])
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('generated_at', ?)", (now_iso(),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('source_data_dir', ?)", (str(DATA_DIR),))

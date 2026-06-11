@@ -135,24 +135,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertIn('data-page-link="earnings"', body)
         self.assertIn('data-page-link="options"', body)
 
-        with urllib.request.urlopen(self.base_url + "/data/earnings-quality.json", timeout=5) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-        self.assertEqual(response.status, 200)
-        quality_rows = payload["boards"]["quality"]["rows"]
-        self.assertGreaterEqual(payload["summary"]["coreCount"], 1)
-        self.assertGreaterEqual(len(quality_rows), 1)
-        row_tickers = {row["ticker"] for row in quality_rows if row.get("ticker")}
-        self.assertIn(payload["summary"]["coreLeader"], row_tickers)
-
-        with urllib.request.urlopen(self.base_url + "/data/options-flow-snapshot.json", timeout=5) as response:
-            options_payload = json.loads(response.read().decode("utf-8"))
-        self.assertEqual(response.status, 200)
-        self.assertTrue(options_payload["asOf"])
-        self.assertTrue(options_payload["meta"]["symbol"])
-        self.assertGreaterEqual(len(options_payload["timeline"]), 1)
-        self.assertGreaterEqual(len(options_payload["bullish"]), 1)
-        self.assertGreaterEqual(len(options_payload["bearish"]), 1)
-        self.assertEqual(options_payload["quality"]["directionality"], "unknown")
+        with self.assertRaises(urllib.error.HTTPError) as static_json:
+            urllib.request.urlopen(self.base_url + "/data/earnings-quality.json", timeout=5)
+        self.assertEqual(static_json.exception.code, 404)
 
     def test_market_data_expansion_shape_is_present(self) -> None:
         ytd = json.loads((ROOT / "data" / "ytd-gainers.json").read_text(encoding="utf-8"))
@@ -268,6 +253,35 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["board"], "day")
         self.assertEqual(len(payload["rows"]), 3)
+
+        status, payload = client.get("/api/product/bootstrap")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("ytd", payload)
+        self.assertIn("movers", payload)
+        self.assertIn("core", payload)
+        self.assertGreater(len(payload["ytd"]["rows"]), 100)
+        self.assertGreaterEqual(len(payload["movers"]["boards"]["day"]["rows"]), 3)
+
+        status, payload = client.get("/api/product/raw/macro-series")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("indicators", payload)
+
+        status, payload = client.get("/api/product/raw/earnings-quality")
+        self.assertEqual(status, 200, payload)
+        quality_rows = payload["boards"]["quality"]["rows"]
+        self.assertGreaterEqual(payload["summary"]["coreCount"], 1)
+        self.assertGreaterEqual(len(quality_rows), 1)
+        row_tickers = {row["ticker"] for row in quality_rows if row.get("ticker")}
+        self.assertIn(payload["summary"]["coreLeader"], row_tickers)
+
+        status, payload = client.get("/api/product/raw/options-flow-snapshot")
+        self.assertEqual(status, 200, payload)
+        self.assertTrue(payload["asOf"])
+        self.assertTrue(payload["meta"]["symbol"])
+        self.assertGreaterEqual(len(payload["timeline"]), 1)
+        self.assertGreaterEqual(len(payload["bullish"]), 1)
+        self.assertGreaterEqual(len(payload["bearish"]), 1)
+        self.assertEqual(payload["quality"]["directionality"], "unknown")
 
     def test_frontend_routes_keep_inactive_pages_hidden(self) -> None:
         styles = (ROOT / "styles.css").read_text(encoding="utf-8")
