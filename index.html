@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-dbapi1" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-stocks1" />
   </head>
   <body>
     <div class="app-shell">
@@ -2082,6 +2082,18 @@
                 <option value="unknown">待补充</option>
               </select>
             </label>
+            <label>
+              <span>排序</span>
+              <select id="stocksSortFilter">
+                <option value="dollarVolume">成交额</option>
+                <option value="dayChange">1D 涨跌</option>
+                <option value="weekChange">5D 涨跌</option>
+                <option value="monthChange">1M 涨跌</option>
+                <option value="ytdChange">YTD 涨跌</option>
+                <option value="marketCap">市值</option>
+                <option value="symbol">代码</option>
+              </select>
+            </label>
           </section>
 
           <div class="stocks-layout workspace-main">
@@ -2097,16 +2109,24 @@
                 <table class="data-table stocks-terminal-table">
                   <thead>
                     <tr>
-                      <th>股票</th>
-                      <th>行情</th>
+                      <th>代码</th>
+                      <th>公司</th>
+                      <th>板块</th>
+                      <th>市值</th>
+                      <th>价格</th>
+                      <th>1D</th>
+                      <th>5D</th>
+                      <th>1M</th>
+                      <th>YTD</th>
+                      <th>成交额</th>
+                      <th>异动</th>
                       <th>板块资金</th>
-                      <th>日程/事件</th>
-                      <th>研究看点</th>
+                      <th>日程</th>
                       <th>操作</th>
                     </tr>
                   </thead>
                   <tbody id="stocksTableBody">
-                    <tr><td colspan="6">正在加载股票库。</td></tr>
+                    <tr><td colspan="14">正在加载股票库。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -2749,6 +2769,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-dbapi1"></script>
+    <script src="./app.js?v=20260611-stocks1"></script>
   </body>
 </html>

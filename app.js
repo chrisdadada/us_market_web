@@ -78,6 +78,7 @@ const state = {
   stocksPresetFilter: "all",
   stocksSectorFilter: "all",
   stocksCapFilter: "all",
+  stocksSort: "dollarVolume",
   marketWorkspaceSection: "movers",
 };
 
@@ -1704,6 +1705,35 @@ const filteredStockLibraryRows = () => {
   });
 };
 
+const stockLibrarySortValue = (item, key) => {
+  if (key === "marketCap") return marketCapNumber(item.marketCap) || 0;
+  if (key === "symbol") return item.symbol || "";
+  return Number(item[key]);
+};
+
+const sortedStockLibraryRows = (rows) => {
+  const sortKey = state.stocksSort || "dollarVolume";
+  return rows.slice().sort((a, b) => {
+    if (sortKey === "symbol") return String(a.symbol || "").localeCompare(String(b.symbol || ""));
+    const left = stockLibrarySortValue(a, sortKey);
+    const right = stockLibrarySortValue(b, sortKey);
+    const leftScore = Number.isFinite(left) ? left : -Infinity;
+    const rightScore = Number.isFinite(right) ? right : -Infinity;
+    if (rightScore !== leftScore) return rightScore - leftScore;
+    return String(a.symbol || "").localeCompare(String(b.symbol || ""));
+  });
+};
+
+const stocksSortLabel = () => ({
+  dollarVolume: "成交额降序",
+  dayChange: "1D 涨跌降序",
+  weekChange: "5D 涨跌降序",
+  monthChange: "1M 涨跌降序",
+  ytdChange: "YTD 涨跌降序",
+  marketCap: "市值降序",
+  symbol: "代码升序",
+}[state.stocksSort] || "成交额降序");
+
 const renderStocksSectorOptions = (rows) => {
   const select = document.querySelector("#stocksSectorFilter");
   if (!select) return;
@@ -1803,6 +1833,24 @@ const stockLibrarySourceChips = (item) => {
     .join("");
 };
 
+const formatStockCellPct = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? formatSignedPct(number) : "--";
+};
+
+const stockPctClass = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return "";
+  return number > 0 ? "is-positive" : "is-negative";
+};
+
+const stocksCapLabel = (bucket) => {
+  if (bucket === "large") return "大盘";
+  if (bucket === "mid") return "中盘";
+  if (bucket === "small") return "小盘";
+  return "待补";
+};
+
 const renderStocksPage = () => {
   const body = document.querySelector("#stocksTableBody");
   if (!body) return;
@@ -1813,8 +1861,9 @@ const renderStocksPage = () => {
   }
   const allRows = stockLibraryRows();
   renderStocksSectorOptions(allRows);
-  const rows = filteredStockLibraryRows().slice(0, STOCK_LIBRARY_DISPLAY_LIMIT);
   const filteredRows = filteredStockLibraryRows();
+  const sortedRows = sortedStockLibraryRows(filteredRows);
+  const rows = sortedRows.slice(0, STOCK_LIBRARY_DISPLAY_LIMIT);
   const liquidCount = filteredRows.filter((item) => item.dollarVolume >= STOCK_LIQUID_DOLLAR_VOLUME_MIN).length;
   const eventCount = filteredRows.filter((item) => item.hasEvent).length;
   const qualityCount = filteredRows.filter((item) => item.qualityScore != null || item.qualityLabel).length;
@@ -1826,55 +1875,60 @@ const renderStocksPage = () => {
         ? "自选"
         : state.stocksPresetFilter === "event"
           ? "事件关联"
-          : "按成交额排序";
+          : stocksSortLabel();
   setText("#stocksResultLabel", label);
   setText("#stocksCurrentCount", label.replace(" · 成交额 $5M+", ""));
   setText("#stocksCurrentNote", rows.length < filteredRows.length ? `符合 ${formatNumber(filteredRows.length)} 只，表格显示前 ${rows.length} 只` : `符合 ${formatNumber(filteredRows.length)} 只`);
   setText("#stocksEventCount", `${formatNumber(eventCount)}只`);
   setText("#stocksQualityCount", `${formatNumber(qualityCount)}只`);
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="6">当前筛选下暂无结果。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14">当前筛选下暂无结果。</td></tr>`;
     return;
   }
   body.innerHTML = rows
     .map((item) => {
-      const changeClass = (value) => Number.isFinite(value) && value !== 0 ? (value > 0 ? "is-positive" : "is-negative") : "";
       const price = Number(item.price);
       const decision = stockLibraryDecision(item);
       const sectorFlow = stockLibrarySectorFlow(item);
       const calendar = stockLibraryCalendarSummary(item);
       const sourceChips = stockLibrarySourceChips(item);
-      const relativeClass = stockSignedClass(item.relativeStrength);
       const volumeRatioLabel = formatVolumeRatioLabel(item.volumeRatio);
+      const capLabelText = stocksCapLabel(item.capBucket);
       return `
         <tr>
-          <td class="stocks-symbol-cell stocks-profile-cell" data-label="股票">
+          <td class="stocks-symbol-cell" data-label="代码">
             <div class="stocks-profile-head">
               <button class="inline-stock-link stocks-symbol-link" type="button" data-stock-open="${escapeHtml(item.symbol)}">${escapeHtml(item.symbol)}</button>
               ${item.inWatchlist ? '<span class="stocks-mini-flag">自选</span>' : ""}
             </div>
-            <strong>${escapeHtml(item.name || "--")}</strong>
-            <p>${escapeHtml(sectorDisplayName(item.sector))} · ${escapeHtml(item.marketCap || "--")}</p>
             <div class="stocks-source-chips">${sourceChips}</div>
           </td>
-          <td class="stocks-market-cell" data-label="行情">
-            <strong>${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</strong>
-            <p>1D <b class="${escapeHtml(changeClass(item.dayChange))}">${escapeHtml(Number.isFinite(item.dayChange) ? formatSignedPct(item.dayChange) : "--")}</b> · 20D <b class="${escapeHtml(changeClass(item.monthChange))}">${escapeHtml(Number.isFinite(item.monthChange) ? formatSignedPct(item.monthChange) : "--")}</b> · YTD <b class="${escapeHtml(changeClass(item.ytdChange))}">${escapeHtml(Number.isFinite(item.ytdChange) ? formatSignedPct(item.ytdChange) : "--")}</b></p>
-            <small>成交额 ${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")} · 异动 ${escapeHtml(volumeRatioLabel)} · <em class="${escapeHtml(relativeClass)}">相对SPY ${escapeHtml(item.relativeStrength || "--")}</em></small>
+          <td class="stocks-company-cell" data-label="公司">
+            <strong>${escapeHtml(item.name || "--")}</strong>
+            <span>${escapeHtml(item.eventLabel || item.qualityLabel || item.strengthLabel || decision.title)}</span>
           </td>
+          <td class="stocks-sector-cell" data-label="板块">
+            <strong>${escapeHtml(sectorDisplayName(item.sector))}</strong>
+            <span>${escapeHtml(sectorFlow.breadth)}</span>
+          </td>
+          <td class="stocks-num-cell" data-label="市值">
+            <strong>${escapeHtml(item.marketCap || "--")}</strong>
+            <span>${escapeHtml(capLabelText)}</span>
+          </td>
+          <td class="stocks-num-cell" data-label="价格">${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</td>
+          <td class="stocks-num-cell ${escapeHtml(stockPctClass(item.dayChange))}" data-label="1D">${escapeHtml(formatStockCellPct(item.dayChange))}</td>
+          <td class="stocks-num-cell ${escapeHtml(stockPctClass(item.weekChange))}" data-label="5D">${escapeHtml(formatStockCellPct(item.weekChange))}</td>
+          <td class="stocks-num-cell ${escapeHtml(stockPctClass(item.monthChange))}" data-label="1M">${escapeHtml(formatStockCellPct(item.monthChange))}</td>
+          <td class="stocks-num-cell ${escapeHtml(stockPctClass(item.ytdChange))}" data-label="YTD">${escapeHtml(formatStockCellPct(item.ytdChange))}</td>
+          <td class="stocks-num-cell" data-label="成交额">${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")}</td>
+          <td class="stocks-num-cell" data-label="异动">${escapeHtml(volumeRatioLabel)}</td>
           <td class="stocks-flow-cell" data-label="板块资金">
             <strong class="${escapeHtml(sectorFlow.className)}">${escapeHtml(sectorFlow.netFlow)}</strong>
-            <p>${escapeHtml(sectorFlow.label)} · 广度 ${escapeHtml(sectorFlow.breadth)}</p>
-            <small>活跃成交 ${escapeHtml(sectorFlow.activeValue)}</small>
+            <span>${escapeHtml(sectorFlow.label)}</span>
           </td>
-          <td class="stocks-calendar-cell ${escapeHtml(calendar.className)}" data-label="日程/事件">
+          <td class="stocks-calendar-cell ${escapeHtml(calendar.className)}" data-label="日程">
             <strong>${escapeHtml(calendar.title)}</strong>
-            <p>${escapeHtml(calendar.meta)}</p>
-            <small>${escapeHtml(item.eventLabel || item.qualityLabel || item.strengthLabel || "暂无独立事件")}</small>
-          </td>
-          <td class="stocks-signal-cell ${escapeHtml(decision.className)}" data-label="研究看点">
-            <strong>${escapeHtml(decision.title)}</strong>
-            <span>${escapeHtml(decision.note)}</span>
+            <span>${escapeHtml(calendar.meta)}</span>
           </td>
           <td class="stocks-action-cell" data-label="操作">
             <button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button>
@@ -9380,14 +9434,17 @@ const bindEvents = () => {
       state.stocksPresetFilter = "all";
       state.stocksSectorFilter = "all";
       state.stocksCapFilter = "all";
+      state.stocksSort = "dollarVolume";
       const queryInput = document.querySelector("#stocksSearchInput");
       const preset = document.querySelector("#stocksPresetFilter");
       const sector = document.querySelector("#stocksSectorFilter");
       const cap = document.querySelector("#stocksCapFilter");
+      const sort = document.querySelector("#stocksSortFilter");
       if (queryInput) queryInput.value = "";
       if (preset) preset.value = "all";
       if (sector) sector.value = "all";
       if (cap) cap.value = "all";
+      if (sort) sort.value = "dollarVolume";
       renderStocksPage();
       return;
     }
@@ -9834,6 +9891,12 @@ const bindEvents = () => {
   const stocksCapFilter = document.querySelector("#stocksCapFilter");
   if (stocksCapFilter) stocksCapFilter.addEventListener("change", (event) => {
     state.stocksCapFilter = event.target.value;
+    renderStocksPage();
+  });
+
+  const stocksSortFilter = document.querySelector("#stocksSortFilter");
+  if (stocksSortFilter) stocksSortFilter.addEventListener("change", (event) => {
+    state.stocksSort = event.target.value;
     renderStocksPage();
   });
 
