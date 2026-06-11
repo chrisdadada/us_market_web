@@ -2178,6 +2178,13 @@ const stocksSortLabel = () => ({
   symbol: "代码升序",
 }[state.stocksSort] || "成交额降序");
 
+const setStocksSort = (sortKey) => {
+  state.stocksSort = sortKey || "dollarVolume";
+  const sort = document.querySelector("#stocksSortFilter");
+  if (sort) sort.value = state.stocksSort;
+  renderStocksPage();
+};
+
 const syncStocksTableSortState = () => {
   const table = document.querySelector(".stocks-terminal-table");
   if (!table) return;
@@ -2186,6 +2193,8 @@ const syncStocksTableSortState = () => {
   table.querySelectorAll("th[data-sort-column]").forEach((cell) => {
     const active = cell.dataset.sortColumn === sortKey;
     cell.classList.toggle("is-active-sort", active);
+    cell.setAttribute("role", "button");
+    cell.setAttribute("tabindex", "0");
     cell.setAttribute("aria-sort", active ? (sortKey === "symbol" ? "ascending" : "descending") : "none");
   });
 };
@@ -2307,6 +2316,84 @@ const stocksCapLabel = (bucket) => {
   return "待补";
 };
 
+const stockLibraryTopBy = (rows, key, direction = "desc", limit = 5) =>
+  rows
+    .filter((item) => Number.isFinite(Number(item[key])))
+    .slice()
+    .sort((a, b) => {
+      const delta = Number(b[key]) - Number(a[key]);
+      if (delta !== 0) return direction === "asc" ? -delta : delta;
+      return String(a.symbol || "").localeCompare(String(b.symbol || ""));
+    })
+    .slice(0, limit);
+
+const stockRankRow = (item, metric, className = "") => {
+  const value = metric === "volume"
+    ? formatCompactMoney(item.dollarVolume)
+    : metric === "ratio"
+      ? formatVolumeRatioLabel(item.volumeRatio)
+      : formatStockCellPct(item[metric]);
+  const subtitle = metric === "volume"
+    ? `${sectorDisplayName(item.sector)} · ${formatVolumeRatioLabel(item.volumeRatio)}`
+    : `${sectorDisplayName(item.sector)} · ${item.marketCap || "--"}`;
+  return `
+    <button class="stocks-rank-row" type="button" data-stock-open="${escapeHtml(item.symbol)}">
+      <strong>${escapeHtml(item.symbol)}</strong>
+      <span>${escapeHtml(compactText(item.name || sectorDisplayName(item.sector), 22))}</span>
+      <em class="${escapeHtml(className)}">${escapeHtml(value)}</em>
+      <small>${escapeHtml(subtitle)}</small>
+    </button>
+  `;
+};
+
+const renderStocksRankStrip = (rows) => {
+  const strip = document.querySelector("#stocksRankStrip");
+  if (!strip) return;
+  if (!rows.length) {
+    strip.innerHTML = `<div class="stocks-rank-empty">当前筛选下暂无可展示的榜单速览。</div>`;
+    return;
+  }
+  const gainers = stockLibraryTopBy(rows, "dayChange", "desc", 5).filter((item) => Number(item.dayChange) > 0);
+  const losers = stockLibraryTopBy(rows, "dayChange", "asc", 5).filter((item) => Number(item.dayChange) < 0);
+  const active = stockLibraryTopBy(rows, "dollarVolume", "desc", 5);
+  const panels = [
+    {
+      title: "涨幅前排",
+      note: "按当前筛选的 1D 涨幅排序",
+      rows: gainers,
+      metric: "dayChange",
+      className: "is-positive",
+    },
+    {
+      title: "跌幅前排",
+      note: "按当前筛选的 1D 跌幅排序",
+      rows: losers,
+      metric: "dayChange",
+      className: "is-negative",
+    },
+    {
+      title: "成交额前排",
+      note: "优先看资金关注度",
+      rows: active,
+      metric: "volume",
+      className: "",
+    },
+  ];
+  strip.innerHTML = panels.map((panel) => `
+    <article class="stocks-rank-panel">
+      <header>
+        <span>${escapeHtml(panel.title)}</span>
+        <em>${escapeHtml(panel.note)}</em>
+      </header>
+      <div>
+        ${panel.rows.length
+          ? panel.rows.map((item) => stockRankRow(item, panel.metric, panel.className)).join("")
+          : '<p class="stocks-rank-empty">暂无匹配标的。</p>'}
+      </div>
+    </article>
+  `).join("");
+};
+
 const renderStocksPage = () => {
   const body = document.querySelector("#stocksTableBody");
   if (!body) return;
@@ -2394,6 +2481,7 @@ const renderStocksPage = () => {
       : "财报日期源下一步接入，人工日志单独展示。",
   );
   setText("#stocksSortMetric", sortMetric);
+  renderStocksRankStrip(rows);
   if (!rows.length) {
     if (loadingCurrentApiRows && !state.productStockLibrary?.ok) {
       body.innerHTML = `<tr><td colspan="14">正在加载股票库。</td></tr>`;
@@ -10347,6 +10435,12 @@ const bindEvents = () => {
       renderStocksPage();
       return;
     }
+    const stockSortColumn = event.target.closest(".stocks-terminal-table th[data-sort-column]");
+    if (stockSortColumn) {
+      event.preventDefault();
+      setStocksSort(stockSortColumn.dataset.sortColumn);
+      return;
+    }
     const marketVisualMode = event.target.closest("[data-market-visual-mode]");
     if (marketVisualMode) {
       event.preventDefault();
@@ -10976,6 +11070,11 @@ const bindEvents = () => {
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeAuthModal();
+    const stockSortColumn = event.target.closest?.(".stocks-terminal-table th[data-sort-column]");
+    if (stockSortColumn && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      setStocksSort(stockSortColumn.dataset.sortColumn);
+    }
   });
 };
 
