@@ -3424,6 +3424,75 @@ const renderStockHub = (symbol) => {
     ["事件风险", eventRow?.risk || "暂无独立事件风险标签"],
     ["宏观背景", macroExposure.label || "按市场温度辅助判断"],
   ];
+  const signedNumberClass = (value) => {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number === 0) return "";
+    return number > 0 ? "is-positive" : "is-negative";
+  };
+  const peerBoardRow = (peer, board) => {
+    const peerSymbol = normalizeStockSymbol(peer?.symbol);
+    if (!peerSymbol) return null;
+    if (peerSymbol === target) {
+      return { day, week, month, volume, ytd }[board] || peer;
+    }
+    return getBoardRow(board, peerSymbol) || (board === "day" ? findMarketRow(peerSymbol) : null) || peer;
+  };
+  const renderPeerComparisonRow = (peer) => {
+    const peerSymbol = normalizeStockSymbol(peer.symbol);
+    const isTarget = peerSymbol === target;
+    const dayRow = peerBoardRow(peer, "day");
+    const weekRow = peerBoardRow(peer, "week");
+    const monthRow = peerBoardRow(peer, "month");
+    const volumeRow = peerBoardRow(peer, "volume");
+    const dayChange = getChange(dayRow || peer);
+    const weekChange = getChange(weekRow || {});
+    const monthChange = getChange(monthRow || {});
+    const note = peerTableNote(peer, isTarget);
+    const peerRank = peerRankMap.get(peerSymbol);
+    const rankText = isTarget ? "本股" : String(peerRank || "--").padStart(2, "0");
+    return `
+      <button class="stock-terminal-row ${isTarget ? "is-current" : ""}" type="button" data-stock-open="${escapeHtml(peerSymbol)}">
+        <i>${escapeHtml(rankText)}</i>
+        <strong>${escapeHtml(peerSymbol)}</strong>
+        <span>${escapeHtml(peer.company || peer.name || peer.chineseName || peerSymbol)}</span>
+        <b class="${signedNumberClass(dayChange)}">${escapeHtml(Number.isFinite(dayChange) ? formatSignedPct(dayChange) : "--")}</b>
+        <b class="${signedNumberClass(weekChange)}">${escapeHtml(Number.isFinite(weekChange) ? formatSignedPct(weekChange) : "--")}</b>
+        <b class="${signedNumberClass(monthChange)}">${escapeHtml(Number.isFinite(monthChange) ? formatSignedPct(monthChange) : "--")}</b>
+        <em>${escapeHtml(peer.marketCap || "--")}</em>
+        <small>${escapeHtml(formatVolumeRatioLabel(volumeRow?.volumeRatio || peer.volumeRatio) || volumeRow?.volume || "--")}</small>
+        <small>${escapeHtml(note)}</small>
+      </button>
+    `;
+  };
+  const stockFactRow = (label, value, note, className = "") => `
+    <div class="stock-fact-row">
+      <span>${escapeHtml(label)}</span>
+      <strong class="${escapeHtml(className)}">${escapeHtml(value || "--")}</strong>
+      <p>${escapeHtml(note || "--")}</p>
+    </div>
+  `;
+  const calendarFactValue = nextCalendarRow
+    ? `${formatDisplayDate(nextCalendarRow.date)} · ${eventTypeLabel(nextCalendarRow.type)}`
+    : "暂无直接日程";
+  const eventReturnClass = eventRow?.return20dPct == null ? "" : signedNumberClass(eventRow.return20dPct);
+  const targetUpsideClass = quality?.avgPriceTargetUpsidePct == null ? "" : signedNumberClass(quality.avgPriceTargetUpsidePct);
+  const eventFactRows = [
+    stockFactRow("财经日历", calendarFactValue, nextCalendarRow?.title || `直接 ${directCalendarCount} 条，宏观 ${macroCalendarCount} 条`),
+    stockFactRow("事件类型", eventRow ? displayEventLabel(eventRow) : "--", eventRow?.eventDate ? `事件日期 ${formatDisplayDate(eventRow.eventDate)}` : "暂无独立事件日期"),
+    stockFactRow("事件后20日", eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct), compactText(eventRow?.reason, 96) || "暂无事件表现数据", eventReturnClass),
+    stockFactRow("财报口径", quality?.userAngle || "--", compactText(quality?.userReason, 96) || "暂无财报摘要"),
+    stockFactRow("财报日期", earningsDateText, quality?.latestEarningsDate ? "来自财报观察或财经日历" : "等待财报日期接入"),
+    stockFactRow("目标空间", targetUpside, quality?.avgPriceTargetUpsidePct == null ? "暂无目标价空间数据" : "用于观察预期是否还有上修空间", targetUpsideClass),
+  ].join("");
+  const flowFactRows = [
+    stockFactRow("板块资金", sectorFlowDetailData.netFlow, `${sectorFlowDetailData.label} · 活跃成交 ${sectorFlowDetailData.activeValue}`, sectorFlowDetailData.className),
+    stockFactRow("上涨广度", sectorFlowDetailData.breadth, `${sectorUpCount}涨/${sectorDownCount}跌 · ${sectorBreadthText}`),
+    stockFactRow("成交额异动", volumeRatioText, `${volumeSummary.label} · ${volumeSummary.note}`),
+    stockFactRow("代表标的", sectorFlowLeaders.join(" / ") || "--", strongestPeer ? `板块领先 ${sectorLeaderText}` : "等待板块样本"),
+    ...riskFacts.map(([label, value]) => stockFactRow(label, compactText(value, 52) || "--", label === "宏观背景" ? macroExposure.note : "作为复盘过滤条件")),
+    stockFactRow("复盘动作", compactText(reviewPlan, 64) || "--", priority.reason || "等待更多数据"),
+    stockFactRow("数据口径", `${sourceCount}项数据`, `更新至 ${dataAsOf}`),
+  ].join("");
 
   setText("#stockHubSymbol", target);
   setText(
@@ -3579,30 +3648,16 @@ const renderStockHub = (symbol) => {
             <span>排序</span>
             <span>代码</span>
             <span>公司</span>
-            <span>涨跌</span>
+            <span>1D</span>
+            <span>5D</span>
+            <span>1M</span>
             <span>市值</span>
-            <span>成交</span>
+            <span>成交异动</span>
             <span>备注</span>
           </div>
           ${
             peerTableRows.length
-              ? peerTableRows.map((peer) => {
-                  const isTarget = normalizeStockSymbol(peer.symbol) === target;
-                  const change = getChange(peer);
-                  const note = peerTableNote(peer, isTarget);
-                  const peerRank = peerRankMap.get(normalizeStockSymbol(peer.symbol));
-                  return `
-                    <button class="stock-terminal-row ${isTarget ? "is-current" : ""}" type="button" data-stock-open="${escapeHtml(peer.symbol)}">
-                      <i>${escapeHtml(isTarget ? "本股" : String(peerRank || "--").padStart(2, "0"))}</i>
-                      <strong>${escapeHtml(peer.symbol)}</strong>
-                      <span>${escapeHtml(peer.company || peer.name || peer.chineseName || peer.symbol)}</span>
-                      <b class="${change >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatChangeValue(peer))}</b>
-                      <em>${escapeHtml(peer.marketCap || "--")}</em>
-                      <small>${escapeHtml(formatVolumeRatioLabel(peer.volumeRatio) || peer.volume || "--")}</small>
-                      <small>${escapeHtml(note)}</small>
-                    </button>
-                  `;
-                }).join("")
+              ? peerTableRows.map(renderPeerComparisonRow).join("")
               : `<div class="stock-terminal-empty">该标的暂无可比板块样本，先看自身行情、成交额和事件数据。</div>`
           }
         </div>
@@ -3627,29 +3682,18 @@ const renderStockHub = (symbol) => {
         </div>
         <div class="stock-fact-matrix">
           <section>
-            <h3>事件 / 财报</h3>
-            <dl>
-              <dt>事件类型</dt><dd>${escapeHtml(eventRow ? displayEventLabel(eventRow) : "--")}</dd>
-              <dt>事件日期</dt><dd>${escapeHtml(eventRow?.eventDate || "--")}</dd>
-              <dt>事件后20日</dt><dd class="${Number(eventRow?.return20dPct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct))}</dd>
-              <dt>事件理由</dt><dd>${escapeHtml(compactText(eventRow?.reason, 120) || "暂无明确事件")}</dd>
-              <dt>财报口径</dt><dd>${escapeHtml(quality?.userAngle || "--")}</dd>
-              <dt>财报日期</dt><dd>${escapeHtml(earningsDateText)}</dd>
-              <dt>目标空间</dt><dd class="${Number(quality?.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(targetUpside)}</dd>
-              <dt>财报理由</dt><dd>${escapeHtml(compactText(quality?.userReason, 120) || "暂无财报摘要")}</dd>
-            </dl>
+            <h3>日程 / 财报事实</h3>
+            <div class="stock-fact-table">
+              <div class="stock-fact-row is-head"><span>字段</span><strong>当前值</strong><p>解读</p></div>
+              ${eventFactRows}
+            </div>
           </section>
           <section class="stock-risk-facts">
             <h3>资金 / 风险</h3>
-            <dl>
-              <dt>板块资金</dt><dd class="${escapeHtml(sectorFlowDetailData.className)}">${escapeHtml(sectorFlowDetailData.netFlow)}</dd>
-              <dt>上涨广度</dt><dd>${escapeHtml(sectorFlowDetailData.breadth)}</dd>
-              <dt>活跃成交</dt><dd>${escapeHtml(sectorFlowDetailData.activeValue)}</dd>
-              <dt>代表标的</dt><dd>${escapeHtml(sectorFlowLeaders.join(" / ") || "--")}</dd>
-              ${riskFacts.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(compactText(value, 96) || "--")}</dd>`).join("")}
-              <dt>复盘动作</dt><dd>${escapeHtml(compactText(reviewPlan, 110) || "--")}</dd>
-              <dt>数据口径</dt><dd>${escapeHtml(`${sourceCount}项数据 · 更新至 ${dataAsOf}`)}</dd>
-            </dl>
+            <div class="stock-fact-table">
+              <div class="stock-fact-row is-head"><span>字段</span><strong>当前值</strong><p>解读</p></div>
+              ${flowFactRows}
+            </div>
           </section>
         </div>
       </article>

@@ -18381,7 +18381,7 @@ body .stock-terminal-head {
 }
 
 body .stock-terminal-peer-table .stock-terminal-row {
-  grid-template-columns: 42px 58px minmax(140px, 1fr) 66px 76px 66px 72px;
+  grid-template-columns: 42px 58px minmax(150px, 1fr) 58px 58px 58px 76px 78px 78px;
 }
 
 body .stock-terminal-table {
@@ -18391,7 +18391,7 @@ body .stock-terminal-table {
 }
 
 body .stock-terminal-peer-table .stock-terminal-row {
-  min-width: 590px;
+  min-width: 720px;
 }
 
 body .stock-terminal-row {
@@ -18420,6 +18420,14 @@ body .stock-terminal-row.is-head span:nth-child(n + 4) {
 
 body .stock-terminal-row small:last-child {
   color: #9fb0c6;
+}
+
+body .stock-terminal-row.is-head span:nth-child(4)::after,
+body .stock-terminal-row.is-head span:nth-child(7)::after,
+body .stock-terminal-row.is-head span:nth-child(8)::after {
+  content: " ↓";
+  color: #5d728d;
+  font-size: 10px;
 }
 
 body .stock-linked-calendar {
@@ -18569,18 +18577,66 @@ body .stock-fact-matrix .stock-risk-facts {
   grid-column: auto;
 }
 
-body .stock-fact-matrix dl {
-  grid-template-columns: 82px minmax(0, 1fr);
+body .stock-fact-table {
+  display: grid;
+  border: 1px solid rgba(128, 151, 183, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-body .stock-fact-matrix dt,
-body .stock-fact-matrix dd {
-  min-height: 26px;
-  padding: 6px 0;
+body .stock-fact-row {
+  display: grid;
+  grid-template-columns: 88px minmax(96px, 0.75fr) minmax(150px, 1.25fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.1);
+  padding: 7px 10px;
 }
 
-body .stock-fact-matrix dd {
-  white-space: normal;
+body .stock-fact-row:last-child {
+  border-bottom: 0;
+}
+
+body .stock-fact-row.is-head {
+  min-height: 30px;
+  background: rgba(128, 151, 183, 0.06);
+}
+
+body .stock-fact-row span,
+body .stock-fact-row.is-head strong,
+body .stock-fact-row.is-head p {
+  color: #7f90a8;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+body .stock-fact-row strong {
+  overflow: hidden;
+  color: #eef4ff;
+  font-size: 12px;
+  font-weight: 660;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .stock-fact-row p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #8797ad;
+  font-size: 11px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body .stock-fact-row .is-positive {
+  color: var(--positive);
+}
+
+body .stock-fact-row .is-negative {
+  color: var(--negative);
 }
 
 /* Watchlist terminal pass: convert card pile into a compact review queue. */
@@ -18844,8 +18900,8 @@ body .watchlist-actions-cell .icon-action {
   }
 
   body .stock-research-workspace .stock-terminal-peer-table .stock-terminal-row {
-    grid-template-columns: 44px 58px minmax(132px, 1fr) 64px 74px 66px 78px;
-    min-width: 560px;
+    grid-template-columns: 44px 58px minmax(132px, 1fr) 58px 58px 58px 74px 78px 78px;
+    min-width: 700px;
   }
 
   body .stock-research-workspace .stock-fact-matrix {
@@ -18882,6 +18938,10 @@ body .watchlist-actions-cell .icon-action {
 
   body .stock-fact-matrix section:last-child {
     border-bottom: 0;
+  }
+
+  body .stock-fact-row {
+    grid-template-columns: 82px minmax(90px, 0.8fr) minmax(128px, 1.2fr);
   }
 
   body .page-view[data-view="risk"] .macro-monitor-head,
