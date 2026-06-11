@@ -76,6 +76,7 @@ const state = {
   productSectors: null,
   productCalendar: null,
   productStockDetails: {},
+  globalSearchStocks: null,
   stocksQuery: "",
   stocksPresetFilter: "all",
   stocksSectorFilter: "all",
@@ -368,6 +369,34 @@ const loadProductStockLibrary = () => {
       if (state.loading.productStockLibrary?.key === key) delete state.loading.productStockLibrary;
     });
   state.loading.productStockLibrary = { key, promise };
+  return promise;
+};
+
+const loadGlobalStockSearch = (query) => {
+  const clean = String(query || "").trim();
+  const key = clean.toLowerCase();
+  if (!clean) return Promise.resolve({ key, rows: [], ok: true });
+  if (state.globalSearchStocks?.key === key) return Promise.resolve(state.globalSearchStocks);
+  if (state.loading.globalSearchStocks?.key === key) return state.loading.globalSearchStocks.promise;
+  const params = new URLSearchParams();
+  params.set("query", clean);
+  params.set("limit", String(GLOBAL_SEARCH_LIMIT));
+  params.set("sort", "dollarVolume");
+  const promise = productApiJson(`/symbols?${params.toString()}`)
+    .then((payload) => {
+      const rows = Array.isArray(payload?.rows) ? payload.rows.map(normalizeProductSymbolRow) : [];
+      state.globalSearchStocks = { key, rows, ok: Boolean(payload) };
+      return state.globalSearchStocks;
+    })
+    .catch((error) => {
+      console.warn("Global stock search unavailable", error);
+      state.globalSearchStocks = { key, rows: [], ok: false };
+      return state.globalSearchStocks;
+    })
+    .finally(() => {
+      if (state.loading.globalSearchStocks?.key === key) delete state.loading.globalSearchStocks;
+    });
+  state.loading.globalSearchStocks = { key, promise };
   return promise;
 };
 
@@ -1696,17 +1725,20 @@ const globalPageSearchItems = () =>
 const globalSearchResults = (query) => {
   const clean = String(query || "").trim().toLowerCase();
   if (!clean) return { stocks: [], pages: [] };
-  const stocks = buildGlobalSearchItems()
-    .map((item) => {
-      const symbolMatch = item.symbol.toLowerCase().startsWith(clean);
-      const exact = item.symbol.toLowerCase() === clean;
-      const includes = item.searchText.includes(clean);
-      if (!symbolMatch && !includes) return null;
-      return { ...item, score: exact ? 0 : symbolMatch ? 1 : 2 };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.score - b.score || a.symbol.localeCompare(b.symbol))
-    .slice(0, GLOBAL_SEARCH_LIMIT);
+  const dbSearch = state.globalSearchStocks?.key === clean ? state.globalSearchStocks : null;
+  const stocks = dbSearch?.ok
+    ? dbSearch.rows.slice(0, GLOBAL_SEARCH_LIMIT)
+    : buildGlobalSearchItems()
+      .map((item) => {
+        const symbolMatch = item.symbol.toLowerCase().startsWith(clean);
+        const exact = item.symbol.toLowerCase() === clean;
+        const includes = item.searchText.includes(clean);
+        if (!symbolMatch && !includes) return null;
+        return { ...item, score: exact ? 0 : symbolMatch ? 1 : 2 };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.score - b.score || a.symbol.localeCompare(b.symbol))
+      .slice(0, GLOBAL_SEARCH_LIMIT);
   const pages = globalPageSearchItems()
     .filter((item) => item.searchText.includes(clean))
     .slice(0, 4);
@@ -1752,11 +1784,19 @@ const setGlobalSearchActive = (index) => {
 };
 
 const ensureGlobalSearchContext = (query) => {
+  const clean = String(query || "").trim();
+  const key = clean.toLowerCase();
   const refreshIfCurrent = () => {
     if (document.querySelector("#globalSearchInput")?.value.trim() === query) renderGlobalSearchResults();
   };
-  if (!state.searchUniverse && !state.loading.searchUniverse) {
-    loadGlobalSearchUniverse().then(refreshIfCurrent);
+  if (clean && state.globalSearchStocks?.key !== key && state.loading.globalSearchStocks?.key !== key) {
+    loadGlobalStockSearch(clean).then((result) => {
+      if (result?.ok === false && !state.searchUniverse && !state.loading.searchUniverse) {
+        loadGlobalSearchUniverse().then(refreshIfCurrent);
+        return;
+      }
+      refreshIfCurrent();
+    });
   }
   if (state.productSectors === undefined && !state.loading.productSectors) {
     loadProductSectors().then(refreshIfCurrent);
@@ -1803,13 +1843,15 @@ const renderGlobalSearchResults = () => {
   }
   ensureGlobalSearchContext(query);
   const { stocks, pages } = globalSearchResults(query);
-  if (!stocks.length && state.loading.searchUniverse) {
+  const queryKey = query.toLowerCase();
+  const isLoadingStockSearch = state.loading.globalSearchStocks?.key === queryKey || (state.loading.searchUniverse && state.globalSearchStocks?.key === queryKey && state.globalSearchStocks?.ok === false);
+  if (!stocks.length && isLoadingStockSearch) {
     panel.hidden = false;
     input.setAttribute("aria-expanded", "true");
     panel.innerHTML = `
       <div class="global-search-empty">
-        <strong>正在加载搜索覆盖池</strong>
-        <span>稍后会显示可搜索股票、页面和已接入数据。</span>
+        <strong>正在搜索股票库</strong>
+        <span>稍后会显示匹配的股票和页面。</span>
       </div>
     `;
     state.globalSearchIndex = -1;
