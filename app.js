@@ -2092,9 +2092,14 @@ const renderStocksPage = () => {
           : stocksSortLabel();
   setText("#stocksResultLabel", label);
   setText("#stocksCurrentCount", label.replace(" · 成交额 $5M+", ""));
-  setText("#stocksCurrentNote", rows.length < filteredRows.length ? `符合 ${formatNumber(filteredRows.length)} 只，表格显示前 ${rows.length} 只` : `符合 ${formatNumber(filteredRows.length)} 只`);
+  setText(
+    "#stocksCurrentNote",
+    rows.length < filteredRows.length
+      ? "表格按当前筛选展示前排股票，精搜可继续定位全库标的。"
+      : "表格已按当前筛选展示。"
+  );
   setText("#stocksCoverageStatus", coverageStatus);
-  setText("#stocksCoverageNote", `精搜走全库；当前筛选中高流动性 ${formatNumber(liquidCount)} 只。`);
+  setText("#stocksCoverageNote", "精搜走全库；当前表格按流动性与所选条件展示。");
   setText("#stocksSectorGap", unknownSector ? "待补" : "完整");
   setText(
     "#stocksSectorGapNote",
