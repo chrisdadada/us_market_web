@@ -18589,6 +18589,64 @@ body .stocks-view .stocks-terminal-table td {
   vertical-align: middle;
 }
 
+body .stocks-view .stocks-terminal-table th {
+  height: 42px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+body .stocks-view .stocks-terminal-table th span,
+body .stocks-view .stocks-terminal-table th em {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .stocks-view .stocks-terminal-table th span {
+  color: #9fb0c6;
+  font-size: 11px;
+  font-weight: 660;
+}
+
+body .stocks-view .stocks-terminal-table th em {
+  margin-top: 2px;
+  color: #62748d;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 560;
+}
+
+body .stocks-view .stocks-terminal-table th.is-active-sort span {
+  color: #8fc7ff;
+}
+
+body .stocks-view .stocks-terminal-table th.is-active-sort em::after {
+  content: " ↓";
+  color: #35a7ff;
+}
+
+body .stocks-view .stocks-terminal-table[data-sort="symbol"] th.is-active-sort em::after {
+  content: " ↑";
+}
+
+body .stocks-view .stocks-terminal-table[data-sort="symbol"] th:nth-child(1),
+body .stocks-view .stocks-terminal-table[data-sort="symbol"] td:nth-child(1),
+body .stocks-view .stocks-terminal-table[data-sort="marketCap"] th:nth-child(4),
+body .stocks-view .stocks-terminal-table[data-sort="marketCap"] td:nth-child(4),
+body .stocks-view .stocks-terminal-table[data-sort="dayChange"] th:nth-child(6),
+body .stocks-view .stocks-terminal-table[data-sort="dayChange"] td:nth-child(6),
+body .stocks-view .stocks-terminal-table[data-sort="weekChange"] th:nth-child(7),
+body .stocks-view .stocks-terminal-table[data-sort="weekChange"] td:nth-child(7),
+body .stocks-view .stocks-terminal-table[data-sort="monthChange"] th:nth-child(8),
+body .stocks-view .stocks-terminal-table[data-sort="monthChange"] td:nth-child(8),
+body .stocks-view .stocks-terminal-table[data-sort="ytdChange"] th:nth-child(9),
+body .stocks-view .stocks-terminal-table[data-sort="ytdChange"] td:nth-child(9),
+body .stocks-view .stocks-terminal-table[data-sort="dollarVolume"] th:nth-child(10),
+body .stocks-view .stocks-terminal-table[data-sort="dollarVolume"] td:nth-child(10) {
+  background: rgba(53, 167, 255, 0.055);
+}
+
 body .stocks-view .stocks-terminal-table th:nth-child(1),
 body .stocks-view .stocks-terminal-table td:nth-child(1) {
   width: 104px;

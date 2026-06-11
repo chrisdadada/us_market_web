@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-calendar2" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-stocks2" />
   </head>
   <body>
     <div class="app-shell">
@@ -2045,9 +2045,9 @@
               <p id="stocksCurrentNote">按筛选条件显示</p>
             </article>
             <article>
-              <span>数据状态</span>
+              <span>流动性口径</span>
               <strong id="stocksCoverageStatus">--</strong>
-              <p id="stocksCoverageNote">全库搜索与表格筛选分开承载。</p>
+              <p id="stocksCoverageNote">低成交额标的不进入默认工作台。</p>
             </article>
             <article>
               <span>板块分类</span>
@@ -2055,7 +2055,7 @@
               <p id="stocksSectorGapNote">低流动性和资料缺口会继续补。</p>
             </article>
             <article>
-              <span>日程接入</span>
+              <span>日程联动</span>
               <strong id="stocksCalendarStatus">--</strong>
               <p id="stocksCalendarNote">宏观日历与财报日期分开接入。</p>
             </article>
@@ -2123,20 +2123,20 @@
                 <table class="data-table stocks-terminal-table">
                   <thead>
                     <tr>
-                      <th>代码</th>
-                      <th>公司</th>
-                      <th>板块</th>
-                      <th>市值</th>
-                      <th>价格</th>
-                      <th>1D</th>
-                      <th>5D</th>
-                      <th>1M</th>
-                      <th>YTD</th>
-                      <th>成交额</th>
-                      <th>异动</th>
-                      <th>板块资金</th>
-                      <th>日程</th>
-                      <th>操作</th>
+                      <th data-sort-column="symbol"><span>代码</span></th>
+                      <th><span>公司</span><em>名称 / 线索</em></th>
+                      <th><span>板块</span><em>广度</em></th>
+                      <th data-sort-column="marketCap"><span>市值</span><em>规模</em></th>
+                      <th><span>价格</span></th>
+                      <th data-sort-column="dayChange"><span>1D</span><em>日涨跌</em></th>
+                      <th data-sort-column="weekChange"><span>5D</span><em>周涨跌</em></th>
+                      <th data-sort-column="monthChange"><span>1M</span><em>月涨跌</em></th>
+                      <th data-sort-column="ytdChange"><span>YTD</span><em>年内</em></th>
+                      <th data-sort-column="dollarVolume"><span>成交额</span><em>活跃度</em></th>
+                      <th><span>异动</span><em>倍数</em></th>
+                      <th><span>板块资金</span><em>方向</em></th>
+                      <th><span>日程</span><em>财报 / 宏观</em></th>
+                      <th><span>操作</span></th>
                     </tr>
                   </thead>
                   <tbody id="stocksTableBody">
@@ -2783,6 +2783,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-calendar2"></script>
+    <script src="./app.js?v=20260611-stocks2"></script>
   </body>
 </html>

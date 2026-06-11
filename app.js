@@ -2048,6 +2048,18 @@ const stocksSortLabel = () => ({
   symbol: "代码升序",
 }[state.stocksSort] || "成交额降序");
 
+const syncStocksTableSortState = () => {
+  const table = document.querySelector(".stocks-terminal-table");
+  if (!table) return;
+  const sortKey = state.stocksSort || "dollarVolume";
+  table.dataset.sort = sortKey;
+  table.querySelectorAll("th[data-sort-column]").forEach((cell) => {
+    const active = cell.dataset.sortColumn === sortKey;
+    cell.classList.toggle("is-active-sort", active);
+    cell.setAttribute("aria-sort", active ? (sortKey === "symbol" ? "ascending" : "descending") : "none");
+  });
+};
+
 const renderStocksSectorOptions = (rows) => {
   const select = document.querySelector("#stocksSectorFilter");
   if (!select) return;
@@ -2168,6 +2180,7 @@ const stocksCapLabel = (bucket) => {
 const renderStocksPage = () => {
   const body = document.querySelector("#stocksTableBody");
   if (!body) return;
+  syncStocksTableSortState();
   const asOf = state.meta?.day?.updatedAt || state.marketTemperature?.asOf || "";
   setText("#stocksAsOf", formatDisplayDate(asOf));
   if (!state.productSectors && !state.loading.productSectors) {
@@ -2207,7 +2220,7 @@ const renderStocksPage = () => {
   const calendarCounts = Object.fromEntries((coverage.calendar || []).map((row) => [row.type, Number(row.rows || 0)]));
   const unknownSector = Number(symbolCoverage.unknownSector || 0);
   const missingMarketCap = Number(symbolCoverage.marketCapMissing || 0);
-  const coverageStatus = coverage.ok ? "可用" : state.loading.productCoverage ? "检查中" : "待检查";
+  const coverageStatus = state.stocksPresetFilter === "all" ? "成交额优先" : state.stocksPresetFilter === "liquid" ? "$5M+" : "按筛选";
   const sortMetric = {
     dollarVolume: "成交额",
     dayChange: "1D",
@@ -2225,22 +2238,22 @@ const renderStocksPage = () => {
         ? "自选"
         : state.stocksPresetFilter === "event"
           ? "事件关联"
-          : stocksSortLabel();
-  setText("#stocksResultLabel", label);
+          : "全部股票";
+  setText("#stocksResultLabel", `${label} · ${stocksSortLabel()}`);
   setText("#stocksCurrentCount", label.replace(" · 成交额 $5M+", ""));
   setText(
     "#stocksCurrentNote",
     rows.length < totalRows
-      ? "表格按当前筛选展示前排股票，精搜可继续定位全库标的。"
+      ? "列表保留排序前排，精搜可继续定位全库标的。"
       : "表格已按当前筛选展示。"
   );
   setText("#stocksCoverageStatus", coverageStatus);
-  setText("#stocksCoverageNote", usingApiRows ? "服务端筛选已接入；当前表格按流动性与所选条件展示。" : "精搜走全库；当前表格按本地缓存展示。");
+  setText("#stocksCoverageNote", usingApiRows ? "默认按成交额和筛选条件收敛，避免低流动性噪音。" : "当前使用本地缓存筛选，精搜仍可定位标的。");
   setText("#stocksSectorGap", unknownSector ? "待补" : "完整");
   setText(
     "#stocksSectorGapNote",
     unknownSector
-      ? `板块待补 ${formatNumber(unknownSector)} 只，市值待补 ${formatNumber(missingMarketCap)} 只。`
+      ? `少量长尾标的板块或市值待补，不参与关键判断。`
       : "主要板块分类与市值字段已接入。",
   );
   setText("#stocksCalendarStatus", calendarCounts.earnings ? "宏观+财报" : calendarCounts.macro ? "宏观已接" : "待接入");
