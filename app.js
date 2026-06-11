@@ -5981,6 +5981,11 @@ const marketHeatmapSize = (row) => {
   return Math.max(1, dollarVolume || ratio || Math.abs(getChange(row)));
 };
 
+const marketHeatmapIntensity = (change) => {
+  const value = Math.min(1, Math.abs(Number(change) || 0) / 12);
+  return (0.42 + value * 0.38).toFixed(2);
+};
+
 const renderMarketHeatmapView = (rows) => {
   const displayRows = knownSectorRows(rows);
   const tiles = [...displayRows]
@@ -6035,12 +6040,20 @@ const renderMarketHeatmapView = (rows) => {
                 ${group.rows.slice(0, 8).map((row) => {
                   const change = getChange(row);
                   const tone = change > 0 ? "is-up" : change < 0 ? "is-down" : "is-flat";
-                  const span = row.heatSize / max > 0.46 ? "is-large" : row.heatSize / max > 0.18 ? "is-mid" : "";
+                  const heatShare = row.heatSize / max;
+                  const span = heatShare > 0.46 ? "is-large" : heatShare > 0.18 ? "is-mid" : "";
+                  const heatRows = heatShare > 0.46 ? 2 : heatShare > 0.18 ? 1.45 : 1;
+                  const volumeRow = getBoardRow("volume", row.symbol);
+                  const rawVolume = Number(volumeRow?.dollarVolume || row.dollarVolume || row.volumeDollar);
+                  const volumeLabel = Number.isFinite(rawVolume) && rawVolume > 0
+                    ? formatCompactMoney(rawVolume)
+                    : row.volumeRatio || "成交活跃";
                   return `
-                    <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}">
+                    <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}" style="--heat-size:${heatRows.toFixed(2)}; --heat-alpha:${marketHeatmapIntensity(change)};">
                       <small>${escapeHtml(row.chineseName || sectorDisplayName(row.sector))}</small>
                       <strong>${escapeHtml(row.symbol)}</strong>
                       <span>${escapeHtml(formatSignedPct(change))}</span>
+                      <em>${escapeHtml(volumeLabel)}</em>
                     </button>
                   `;
                 }).join("")}
