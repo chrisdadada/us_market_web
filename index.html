@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-signals2" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-calendar1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1327,7 +1327,7 @@
             <div>
               <p class="eyebrow" id="eventsEyebrow">财经日历</p>
               <h1 id="eventsPageTitle">财经日历</h1>
-              <p class="subtitle" id="eventsPageSubtitle">只看未来宏观事件、财报日期和影响范围。人工财经日志暂不展示，等真实内容接入后单独呈现。</p>
+              <p class="subtitle" id="eventsPageSubtitle">宏观事件、公司财报日期和人工财经日志分开管理；日历只负责时间、影响和关联范围。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1345,6 +1345,7 @@
               <div><span>宏观事件</span><strong id="calendarMacroStatus">--</strong></div>
               <div><span>财报日期</span><strong id="calendarEarningsStatus">--</strong></div>
               <div><span>高影响</span><strong id="calendarHighImpactStatus">--</strong></div>
+              <div><span>人工日志</span><strong id="calendarManualStatus">--</strong></div>
             </div>
           </section>
 
@@ -1397,7 +1398,7 @@
               </div>
             </section>
 
-            <section class="calendar-manual-panel desk-panel" id="calendarManualPanel" hidden>
+            <section class="calendar-manual-panel desk-panel" id="calendarManualPanel">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
                   <span>人工财经备注</span>
@@ -1414,7 +1415,9 @@
                       <th>影响</th>
                     </tr>
                   </thead>
-                  <tbody id="calendarManualBody"></tbody>
+                  <tbody id="calendarManualBody">
+                    <tr><td colspan="4">暂无人工财经日志。等你提供真实内容后，这里会单独呈现，不混入宏观日历。</td></tr>
+                  </tbody>
                 </table>
               </div>
             </section>
@@ -2751,6 +2754,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-signals2"></script>
+    <script src="./app.js?v=20260611-calendar1"></script>
   </body>
 </html>
