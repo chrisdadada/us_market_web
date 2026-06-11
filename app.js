@@ -28,6 +28,9 @@ const state = {
   valuationRange: "3m",
   eventOpportunities: null,
   eventsCalendar: null,
+  calendarEarningsQuery: "",
+  calendarEarningsWindow: "45",
+  calendarEarningsImpact: "all",
   validationCenter: null,
   loading: {},
   qualityBoard: "quality",
@@ -3540,7 +3543,9 @@ const calendarRowMatchesStock = (row, target, profile, macroExposure) => {
 };
 
 const stockLinkedCalendarRows = ({ target, profile, macroExposure, quality }) => {
-  const rows = calendarRows();
+  const allRows = calendarRows();
+  const futureRows = allRows.filter(isFutureCalendarEvent);
+  const rows = futureRows.length ? futureRows : allRows;
   const matches = rows
     .map((row) => ({ ...row, matchType: calendarRowMatchesStock(row, target, profile, macroExposure) }))
     .filter((row) => row.matchType);
@@ -3568,6 +3573,26 @@ const stockEarningsDateLabel = (linkedRows, quality) => {
   if (earnings?.date) return formatDisplayDate(earnings.date);
   if (quality?.latestEarningsDate) return formatDisplayDate(quality.latestEarningsDate);
   return "财报日期待接入";
+};
+
+const stockEarningsFact = (linkedRows, quality) => {
+  const earnings = linkedRows.find((row) => row.type === "earnings");
+  if (earnings?.date) {
+    return {
+      label: formatDisplayDate(earnings.date),
+      note: compactText(`${earnings.title || "财报日期"}${earnings.sourceName ? ` · ${earnings.sourceName}` : ""}`, 88),
+    };
+  }
+  if (quality?.latestEarningsDate) {
+    return {
+      label: formatDisplayDate(quality.latestEarningsDate),
+      note: compactText(quality.userAngle || quality.userReason || "来自财报观察数据。", 88),
+    };
+  }
+  return {
+    label: "财报日期待接入",
+    note: "财经日历和财报观察暂未提供该标的日期。",
+  };
 };
 
 const stockSectorFlowDetail = (profile, sectorRankRows) => {
@@ -3747,6 +3772,7 @@ const renderStockHub = (symbol) => {
   const macroCalendarCount = linkedCalendarRows.filter((row) => row.matchType === "macro").length;
   const nextCalendarRow = linkedCalendarRows[0] || null;
   const earningsDateText = stockEarningsDateLabel(linkedCalendarRows, quality);
+  const earningsFact = stockEarningsFact(linkedCalendarRows, quality);
   const sectorFlowDetailData = stockSectorFlowDetail(profile, sectorRankRows);
   const sectorFlowLeaders = (sectorFlowDetailData.leaders || [])
     .map((item) => normalizeStockSymbol(item.symbol || item.ticker))
@@ -3891,10 +3917,10 @@ const renderStockHub = (symbol) => {
   const targetUpsideClass = quality?.avgPriceTargetUpsidePct == null ? "" : signedNumberClass(quality.avgPriceTargetUpsidePct);
   const eventFactRows = [
     stockFactRow("财经日历", calendarFactValue, nextCalendarRow?.title || `直接 ${directCalendarCount} 条，宏观 ${macroCalendarCount} 条`),
+    stockFactRow("下一次财报", earningsFact.label, earningsFact.note),
     stockFactRow("事件类型", eventRow ? displayEventLabel(eventRow) : "--", eventRow?.eventDate ? `事件日期 ${formatDisplayDate(eventRow.eventDate)}` : "暂无独立事件日期"),
     stockFactRow("事件后20日", eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct), compactText(eventRow?.reason, 96) || "暂无事件表现数据", eventReturnClass),
     stockFactRow("财报口径", quality?.userAngle || "--", compactText(quality?.userReason, 96) || "暂无财报摘要"),
-    stockFactRow("财报日期", earningsDateText, quality?.latestEarningsDate ? "来自财报观察或财经日历" : "等待财报日期接入"),
     stockFactRow("目标空间", targetUpside, quality?.avgPriceTargetUpsidePct == null ? "暂无目标价空间数据" : "用于观察预期是否还有上修空间", targetUpsideClass),
   ].join("");
   const flowFactRows = [
@@ -8913,6 +8939,51 @@ const isFutureCalendarEvent = (item) => {
   return eventTime >= today.getTime();
 };
 
+const calendarDaysUntil = (item) => {
+  const eventTime = parseEventDateValue(item?.date);
+  if (!Number.isFinite(eventTime)) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((eventTime - today.getTime()) / 86_400_000);
+};
+
+const calendarEarningsSearchText = (item) => [
+  item.title,
+  item.summary,
+  item.sourceName,
+  ...splitReferenceList(item.relatedAssets),
+  ...splitReferenceList(item.relatedModules),
+].filter(Boolean).join(" ").toUpperCase();
+
+const getFilteredCalendarEarnings = (events) => {
+  const query = normalizeStockSymbol(state.calendarEarningsQuery || "") || String(state.calendarEarningsQuery || "").trim().toUpperCase();
+  const windowValue = state.calendarEarningsWindow || "45";
+  const impactFilter = state.calendarEarningsImpact || "all";
+  const dayLimit = windowValue === "all" ? null : Number(windowValue);
+  return events.filter((item) => {
+    if (impactFilter !== "all" && item.impact !== impactFilter) return false;
+    const days = calendarDaysUntil(item);
+    if (Number.isFinite(dayLimit) && Number.isFinite(days) && days > dayLimit) return false;
+    if (Number.isFinite(dayLimit) && days == null) return false;
+    if (query && !calendarEarningsSearchText(item).includes(query)) return false;
+    return true;
+  });
+};
+
+const renderCalendarEarningsSummary = (filteredEvents, allEvents) => {
+  const next = filteredEvents[0] || null;
+  const windowLabel = state.calendarEarningsWindow === "all" ? "全部时间" : `未来${state.calendarEarningsWindow}天`;
+  const impactLabel = state.calendarEarningsImpact === "all" ? "全部影响" : `${eventImpactLabel(state.calendarEarningsImpact)}影响`;
+  const queryLabel = state.calendarEarningsQuery ? ` · ${state.calendarEarningsQuery.trim()}` : "";
+  setText("#calendarEarningsMeta", `${windowLabel} · ${impactLabel}${queryLabel} · ${filteredEvents.length}/${allEvents.length}`);
+  setText(
+    "#calendarEarningsLead",
+    next
+      ? `下一项：${formatDisplayDate(next.date)} · ${next.title || "财报日期"}`
+      : allEvents.length ? "当前筛选下没有财报日期。" : "等待财报日期数据接入。",
+  );
+};
+
 const renderCalendarRows = (events) =>
   events.map((item) => {
     const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
@@ -8964,9 +9035,10 @@ const renderEventsCalendar = (payload) => {
   const highEvents = displayScheduledEvents.filter((item) => item.impact === "high");
   const first = highEvents[0] || displayScheduledEvents[0];
   const macroEvents = displayScheduledEvents.filter((item) => item.type === "macro" || item.type === "policy");
-  const earningsEvents = displayScheduledEvents.filter((item) => item.type === "earnings");
+  const allEarningsEvents = displayScheduledEvents.filter((item) => item.type === "earnings");
+  const earningsEvents = getFilteredCalendarEarnings(allEarningsEvents);
   const macroCount = macroEvents.length;
-  const earningsCount = earningsEvents.length;
+  const earningsCount = allEarningsEvents.length;
   setText("#calendarHeroTitle", first ? `${formatDisplayDate(first.date)} · ${first.title}` : "未来事件总览");
   setText(
     "#calendarHeroLead",
@@ -8978,6 +9050,7 @@ const renderEventsCalendar = (payload) => {
   setText("#calendarEarningsStatus", earningsCount ? `${earningsCount}项` : "暂无");
   setText("#calendarHighImpactStatus", highEvents.length ? `${highEvents.length}项` : "暂无");
   setText("#calendarManualStatus", manualEvents.length ? `${manualEvents.length}条` : "待接入");
+  renderCalendarEarningsSummary(earningsEvents, allEarningsEvents);
   if (body) {
     body.innerHTML = macroEvents.length
       ? renderCalendarRows(macroEvents)
@@ -8986,7 +9059,9 @@ const renderEventsCalendar = (payload) => {
   if (earningsBody) {
     earningsBody.innerHTML = earningsEvents.length
       ? renderCalendarRows(earningsEvents)
-      : '<tr class="calendar-empty-row"><td colspan="4"><strong>公司财报日期待接入</strong><p>当前数据库还没有未来财报日期源。后续接入后会展示公司、日期、影响等级和关联个股工作台。</p></td></tr>';
+      : allEarningsEvents.length
+        ? '<tr class="calendar-empty-row"><td colspan="4"><strong>当前筛选下没有财报</strong><p>可以放宽时间窗、影响级别，或直接输入股票代码搜索具体公司。</p></td></tr>'
+        : '<tr class="calendar-empty-row"><td colspan="4"><strong>公司财报日期待接入</strong><p>当前数据库还没有未来财报日期源。后续接入后会展示公司、日期、影响等级和关联个股工作台。</p></td></tr>';
   }
   if (manualPanel && manualBody) {
     manualPanel.hidden = false;
@@ -10326,6 +10401,24 @@ const bindEvents = () => {
   if (stocksSortFilter) stocksSortFilter.addEventListener("change", (event) => {
     state.stocksSort = event.target.value;
     renderStocksPage();
+  });
+
+  const calendarEarningsSearchInput = document.querySelector("#calendarEarningsSearchInput");
+  if (calendarEarningsSearchInput) calendarEarningsSearchInput.addEventListener("input", (event) => {
+    state.calendarEarningsQuery = event.target.value;
+    renderEventsCalendar(state.eventsCalendar);
+  });
+
+  const calendarEarningsWindowFilter = document.querySelector("#calendarEarningsWindowFilter");
+  if (calendarEarningsWindowFilter) calendarEarningsWindowFilter.addEventListener("change", (event) => {
+    state.calendarEarningsWindow = event.target.value;
+    renderEventsCalendar(state.eventsCalendar);
+  });
+
+  const calendarEarningsImpactFilter = document.querySelector("#calendarEarningsImpactFilter");
+  if (calendarEarningsImpactFilter) calendarEarningsImpactFilter.addEventListener("change", (event) => {
+    state.calendarEarningsImpact = event.target.value;
+    renderEventsCalendar(state.eventsCalendar);
   });
 
   document.querySelectorAll(".quality-tab").forEach((tab) => {

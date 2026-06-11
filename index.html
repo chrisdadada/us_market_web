@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-data5" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-calendar2" />
   </head>
   <body>
     <div class="app-shell">
@@ -1381,6 +1381,35 @@
                   <strong>接下来需要确认的公司财报</strong>
                 </div>
               </div>
+              <div class="calendar-earnings-tools" aria-label="财报日期筛选">
+                <label>
+                  <span>股票</span>
+                  <input id="calendarEarningsSearchInput" type="search" placeholder="代码 / 公司" autocomplete="off">
+                </label>
+                <label>
+                  <span>时间窗</span>
+                  <select id="calendarEarningsWindowFilter">
+                    <option value="30">未来30天</option>
+                    <option value="14">未来14天</option>
+                    <option value="45" selected>未来45天</option>
+                    <option value="90">未来90天</option>
+                    <option value="all">全部</option>
+                  </select>
+                </label>
+                <label>
+                  <span>影响</span>
+                  <select id="calendarEarningsImpactFilter">
+                    <option value="all">全部</option>
+                    <option value="high">高影响</option>
+                    <option value="medium">中影响</option>
+                    <option value="low">低影响</option>
+                  </select>
+                </label>
+                <div class="calendar-earnings-summary">
+                  <span id="calendarEarningsMeta">--</span>
+                  <strong id="calendarEarningsLead">等待财报日期数据。</strong>
+                </div>
+              </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
                 <table class="calendar-table data-table">
                   <thead>
@@ -2754,6 +2783,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-data5"></script>
+    <script src="./app.js?v=20260611-calendar2"></script>
   </body>
 </html>
