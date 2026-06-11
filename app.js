@@ -5858,6 +5858,7 @@ const renderMarketSectorDetail = (rows, sectors) => {
         <span>板块详情</span>
         <strong>${escapeHtml(sectorDisplayName(selected))}</strong>
         <button class="table-action" type="button" data-sector-open="${escapeHtml(selected)}">筛到涨跌榜</button>
+        <p>点击左侧板块切换详情；下方按成交活跃度列出该板块前排股票。</p>
       </div>
       <div class="market-sector-detail-metrics">
         <div><span>资金方向</span><b class="${flowTone}">${escapeHtml(sector?.netFlowProxy == null ? formatSignedPct(sector?.avgChange || 0) : formatSignedCompactMoney(sector.netFlowProxy, sector.netFlowLabel))}</b></div>
@@ -5921,16 +5922,16 @@ const renderMarketSectorRankingView = (rows) => {
         <table class="market-sector-terminal-table data-table">
           <thead>
             <tr>
-              <th>排名</th>
-              <th>板块</th>
-              <th>资金方向</th>
-              <th>1D</th>
-              <th>5D</th>
-              <th>成交额</th>
-              <th>上涨广度</th>
-              <th>龙头</th>
-              <th>代表标的</th>
-              <th>操作</th>
+              <th><span>排名</span><em>方向</em></th>
+              <th><span>板块</span><em>分类</em></th>
+              <th><span>资金方向</span><em>涨跌成交代理</em></th>
+              <th><span>1D</span><em>均值</em></th>
+              <th><span>5D</span><em>均值</em></th>
+              <th><span>成交额</span><em>活跃度</em></th>
+              <th><span>上涨广度</span><em>涨/跌</em></th>
+              <th><span>龙头</span><em>成交领先</em></th>
+              <th><span>代表标的</span><em>前排样本</em></th>
+              <th><span>操作</span><em>联动</em></th>
             </tr>
           </thead>
           <tbody>

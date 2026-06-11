@@ -15381,19 +15381,23 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 
 #marketFlowsPanel .flow-direction-cell {
   display: grid;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
 }
 
 #marketFlowsPanel .flow-direction-cell strong {
+  display: block;
+  overflow: hidden;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #marketFlowsPanel .flow-direction-cell i {
   display: block;
-  height: 6px;
+  height: 7px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(146, 166, 197, 0.16);
@@ -15887,6 +15891,34 @@ body .market-workspace .market-sector-terminal-table th {
   position: sticky;
   z-index: 2;
   top: 0;
+  height: 44px;
+  vertical-align: middle;
+}
+
+body .market-workspace .market-sector-terminal-table th span,
+body .market-workspace .market-sector-terminal-table th em,
+body #marketFlowsPanel .flows-table th span,
+body #marketFlowsPanel .flows-table th em {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .market-workspace .market-sector-terminal-table th span,
+body #marketFlowsPanel .flows-table th span {
+  color: #9fb0c6;
+  font-size: 11px;
+  font-weight: 660;
+}
+
+body .market-workspace .market-sector-terminal-table th em,
+body #marketFlowsPanel .flows-table th em {
+  margin-top: 2px;
+  color: #62748d;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 560;
 }
 
 body .market-workspace .market-sector-terminal-table tr.is-selected td {
@@ -15950,17 +15982,22 @@ body .market-workspace .market-sector-terminal-table td:nth-child(10) {
 
 body .market-workspace .market-sector-flow-cell {
   display: grid;
-  gap: 5px;
+  gap: 6px;
+  min-width: 0;
 }
 
 body .market-workspace .market-sector-flow-cell strong {
+  display: block;
+  overflow: hidden;
   font-weight: 720;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body .market-workspace .market-sector-flow-cell i {
   display: block;
-  height: 6px;
+  height: 7px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(146, 166, 197, 0.16);
@@ -16044,6 +16081,14 @@ body .market-workspace .market-sector-detail-head strong {
   font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+body .market-workspace .market-sector-detail-head p {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  color: #7f8da2;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 body .market-workspace .market-sector-detail-metrics {
@@ -16384,7 +16429,7 @@ body #marketFlowsPanel .flows-table th {
   position: sticky;
   top: 0;
   z-index: 4;
-  height: 34px;
+  height: 44px;
   background: #09111e !important;
   color: #9fb0c6 !important;
   font-size: 11px;
