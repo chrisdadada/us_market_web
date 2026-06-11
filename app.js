@@ -5517,30 +5517,56 @@ const renderMarketSectorRankingView = (rows) => {
           <div><span>成交最活跃</span><b>${escapeHtml(sectorDisplayName(activeSector?.sector))}</b></div>
         </div>
       </div>
-      <div class="market-sector-rank-list">
-        <div class="market-sector-rank-head">
-          <span>排名</span>
-          <span>板块</span>
-          <span>资金方向</span>
-          <span>数值</span>
-          <span>广度 / 龙头</span>
-        </div>
-        ${sectors.map((item, index) => {
+      <div class="market-sector-table-wrap">
+        <table class="market-sector-terminal-table data-table">
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>板块</th>
+              <th>资金方向</th>
+              <th>1D</th>
+              <th>5D</th>
+              <th>成交额</th>
+              <th>上涨广度</th>
+              <th>龙头</th>
+              <th>代表标的</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sectors.map((item, index) => {
           const flowValue = item.netFlowProxy ?? item.avgChange ?? 0;
           const breadth = item.breadthPct == null ? 0 : item.breadthPct;
-          const leaders = (item.leaders || []).slice(0, 3).map((leader) => leader.symbol).join(" / ");
+          const detailRows = sectorDetailRows(rows, item.sector);
+          const leaders = (item.leaders?.length ? item.leaders : detailRows).slice(0, 4);
+          const leader = leaders[0];
+          const upCount = item.upCount || 0;
+          const downCount = item.downCount ?? Math.max(0, (item.count || 0) - upCount);
           const changeClass = flowValue >= 0 ? "is-positive" : "is-negative";
           const flowWidth = Math.max(5, (Math.abs(Number(flowValue) || 0) / maxAbsFlow) * 100);
+          const weekChange = sectorPeriodChange(item.sector, "week");
           return `
-            <button class="${item.sector === state.selectedMarketSector ? "is-selected" : ""}" type="button" data-market-sector-focus="${escapeHtml(item.sector)}">
-              <em>${String(index + 1).padStart(2, "0")}</em>
-              <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
-              <i class="${changeClass}"><b style="width:${flowWidth.toFixed(1)}%"></b></i>
-              <strong class="${changeClass}">${escapeHtml(item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong>
-              <small><mark>${escapeHtml(`${Math.round(breadth)}%上涨`)}</mark>${escapeHtml(leaders ? ` · ${leaders}` : "")}</small>
-            </button>
+            <tr class="${item.sector === state.selectedMarketSector ? "is-selected" : ""}">
+              <td>${String(index + 1).padStart(2, "0")}</td>
+              <td><button class="inline-stock-link" type="button" data-market-sector-focus="${escapeHtml(item.sector)}">${escapeHtml(sectorDisplayName(item.sector))}</button></td>
+              <td>
+                <div class="market-sector-flow-cell ${changeClass}">
+                  <strong>${escapeHtml(item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong>
+                  <i><b style="width:${flowWidth.toFixed(1)}%"></b></i>
+                </div>
+              </td>
+              <td class="${Number(item.avgChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(item.avgChange == null ? "--" : formatSignedPct(item.avgChange))}</td>
+              <td class="${Number(weekChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(weekChange == null ? "--" : formatSignedPct(weekChange))}</td>
+              <td>${escapeHtml(item.activeValueLabel || formatCompactMoney(item.activeValue || item.dollarVolume || 0))}</td>
+              <td class="market-sector-breadth-cell"><strong>${escapeHtml(`${Math.round(breadth)}%`)}</strong><span><b class="is-positive">${escapeHtml(`${upCount}涨`)}</b><i>/</i><b class="is-negative">${escapeHtml(`${downCount}跌`)}</b></span></td>
+              <td>${leader?.symbol ? `<button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(leader.symbol)}">${escapeHtml(leader.symbol)}</button>` : "--"}</td>
+              <td>${escapeHtml(leaders.map((leaderItem) => leaderItem.symbol).filter(Boolean).join(" / ") || "--")}</td>
+              <td><button class="table-action" type="button" data-sector-open="${escapeHtml(item.sector)}">筛到榜单</button></td>
+            </tr>
           `;
         }).join("")}
+          </tbody>
+        </table>
       </div>
       ${renderMarketSectorDetail(rows, sectors)}
     </section>
