@@ -13205,7 +13205,7 @@ body {
 
 .dashboard-intelligence-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin: 0 0 12px;
 }
@@ -13251,6 +13251,7 @@ body {
 
 .dashboard-sector-rank,
 .dashboard-flow-pulse,
+.dashboard-heatmap-pulse,
 .dashboard-calendar-log {
   display: grid;
   gap: 0;
@@ -13258,6 +13259,7 @@ body {
 
 .dashboard-sector-rank button,
 .dashboard-flow-pulse button,
+.dashboard-heatmap-pulse button,
 .dashboard-calendar-log button {
   min-width: 0;
   min-height: 36px;
@@ -13274,6 +13276,7 @@ body {
 
 .dashboard-sector-rank button:hover,
 .dashboard-flow-pulse button:hover,
+.dashboard-heatmap-pulse button:hover,
 .dashboard-calendar-log button:hover {
   background: rgba(53, 167, 255, 0.06);
 }
@@ -13288,6 +13291,11 @@ body {
   gap: 8px;
 }
 
+.dashboard-heatmap-pulse button {
+  grid-template-columns: 52px minmax(0, 1fr) 58px 72px;
+  gap: 8px;
+}
+
 .dashboard-calendar-log button {
   grid-template-columns: 82px minmax(0, 1fr) 58px;
   gap: 8px;
@@ -13295,12 +13303,14 @@ body {
 
 .dashboard-sector-rank button:last-child,
 .dashboard-flow-pulse button:last-child,
+.dashboard-heatmap-pulse button:last-child,
 .dashboard-calendar-log button:last-child {
   border-bottom: 0;
 }
 
 .dashboard-sector-rank em,
 .dashboard-flow-pulse small,
+.dashboard-heatmap-pulse small,
 .dashboard-calendar-log time {
   color: var(--muted);
   font-size: 11px;
@@ -13309,6 +13319,7 @@ body {
 
 .dashboard-sector-rank span,
 .dashboard-flow-pulse span,
+.dashboard-heatmap-pulse span,
 .dashboard-calendar-log strong,
 .dashboard-calendar-log time {
   min-width: 0;
@@ -13326,7 +13337,8 @@ body {
 }
 
 .dashboard-sector-rank i,
-.dashboard-flow-pulse i {
+.dashboard-flow-pulse i,
+.dashboard-heatmap-pulse i {
   height: 6px;
   overflow: hidden;
   border-radius: 999px;
@@ -13334,35 +13346,41 @@ body {
 }
 
 .dashboard-sector-rank i b,
-.dashboard-flow-pulse i b {
+.dashboard-flow-pulse i b,
+.dashboard-heatmap-pulse i b {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: var(--blue);
 }
 
-.dashboard-flow-pulse i.is-positive b {
+.dashboard-flow-pulse i.is-positive b,
+.dashboard-heatmap-pulse i.is-positive b {
   background: var(--positive);
 }
 
-.dashboard-flow-pulse i.is-negative b {
+.dashboard-flow-pulse i.is-negative b,
+.dashboard-heatmap-pulse i.is-negative b {
   background: var(--negative);
 }
 
 .dashboard-sector-rank strong,
-.dashboard-flow-pulse strong {
+.dashboard-flow-pulse strong,
+.dashboard-heatmap-pulse strong {
   font-size: 12px;
   font-weight: 560;
   text-align: right;
 }
 
 .dashboard-sector-rank .is-positive,
-.dashboard-flow-pulse .is-positive {
+.dashboard-flow-pulse .is-positive,
+.dashboard-heatmap-pulse .is-positive {
   color: var(--positive);
 }
 
 .dashboard-sector-rank .is-negative,
-.dashboard-flow-pulse .is-negative {
+.dashboard-flow-pulse .is-negative,
+.dashboard-heatmap-pulse .is-negative {
   color: var(--negative);
 }
 
@@ -15117,7 +15135,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 .dashboard-terminal .dashboard-intelligence-grid {
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.05fr) minmax(0, 0.9fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -15152,6 +15170,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 
 .dashboard-terminal .dashboard-sector-rank button,
 .dashboard-terminal .dashboard-flow-pulse button,
+.dashboard-terminal .dashboard-heatmap-pulse button,
 .dashboard-terminal .dashboard-calendar-log button {
   min-height: 33px;
   border-bottom-color: rgba(128, 151, 183, 0.16);
@@ -15166,12 +15185,17 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   grid-template-columns: 88px minmax(0, 1fr) 72px 52px;
 }
 
+.dashboard-terminal .dashboard-heatmap-pulse button {
+  grid-template-columns: 50px minmax(0, 1fr) 54px 64px;
+}
+
 .dashboard-terminal .dashboard-calendar-log button {
   grid-template-columns: 78px minmax(0, 1fr) 54px;
 }
 
 .dashboard-terminal .dashboard-sector-rank span,
 .dashboard-terminal .dashboard-flow-pulse span,
+.dashboard-terminal .dashboard-heatmap-pulse span,
 .dashboard-terminal .dashboard-calendar-log strong,
 .dashboard-terminal .dashboard-calendar-log time {
   color: #dbe5f2;
@@ -15181,6 +15205,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 
 .dashboard-terminal .dashboard-sector-rank em,
 .dashboard-terminal .dashboard-flow-pulse small,
+.dashboard-terminal .dashboard-heatmap-pulse small,
 .dashboard-terminal .dashboard-calendar-log time {
   color: #7f8da2;
   font-size: 11px;
@@ -15188,7 +15213,8 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 .dashboard-terminal .dashboard-sector-rank i,
-.dashboard-terminal .dashboard-flow-pulse i {
+.dashboard-terminal .dashboard-flow-pulse i,
+.dashboard-terminal .dashboard-heatmap-pulse i {
   height: 5px;
 }
 

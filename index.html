@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-sectorworkbench1" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-dashboardhub1" />
   </head>
   <body>
     <div class="app-shell">
@@ -139,6 +139,19 @@
             <article class="dashboard-intel-panel desk-panel">
               <div class="desk-panel-header">
                 <div>
+                  <span>成交热力图</span>
+                  <strong id="dashboardHeatmapLead">等待热区数据</strong>
+                </div>
+                <button class="ghost-action" type="button" data-market-section="heatmap">更多</button>
+              </div>
+              <div class="dashboard-heatmap-pulse" id="dashboardHeatmapPulse">
+                <p>等待成交热区数据。</p>
+              </div>
+            </article>
+
+            <article class="dashboard-intel-panel desk-panel">
+              <div class="desk-panel-header">
+                <div>
                   <span>财经日历</span>
                   <strong id="dashboardCalendarLead">等待财经日历</strong>
                 </div>
@@ -174,63 +187,6 @@
               <strong id="dashboardFocusEvent">股票事件加载中</strong>
               <p id="dashboardFocusEventNote">看财报、业绩预期、机构观点和空头压力背后的个股理由。</p>
               <button type="button" data-page-link="stock-events">看股票事件</button>
-            </article>
-          </section>
-
-          <section class="cockpit-grid workspace-main dashboard-secondary-block">
-            <article class="cockpit-card desk-panel">
-              <div class="card-head desk-panel-header">
-                <div>
-                  <span>免费工具</span>
-                  <h2>市场温度计</h2>
-                </div>
-                <button type="button" data-page-link="risk">查看温度</button>
-              </div>
-              <div class="temperature-mini">
-                <div>
-                  <span>当前环境</span>
-                  <strong id="dashboardTemperatureLabel">防守观察</strong>
-                  <p id="dashboardTemperatureCopy">先少做决定，多看确认。</p>
-                </div>
-                <b id="dashboardTemperatureScore">49</b>
-              </div>
-              <div class="risk-lights">
-                <div class="light-row positive">
-                  <span>大盘</span>
-                  <strong id="dashboardSpyState">趋势区</strong>
-                  <i></i>
-                </div>
-                <div class="light-row positive">
-                  <span>科技</span>
-                  <strong id="dashboardQqqState">强趋势</strong>
-                  <i></i>
-                </div>
-                <div class="light-row neutral">
-                  <span>观察强度</span>
-                  <strong id="dashboardRiskBudget">中高</strong>
-                  <i></i>
-                </div>
-              </div>
-              <p class="card-note" id="dashboardRiskNote">风险信号增多时，高波动线索降级观察。</p>
-            </article>
-
-            <article class="cockpit-card desk-panel">
-              <div class="card-head desk-panel-header">
-                <div>
-                  <span>今日观察</span>
-                  <h2>财经日历观察</h2>
-                </div>
-                <button type="button" data-page-link="events">打开财经日历</button>
-              </div>
-              <div class="event-mini">
-                <div>
-                  <span>榜首候选</span>
-                  <strong id="dashboardEventLeader">等待数据</strong>
-                  <p id="dashboardEventCopy">分析师、指引、财报和空头挤压事件会集中展示。</p>
-                </div>
-                <b id="dashboardEventCount">--</b>
-              </div>
-              <p class="card-note" id="dashboardEventNote">适合先加入自选，再看价格是否确认。</p>
             </article>
           </section>
 
@@ -2826,6 +2782,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-sectorworkbench1"></script>
+    <script src="./app.js?v=20260611-dashboardhub1"></script>
   </body>
 </html>

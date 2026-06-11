@@ -560,6 +560,12 @@ const ensurePageData = (page) => {
         renderMarketVisualBoard(getFilteredRows());
       }
     }));
+    if (page === "dashboard") {
+      jobs.push(loadProductCalendar().then((calendar) => {
+        if (calendar) renderDashboardVisualBoard();
+        return calendar;
+      }));
+    }
   }
   if (page === "stock-events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
@@ -5112,6 +5118,11 @@ const dashboardStrengthMix = () => {
   ];
 };
 
+const dashboardIndustryRows = (rows = []) => {
+  const filtered = knownSectorRows(rows).filter((item) => normalizeSectorName(item.sector) !== "ETF");
+  return filtered.length ? filtered : knownSectorRows(rows);
+};
+
 const renderDashboardVisualBoard = () => {
   const board = document.querySelector("#dashboardSnapshotBoard");
   if (!board) return;
@@ -5120,7 +5131,7 @@ const renderDashboardVisualBoard = () => {
   const tempLabel = temp.overall?.label || "等待数据";
   const dayRows = state.boards?.day || [];
   const direction = boardDirectionStats(dayRows);
-  const sectorRows = knownSectorRows(marketSectorStats(dayRows)).slice(0, 5);
+  const sectorRows = dashboardIndustryRows(marketSectorStats(dayRows)).slice(0, 5);
   const maxSectorCount = Math.max(...sectorRows.map((item) => item.count), 1);
   const strengthMix = dashboardStrengthMix();
   const maxStrength = Math.max(...strengthMix.map((item) => item[1]), 1);
@@ -5224,13 +5235,14 @@ const dashboardEventRows = () => {
 const renderDashboardIntelligence = () => {
   const sectorRank = document.querySelector("#dashboardSectorRank");
   const flowPulse = document.querySelector("#dashboardFlowPulse");
+  const heatmapPulse = document.querySelector("#dashboardHeatmapPulse");
   const calendarLog = document.querySelector("#dashboardCalendarLog");
   const dayRows = state.boards?.day || state.rows || [];
   const productSectorRows = sectorFlowDisplayRows();
   const sectors = (
     productSectorRows.length
-      ? productSectorRows.slice().sort((a, b) => (b.avgChange || 0) - (a.avgChange || 0))
-      : knownSectorRows(marketSectorStats(dayRows))
+      ? dashboardIndustryRows(productSectorRows).slice().sort((a, b) => (b.avgChange || 0) - (a.avgChange || 0))
+      : dashboardIndustryRows(marketSectorStats(dayRows))
   ).slice(0, 5);
   const sectorMax = Math.max(...sectors.map((item) => item.activeValue || item.dollarVolume || item.count), 1);
   const topSector = sectors[0];
@@ -5245,7 +5257,7 @@ const renderDashboardIntelligence = () => {
         const tone = item.avgChange >= 0 ? "is-positive" : "is-negative";
         const width = Math.max(8, ((item.activeValue || item.dollarVolume || item.count) / sectorMax) * 100).toFixed(1);
         return `
-          <button type="button" data-sector-open="${escapeHtml(item.sector)}">
+          <button type="button" data-dashboard-sector-open="${escapeHtml(item.sector)}">
             <em>${String(index + 1).padStart(2, "0")}</em>
             <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
             <i><b style="width:${width}%"></b></i>
@@ -5278,6 +5290,34 @@ const renderDashboardIntelligence = () => {
         `;
       }).join("")
       : "<p>等待板块资金方向数据。</p>";
+  }
+
+  const heatRows = dashboardIndustryRows(dayRows)
+    .map((row) => ({ ...row, heatSize: marketHeatmapSize(row) }))
+    .sort((a, b) => b.heatSize - a.heatSize)
+    .slice(0, 5);
+  const heatTop = heatRows[0];
+  const heatMax = Math.max(...heatRows.map((item) => item.heatSize), 1);
+  setText(
+    "#dashboardHeatmapLead",
+    heatTop ? `${heatTop.symbol} · ${sectorDisplayName(heatTop.sector)}` : "等待热区数据",
+  );
+  if (heatmapPulse) {
+    heatmapPulse.innerHTML = heatRows.length
+      ? heatRows.map((item) => {
+        const change = getChange(item);
+        const tone = change >= 0 ? "is-positive" : "is-negative";
+        const width = Math.max(8, (item.heatSize / heatMax) * 100).toFixed(1);
+        return `
+          <button type="button" data-stock-open="${escapeHtml(item.symbol)}">
+            <span>${escapeHtml(item.symbol)}</span>
+            <i class="${tone}"><b style="width:${width}%"></b></i>
+            <strong class="${tone}">${escapeHtml(formatSignedPct(change))}</strong>
+            <small>${escapeHtml(sectorDisplayName(item.sector))}</small>
+          </button>
+        `;
+      }).join("")
+      : "<p>等待成交热区数据。</p>";
   }
 
   const events = dashboardEventRows();
@@ -10212,6 +10252,16 @@ const bindEvents = () => {
       syncMarketWorkspaceTabs();
       renderMarketVisualBoard(getFilteredRows());
       renderMarketSectionContext();
+      return;
+    }
+    const dashboardSectorOpen = event.target.closest("[data-dashboard-sector-open]");
+    if (dashboardSectorOpen) {
+      event.preventDefault();
+      state.selectedMarketSector = dashboardSectorOpen.dataset.dashboardSectorOpen || "";
+      state.marketWorkspaceSection = "sectors";
+      state.marketVisualMode = "sectors";
+      showPage("market", { hash: "#market/sectors" });
+      renderMarketVisualBoard();
       return;
     }
     const marketSectorPick = event.target.closest("[data-market-sector-pick]");
