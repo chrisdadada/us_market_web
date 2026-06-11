@@ -5643,6 +5643,36 @@ const inferMoveReason = (row, volume) => {
   return reasons.length ? reasons : ["等待更多成交额和公告数据确认"];
 };
 
+const marketMoveExplanation = (row, volume) => {
+  const change = getChange(row);
+  const volumeText = volume?.volumeRatio || row.volumeRatio;
+  const volumeSummary = volumeRatioSummary(volumeText, change);
+  const reasons = inferMoveReason(row, volume).slice(0, 3);
+  const tone = change >= 0 ? "is-positive" : "is-negative";
+  return {
+    title: volumeSummary.label,
+    note: volumeSummary.note,
+    reasons,
+    tone,
+  };
+};
+
+const marketSectorClue = (row) => {
+  const peers = uniqueBySymbol(state.rows.filter((item) => item.sector === row.sector && item.symbol !== row.symbol));
+  const sectorRows = uniqueBySymbol(state.rows.filter((item) => item.sector === row.sector));
+  const topPeer = peers.slice().sort((a, b) => getChange(b) - getChange(a))[0];
+  const upCount = sectorRows.filter((item) => getChange(item) >= 0).length;
+  const downCount = Math.max(0, sectorRows.length - upCount);
+  const breadth = sectorRows.length ? Math.round((upCount / sectorRows.length) * 100) : 0;
+  return {
+    sector: sectorDisplayName(row.sector),
+    breadthText: sectorRows.length ? `${breadth}%上涨` : "--",
+    spreadText: sectorRows.length ? `${upCount}涨/${downCount}跌` : "--",
+    leaderText: topPeer ? `${topPeer.symbol} ${formatChangeValue(topPeer)}` : "--",
+    peerCount: peers.length,
+  };
+};
+
 const marketDetailPreview = (row) => {
   const target = normalizeStockSymbol(row.symbol);
   const day = getBoardRow("day", target);
@@ -5918,7 +5948,7 @@ const renderTable = () => {
   if (!rows.length) {
     body.innerHTML = `
       <tr>
-        <td colspan="13">没有符合条件的股票</td>
+        <td colspan="15">没有符合条件的股票</td>
       </tr>
     `;
     renderMarketDetail("");
@@ -5938,6 +5968,8 @@ const renderTable = () => {
       const priority = state.macroFilter === "all" ? reviewPriorityForMarketRow(row) : { score: row.macroPriority, reason: row.macroPriorityReason };
       const dollarVolume = Number(volume?.dollarVolume || row.dollarVolume);
       const volumeRatio = volume?.volumeRatio || row.volumeRatio || "--";
+      const move = marketMoveExplanation(row, volume);
+      const sectorClue = marketSectorClue(row);
       return `
         <tr class="market-row ${state.selectedMarketSymbol === row.symbol ? "is-selected" : ""}" data-market-symbol="${escapeHtml(row.symbol)}">
           <td class="rank-cell" data-label="排名">${escapeHtml(row.displayRank || row.rank || "--")}</td>
@@ -5964,10 +5996,19 @@ const renderTable = () => {
               <span>${escapeHtml(row.risk || "--")}</span>
             </div>
           </td>
-          <td class="action-cell" data-label="原因和动作">
-            <strong>${escapeHtml(preview.title)}</strong>
-            <span>${escapeHtml(row.actionNote || preview.note)}</span>
-            <small class="macro-rank-reason">${escapeHtml(`研究优先级 ${priority.score} · ${priority.reason || "等待更多数据"}`)}</small>
+          <td class="move-cell" data-label="异动解释">
+            <strong class="${move.tone}">${escapeHtml(move.title)}</strong>
+            <span>${escapeHtml(move.reasons.join(" / "))}</span>
+            <small>${escapeHtml(move.note)}</small>
+          </td>
+          <td class="sector-clue-cell" data-label="板块线索">
+            <button class="inline-stock-link" type="button" data-sector-open="${escapeHtml(row.sector)}">${escapeHtml(sectorClue.sector)}</button>
+            <strong class="${sectorClue.breadthText.startsWith("0") ? "is-negative" : "is-positive"}">${escapeHtml(sectorClue.breadthText)}</strong>
+            <span>${escapeHtml(`${sectorClue.spreadText} · 龙头 ${sectorClue.leaderText}`)}</span>
+          </td>
+          <td class="action-cell" data-label="操作">
+            <strong>${escapeHtml(preview.primary)}</strong>
+            <small class="macro-rank-reason">${escapeHtml(`优先级 ${priority.score} · ${priority.reason || "等待更多数据"}`)}</small>
             <div class="inline-action-row">
               <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">详情</button>
               <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="涨跌幅榜">${isInWatchlist(row.symbol) ? "已自选" : "加入自选"}</button>

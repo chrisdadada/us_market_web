@@ -10370,7 +10370,7 @@ tbody tr:last-child td {
 }
 
 .market-table {
-  min-width: 1320px;
+  min-width: 1540px;
   table-layout: fixed;
 }
 
@@ -10425,7 +10425,17 @@ tbody tr:last-child td {
 
 .market-table th:nth-child(13),
 .market-table td:nth-child(13) {
-  width: 250px;
+  width: 230px;
+}
+
+.market-table th:nth-child(14),
+.market-table td:nth-child(14) {
+  width: 220px;
+}
+
+.market-table th:nth-child(15),
+.market-table td:nth-child(15) {
+  width: 160px;
 }
 
 .gain-cell,
@@ -10502,6 +10512,8 @@ tbody tr:last-child td {
   background: var(--positive);
 }
 
+.move-cell,
+.sector-clue-cell,
 .action-cell {
   min-width: 270px;
   max-width: 340px;
@@ -10511,12 +10523,22 @@ tbody tr:last-child td {
   white-space: normal;
 }
 
+.sector-clue-cell,
+.action-cell {
+  min-width: 0;
+}
+
+.move-cell strong,
+.sector-clue-cell strong,
 .action-cell strong {
   display: block;
   color: var(--nav);
   font-size: 13px;
 }
 
+.move-cell span,
+.move-cell small,
+.sector-clue-cell span,
 .action-cell span {
   display: -webkit-box;
   margin-top: 5px;
@@ -10524,6 +10546,27 @@ tbody tr:last-child td {
   color: #475161;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.move-cell small {
+  color: #667084;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.sector-clue-cell .inline-stock-link {
+  padding: 0;
+  text-align: left;
+}
+
+.sector-clue-cell strong.is-positive,
+.move-cell strong.is-positive {
+  color: var(--positive);
+}
+
+.sector-clue-cell strong.is-negative,
+.move-cell strong.is-negative {
+  color: var(--negative);
 }
 
 .macro-rank-reason {
@@ -15214,7 +15257,7 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 .market-workspace .market-table {
-  min-width: 1320px;
+  min-width: 1540px;
 }
 
 .market-workspace .ranking-panel .table-wrap {
@@ -16177,6 +16220,52 @@ body #marketFlowsPanel .flows-table td {
   vertical-align: middle;
 }
 
+body .market-workspace .move-cell,
+body .market-workspace .sector-clue-cell,
+body .market-workspace .action-cell {
+  color: #dbe5f2;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+body .market-workspace .move-cell strong,
+body .market-workspace .sector-clue-cell strong,
+body .market-workspace .action-cell strong {
+  color: #eef4ff;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+body .market-workspace .move-cell span,
+body .market-workspace .move-cell small,
+body .market-workspace .sector-clue-cell span,
+body .market-workspace .action-cell span {
+  color: #8494aa;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+body .market-workspace .move-cell small {
+  -webkit-line-clamp: 2;
+}
+
+body .market-workspace .sector-clue-cell .inline-stock-link {
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 0;
+  color: #8fc7ff;
+}
+
+body .market-workspace .sector-clue-cell strong.is-positive,
+body .market-workspace .move-cell strong.is-positive {
+  color: var(--positive);
+}
+
+body .market-workspace .sector-clue-cell strong.is-negative,
+body .market-workspace .move-cell strong.is-negative {
+  color: var(--negative);
+}
+
 body .market-workspace .market-row {
   background: rgba(10, 16, 27, 0.38) !important;
 }
@@ -16286,6 +16375,39 @@ body #marketFlowsPanel .flows-table td:nth-child(9) {
     grid-template-columns: 1fr;
   }
 
+  body .market-workspace .market-strip,
+  body .market-workspace .market-board-brief,
+  body .market-workspace .market-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body .market-workspace .market-board-brief article {
+    min-height: 118px;
+  }
+
+  body .market-workspace .market-strip div,
+  body .market-workspace .market-overview-grid .market-chart-card {
+    min-height: 94px;
+  }
+
+  body .market-workspace .market-overview-grid .market-chart-card {
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  body .market-workspace .market-overview-grid .market-chart-card:nth-child(2n) {
+    border-right: 0;
+  }
+
+  body .market-workspace .market-overview-grid .market-chart-card:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+
+  body .market-workspace .market-chart-card p,
+  body .market-workspace .market-board-brief p {
+    -webkit-line-clamp: 1;
+  }
+
   body .market-workspace .market-section-context > div:first-child {
     border-right: 0;
     border-bottom: 1px solid var(--line);
@@ -16388,6 +16510,14 @@ body #marketFlowsPanel .flows-table td:nth-child(9) {
 
   body .market-workspace .market-heat-tile span {
     font-size: 10px;
+  }
+
+  body .market-workspace .ranking-panel .table-wrap {
+    max-height: 500px;
+  }
+
+  body .market-workspace[data-market-workspace-section="movers"] #marketVisualBoard {
+    display: none !important;
   }
 
   body #marketFlowsPanel .flows-table-wrap {
