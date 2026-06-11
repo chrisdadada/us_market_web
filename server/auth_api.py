@@ -312,6 +312,27 @@ def product_symbol_payload(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def product_stock_library_payload(row: sqlite3.Row) -> dict[str, Any]:
+    payload = product_symbol_payload(row)
+    payload.update(
+        {
+            "dayChange": row["day_change"],
+            "weekChange": row["week_change"],
+            "monthChange": row["month_change"],
+            "ytdChange": row["ytd_change"],
+            "dayPrice": row["day_price"],
+            "eventLabel": row["event_label"],
+            "eventDate": row["event_date"],
+            "hasEvent": bool(row["has_event"]),
+            "qualityLabel": row["quality_label"],
+            "qualityScore": row["quality_score"],
+            "strengthLabel": row["strength_label"],
+            "strengthScore": row["strength_score"],
+        }
+    )
+    return payload
+
+
 def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
     payload = {
         "board": row["board"],
@@ -336,6 +357,18 @@ def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
     else:
         payload["change"] = row["change_pct"]
     return payload
+
+
+def product_stock_library_order(sort_key: str) -> str:
+    return {
+        "dollarVolume": "COALESCE(s.latest_dollar_volume, volume.dollar_volume, day.dollar_volume, 0) DESC, s.symbol ASC",
+        "dayChange": "COALESCE(day.change_pct, -999999) DESC, s.symbol ASC",
+        "weekChange": "COALESCE(week.change_pct, -999999) DESC, s.symbol ASC",
+        "monthChange": "COALESCE(month.change_pct, -999999) DESC, s.symbol ASC",
+        "ytdChange": "COALESCE(ytd.change_pct, -999999) DESC, s.symbol ASC",
+        "marketCap": "COALESCE(s.market_cap_value, 0) DESC, s.symbol ASC",
+        "symbol": "s.symbol ASC",
+    }.get(sort_key, "COALESCE(s.latest_dollar_volume, volume.dollar_volume, day.dollar_volume, 0) DESC, s.symbol ASC")
 
 
 def product_raw_payload(conn: sqlite3.Connection, name: str) -> dict[str, Any] | None:
@@ -1125,33 +1158,121 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": f"产品数据库读取失败：{exc}", "code": "product_db_error"}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def send_product_symbol_search(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
-        limit = int_param(params, "limit", 50, maximum=3000)
+        limit = int_param(params, "limit", 50, maximum=500)
+        offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
         query = str(params.get("query", [""])[0] or params.get("q", [""])[0]).strip().upper()
         sector = str(params.get("sector", [""])[0]).strip()
+        cap = str(params.get("cap", [""])[0]).strip().lower()
+        preset = str(params.get("preset", [""])[0]).strip().lower()
+        sort_key = str(params.get("sort", ["dollarVolume"])[0] or "dollarVolume").strip()
         where = []
         values: list[Any] = []
         if query:
             like = f"%{query}%"
-            where.append("(symbol LIKE ? OR UPPER(COALESCE(company, '')) LIKE ? OR UPPER(COALESCE(chinese_name, '')) LIKE ?)")
+            where.append("(s.symbol LIKE ? OR UPPER(COALESCE(s.company, '')) LIKE ? OR UPPER(COALESCE(s.chinese_name, '')) LIKE ?)")
             values.extend([like, like, like])
-        if sector:
-            where.append("sector = ?")
+        if sector and sector.lower() != "all":
+            where.append("s.sector = ?")
             values.append(sector)
+        if cap == "large":
+            where.append("COALESCE(s.market_cap_value, 0) >= ?")
+            values.append(10_000_000_000)
+        elif cap == "mid":
+            where.append("COALESCE(s.market_cap_value, 0) >= ? AND COALESCE(s.market_cap_value, 0) < ?")
+            values.extend([1_000_000_000, 10_000_000_000])
+        elif cap == "small":
+            where.append("COALESCE(s.market_cap_value, 0) > 0 AND COALESCE(s.market_cap_value, 0) < ?")
+            values.append(1_000_000_000)
+        elif cap == "unknown":
+            where.append("COALESCE(s.market_cap_value, 0) <= 0")
+        if preset == "liquid":
+            where.append("COALESCE(s.latest_dollar_volume, 0) >= ?")
+            values.append(5_000_000)
+        elif preset == "event":
+            where.append("EXISTS (SELECT 1 FROM stock_event_rows ev WHERE ev.symbol = s.symbol)")
+        elif preset == "watchlist":
+            symbols = [
+                str(item).strip().upper()
+                for item in params.get("watchlist", [""])[0].split(",")
+                if str(item).strip()
+            ]
+            if symbols:
+                placeholders = ",".join("?" for _ in symbols)
+                where.append(f"s.symbol IN ({placeholders})")
+                values.extend(symbols)
+            else:
+                where.append("0")
         where_sql = "WHERE " + " AND ".join(where) if where else ""
+        order_sql = product_stock_library_order(sort_key)
+        total = conn.execute(
+            f"SELECT COUNT(*) AS count FROM symbols s {where_sql}",
+            values,
+        ).fetchone()["count"]
         rows = conn.execute(
             f"""
-            SELECT *
-            FROM symbols
+            SELECT
+              s.*,
+              day.change_pct AS day_change,
+              week.change_pct AS week_change,
+              month.change_pct AS month_change,
+              ytd.change_pct AS ytd_change,
+              day.price AS day_price,
+              (
+                SELECT ev.event_label
+                FROM stock_event_rows ev
+                WHERE ev.symbol = s.symbol
+                ORDER BY ev.event_date DESC, ev.rank ASC
+                LIMIT 1
+              ) AS event_label,
+              (
+                SELECT ev.event_date
+                FROM stock_event_rows ev
+                WHERE ev.symbol = s.symbol
+                ORDER BY ev.event_date DESC, ev.rank ASC
+                LIMIT 1
+              ) AS event_date,
+              EXISTS (SELECT 1 FROM stock_event_rows ev WHERE ev.symbol = s.symbol) AS has_event,
+              (
+                SELECT eq.user_angle
+                FROM earnings_quality_rows eq
+                WHERE eq.symbol = s.symbol
+                ORDER BY CASE eq.board WHEN 'quality' THEN 1 WHEN 'confluence' THEN 2 ELSE 99 END
+                LIMIT 1
+              ) AS quality_label,
+              (
+                SELECT COALESCE(eq.quality_score, eq.score, eq.confluence_score)
+                FROM earnings_quality_rows eq
+                WHERE eq.symbol = s.symbol
+                ORDER BY CASE eq.board WHEN 'quality' THEN 1 WHEN 'confluence' THEN 2 ELSE 99 END
+                LIMIT 1
+              ) AS quality_score,
+              strength.label AS strength_label,
+              strength.score AS strength_score
+            FROM symbols s
+            LEFT JOIN market_board_rows day ON day.symbol = s.symbol AND day.board = 'day'
+            LEFT JOIN market_board_rows week ON week.symbol = s.symbol AND week.board = 'week'
+            LEFT JOIN market_board_rows month ON month.symbol = s.symbol AND month.board = 'month'
+            LEFT JOIN market_board_rows ytd ON ytd.symbol = s.symbol AND ytd.board = 'ytd'
+            LEFT JOIN market_board_rows volume ON volume.symbol = s.symbol AND volume.board = 'volume'
+            LEFT JOIN strength_rows strength ON strength.symbol = s.symbol
             {where_sql}
             ORDER BY
-              CASE WHEN symbol = ? THEN 0 WHEN symbol LIKE ? THEN 1 ELSE 2 END,
-              COALESCE(market_cap_value, 0) DESC,
-              symbol
+              CASE WHEN s.symbol = ? THEN 0 WHEN s.symbol LIKE ? THEN 1 ELSE 2 END,
+              {order_sql}
             LIMIT ?
+            OFFSET ?
             """,
-            (*values, query, f"{query}%", limit),
+            (*values, query, f"{query}%", limit, offset),
         ).fetchall()
-        self.send_json({"rows": [product_symbol_payload(row) for row in rows]})
+        self.send_json(
+            {
+                "rows": [product_stock_library_payload(row) for row in rows],
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "sort": sort_key,
+            }
+        )
 
     def send_product_symbol_detail(self, conn: sqlite3.Connection, symbol: str) -> None:
         target = str(symbol or "").strip().upper()

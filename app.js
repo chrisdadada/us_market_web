@@ -72,6 +72,7 @@ const state = {
   productMeta: null,
   productCoverage: null,
   productSymbols: null,
+  productStockLibrary: null,
   productSectors: null,
   productCalendar: null,
   productStockDetails: {},
@@ -159,6 +160,17 @@ const normalizeProductSymbolRow = (row = {}) => {
     price: row.price,
     dollarVolume: Number(row.dollarVolume || 0),
     volumeRatio: row.volumeRatio || "",
+    dayChange: row.dayChange == null ? null : Number(row.dayChange),
+    weekChange: row.weekChange == null ? null : Number(row.weekChange),
+    monthChange: row.monthChange == null ? null : Number(row.monthChange),
+    ytdChange: row.ytdChange == null ? null : Number(row.ytdChange),
+    eventLabel: row.eventLabel || "",
+    eventDate: row.eventDate || "",
+    hasEvent: Boolean(row.hasEvent),
+    qualityLabel: row.qualityLabel || "",
+    qualityScore: row.qualityScore == null ? null : Number(row.qualityScore),
+    strengthLabel: row.strengthLabel || "",
+    strengthScore: row.strengthScore == null ? null : Number(row.strengthScore),
     sources: [...new Set([...(row.sources || []), "产品库"])],
   };
 };
@@ -303,6 +315,60 @@ const loadProductSymbols = () => {
       delete state.loading.productSymbols;
     });
   return state.loading.productSymbols;
+};
+
+const stockLibraryApiKey = () => [
+  state.stocksQuery.trim(),
+  state.stocksPresetFilter,
+  state.stocksSectorFilter,
+  state.stocksCapFilter,
+  state.stocksSort,
+  watchlistSignature(),
+].join("|");
+
+const stockLibraryApiPath = () => {
+  const params = new URLSearchParams();
+  params.set("limit", String(STOCK_LIBRARY_DISPLAY_LIMIT));
+  params.set("offset", "0");
+  params.set("sort", state.stocksSort || "dollarVolume");
+  const query = state.stocksQuery.trim();
+  if (query) params.set("query", query);
+  if (state.stocksPresetFilter && state.stocksPresetFilter !== "all") params.set("preset", state.stocksPresetFilter);
+  if (state.stocksSectorFilter && state.stocksSectorFilter !== "all") params.set("sector", state.stocksSectorFilter);
+  if (state.stocksCapFilter && state.stocksCapFilter !== "all") params.set("cap", state.stocksCapFilter);
+  if (state.stocksPresetFilter === "watchlist") {
+    params.set("watchlist", watchlistSignature());
+  }
+  return `/symbols?${params.toString()}`;
+};
+
+const loadProductStockLibrary = () => {
+  const key = stockLibraryApiKey();
+  if (state.productStockLibrary?.key === key) return Promise.resolve(state.productStockLibrary);
+  if (state.loading.productStockLibrary?.key === key) return state.loading.productStockLibrary.promise;
+  const promise = productApiJson(stockLibraryApiPath())
+    .then((payload) => {
+      const rows = Array.isArray(payload?.rows) ? payload.rows.map(normalizeProductSymbolRow) : [];
+      state.productStockLibrary = {
+        key,
+        rows,
+        total: Number(payload?.total || rows.length || 0),
+        limit: Number(payload?.limit || STOCK_LIBRARY_DISPLAY_LIMIT),
+        offset: Number(payload?.offset || 0),
+        ok: Boolean(payload),
+      };
+      return state.productStockLibrary;
+    })
+    .catch((error) => {
+      console.warn("Product stock library unavailable", error);
+      state.productStockLibrary = { key, rows: [], total: 0, limit: STOCK_LIBRARY_DISPLAY_LIMIT, offset: 0, ok: false };
+      return state.productStockLibrary;
+    })
+    .finally(() => {
+      if (state.loading.productStockLibrary?.key === key) delete state.loading.productStockLibrary;
+    });
+  state.loading.productStockLibrary = { key, promise };
+  return promise;
 };
 
 const loadProductStockDetail = (symbol) => {
@@ -482,12 +548,12 @@ const ensurePageData = (page) => {
       Promise.all([
         loadProductMeta(),
         loadProductCoverage(),
-        loadGlobalSearchUniverse(),
         loadProductCalendar().then((calendar) => {
           if (calendar) renderEventsCalendar(calendar);
           return calendar;
         }),
         loadProductSectors(),
+        loadProductStockLibrary(),
         loadLazyDataset("earningsQuality"),
         loadLazyDataset("eventOpportunities"),
       ])
@@ -1476,6 +1542,8 @@ const findEventRow = (symbol) => {
 const findProductProfile = (symbol) => {
   const target = normalizeStockSymbol(symbol);
   if (state.productStockDetails[target]?.profile) return state.productStockDetails[target].profile;
+  const currentLibraryRow = (state.productStockLibrary?.rows || []).find((row) => normalizeStockSymbol(row.symbol) === target);
+  if (currentLibraryRow) return currentLibraryRow;
   const key = rowsSignature(state.productSymbols || []);
   if (stockRuntimeCache.productMapKey !== key || !stockRuntimeCache.productMap) {
     stockRuntimeCache.productMap = new Map();
@@ -1837,19 +1905,19 @@ const normalizeStockLibraryItem = (item) => {
     capBucket: stockCapBucketFromItem({ marketCap }),
     dollarVolume,
     volumeRatio,
-    dayChange: day ? getChange(day) : change,
-    weekChange: week ? getChange(week) : null,
-    monthChange: month ? getChange(month) : null,
-    ytdChange: ytd ? getChange(ytd) : null,
+    dayChange: Number.isFinite(Number(item.dayChange)) ? Number(item.dayChange) : day ? getChange(day) : change,
+    weekChange: Number.isFinite(Number(item.weekChange)) ? Number(item.weekChange) : week ? getChange(week) : null,
+    monthChange: Number.isFinite(Number(item.monthChange)) ? Number(item.monthChange) : month ? getChange(month) : null,
+    ytdChange: Number.isFinite(Number(item.ytdChange)) ? Number(item.ytdChange) : ytd ? getChange(ytd) : null,
     strengthRank: strength?.rank,
     strengthScore: strength?.score,
-    strengthLabel: strength?.label,
+    strengthLabel: item.strengthLabel || strength?.label,
     relativeStrength: strength?.relative?.spy || strength?.relative?.qqq || strength?.relative?.sector || "",
-    eventLabel: eventRow?.eventLabel || "",
-    eventDate: eventRow?.eventDate || "",
-    qualityLabel: quality?.userAngle || "",
-    qualityScore: quality?.score,
-    hasEvent: Boolean(eventRow),
+    eventLabel: item.eventLabel || eventRow?.eventLabel || "",
+    eventDate: item.eventDate || eventRow?.eventDate || "",
+    qualityLabel: item.qualityLabel || quality?.userAngle || "",
+    qualityScore: item.qualityScore ?? quality?.score,
+    hasEvent: Boolean(item.hasEvent || eventRow),
     inWatchlist: isInWatchlist(symbol),
     sources: [...sources],
     market,
@@ -2057,15 +2125,38 @@ const renderStocksPage = () => {
   if (!body) return;
   const asOf = state.meta?.day?.updatedAt || state.marketTemperature?.asOf || "";
   setText("#stocksAsOf", formatDisplayDate(asOf));
-  if (!state.searchUniverse && !state.loading.searchUniverse) {
-    loadGlobalSearchUniverse().then(renderStocksPage);
+  if (!state.productSectors && !state.loading.productSectors) {
+    loadProductSectors().then(renderStocksPage);
   }
-  const allRows = stockLibraryRows();
-  renderStocksSectorOptions(allRows);
-  const filteredRows = filteredStockLibraryRows();
-  const sortedRows = sortedStockLibraryRows(filteredRows);
-  const rows = sortedRows.slice(0, STOCK_LIBRARY_DISPLAY_LIMIT);
-  const liquidCount = filteredRows.filter((item) => item.dollarVolume >= STOCK_LIQUID_DOLLAR_VOLUME_MIN).length;
+  const requestKey = stockLibraryApiKey();
+  const hasCurrentApiRows = state.productStockLibrary?.key === requestKey && state.productStockLibrary.ok;
+  const loadingCurrentApiRows = state.loading.productStockLibrary?.key === requestKey;
+  if (!hasCurrentApiRows && !loadingCurrentApiRows) {
+    loadProductStockLibrary().then(renderStocksPage);
+  }
+  const sectorOptionRows = state.productSectors?.length
+    ? state.productSectors
+    : hasCurrentApiRows
+      ? state.productStockLibrary.rows
+      : [];
+  renderStocksSectorOptions(sectorOptionRows);
+  let rows = [];
+  let totalRows = 0;
+  let usingApiRows = false;
+  if (hasCurrentApiRows) {
+    rows = state.productStockLibrary.rows.map(normalizeStockLibraryItem);
+    totalRows = Number(state.productStockLibrary.total || rows.length);
+    usingApiRows = true;
+  } else if (state.productStockLibrary?.key === requestKey && state.productStockLibrary.ok === false) {
+    if (!state.searchUniverse && !state.loading.searchUniverse) {
+      loadGlobalSearchUniverse().then(renderStocksPage);
+    }
+    const filteredRows = filteredStockLibraryRows();
+    rows = sortedStockLibraryRows(filteredRows).slice(0, STOCK_LIBRARY_DISPLAY_LIMIT);
+    totalRows = filteredRows.length;
+  } else {
+    body.innerHTML = `<tr><td colspan="14">正在加载股票库。</td></tr>`;
+  }
   const coverage = state.productCoverage || {};
   const symbolCoverage = coverage.symbols || {};
   const calendarCounts = Object.fromEntries((coverage.calendar || []).map((row) => [row.type, Number(row.rows || 0)]));
@@ -2094,12 +2185,12 @@ const renderStocksPage = () => {
   setText("#stocksCurrentCount", label.replace(" · 成交额 $5M+", ""));
   setText(
     "#stocksCurrentNote",
-    rows.length < filteredRows.length
+    rows.length < totalRows
       ? "表格按当前筛选展示前排股票，精搜可继续定位全库标的。"
       : "表格已按当前筛选展示。"
   );
   setText("#stocksCoverageStatus", coverageStatus);
-  setText("#stocksCoverageNote", "精搜走全库；当前表格按流动性与所选条件展示。");
+  setText("#stocksCoverageNote", usingApiRows ? "服务端筛选已接入；当前表格按流动性与所选条件展示。" : "精搜走全库；当前表格按本地缓存展示。");
   setText("#stocksSectorGap", unknownSector ? "待补" : "完整");
   setText(
     "#stocksSectorGapNote",
@@ -2116,7 +2207,11 @@ const renderStocksPage = () => {
   );
   setText("#stocksSortMetric", sortMetric);
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="14">当前筛选下暂无结果。</td></tr>`;
+    if (loadingCurrentApiRows && !state.productStockLibrary?.ok) {
+      body.innerHTML = `<tr><td colspan="14">正在加载股票库。</td></tr>`;
+    } else {
+      body.innerHTML = `<tr><td colspan="14">当前筛选下暂无结果。</td></tr>`;
+    }
     return;
   }
   body.innerHTML = rows
