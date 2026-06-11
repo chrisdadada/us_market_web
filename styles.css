@@ -18387,16 +18387,16 @@ body .page-view[data-view="risk"] .macro-pressure-legend {
 }
 
 body .page-view[data-view="risk"] .macro-composite-chart {
-  min-height: 322px;
-  height: 322px;
+  min-height: 336px;
+  height: 336px;
   border-left: 1px solid rgba(128, 151, 183, 0.14);
   background: #07101d;
-  padding: 8px 10px 4px;
+  padding: 8px 10px 2px;
 }
 
 body .page-view[data-view="risk"] .macro-monitor-svg {
-  min-height: 310px;
-  height: 310px;
+  min-height: 324px;
+  height: 324px;
 }
 
 body .page-view[data-view="risk"] .macro-monitor-plot {
@@ -18474,6 +18474,23 @@ body .page-view[data-view="risk"] .macro-monitor-dot {
   stroke-width: 4;
 }
 
+body .page-view[data-view="risk"] .macro-monitor-callout-link {
+  stroke: rgba(127, 195, 255, 0.46);
+  stroke-dasharray: 4 5;
+  stroke-width: 1;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-rail rect {
+  fill: rgba(8, 13, 23, 0.78);
+  stroke: rgba(128, 151, 183, 0.14);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-rail text {
+  fill: #7f8da2;
+  font-size: 11px;
+  font-weight: 560;
+}
+
 body .page-view[data-view="risk"] .macro-monitor-callout rect {
   fill: rgba(11, 18, 32, 0.96);
   stroke: rgba(142, 165, 195, 0.3);
@@ -18514,7 +18531,7 @@ body .page-view[data-view="risk"] .macro-asset-list {
 
 body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
   display: grid;
-  grid-template-columns: 132px minmax(92px, 1fr) 42px 138px;
+  grid-template-columns: minmax(132px, 0.85fr) minmax(112px, 1fr) 48px minmax(138px, 0.9fr);
   gap: 10px;
   align-items: center;
   min-height: 44px;
@@ -18526,7 +18543,7 @@ body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
 
 body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header {
   display: grid;
-  grid-template-columns: 132px minmax(92px, 1fr) 54px 138px;
+  grid-template-columns: minmax(132px, 0.85fr) minmax(112px, 1fr) 48px minmax(138px, 0.9fr);
   gap: 10px;
   align-items: center;
   min-height: 30px;
@@ -18567,6 +18584,22 @@ body .page-view[data-view="risk"] .macro-factor-bars b span {
 body .page-view[data-view="risk"] .macro-factor-bars i {
   height: 6px;
   background: rgba(128, 151, 183, 0.16);
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars em {
+  background: #7fc3ff;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row.is-watch em {
+  background: #ff6f7d;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row.is-neutral em {
+  background: #f2c86b;
+}
+
+body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row.is-positive em {
+  background: #4fd7a5;
 }
 
 body .page-view[data-view="risk"] .macro-factor-bars strong {
@@ -19948,14 +19981,57 @@ body .watchlist-actions-cell .icon-action {
     grid-template-columns: 82px minmax(90px, 0.8fr) minmax(128px, 1.2fr);
   }
 
+  body .page-view[data-view="risk"] .risk-dashboard {
+    display: block;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body .page-view[data-view="risk"] .risk-dashboard > * {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  body .page-view[data-view="risk"] .risk-dashboard > * + * {
+    margin-top: 14px;
+  }
+
   body .page-view[data-view="risk"] .macro-monitor-head,
   body .page-view[data-view="risk"] .macro-monitor-layout,
   body .page-view[data-view="risk"] .macro-composite-card {
+    width: 100%;
+    max-width: 100%;
     grid-template-columns: 1fr;
+  }
+
+  body .page-view[data-view="risk"] .macro-monitor-board,
+  body .page-view[data-view="risk"] .macro-composite-card,
+  body .page-view[data-view="risk"] .macro-factor-board,
+  body .page-view[data-view="risk"] .macro-asset-board,
+  body .page-view[data-view="risk"] .macro-composite-chart {
+    box-sizing: border-box;
+    width: 100%;
+    inline-size: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  body .page-view[data-view="risk"] .macro-monitor-board {
+    max-height: none !important;
+    max-block-size: none !important;
+    overflow-x: clip;
+    overflow-y: visible !important;
+    justify-self: stretch;
   }
 
   body .page-view[data-view="risk"] .macro-composite-chart {
     border-left: 0;
+  }
+
+  body .page-view[data-view="risk"] .macro-monitor-svg {
+    display: block;
+    width: 100%;
   }
 
   body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row,

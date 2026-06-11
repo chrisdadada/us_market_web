@@ -7351,9 +7351,9 @@ const macroMonitorCompositePoints = () => {
 
 const macroMonitorSvg = (points) => {
   if (points.length < 2) return '<div class="macro-chart-empty">等待图表</div>';
-  const width = 1100;
-  const height = 360;
-  const pad = { left: 66, right: 62, top: 34, bottom: 62 };
+  const width = 1160;
+  const height = 380;
+  const pad = { left: 66, right: 242, top: 38, bottom: 58 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const min = 0;
@@ -7391,6 +7391,8 @@ const macroMonitorSvg = (points) => {
       </g>
     `;
   };
+  const calloutX = pad.left + plotW + 30;
+  const calloutY = Math.max(pad.top + 10, Math.min(pad.top + plotH - 92, lastY - 44));
   return `
     <svg class="macro-monitor-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="宏观综合压力走势">
       <rect class="macro-monitor-plot" x="${pad.left}" y="${pad.top}" width="${plotW}" height="${plotH}"></rect>
@@ -7412,12 +7414,18 @@ const macroMonitorSvg = (points) => {
       <line class="macro-monitor-guide" x1="${lastX.toFixed(1)}" x2="${lastX.toFixed(1)}" y1="${pad.top}" y2="${pad.top + plotH}"></line>
       <line class="macro-monitor-current-level" x1="${pad.left}" x2="${width - pad.right}" y1="${lastY.toFixed(1)}" y2="${lastY.toFixed(1)}"></line>
       <circle class="macro-monitor-dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="5.5"></circle>
-      <g class="macro-monitor-callout" transform="translate(${(width - pad.right - 176).toFixed(1)}, ${Math.max(pad.top + 10, Math.min(pad.top + plotH - 84, lastY - 38)).toFixed(1)})">
-        <rect width="162" height="74" rx="7"></rect>
-        <text x="13" y="19">${escapeHtml(stateLabel)}</text>
-        <text class="macro-monitor-callout-value" x="13" y="45">${Math.round(last.value)}</text>
-        <text class="macro-monitor-callout-date" x="64" y="44">${escapeHtml(formatDisplayDate(last.date).slice(0, 10))}</text>
-        <text class="macro-monitor-callout-delta" x="13" y="62">${escapeHtml(deltaLabel)}</text>
+      <line class="macro-monitor-callout-link" x1="${lastX.toFixed(1)}" x2="${(calloutX - 12).toFixed(1)}" y1="${lastY.toFixed(1)}" y2="${(calloutY + 43).toFixed(1)}"></line>
+      <g class="macro-monitor-rail" transform="translate(${(pad.left + plotW + 16).toFixed(1)}, ${pad.top})">
+        <rect width="${(pad.right - 34).toFixed(1)}" height="${plotH.toFixed(1)}" rx="0"></rect>
+        <text x="14" y="22">当前读数</text>
+        <text x="14" y="${(plotH - 18).toFixed(1)}">数值越高，宏观扰动越强</text>
+      </g>
+      <g class="macro-monitor-callout" transform="translate(${calloutX.toFixed(1)}, ${calloutY.toFixed(1)})">
+        <rect width="176" height="86" rx="7"></rect>
+        <text x="13" y="20">${escapeHtml(stateLabel)}</text>
+        <text class="macro-monitor-callout-value" x="13" y="50">${Math.round(last.value)}</text>
+        <text class="macro-monitor-callout-date" x="76" y="49">${escapeHtml(formatDisplayDate(last.date).slice(0, 10))}</text>
+        <text class="macro-monitor-callout-delta" x="13" y="68">${escapeHtml(deltaLabel)}</text>
       </g>
       ${labels.map((point, index) => {
         const pointIndex = index === 0 ? 0 : index === 1 ? Math.floor(points.length / 2) : points.length - 1;
@@ -7478,6 +7486,13 @@ const macroFactorPressureLabel = (score) => {
   if (score >= 60) return "偏高";
   if (score >= 35) return "中性";
   return "低压力";
+};
+
+const macroFactorScoreClass = (score) => {
+  if (!Number.isFinite(score)) return "is-neutral";
+  if (score >= 65) return "is-watch";
+  if (score >= 35) return "is-neutral";
+  return "is-positive";
 };
 
 const macroFactorNarrative = (indicator) => {
@@ -7557,12 +7572,12 @@ const renderMacroMonitor = () => {
           <span>因子</span>
           <span>压力位置</span>
           <span>分数</span>
-          <span>读数 / 变化</span>
+          <span>当前读数</span>
         </div>
         ${factorDrivers.map((indicator) => {
-          const score = indicator.factorScore;
+          const score = Math.max(0, Math.min(100, indicator.factorScore));
           return `
-            <div class="macro-factor-row ${signalClass(indicator.status || indicator.riskLevel)}">
+            <div class="macro-factor-row ${macroFactorScoreClass(score)}">
               <b>${escapeHtml(indicator.name || "宏观因子")}<span>${escapeHtml(macroFactorNarrative(indicator))}</span></b>
               <i><em style="width: ${score}%"></em></i>
               <strong>${escapeHtml(`${score}`)}<span>${escapeHtml(macroFactorPressureLabel(score))}</span></strong>
