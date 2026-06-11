@@ -1332,31 +1332,102 @@ const loadSignals = async () => {
 
 const normalizeStockSymbol = (symbol) => String(symbol || "").trim().toUpperCase();
 
-const allMarketRows = () => uniqueBySymbol(Object.values(state.boards || {}).flat());
+const stockRuntimeCache = {
+  marketRowsKey: "",
+  marketRows: null,
+  marketMapKey: "",
+  marketMap: null,
+  qualityRowsKey: "",
+  qualityRows: null,
+  qualityMapKey: "",
+  qualityMap: null,
+  eventRowsKey: "",
+  eventRows: null,
+  eventMapKey: "",
+  eventMap: null,
+  productMapKey: "",
+  productMap: null,
+  globalSearchKey: "",
+  globalSearchItems: null,
+  stockLibraryKey: "",
+  stockLibraryRows: null,
+};
+
+const rowsSignature = (rows) => {
+  const list = Array.isArray(rows) ? rows : [];
+  return `${list.length}:${normalizeStockSymbol(list[0]?.symbol || list[0]?.ticker)}:${normalizeStockSymbol(list.at(-1)?.symbol || list.at(-1)?.ticker)}`;
+};
+
+const boardsSignature = () =>
+  Object.entries(state.boards || {})
+    .map(([key, rows]) => `${key}:${rowsSignature(rows)}`)
+    .join("|");
+
+const watchlistSignature = () =>
+  (state.watchlist || [])
+    .map((row) => normalizeStockSymbol(row.symbol || row.ticker))
+    .sort()
+    .join(",");
+
+const allMarketRows = () => {
+  const key = boardsSignature();
+  if (stockRuntimeCache.marketRowsKey === key && stockRuntimeCache.marketRows) return stockRuntimeCache.marketRows;
+  stockRuntimeCache.marketRowsKey = key;
+  stockRuntimeCache.marketRows = uniqueBySymbol(Object.values(state.boards || {}).flat());
+  stockRuntimeCache.marketMapKey = "";
+  return stockRuntimeCache.marketRows;
+};
+
+const marketRowMap = () => {
+  const key = boardsSignature();
+  if (stockRuntimeCache.marketMapKey === key && stockRuntimeCache.marketMap) return stockRuntimeCache.marketMap;
+  const map = new Map();
+  allMarketRows().forEach((row) => {
+    const symbol = normalizeStockSymbol(row.symbol);
+    if (symbol && !map.has(symbol)) map.set(symbol, row);
+  });
+  stockRuntimeCache.marketMapKey = key;
+  stockRuntimeCache.marketMap = map;
+  return map;
+};
 
 const allQualityRows = () => {
+  const key = Object.entries(state.earningsQuality?.boards || {})
+    .map(([board, payload]) => `${board}:${rowsSignature(payload?.rows || [])}`)
+    .join("|");
+  if (stockRuntimeCache.qualityRowsKey === key && stockRuntimeCache.qualityRows) return stockRuntimeCache.qualityRows;
   const boards = state.earningsQuality?.boards || {};
-  return uniqueBySymbol(
+  stockRuntimeCache.qualityRowsKey = key;
+  stockRuntimeCache.qualityRows = uniqueBySymbol(
     Object.values(boards)
       .flatMap((board) => board.rows || [])
       .map((row) => ({ ...row, symbol: row.ticker })),
   );
+  stockRuntimeCache.qualityMapKey = "";
+  return stockRuntimeCache.qualityRows;
 };
 
 const allEventRows = () => {
+  const key = Object.entries(state.eventOpportunities?.boards || {})
+    .map(([board, payload]) => `${board}:${rowsSignature(payload?.rows || [])}`)
+    .join("|");
+  if (stockRuntimeCache.eventRowsKey === key && stockRuntimeCache.eventRows) return stockRuntimeCache.eventRows;
   const boards = state.eventOpportunities?.boards || {};
-  return uniqueBySymbol(
+  stockRuntimeCache.eventRowsKey = key;
+  stockRuntimeCache.eventRows = uniqueBySymbol(
     Object.values(boards)
       .flatMap((board) => board.rows || [])
       .map((row) => ({ ...row, symbol: row.ticker })),
   );
+  stockRuntimeCache.eventMapKey = "";
+  return stockRuntimeCache.eventRows;
 };
 
 const findMarketRow = (symbol) => {
   const target = normalizeStockSymbol(symbol);
   return (
     getMarketDetailSource(target) ||
-    allMarketRows().find((row) => normalizeStockSymbol(row.symbol) === target) ||
+    marketRowMap().get(target) ||
     null
   );
 };
@@ -1368,29 +1439,53 @@ const findStrengthRow = (symbol) => {
 
 const findQualityRow = (symbol) => {
   const target = normalizeStockSymbol(symbol);
-  return allQualityRows().find((row) => normalizeStockSymbol(row.ticker || row.symbol) === target) || null;
+  allQualityRows();
+  if (stockRuntimeCache.qualityMapKey !== stockRuntimeCache.qualityRowsKey || !stockRuntimeCache.qualityMap) {
+    stockRuntimeCache.qualityMap = new Map();
+    allQualityRows().forEach((row) => {
+      const rowSymbol = normalizeStockSymbol(row.ticker || row.symbol);
+      if (rowSymbol && !stockRuntimeCache.qualityMap.has(rowSymbol)) stockRuntimeCache.qualityMap.set(rowSymbol, row);
+    });
+    stockRuntimeCache.qualityMapKey = stockRuntimeCache.qualityRowsKey;
+  }
+  return stockRuntimeCache.qualityMap.get(target) || null;
 };
 
 const findEventRow = (symbol) => {
   const target = normalizeStockSymbol(symbol);
-  const boards = state.eventOpportunities?.boards || {};
-  const orderedRows = [
-    ...(boards.guidance_up?.rows || []),
-    ...(boards.earnings_beat?.rows || []),
-    ...(boards.analyst_positive?.rows || []),
-    ...(boards.short_squeeze?.rows || []),
-    ...allEventRows(),
-  ];
-  return orderedRows.find((row) => normalizeStockSymbol(row.ticker || row.symbol) === target) || null;
+  allEventRows();
+  if (stockRuntimeCache.eventMapKey !== stockRuntimeCache.eventRowsKey || !stockRuntimeCache.eventMap) {
+    const boards = state.eventOpportunities?.boards || {};
+    const orderedRows = [
+      ...(boards.guidance_up?.rows || []),
+      ...(boards.earnings_beat?.rows || []),
+      ...(boards.analyst_positive?.rows || []),
+      ...(boards.short_squeeze?.rows || []),
+      ...allEventRows(),
+    ];
+    stockRuntimeCache.eventMap = new Map();
+    orderedRows.forEach((row) => {
+      const rowSymbol = normalizeStockSymbol(row.ticker || row.symbol);
+      if (rowSymbol && !stockRuntimeCache.eventMap.has(rowSymbol)) stockRuntimeCache.eventMap.set(rowSymbol, row);
+    });
+    stockRuntimeCache.eventMapKey = stockRuntimeCache.eventRowsKey;
+  }
+  return stockRuntimeCache.eventMap.get(target) || null;
 };
 
 const findProductProfile = (symbol) => {
   const target = normalizeStockSymbol(symbol);
-  return (
-    state.productStockDetails[target]?.profile ||
-    (state.productSymbols || []).find((row) => normalizeStockSymbol(row.symbol) === target) ||
-    null
-  );
+  if (state.productStockDetails[target]?.profile) return state.productStockDetails[target].profile;
+  const key = rowsSignature(state.productSymbols || []);
+  if (stockRuntimeCache.productMapKey !== key || !stockRuntimeCache.productMap) {
+    stockRuntimeCache.productMap = new Map();
+    (state.productSymbols || []).forEach((row) => {
+      const rowSymbol = normalizeStockSymbol(row.symbol);
+      if (rowSymbol && !stockRuntimeCache.productMap.has(rowSymbol)) stockRuntimeCache.productMap.set(rowSymbol, row);
+    });
+    stockRuntimeCache.productMapKey = key;
+  }
+  return stockRuntimeCache.productMap.get(target) || null;
 };
 
 const stockDisplayName = (symbol) => {
@@ -1481,6 +1576,20 @@ const loadGlobalSearchUniverse = () => {
 };
 
 const buildGlobalSearchItems = () => {
+  allQualityRows();
+  allEventRows();
+  const key = [
+    rowsSignature(state.productSymbols || []),
+    rowsSignature(state.searchUniverse || []),
+    boardsSignature(),
+    rowsSignature(state.strength?.rows || []),
+    stockRuntimeCache.qualityRowsKey,
+    stockRuntimeCache.eventRowsKey,
+    watchlistSignature(),
+  ].join("|");
+  if (stockRuntimeCache.globalSearchKey === key && stockRuntimeCache.globalSearchItems) {
+    return stockRuntimeCache.globalSearchItems;
+  }
   const map = new Map();
   (state.productSymbols || []).forEach((row) => mergeSearchRow(map, row, "产品库"));
   (state.searchUniverse || []).forEach((row) => mergeSearchRow(map, row, "覆盖池"));
@@ -1495,11 +1604,13 @@ const buildGlobalSearchItems = () => {
   coreRows.forEach((row) => mergeSearchRow(map, row, "核心"));
   allQualityRows().forEach((row) => mergeSearchRow(map, row, "财报"));
   allEventRows().forEach((row) => mergeSearchRow(map, row, "事件"));
-  return [...map.values()].map((item) => ({
+  stockRuntimeCache.globalSearchKey = key;
+  stockRuntimeCache.globalSearchItems = [...map.values()].map((item) => ({
     ...item,
     sources: [...item.sources],
     searchText: [item.symbol, item.name, item.sector, ...item.sources].join(" ").toLowerCase(),
   }));
+  return stockRuntimeCache.globalSearchItems;
 };
 
 const globalPageSearchItems = () =>
@@ -1750,17 +1861,34 @@ const normalizeStockLibraryItem = (item) => {
 };
 
 const stockLibraryRows = () => {
+  allQualityRows();
+  allEventRows();
+  const key = [
+    rowsSignature(state.productSymbols || []),
+    rowsSignature(state.searchUniverse || []),
+    boardsSignature(),
+    rowsSignature(state.strength?.rows || []),
+    stockRuntimeCache.qualityRowsKey,
+    stockRuntimeCache.eventRowsKey,
+    watchlistSignature(),
+    state.signals?.updatedAt || state.signals?.asOf || "",
+  ].join("|");
+  if (stockRuntimeCache.stockLibraryKey === key && stockRuntimeCache.stockLibraryRows) {
+    return stockRuntimeCache.stockLibraryRows;
+  }
   const map = new Map();
   (state.productSymbols || []).forEach((row) => mergeSearchRow(map, row, "产品库"));
   (state.searchUniverse || []).forEach((row) => mergeSearchRow(map, row, "覆盖池"));
   buildGlobalSearchItems().forEach((row) => mergeSearchRow(map, row, row.sources?.[0] || "搜索"));
-  return [...map.values()]
+  stockRuntimeCache.stockLibraryKey = key;
+  stockRuntimeCache.stockLibraryRows = [...map.values()]
     .map(normalizeStockLibraryItem)
     .filter((item) => item.symbol)
     .sort((a, b) => {
       if (b.dollarVolume !== a.dollarVolume) return b.dollarVolume - a.dollarVolume;
       return a.symbol.localeCompare(b.symbol);
     });
+  return stockRuntimeCache.stockLibraryRows;
 };
 
 const filteredStockLibraryRows = () => {

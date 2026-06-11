@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +16,7 @@ FRED_DIR = EXTERNAL / "raw" / "fred"
 REPORTS = EXTERNAL / "reports"
 DAILY_DIR = EXTERNAL / "processed" / "polygon" / "stocks_split_adjusted" / "1d"
 EVENT_SIGNALS_PATH = EXTERNAL / "features" / "polygon" / "monetizable_signals" / "event_signals.parquet"
+EARNINGS_DIR = EXTERNAL / "raw" / "polygon_rest" / "earnings"
 
 
 def now_iso() -> str:
@@ -25,6 +26,15 @@ def now_iso() -> str:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
 
 
 def clean_number(value: Any) -> float | None:
@@ -71,6 +81,124 @@ def read_csv(path: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
     return pd.read_csv(path)
+
+
+def earnings_impact(importance: Any) -> str:
+    number = clean_number(importance)
+    if number is None:
+        return "medium"
+    if number >= 4:
+        return "high"
+    if number >= 2:
+        return "medium"
+    return "low"
+
+
+def compact_revenue(value: Any) -> str:
+    label = money_compact(value)
+    return label or "--"
+
+
+def build_earnings_calendar_events(start: date, end: date, limit: int = 120) -> list[dict[str, Any]]:
+    if not EARNINGS_DIR.exists():
+        return []
+    files = sorted(file for file in EARNINGS_DIR.glob("earnings_*.parquet") if not file.name.startswith("._"))
+    if not files:
+        return []
+    columns = [
+        "ticker",
+        "company_name",
+        "date",
+        "time",
+        "date_status",
+        "importance",
+        "estimated_eps",
+        "estimated_revenue",
+        "fiscal_period",
+        "fiscal_year",
+    ]
+    frames: list[pd.DataFrame] = []
+    for file in files:
+        try:
+            frame = pd.read_parquet(file, columns=columns)
+        except Exception:
+            continue
+        if not frame.empty:
+            frames.append(frame)
+    if not frames:
+        return []
+    data = pd.concat(frames, ignore_index=True)
+    data["ticker"] = data["ticker"].astype(str).str.upper().str.strip()
+    data["date"] = pd.to_datetime(data["date"], errors="coerce")
+    data = data.dropna(subset=["ticker", "date"])
+    data = data[(data["date"].dt.date >= start) & (data["date"].dt.date <= end)]
+    if data.empty:
+        return []
+    data["importance"] = pd.to_numeric(data["importance"], errors="coerce").fillna(0)
+    data = data.sort_values(["date", "importance", "ticker"], ascending=[True, False, True])
+    data = data.drop_duplicates(["ticker", "date"], keep="first").head(limit)
+    events: list[dict[str, Any]] = []
+    for row in data.itertuples(index=False):
+        ticker = str(row.ticker).upper()
+        company = str(row.company_name or ticker).strip()
+        report_date = row.date.date().isoformat()
+        period = " ".join(str(value) for value in [row.fiscal_period, row.fiscal_year] if pd.notna(value) and str(value).strip())
+        eps = clean_number(row.estimated_eps)
+        revenue = clean_number(row.estimated_revenue)
+        status = str(row.date_status or "").strip()
+        details = []
+        if period:
+            details.append(period)
+        if eps is not None:
+            details.append(f"预估 EPS {eps:.2f}")
+        if revenue is not None:
+            details.append(f"预估收入 {compact_revenue(revenue)}")
+        summary = "；".join(details) or "财报日期来自本地 Polygon/Benzinga earnings 数据。"
+        if status:
+            summary = f"{summary}；状态 {status}。"
+        events.append(
+            {
+                "date": report_date,
+                "time": str(row.time or "").strip(),
+                "title": f"{ticker} 财报",
+                "type": "earnings",
+                "impact": earnings_impact(row.importance),
+                "sourceName": "Polygon/Benzinga",
+                "relatedModules": ["财经日历", "股票库", "财报观察"],
+                "relatedAssets": [ticker],
+                "summary": f"{company}：{summary}",
+            }
+        )
+    return events
+
+
+def build_events_calendar() -> dict[str, Any]:
+    existing = read_json(DATA_DIR / "events-calendar.json")
+    today = datetime.now(timezone.utc).date()
+    horizon_end = today + timedelta(days=90)
+    base_events = [
+        event
+        for event in existing.get("events", [])
+        if str(event.get("type") or "").lower() != "earnings"
+    ]
+    earnings_events = build_earnings_calendar_events(today, horizon_end)
+    events = sorted(
+        [*base_events, *earnings_events],
+        key=lambda row: (str(row.get("date") or ""), str(row.get("time") or ""), str(row.get("title") or "")),
+    )
+    return {
+        "generatedAt": now_iso(),
+        "asOf": today.isoformat(),
+        "source": "official macro calendars + local Polygon/Benzinga earnings snapshots",
+        "events": events,
+        "impactRules": existing.get("impactRules") or [],
+        "coverage": {
+            "earningsRows": len(earnings_events),
+            "earningsWindowStart": today.isoformat(),
+            "earningsWindowEnd": horizon_end.isoformat(),
+            "earningsSourceReady": bool(earnings_events),
+        },
+    }
 
 
 def read_fred_series(series_id: str, *, percent_yoy: bool = False) -> dict[str, Any] | None:
@@ -956,14 +1084,18 @@ def build_validation_center(events: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> None:
     market = build_market_temperature()
+    calendar = build_events_calendar()
     events = build_event_opportunities()
     validation = build_validation_center(events)
     write_json(DATA_DIR / "market-temperature.json", market)
+    write_json(DATA_DIR / "events-calendar.json", calendar)
     write_json(DATA_DIR / "event-opportunities.json", events)
     write_json(DATA_DIR / "validation-center.json", validation)
     total_events = sum(len(board["rows"]) for board in events["boards"].values())
     print(json.dumps({
         "marketIndicators": len(market["indicators"]),
+        "calendarEvents": len(calendar["events"]),
+        "earningsCalendarEvents": calendar["coverage"]["earningsRows"],
         "eventRows": total_events,
         "forwardStats": len(events["forwardStats"]),
         "validationStats": len(validation["eventTypeStats"]),

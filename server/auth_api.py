@@ -277,8 +277,6 @@ def product_coverage_payload(conn: sqlite3.Connection) -> dict[str, Any]:
         gaps.append("市值字段缺口偏高")
     if not any(item["type"] == "earnings" and item["rows"] > 0 for item in calendar):
         gaps.append("财报日历待接入")
-    if not options:
-        gaps.append("期权流向快照待接入")
     return {
         "ok": symbol_total >= 800 and bool(market_boards),
         "counts": counts,

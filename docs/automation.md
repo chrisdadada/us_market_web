@@ -8,6 +8,8 @@ bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 
 It updates recent Polygon stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, regenerates front-end JSON, validates JSON, and runs the release gate.
 
+Restricted Benzinga event feeds are requested through a forward-looking window by default so the product can pick up upcoming earnings dates when the account is entitled to that feed. If the feed returns 403, the refresh logs a warning and keeps the rest of the product data pipeline moving.
+
 ## Schedule
 
 Install the local macOS LaunchAgent:
@@ -38,6 +40,12 @@ Skip restricted Benzinga feeds that currently return 403:
 
 ```bash
 RUN_RESTRICTED_EVENTS=0 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+```
+
+Adjust the forward-looking event window:
+
+```bash
+EVENTS_FUTURE_DAYS=120 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
 Process a wider recovery window:

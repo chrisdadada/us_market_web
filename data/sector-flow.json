@@ -1,35 +1,35 @@
 {
   "asOf": "2026-06-08",
-  "generatedAt": "2026-06-09T18:09:45.671351+00:00",
+  "generatedAt": "2026-06-11T07:54:28.357635+00:00",
   "source": "Polygon tradable universe liquidity + one-day price direction",
   "method": "按全量可交易股票的成交额/流动性与涨跌方向聚合，生成板块资金流向代理；不等同于逐笔主买主卖或真实资金净流入。",
   "universeCount": 3454,
   "fallbackReason": "",
   "summary": {
     "leaderSector": "科技",
-    "leaderNetFlow": "+$155.73B",
-    "positiveSectors": 5,
-    "negativeSectors": 7,
+    "leaderNetFlow": "+$158.16B",
+    "positiveSectors": 6,
+    "negativeSectors": 6,
     "activeSector": "科技",
-    "avgBreadthPct": 47.1
+    "avgBreadthPct": 47.4
   },
   "rows": [
     {
       "sector": "科技",
       "status": "流入领先",
-      "count": 481,
-      "upCount": 273,
-      "downCount": 204,
-      "breadthPct": 56.8,
-      "avgChange": 0.84,
-      "activeValue": 363633676497.89,
-      "activeValueLabel": "$363.63B",
-      "inflowProxy": 259638805777.4,
-      "inflowProxyLabel": "$259.64B",
-      "outflowProxy": 103913761926.55,
-      "outflowProxyLabel": "$103.91B",
-      "netFlowProxy": 155725043850.85,
-      "netFlowLabel": "+$155.73B",
+      "count": 509,
+      "upCount": 294,
+      "downCount": 211,
+      "breadthPct": 57.8,
+      "avgChange": 1.03,
+      "activeValue": 379298952553.39,
+      "activeValueLabel": "$379.30B",
+      "inflowProxy": 268689660760.12,
+      "inflowProxyLabel": "$268.69B",
+      "outflowProxy": 110528182999.33,
+      "outflowProxyLabel": "$110.53B",
+      "netFlowProxy": 158161477760.79,
+      "netFlowLabel": "+$158.16B",
       "leaders": [
         {
           "symbol": "MU",
@@ -75,81 +75,21 @@
       "rank": 1
     },
     {
-      "sector": "未分类",
-      "status": "活跃分歧",
-      "count": 1013,
-      "upCount": 511,
-      "downCount": 481,
-      "breadthPct": 50.4,
-      "avgChange": 0.44,
-      "activeValue": 141710733306.74,
-      "activeValueLabel": "$141.71B",
-      "inflowProxy": 75695951338.61,
-      "inflowProxyLabel": "$75.70B",
-      "outflowProxy": 65415647371.88,
-      "outflowProxyLabel": "$65.42B",
-      "netFlowProxy": 10280303966.73,
-      "netFlowLabel": "+$10.28B",
-      "leaders": [
-        {
-          "symbol": "LITE",
-          "name": "Lumentum Holdings Inc. Common Stock",
-          "change": 3.68,
-          "liquidity": "$4.56B",
-          "marketCap": "$67.54B",
-          "score": null
-        },
-        {
-          "symbol": "QCOM",
-          "name": "Qualcomm Inc",
-          "change": 0.85,
-          "liquidity": "$3.74B",
-          "marketCap": "$213.45B",
-          "score": null
-        },
-        {
-          "symbol": "ARM",
-          "name": "Arm Holdings plc American Depositary Shares",
-          "change": 1.01,
-          "liquidity": "$3.14B",
-          "marketCap": "$273.16B",
-          "score": null
-        },
-        {
-          "symbol": "NBIS",
-          "name": "Nebius Group N.V. Class A Ordinary Shares",
-          "change": -4.31,
-          "liquidity": "$3.05B",
-          "marketCap": "$48.70B",
-          "score": null
-        },
-        {
-          "symbol": "NFLX",
-          "name": "NetFlix Inc",
-          "change": 0.56,
-          "liquidity": "$2.73B",
-          "marketCap": "$370.93B",
-          "score": null
-        }
-      ],
-      "rank": 2
-    },
-    {
       "sector": "工业",
       "status": "流入领先",
-      "count": 153,
-      "upCount": 97,
-      "downCount": 56,
-      "breadthPct": 63.4,
-      "avgChange": 0.7,
-      "activeValue": 27691154907.07,
-      "activeValueLabel": "$27.69B",
-      "inflowProxy": 18052352991.69,
-      "inflowProxyLabel": "$18.05B",
-      "outflowProxy": 9638801915.38,
-      "outflowProxyLabel": "$9.64B",
-      "netFlowProxy": 8413551076.32,
-      "netFlowLabel": "+$8.41B",
+      "count": 171,
+      "upCount": 104,
+      "downCount": 66,
+      "breadthPct": 60.8,
+      "avgChange": 0.56,
+      "activeValue": 29882498228.13,
+      "activeValueLabel": "$29.88B",
+      "inflowProxy": 18905923225.14,
+      "inflowProxyLabel": "$18.91B",
+      "outflowProxy": 10968782269.37,
+      "outflowProxyLabel": "$10.97B",
+      "netFlowProxy": 7937140955.77,
+      "netFlowLabel": "+$7.94B",
       "leaders": [
         {
           "symbol": "LRCX",
@@ -192,24 +132,84 @@
           "score": null
         }
       ],
+      "rank": 2
+    },
+    {
+      "sector": "未分类",
+      "status": "活跃分歧",
+      "count": 926,
+      "upCount": 455,
+      "downCount": 452,
+      "breadthPct": 49.1,
+      "avgChange": 0.34,
+      "activeValue": 117116730942.54,
+      "activeValueLabel": "$117.12B",
+      "inflowProxy": 62200603076.93,
+      "inflowProxyLabel": "$62.20B",
+      "outflowProxy": 54547137821.45,
+      "outflowProxyLabel": "$54.55B",
+      "netFlowProxy": 7653465255.47,
+      "netFlowLabel": "+$7.65B",
+      "leaders": [
+        {
+          "symbol": "LITE",
+          "name": "Lumentum Holdings Inc. Common Stock",
+          "change": 3.68,
+          "liquidity": "$4.56B",
+          "marketCap": "$67.54B",
+          "score": null
+        },
+        {
+          "symbol": "QCOM",
+          "name": "Qualcomm Inc",
+          "change": 0.85,
+          "liquidity": "$3.74B",
+          "marketCap": "$213.45B",
+          "score": null
+        },
+        {
+          "symbol": "NFLX",
+          "name": "NetFlix Inc",
+          "change": 0.56,
+          "liquidity": "$2.73B",
+          "marketCap": "$370.93B",
+          "score": null
+        },
+        {
+          "symbol": "MSTR",
+          "name": "Strategy Inc Common Stock Class A",
+          "change": 5.61,
+          "liquidity": "$2.67B",
+          "marketCap": "$58.22B",
+          "score": null
+        },
+        {
+          "symbol": "IREN",
+          "name": "IREN Limited Ordinary Shares",
+          "change": 8.91,
+          "liquidity": "$2.43B",
+          "marketCap": "$18.84B",
+          "score": null
+        }
+      ],
       "rank": 3
     },
     {
       "sector": "消费",
-      "status": "流入领先",
-      "count": 235,
-      "upCount": 130,
+      "status": "活跃分歧",
+      "count": 233,
+      "upCount": 128,
       "downCount": 103,
-      "breadthPct": 55.3,
-      "avgChange": 0.53,
-      "activeValue": 68883146345.76,
-      "activeValueLabel": "$68.88B",
-      "inflowProxy": 38346551477.97,
-      "inflowProxyLabel": "$38.35B",
+      "breadthPct": 54.9,
+      "avgChange": 0.52,
+      "activeValue": 68467623003.42,
+      "activeValueLabel": "$68.47B",
+      "inflowProxy": 37931028135.63,
+      "inflowProxyLabel": "$37.93B",
       "outflowProxy": 30530122373.68,
       "outflowProxyLabel": "$30.53B",
-      "netFlowProxy": 7816429104.28,
-      "netFlowLabel": "+$7.82B",
+      "netFlowProxy": 7400905761.95,
+      "netFlowLabel": "+$7.40B",
       "leaders": [
         {
           "symbol": "TSLA",
@@ -255,81 +255,21 @@
       "rank": 4
     },
     {
-      "sector": "通信",
-      "status": "活跃分歧",
-      "count": 18,
-      "upCount": 9,
-      "downCount": 8,
-      "breadthPct": 50.0,
-      "avgChange": -0.63,
-      "activeValue": 5077929692.69,
-      "activeValueLabel": "$5.08B",
-      "inflowProxy": 3588989875.92,
-      "inflowProxyLabel": "$3.59B",
-      "outflowProxy": 1477663411.54,
-      "outflowProxyLabel": "$1.48B",
-      "netFlowProxy": 2111326464.38,
-      "netFlowLabel": "+$2.11B",
-      "leaders": [
-        {
-          "symbol": "NOK",
-          "name": "Nokia Corporation",
-          "change": 1.46,
-          "liquidity": "$1.50B",
-          "marketCap": "$76.03B",
-          "score": null
-        },
-        {
-          "symbol": "ASTS",
-          "name": "AST SpaceMobile, Inc. Class A Common Stock",
-          "change": -1.65,
-          "liquidity": "$1.26B",
-          "marketCap": "$26.76B",
-          "score": null
-        },
-        {
-          "symbol": "TMUS",
-          "name": "T-Mobile US, Inc.",
-          "change": 0.19,
-          "liquidity": "$941.0M",
-          "marketCap": "$205.79B",
-          "score": null
-        },
-        {
-          "symbol": "VZ",
-          "name": "Verizon Communications",
-          "change": 0.15,
-          "liquidity": "$863.1M",
-          "marketCap": "$199.68B",
-          "score": null
-        },
-        {
-          "symbol": "SKM",
-          "name": "SK Telecom Co., Ltd.  American Depositary Shares (Each representing 5/9th of a Ordinary Share of SK Telecom Co., LTD.)",
-          "change": 5.88,
-          "liquidity": "$114.2M",
-          "marketCap": "$14.57B",
-          "score": null
-        }
-      ],
-      "rank": 5
-    },
-    {
       "sector": "材料",
-      "status": "活跃分歧",
-      "count": 169,
-      "upCount": 94,
-      "downCount": 72,
-      "breadthPct": 55.6,
-      "avgChange": 0.23,
-      "activeValue": 14426663806.39,
-      "activeValueLabel": "$14.43B",
-      "inflowProxy": 6849154240.74,
-      "inflowProxyLabel": "$6.85B",
-      "outflowProxy": 7557931812.74,
-      "outflowProxyLabel": "$7.56B",
-      "netFlowProxy": -708777572.01,
-      "netFlowLabel": "$-708.8M",
+      "status": "流入领先",
+      "count": 181,
+      "upCount": 104,
+      "downCount": 74,
+      "breadthPct": 57.5,
+      "avgChange": 0.34,
+      "activeValue": 17527217764.99,
+      "activeValueLabel": "$17.53B",
+      "inflowProxy": 9713986142.58,
+      "inflowProxyLabel": "$9.71B",
+      "outflowProxy": 7793653869.5,
+      "outflowProxyLabel": "$7.79B",
+      "netFlowProxy": 1920332273.08,
+      "netFlowLabel": "+$1.92B",
       "leaders": [
         {
           "symbol": "GS",
@@ -337,6 +277,14 @@
           "change": 0.61,
           "liquidity": "$2.43B",
           "marketCap": "$289.73B",
+          "score": null
+        },
+        {
+          "symbol": "GLW",
+          "name": "Corning Incorporated",
+          "change": 5.61,
+          "liquidity": "$2.25B",
+          "marketCap": "$155.51B",
           "score": null
         },
         {
@@ -362,77 +310,69 @@
           "liquidity": "$522.4M",
           "marketCap": "$108.36B",
           "score": null
+        }
+      ],
+      "rank": 5
+    },
+    {
+      "sector": "通信",
+      "status": "活跃分歧",
+      "count": 37,
+      "upCount": 20,
+      "downCount": 16,
+      "breadthPct": 54.1,
+      "avgChange": -0.23,
+      "activeValue": 8540581712.42,
+      "activeValueLabel": "$8.54B",
+      "inflowProxy": 4388494869.32,
+      "inflowProxyLabel": "$4.39B",
+      "outflowProxy": 4140810437.88,
+      "outflowProxyLabel": "$4.14B",
+      "netFlowProxy": 247684431.44,
+      "netFlowLabel": "+$247.7M",
+      "leaders": [
+        {
+          "symbol": "CIEN",
+          "name": "Ciena Corporation",
+          "change": -4.41,
+          "liquidity": "$2.63B",
+          "marketCap": "$78.44B",
+          "score": null
         },
         {
-          "symbol": "ALB",
-          "name": "Albemarle Corporation",
-          "change": -3.6,
-          "liquidity": "$458.1M",
-          "marketCap": "$20.07B",
+          "symbol": "NOK",
+          "name": "Nokia Corporation",
+          "change": 1.46,
+          "liquidity": "$1.50B",
+          "marketCap": "$76.03B",
+          "score": null
+        },
+        {
+          "symbol": "T",
+          "name": "AT&T Inc.",
+          "change": -1.1,
+          "liquidity": "$944.4M",
+          "marketCap": "$173.22B",
+          "score": null
+        },
+        {
+          "symbol": "TMUS",
+          "name": "T-Mobile US, Inc.",
+          "change": 0.19,
+          "liquidity": "$941.0M",
+          "marketCap": "$205.79B",
+          "score": null
+        },
+        {
+          "symbol": "VZ",
+          "name": "Verizon Communications",
+          "change": 0.15,
+          "liquidity": "$863.1M",
+          "marketCap": "$199.68B",
           "score": null
         }
       ],
       "rank": 6
-    },
-    {
-      "sector": "公用事业",
-      "status": "流出压力",
-      "count": 77,
-      "upCount": 28,
-      "downCount": 49,
-      "breadthPct": 36.4,
-      "avgChange": -0.28,
-      "activeValue": 11051229608.98,
-      "activeValueLabel": "$11.05B",
-      "inflowProxy": 4303260547.3,
-      "inflowProxyLabel": "$4.30B",
-      "outflowProxy": 6747969061.69,
-      "outflowProxyLabel": "$6.75B",
-      "netFlowProxy": -2444708514.39,
-      "netFlowLabel": "$-2.44B",
-      "leaders": [
-        {
-          "symbol": "TER",
-          "name": "Teradyne, Inc. Common Stock",
-          "change": 4.68,
-          "liquidity": "$1.10B",
-          "marketCap": "$53.90B",
-          "score": null
-        },
-        {
-          "symbol": "AEP",
-          "name": "American Electric Power Company, Inc.",
-          "change": -1.84,
-          "liquidity": "$685.3M",
-          "marketCap": "$70.12B",
-          "score": null
-        },
-        {
-          "symbol": "FIX",
-          "name": "Comfort Systems USA, Inc.",
-          "change": 0.44,
-          "liquidity": "$656.2M",
-          "marketCap": "$64.61B",
-          "score": null
-        },
-        {
-          "symbol": "PWR",
-          "name": "Quanta Services, Inc.",
-          "change": -0.19,
-          "liquidity": "$591.0M",
-          "marketCap": "$106.53B",
-          "score": null
-        },
-        {
-          "symbol": "SO",
-          "name": "The Southern Company",
-          "change": -1.43,
-          "liquidity": "$530.7M",
-          "marketCap": "$105.54B",
-          "score": null
-        }
-      ],
-      "rank": 7
     },
     {
       "sector": "生物医药",
@@ -492,24 +432,84 @@
           "score": null
         }
       ],
+      "rank": 7
+    },
+    {
+      "sector": "公用事业",
+      "status": "流出压力",
+      "count": 76,
+      "upCount": 27,
+      "downCount": 49,
+      "breadthPct": 35.5,
+      "avgChange": -0.36,
+      "activeValue": 10941636993.67,
+      "activeValueLabel": "$10.94B",
+      "inflowProxy": 4193667931.98,
+      "inflowProxyLabel": "$4.19B",
+      "outflowProxy": 6747969061.69,
+      "outflowProxyLabel": "$6.75B",
+      "netFlowProxy": -2554301129.7,
+      "netFlowLabel": "$-2.55B",
+      "leaders": [
+        {
+          "symbol": "TER",
+          "name": "Teradyne, Inc. Common Stock",
+          "change": 4.68,
+          "liquidity": "$1.10B",
+          "marketCap": "$53.90B",
+          "score": null
+        },
+        {
+          "symbol": "AEP",
+          "name": "American Electric Power Company, Inc.",
+          "change": -1.84,
+          "liquidity": "$685.3M",
+          "marketCap": "$70.12B",
+          "score": null
+        },
+        {
+          "symbol": "FIX",
+          "name": "Comfort Systems USA, Inc.",
+          "change": 0.44,
+          "liquidity": "$656.2M",
+          "marketCap": "$64.61B",
+          "score": null
+        },
+        {
+          "symbol": "PWR",
+          "name": "Quanta Services, Inc.",
+          "change": -0.19,
+          "liquidity": "$591.0M",
+          "marketCap": "$106.53B",
+          "score": null
+        },
+        {
+          "symbol": "SO",
+          "name": "The Southern Company",
+          "change": -1.43,
+          "liquidity": "$530.7M",
+          "marketCap": "$105.54B",
+          "score": null
+        }
+      ],
       "rank": 8
     },
     {
       "sector": "能源",
       "status": "活跃分歧",
-      "count": 253,
-      "upCount": 145,
-      "downCount": 107,
-      "breadthPct": 57.3,
-      "avgChange": 0.82,
-      "activeValue": 30086005337.12,
-      "activeValueLabel": "$30.09B",
-      "inflowProxy": 12866459712.34,
-      "inflowProxyLabel": "$12.87B",
-      "outflowProxy": 16775509136.41,
-      "outflowProxyLabel": "$16.78B",
-      "netFlowProxy": -3909049424.06,
-      "netFlowLabel": "$-3.91B",
+      "count": 266,
+      "upCount": 155,
+      "downCount": 109,
+      "breadthPct": 58.3,
+      "avgChange": 0.79,
+      "activeValue": 30797060513.45,
+      "activeValueLabel": "$30.80B",
+      "inflowProxy": 13318161820.26,
+      "inflowProxyLabel": "$13.32B",
+      "outflowProxy": 16812510386.34,
+      "outflowProxyLabel": "$16.81B",
+      "netFlowProxy": -3494348566.07,
+      "netFlowLabel": "$-3.49B",
       "leaders": [
         {
           "symbol": "BE",
@@ -557,19 +557,19 @@
     {
       "sector": "医疗",
       "status": "流出压力",
-      "count": 491,
+      "count": 492,
       "upCount": 183,
-      "downCount": 298,
-      "breadthPct": 37.3,
-      "avgChange": -0.47,
-      "activeValue": 44200292326.19,
-      "activeValueLabel": "$44.20B",
+      "downCount": 299,
+      "breadthPct": 37.2,
+      "avgChange": -0.48,
+      "activeValue": 44207919170.55,
+      "activeValueLabel": "$44.21B",
       "inflowProxy": 19939912758.68,
       "inflowProxyLabel": "$19.94B",
-      "outflowProxy": 23919563411.68,
-      "outflowProxyLabel": "$23.92B",
-      "netFlowProxy": -3979650653.0,
-      "netFlowLabel": "$-3.98B",
+      "outflowProxy": 23927190256.04,
+      "outflowProxyLabel": "$23.93B",
+      "netFlowProxy": -3987277497.36,
+      "netFlowLabel": "$-3.99B",
       "leaders": [
         {
           "symbol": "LLY",
@@ -677,19 +677,19 @@
     {
       "sector": "金融",
       "status": "活跃分歧",
-      "count": 375,
+      "count": 374,
       "upCount": 171,
-      "downCount": 196,
-      "breadthPct": 45.6,
-      "avgChange": -0.24,
-      "activeValue": 36078358214.44,
-      "activeValueLabel": "$36.08B",
+      "downCount": 195,
+      "breadthPct": 45.7,
+      "avgChange": -0.23,
+      "activeValue": 36058969160.71,
+      "activeValueLabel": "$36.06B",
       "inflowProxy": 9842825449.89,
       "inflowProxyLabel": "$9.84B",
-      "outflowProxy": 26062715508.33,
-      "outflowProxyLabel": "$26.06B",
-      "netFlowProxy": -16219890058.44,
-      "netFlowLabel": "$-16.22B",
+      "outflowProxy": 26043326454.6,
+      "outflowProxyLabel": "$26.04B",
+      "netFlowProxy": -16200501004.71,
+      "netFlowLabel": "$-16.20B",
       "leaders": [
         {
           "symbol": "BRK.B",

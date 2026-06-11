@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T18:09:47.182413+00:00",
+  "generatedAt": "2026-06-11T07:52:53.263740+00:00",
   "asOf": "2026-06-08",
   "overall": {
     "label": "中性",
@@ -13,10 +13,10 @@
       "name": "VIX 波动率",
       "category": "波动率",
       "impact": "市场波动",
-      "asOf": "2026-06-05",
-      "value": "21.51%",
-      "previous": "15.4%",
-      "change": "+6.11%",
+      "asOf": "2026-06-08",
+      "value": "18.92%",
+      "previous": "21.51%",
+      "change": "-2.59%",
       "status": "neutral",
       "level": "中",
       "explain": "波动率不算低，高波动线索需要更多确认。"
@@ -156,10 +156,10 @@
       "name": "高收益债利差",
       "category": "信用",
       "impact": "信用风险",
-      "asOf": "2026-06-05",
-      "value": "2.76%",
-      "previous": "2.74%",
-      "change": "+0.02%",
+      "asOf": "2026-06-08",
+      "value": "2.75%",
+      "previous": "2.76%",
+      "change": "-0.01%",
       "status": "positive",
       "level": "低",
       "explain": "信用市场暂时稳定。"

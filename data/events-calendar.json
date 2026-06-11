@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-09T00:00:00+08:00",
-  "asOf": "2026-06-09",
-  "source": "manual seed + official macro calendars",
+  "generatedAt": "2026-06-11T07:52:53.799455+00:00",
+  "asOf": "2026-06-11",
+  "source": "official macro calendars + local Polygon/Benzinga earnings snapshots",
   "events": [
     {
       "date": "2026-06-10",
@@ -10,8 +10,15 @@
       "type": "macro",
       "impact": "high",
       "sourceName": "BLS",
-      "relatedModules": ["市场", "风险", "估值"],
-      "relatedAssets": ["SPY", "QQQ"],
+      "relatedModules": [
+        "市场",
+        "风险",
+        "估值"
+      ],
+      "relatedAssets": [
+        "SPY",
+        "QQQ"
+      ],
       "summary": "通胀数据会影响利率预期、成长股估值和风险偏好。"
     },
     {
@@ -21,8 +28,15 @@
       "type": "macro",
       "impact": "high",
       "sourceName": "Federal Reserve",
-      "relatedModules": ["市场", "风险"],
-      "relatedAssets": ["SPY", "QQQ", "TLT"],
+      "relatedModules": [
+        "市场",
+        "风险"
+      ],
+      "relatedAssets": [
+        "SPY",
+        "QQQ",
+        "TLT"
+      ],
       "summary": "关注利率路径、声明措辞和长端利率压力。"
     },
     {
@@ -32,8 +46,15 @@
       "type": "macro",
       "impact": "high",
       "sourceName": "BLS",
-      "relatedModules": ["市场", "风险"],
-      "relatedAssets": ["SPY", "QQQ", "IWM"],
+      "relatedModules": [
+        "市场",
+        "风险"
+      ],
+      "relatedAssets": [
+        "SPY",
+        "QQQ",
+        "IWM"
+      ],
       "summary": "就业数据会影响降息预期、小盘风险偏好和美元利率交易。"
     },
     {
@@ -43,8 +64,15 @@
       "type": "macro",
       "impact": "high",
       "sourceName": "BLS",
-      "relatedModules": ["市场", "风险", "估值"],
-      "relatedAssets": ["SPY", "QQQ"],
+      "relatedModules": [
+        "市场",
+        "风险",
+        "估值"
+      ],
+      "relatedAssets": [
+        "SPY",
+        "QQQ"
+      ],
       "summary": "下一轮通胀确认，会影响估值扩张和成长股风险预算。"
     }
   ],
@@ -52,20 +80,37 @@
     {
       "trigger": "CPI 高于预期",
       "effect": "利率/通胀压力上调，估值模块提示成长股追高风险。",
-      "modules": ["风险", "估值"],
+      "modules": [
+        "风险",
+        "估值"
+      ],
       "state": "risk_up"
     },
     {
       "trigger": "FOMC 偏鹰",
       "effect": "市场温度中的宏观项降权，自选优先级向现金流稳定公司倾斜。",
-      "modules": ["市场", "风险", "股票库"],
+      "modules": [
+        "市场",
+        "风险",
+        "股票库"
+      ],
       "state": "watch"
     },
     {
       "trigger": "财报指引上修",
       "effect": "进入机会模块；若价格承接良好，股票详情从观察转为确认。",
-      "modules": ["机会", "财报", "股票库"],
+      "modules": [
+        "机会",
+        "财报",
+        "股票库"
+      ],
       "state": "opportunity"
     }
-  ]
+  ],
+  "coverage": {
+    "earningsRows": 0,
+    "earningsWindowStart": "2026-06-11",
+    "earningsWindowEnd": "2026-09-09",
+    "earningsSourceReady": false
+  }
 }

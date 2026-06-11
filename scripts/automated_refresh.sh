@@ -39,6 +39,7 @@ DOWNLOAD_WORKERS="${DOWNLOAD_WORKERS:-4}"
 PROCESS_WORKERS="${PROCESS_WORKERS:-4}"
 RUN_REFERENCE="${RUN_REFERENCE:-1}"
 RUN_RESTRICTED_EVENTS="${RUN_RESTRICTED_EVENTS:-1}"
+EVENTS_FUTURE_DAYS="${EVENTS_FUTURE_DAYS:-90}"
 RUN_OPTIONS_FLOW="${RUN_OPTIONS_FLOW:-1}"
 OPTIONS_PHASE="${OPTIONS_PHASE:-core_etf}"
 OPTIONS_MAX_DAYS="${OPTIONS_MAX_DAYS:-1}"
@@ -104,6 +105,7 @@ echo "DEPLOY_AFTER_REFRESH=${DEPLOY_AFTER_REFRESH}"
 echo "PROMOTE_PROD_AFTER_DEPLOY=${PROMOTE_PROD_AFTER_DEPLOY}"
 echo "SKIP_IF_SUCCESSFUL_TODAY=${SKIP_IF_SUCCESSFUL_TODAY}"
 echo "RUN_OPTIONS_FLOW=${RUN_OPTIONS_FLOW}"
+echo "EVENTS_FUTURE_DAYS=${EVENTS_FUTURE_DAYS}"
 echo "OPTIONS_PHASE=${OPTIONS_PHASE}"
 echo "OPTIONS_MAX_DAYS=${OPTIONS_MAX_DAYS}"
 echo "LOG_FILE=${LOG_FILE}"
@@ -187,10 +189,17 @@ try_lab "refresh available Polygon fundamentals" \
   --pause 0.03
 
 if [[ "${RUN_RESTRICTED_EVENTS}" == "1" ]]; then
+  EVENTS_END_DATE="${EVENTS_END_DATE:-$("${PY}" - "${END_DATE}" "${EVENTS_FUTURE_DAYS}" <<'PY'
+from datetime import date, datetime, timedelta
+import sys
+base = datetime.fromisoformat(sys.argv[1]).date()
+print((base + timedelta(days=int(sys.argv[2]))).isoformat())
+PY
+)}"
   try_lab "refresh restricted event feeds if subscription allows" \
     "${PY}" scripts/download_polygon_fundamentals.py \
     --datasets earnings,guidance,analyst_insights \
-    --start "${START_DATE}" --end "${END_DATE}" \
+    --start "${START_DATE}" --end "${EVENTS_END_DATE}" \
     --chunk day \
     --pause 0.03
 fi

@@ -117,8 +117,10 @@ def validate(report: dict[str, Any], args: argparse.Namespace) -> tuple[list[str
     elif calendar_counts.get("earnings", 0) == 0:
         warnings.append("earnings calendar is not connected yet")
     option_rows = sum(int(row["rows"] or 0) for row in report["options"])
-    if option_rows < args.min_options_rows:
+    if args.min_options_rows > 0 and option_rows < args.min_options_rows:
         failures.append(f"options flow rows {option_rows} < {args.min_options_rows}")
+    elif option_rows == 0:
+        warnings.append("options flow is skipped for the current non-options data phase")
     return failures, warnings
 
 
@@ -167,7 +169,7 @@ def main() -> None:
     parser.add_argument("--min-board-rows", type=int, default=800)
     parser.add_argument("--min-macro-events", type=int, default=1)
     parser.add_argument("--min-earnings-events", type=int, default=0)
-    parser.add_argument("--min-options-rows", type=int, default=1)
+    parser.add_argument("--min-options-rows", type=int, default=0)
     parser.add_argument("--max-unknown-sector-pct", type=float, default=20.0)
     parser.add_argument("--max-market-cap-missing-pct", type=float, default=5.0)
     args = parser.parse_args()

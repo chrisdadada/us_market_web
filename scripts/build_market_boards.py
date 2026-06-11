@@ -131,21 +131,21 @@ def infer_sector(name: str, ticker_type: str) -> str:
     text = f"{name} {ticker_type}".lower()
     if ticker_type == "ETF":
         return "ETF"
-    if any(token in text for token in ["biotech", "therapeutics", "pharma", "medicine", "health", "bio", "bioscience", "medical", "surgical", "novo", "sanofi", "astrazeneca", "novartis", "gsk"]):
+    if any(token in text for token in ["biotech", "therapeutics", "pharma", "medicine", "health", "bio", "bioscience", "medical", "surgical", "novo", "sanofi", "astrazeneca", "novartis", "gsk", "gh research"]):
         return "生物医药"
-    if any(token in text for token in ["semiconductor", "chip", "micro", "technology", "software", "data", "ai", "cyber", "security", "cloud", "quantum", "digital", "systems", "electronics", "computer", "cerebras", "asml", "kla", "globalfoundries"]):
+    if any(token in text for token in ["semiconductor", "chip", "micro", "technology", "software", "data", "ai", "cyber", "security", "cloud", "quantum", "digital", "systems", "electronics", "computer", "cerebras", "asml", "kla", "globalfoundries", "circuit", "optical", "photonics", "mobile", "socket", "arm holdings", "himax", "nebius", "poet", "nova ltd", "ituran", "silicom"]):
         return "科技"
-    if any(token in text for token in ["telecom", "telekom", "communications", "mobile", "telefonica", "telus", "vodafone", "nokia", "ericsson"]):
+    if any(token in text for token in ["telecom", "telekom", "communications", "telefonica", "telus", "vodafone", "nokia", "ericsson", "telesat", "millicom", "cellular"]):
         return "通信"
-    if any(token in text for token in ["energy", "oil", "gas", "uranium", "solar"]):
+    if any(token in text for token in ["energy", "oil", "gas", "uranium", "solar", "lpg", "sasol", "enerflex", "petrobras", "ecopetrol", "equinor", "geopark", "ypf", "vivopower", "toyo"]):
         return "能源"
     if any(token in text for token in ["bank", "financial", "capital", "insurance", "credit", "lending", "santander", "bradesco", "itau", "ubs", "hsbc", "barclays", "broker", "fintech"]):
         return "金融"
     if any(token in text for token in ["retail", "consumer", "restaurant", "food", "beverage", "apparel", "brands", "home", "travel", "hotel", "auto", "motor", "vehicle", "tesla", "toyota", "honda", "nio", "xpeng", "li auto"]):
         return "消费"
-    if any(token in text for token in ["industrial", "manufacturing", "construction", "machinery", "aerospace", "aviation", "transport", "logistics", "rail", "truck", "space", "rocket"]):
+    if any(token in text for token in ["industrial", "manufacturing", "construction", "machinery", "aerospace", "aviation", "transport", "logistics", "rail", "truck", "space", "rocket", "shipping", "tanker", "switchgear", "switchboard", "office machines", "navigation", "guidance", "frontline", "cmb.tech", "vestis"]):
         return "工业"
-    if any(token in text for token in ["gold", "silver", "copper", "mining", "materials", "steel", "aluminum", "lithium"]):
+    if any(token in text for token in ["gold", "silver", "copper", "mining", "materials", "steel", "aluminum", "lithium", "tenaris", "alcoa", "almonty", "corning", "glass"]):
         return "材料"
     return "未分类"
 
@@ -154,7 +154,7 @@ def infer_sector_from_sic(text: str) -> str | None:
     lower = str(text or "").lower()
     if not lower or lower == "nan":
         return None
-    if any(token in lower for token in ["semiconductor", "computer", "software", "technology", "data", "electronic", "communications"]):
+    if any(token in lower for token in ["semiconductor", "computer", "software", "technology", "data", "electronic", "communications", "printed circuit", "optical instruments", "measuring & controlling", "office machines"]):
         return "科技"
     if any(token in lower for token in ["medical", "health", "hospital", "pharma", "biotech", "therapeutic", "surgical", "laboratory", "biological", "diagnostic", "dental", "ophthalmic", "x-ray"]):
         return "医疗"
@@ -170,7 +170,7 @@ def infer_sector_from_sic(text: str) -> str | None:
         return "公用事业"
     if any(token in lower for token in ["chemical", "metal", "paper", "material", "aluminum", "steel", "gold", "silver", "ores", "cement", "lumber", "wood", "glass", "rubber", "plastics"]):
         return "材料"
-    if any(token in lower for token in ["transport", "machinery", "manufacturing", "construction", "aerospace", "industrial", "motor vehicle", "aircraft", "missiles", "space vehicles", "truck", "trucking", "railroad", "ship", "boat", "builders", "contractors", "homes", "pumps", "engines", "turbines", "bearings", "meters", "hardware", "equipment", "generators", "ordnance", "air-cond", "heatg", "refrig"]):
+    if any(token in lower for token in ["transport", "machinery", "manufacturing", "construction", "aerospace", "industrial", "motor vehicle", "aircraft", "missiles", "space vehicles", "truck", "trucking", "railroad", "ship", "boat", "builders", "contractors", "homes", "pumps", "engines", "turbines", "bearings", "meters", "hardware", "equipment", "generators", "ordnance", "air-cond", "heatg", "refrig", "switchgear", "switchboard", "navigation", "guidance"]):
         return "工业"
     if any(token in lower for token in ["broadcasting", "television", "radio", "media", "telephone", "telegraph", "telecom"]):
         return "通信"

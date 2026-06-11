@@ -73,9 +73,9 @@ def money_label(value: float, with_sign: bool = False) -> str:
 
 def infer_sector_from_text(text: str) -> str | None:
     lower = text.lower()
-    if any(token in lower for token in ["semiconductor", "computer", "software", "technology", "data", "electronic"]):
+    if any(token in lower for token in ["semiconductor", "computer", "software", "technology", "data", "electronic", "printed circuit", "optical", "photonics", "measuring & controlling", "office machines", "arm holdings", "himax", "nebius", "poet", "nova ltd", "ituran", "silicom"]):
         return "科技"
-    if any(token in lower for token in ["medical", "health", "hospital", "pharma", "biotech", "therapeutic", "surgical"]):
+    if any(token in lower for token in ["medical", "health", "hospital", "pharma", "biotech", "therapeutic", "surgical", "gh research"]):
         return "医疗"
     if any(token in lower for token in ["real estate", "reit"]):
         return "地产"
@@ -83,14 +83,16 @@ def infer_sector_from_text(text: str) -> str | None:
         return "金融"
     if any(token in lower for token in ["retail", "consumer", "restaurant", "food", "beverage", "hotel", "apparel"]):
         return "消费"
-    if any(token in lower for token in ["oil", "gas", "energy", "mining", "coal", "solar"]):
+    if any(token in lower for token in ["oil", "gas", "energy", "mining", "coal", "solar", "lpg", "sasol", "enerflex", "petrobras", "ecopetrol", "equinor", "geopark", "ypf", "vivopower", "toyo"]):
         return "能源"
     if any(token in lower for token in ["utility", "electric", "water supply"]):
         return "公用事业"
-    if any(token in lower for token in ["chemical", "metal", "paper", "material"]):
+    if any(token in lower for token in ["chemical", "metal", "paper", "material", "steel", "aluminum", "tenaris", "alcoa", "almonty", "corning", "glass"]):
         return "材料"
-    if any(token in lower for token in ["transport", "machinery", "manufacturing", "construction", "aerospace", "industrial"]):
+    if any(token in lower for token in ["transport", "machinery", "manufacturing", "construction", "aerospace", "industrial", "shipping", "tanker", "switchgear", "switchboard", "navigation", "guidance", "frontline", "cmb.tech", "vestis"]):
         return "工业"
+    if any(token in lower for token in ["telecom", "telephone", "telesat", "satellite", "millicom", "cellular"]):
+        return "通信"
     return None
 
 
