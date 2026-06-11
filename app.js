@@ -6473,6 +6473,32 @@ const macroImpactCopy = (indicator) => {
   return `影响：${impact}。`;
 };
 
+const macroFactorAffectedAssets = (indicator) => {
+  const key = normalizeMacroIndicatorKey(indicator);
+  const mapping = {
+    vixcls: "指数 / 小盘 / 高波动",
+    dgs10: "成长股 / 科技 / 地产",
+    dgs30: "长久期资产 / 公用事业",
+    dtwexbgs: "黄金 / 材料 / 海外收入",
+    dcoilwtico: "能源 / 航空 / 消费",
+    dcoilbrenteu: "能源 / 运输 / 通胀",
+    cpiaucsl: "利率敏感 / 消费 / 成长股",
+  };
+  return mapping[key] || indicator?.impact || indicator?.category || "市场环境";
+};
+
+const macroFactorAction = (indicator) => {
+  const key = normalizeMacroIndicatorKey(indicator);
+  const status = indicator?.status || indicator?.riskLevel;
+  const elevated = status === "watch" || status === "elevated" || status === "high" || indicator?.level === "高";
+  if (key === "vixcls") return elevated ? "减少追高，先看回撤承接" : "可正常跟踪强势线索";
+  if (key === "dgs10" || key === "dgs30") return elevated ? "高估值股票需要成交额确认" : "成长线索按强弱排序复盘";
+  if (key === "dtwexbgs") return elevated ? "黄金和海外收入线索多看一层确认" : "美元压力不构成主约束";
+  if (key === "dcoilwtico" || key === "dcoilbrenteu") return elevated ? "能源和成本敏感方向分开看" : "油价暂按背景变量处理";
+  if (key === "cpiaucsl") return elevated ? "通胀敏感线索降低频率" : "通胀压力暂不主导排序";
+  return elevated ? "提高确认门槛" : "继续观察";
+};
+
 const normalizeMacroIndicatorKey = (item) => String(item?.key || item?.id || item?.sourceId || "").toLowerCase();
 
 const macroPressureIndicatorFromSeries = (item) => {
@@ -6803,27 +6829,29 @@ const renderMacroPressure = (indicators) => {
   grid.innerHTML = macroRows.length
     ? macroRows
         .map((indicator) => `
-          <article class="${signalClass(indicator.status)}">
-            <span>
+          <tr class="${signalClass(indicator.status)}">
+            <td>
               ${escapeHtml(indicator.name || "宏观指标")}
               <button class="info-tip" type="button" aria-label="${escapeHtml(indicator.name || "宏观指标")}解释" data-tip="${escapeHtml(marketIndicatorTip(indicator))}">?</button>
-            </span>
-            <strong>${escapeHtml(indicator.value || "--")} · ${escapeHtml(indicator.level || "--")}</strong>
-            ${macroPressureSparkline(indicator)}
-            <em>${escapeHtml(macroImpactCopy(indicator))}</em>
-            <div class="indicator-meta">
-              <b>前值 ${escapeHtml(indicator.previous || "--")}</b>
-              <em class="${indicatorChangeMetaClass(indicator.change)}">${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</em>
-            </div>
-          </article>
+            </td>
+            <td>
+              <strong>${escapeHtml(indicator.value || "--")}</strong>
+              <span>前值 ${escapeHtml(indicator.previous || "--")}</span>
+            </td>
+            <td>
+              <div class="macro-pressure-rank ${signalClass(indicator.status)}">
+                <b>${escapeHtml(indicator.level || "--")}</b>
+                ${macroPressureSparkline(indicator)}
+              </div>
+            </td>
+            <td><em class="${indicatorChangeMetaClass(indicator.change)}">${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</em></td>
+            <td>${escapeHtml(macroFactorAffectedAssets(indicator))}</td>
+            <td>${escapeHtml(macroFactorAction(indicator))}</td>
+          </tr>
         `)
         .join("")
     : `
-      <article>
-        <span>等待数据</span>
-        <strong>暂未生成</strong>
-        <p>宏观压力数据生成前，页面保持可用。</p>
-      </article>
+      <tr><td colspan="6">宏观压力数据生成前，页面保持可用。</td></tr>
     `;
   renderMacroStockPools();
   renderMacroMonitor();
@@ -7713,30 +7741,19 @@ const renderMarketTemperature = (payload) => {
   renderMacroPressure(indicators);
   const grid = document.querySelector("#riskSignalGrid");
   if (grid) {
-    grid.innerHTML = indicators.length
-      ? indicators
-          .map((indicator) => `
-            <article class="signal-card ${signalClass(indicator.status)}">
-              <span>
-                ${escapeHtml(indicator.name || indicator.key || "指标")}
-                <button class="info-tip" type="button" aria-label="${escapeHtml(indicator.name || "指标")}解释" data-tip="${escapeHtml(marketIndicatorTip(indicator))}">?</button>
-              </span>
-              <strong>${escapeHtml(indicator.value || "--")} · ${escapeHtml(indicator.level || "--")}</strong>
-              <p>${escapeHtml(indicator.explain || `${indicator.value || "--"}，较前值 ${indicator.previous || "--"}，变化 ${indicator.change || "--"}。`)}</p>
-              <div class="indicator-meta">
-                <b>前值 ${escapeHtml(indicator.previous || "--")}</b>
-                <em class="${indicatorChangeMetaClass(indicator.change)}">${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</em>
-              </div>
-            </article>
+    const macroRows = macroPressureRows(indicators);
+    grid.innerHTML = macroRows.length
+      ? macroAssetImpactRows(macroRows, score)
+          .map(({ asset, stateLabel, driver, note, stateClass }) => `
+            <tr class="${escapeHtml(stateClass)}">
+              <td>${escapeHtml(asset)}</td>
+              <td><strong>${escapeHtml(stateLabel)}</strong></td>
+              <td>${escapeHtml(driver)}</td>
+              <td>${escapeHtml(note)}</td>
+            </tr>
           `)
           .join("")
-      : `
-        <article class="signal-card is-neutral">
-          <span>等待数据</span>
-          <strong>暂未生成</strong>
-          <p>温度数据生成前，页面保持可用，不影响其他工具。</p>
-        </article>
-      `;
+      : '<tr><td colspan="4">温度数据生成前，页面保持可用，不影响其他工具。</td></tr>';
   }
 
   const ruleTimeline = document.querySelector("#riskRuleTimeline");

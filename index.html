@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-market1" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-risk1" />
   </head>
   <body>
     <div class="app-shell">
@@ -534,37 +534,27 @@
             <section class="macro-pressure-panel" data-lockable-module="macro-pressure">
               <div class="section-title">
                 <div>
-                  <span>宏观压力</span>
-                  <h2>利率、美元、原油和通胀</h2>
+                  <span>因子读数表</span>
+                  <h2>压力来源、读数和变化</h2>
                 </div>
-                <p id="macroPressureSummary">读取最新宏观数据后，会显示对成长股、能源、黄金和风险偏好的影响。</p>
+                <p id="macroPressureSummary">读取最新宏观数据后，会按指标、当前读数、压力位置和资产影响排序。</p>
               </div>
-              <div class="macro-pressure-grid" id="macroPressureGrid">
-                <article>
-                  <span>10Y 美债</span>
-                  <strong>--</strong>
-                  <p>观察成长股估值压力。</p>
-                </article>
-                <article>
-                  <span>30Y 美债</span>
-                  <strong>--</strong>
-                  <p>观察长期利率压力。</p>
-                </article>
-                <article>
-                  <span>美元指数</span>
-                  <strong>--</strong>
-                  <p>观察全球资金偏好。</p>
-                </article>
-                <article>
-                  <span>原油</span>
-                  <strong>--</strong>
-                  <p>观察通胀和成本压力。</p>
-                </article>
-                <article>
-                  <span>CPI 同比</span>
-                  <strong>--</strong>
-                  <p>观察通胀趋势和利率预期。</p>
-                </article>
+              <div class="macro-pressure-table-wrap">
+                <table class="macro-pressure-table data-table">
+                  <thead>
+                    <tr>
+                      <th>因子</th>
+                      <th>当前读数</th>
+                      <th>压力位置</th>
+                      <th>变化</th>
+                      <th>影响资产</th>
+                      <th>复盘动作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="macroPressureGrid">
+                    <tr><td colspan="6">等待宏观压力数据。</td></tr>
+                  </tbody>
+                </table>
               </div>
             </section>
 
@@ -622,37 +612,29 @@
               </div>
             </section>
 
-            <section class="signal-grid" id="riskSignalGrid">
-              <article class="signal-card is-positive">
-                <span>大盘 <button class="info-tip" type="button" aria-label="大盘解释" data-tip="用 SPY 代表美股整体。如果它走弱，很多个股会更难赚钱。">?</button></span>
-                <strong>趋势线之上</strong>
-                <p>代表大盘风险偏好仍可接受。</p>
-              </article>
-              <article class="signal-card is-positive">
-                <span>科技股 <button class="info-tip" type="button" aria-label="科技股解释" data-tip="用 QQQ 观察科技股。科技股强，通常说明市场风险偏好更好。">?</button></span>
-                <strong>强于 SPY</strong>
-                <p>科技主线仍是资金最集中的方向。</p>
-              </article>
-              <article class="signal-card is-neutral">
-                <span>小盘股 <button class="info-tip" type="button" aria-label="小盘股解释" data-tip="用 IWM 看小公司股票。如果小盘也活跃，市场情绪通常更好。">?</button></span>
-                <strong>弹性升温</strong>
-                <p>适合做观察，不适合把风险预算全部给小盘。</p>
-              </article>
-              <article class="signal-card is-watch">
-                <span>波动 <button class="info-tip" type="button" aria-label="波动解释" data-tip="用 VIX 看市场紧张程度。它上升时，价格来回扫的概率更高。">?</button></span>
-                <strong>低位回升</strong>
-                <p>若继续抬头，系统会减少新增线索权重。</p>
-              </article>
-              <article class="signal-card is-neutral">
-                <span>利率 <button class="info-tip" type="button" aria-label="利率解释" data-tip="用美国 10 年期国债收益率观察资金成本。利率高时，成长股更容易承压。">?</button></span>
-                <strong>利率约束</strong>
-                <p>长端利率高位会压制高估值成长股。</p>
-              </article>
-              <article class="signal-card is-positive">
-                <span>信用 <button class="info-tip" type="button" aria-label="信用解释" data-tip="看公司借钱是否变难。信用变差时，市场更容易进入防守。">?</button></span>
-                <strong>信用稳定</strong>
-                <p>信用利差未明显恶化，暂不触发防守。</p>
-              </article>
+            <section class="risk-action-panel model-card">
+              <div class="section-title">
+                <div>
+                  <span>资产影响</span>
+                  <h2>压力传导和复盘顺序</h2>
+                </div>
+                <p>把宏观因子翻译成对指数、成长股、黄金、能源和高波动股票的影响。</p>
+              </div>
+              <div class="risk-action-table-wrap">
+                <table class="risk-action-table data-table">
+                  <thead>
+                    <tr>
+                      <th>资产/方向</th>
+                      <th>当前状态</th>
+                      <th>主要驱动</th>
+                      <th>复盘动作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="riskSignalGrid">
+                    <tr><td colspan="4">等待资产影响数据。</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </section>
 
             <section class="model-card">
@@ -2769,6 +2751,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-market1"></script>
+    <script src="./app.js?v=20260611-risk1"></script>
   </body>
 </html>

@@ -17643,6 +17643,173 @@ body .page-view[data-view="risk"] .macro-series-current-callout rect {
   stroke: rgba(128, 151, 183, 0.28);
 }
 
+/* Risk terminal table pass: factor readings and asset actions. */
+body .page-view[data-view="risk"] .macro-pressure-table-wrap,
+body .page-view[data-view="risk"] .risk-action-table-wrap {
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table,
+body .page-view[data-view="risk"] .risk-action-table {
+  min-width: 980px;
+  table-layout: fixed;
+}
+
+body .page-view[data-view="risk"] .risk-action-table {
+  min-width: 760px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th,
+body .page-view[data-view="risk"] .macro-pressure-table td,
+body .page-view[data-view="risk"] .risk-action-table th,
+body .page-view[data-view="risk"] .risk-action-table td {
+  height: 46px;
+  border-bottom-color: rgba(128, 151, 183, 0.14);
+  background: rgba(7, 12, 21, 0.38);
+  color: #dbe5f2;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th,
+body .page-view[data-view="risk"] .risk-action-table th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  background: #09111e !important;
+  color: #9fb0c6 !important;
+  font-size: 11px;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th:nth-child(1),
+body .page-view[data-view="risk"] .macro-pressure-table td:nth-child(1) {
+  width: 132px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th:nth-child(2),
+body .page-view[data-view="risk"] .macro-pressure-table td:nth-child(2) {
+  width: 130px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th:nth-child(3),
+body .page-view[data-view="risk"] .macro-pressure-table td:nth-child(3) {
+  width: 230px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th:nth-child(4),
+body .page-view[data-view="risk"] .macro-pressure-table td:nth-child(4) {
+  width: 104px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th:nth-child(5),
+body .page-view[data-view="risk"] .macro-pressure-table td:nth-child(5) {
+  width: 170px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table th:nth-child(6),
+body .page-view[data-view="risk"] .macro-pressure-table td:nth-child(6) {
+  width: 210px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table strong,
+body .page-view[data-view="risk"] .risk-action-table strong {
+  display: block;
+  color: #eef4ff;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table span {
+  display: block;
+  margin-top: 3px;
+  color: #7f8da2;
+  font-size: 11px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table em {
+  color: #9fb0c6;
+  font-style: normal;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-rank {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-rank b {
+  color: #dbe5f2;
+  font-weight: 720;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-rank.is-watch b,
+body .page-view[data-view="risk"] .risk-action-table tr.is-watch strong {
+  color: var(--negative);
+}
+
+body .page-view[data-view="risk"] .macro-pressure-rank.is-positive b,
+body .page-view[data-view="risk"] .risk-action-table tr.is-positive strong {
+  color: var(--positive);
+}
+
+body .page-view[data-view="risk"] .macro-pressure-rank.is-neutral b,
+body .page-view[data-view="risk"] .risk-action-table tr.is-neutral strong {
+  color: var(--amber);
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table .macro-pressure-spark {
+  min-width: 0;
+  height: 36px;
+  margin: 0;
+  border: 0;
+  background: rgba(4, 9, 18, 0.45);
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table .macro-pressure-spark svg {
+  height: 34px;
+}
+
+body .page-view[data-view="risk"] .macro-pressure-table .macro-pressure-spark span {
+  display: none;
+}
+
+body .page-view[data-view="risk"] .risk-action-table th:nth-child(1),
+body .page-view[data-view="risk"] .risk-action-table td:nth-child(1) {
+  width: 160px;
+}
+
+body .page-view[data-view="risk"] .risk-action-table th:nth-child(2),
+body .page-view[data-view="risk"] .risk-action-table td:nth-child(2) {
+  width: 128px;
+}
+
+body .page-view[data-view="risk"] .risk-action-table th:nth-child(3),
+body .page-view[data-view="risk"] .risk-action-table td:nth-child(3) {
+  width: 230px;
+}
+
+body .page-view[data-view="risk"] .risk-action-table th:nth-child(4),
+body .page-view[data-view="risk"] .risk-action-table td:nth-child(4) {
+  width: 240px;
+  white-space: normal;
+}
+
+body .page-view[data-view="risk"] .risk-action-panel {
+  padding: 0;
+}
+
+body .page-view[data-view="risk"] .risk-action-panel .section-title {
+  margin: 0;
+  border-bottom: 0;
+  padding: 12px 14px;
+}
+
 body .page-view[data-view="risk"] :where(.macro-monitor-head, .macro-composite-copy, .macro-factor-board, .macro-asset-board) {
   background: transparent;
 }
