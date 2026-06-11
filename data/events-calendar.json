@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-11T08:48:25.187199+00:00",
+  "generatedAt": "2026-06-11T09:11:24.581607+00:00",
   "asOf": "2026-06-11",
   "source": "official macro calendars + local Polygon/Benzinga/FMP/manual earnings snapshots",
   "events": [
@@ -22,6 +22,23 @@
       "summary": "通胀数据会影响利率预期、成长股估值和风险偏好。"
     },
     {
+      "date": "2026-06-11",
+      "time": "",
+      "title": "ADBE 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "ADBE"
+      ],
+      "summary": "ADBE：预估 EPS 5.83；预估收入 6453986000"
+    },
+    {
       "date": "2026-06-16",
       "time": "至 06-17",
       "title": "FOMC 议息会议",
@@ -38,6 +55,57 @@
         "TLT"
       ],
       "summary": "关注利率路径、声明措辞和长端利率压力。"
+    },
+    {
+      "date": "2026-06-23",
+      "time": "",
+      "title": "CCL 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "CCL"
+      ],
+      "summary": "CCL：预估 EPS 0.34；预估收入 6682524000"
+    },
+    {
+      "date": "2026-06-23",
+      "time": "",
+      "title": "FDX 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "FDX"
+      ],
+      "summary": "FDX：预估 EPS 5.92；预估收入 24008380000"
+    },
+    {
+      "date": "2026-06-30",
+      "time": "",
+      "title": "NKE 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "NKE"
+      ],
+      "summary": "NKE：预估 EPS 0.11；预估收入 10845520000"
     },
     {
       "date": "2026-07-02",
@@ -58,6 +126,125 @@
       "summary": "就业数据会影响降息预期、小盘风险偏好和美元利率交易。"
     },
     {
+      "date": "2026-07-09",
+      "time": "",
+      "title": "DAL 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "DAL"
+      ],
+      "summary": "DAL：预估 EPS 1.49；预估收入 17426900000"
+    },
+    {
+      "date": "2026-07-09",
+      "time": "",
+      "title": "PEP 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "PEP"
+      ],
+      "summary": "PEP：预估 EPS 2.2；预估收入 23988310000"
+    },
+    {
+      "date": "2026-07-14",
+      "time": "",
+      "title": "BAC 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "BAC"
+      ],
+      "summary": "BAC：预估 EPS 1.1；预估收入 30116580000"
+    },
+    {
+      "date": "2026-07-14",
+      "time": "",
+      "title": "C 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "C"
+      ],
+      "summary": "C：预估 EPS 2.59；预估收入 23246190000"
+    },
+    {
+      "date": "2026-07-14",
+      "time": "",
+      "title": "GS 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "GS"
+      ],
+      "summary": "GS：预估 EPS 13.71；预估收入 15679740000"
+    },
+    {
+      "date": "2026-07-14",
+      "time": "",
+      "title": "JPM 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "JPM"
+      ],
+      "summary": "JPM：预估 EPS 5.39；预估收入 48702090000"
+    },
+    {
+      "date": "2026-07-14",
+      "time": "",
+      "title": "WFC 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "WFC"
+      ],
+      "summary": "WFC：预估 EPS 1.71；预估收入 21760070000"
+    },
+    {
       "date": "2026-07-14",
       "time": "08:30 ET",
       "title": "美国 CPI，2026 年 6 月",
@@ -74,6 +261,1179 @@
         "QQQ"
       ],
       "summary": "下一轮通胀确认，会影响估值扩张和成长股风险预算。"
+    },
+    {
+      "date": "2026-07-15",
+      "time": "",
+      "title": "JNJ 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "JNJ"
+      ],
+      "summary": "JNJ：预估 EPS 2.83；预估收入 24963500000"
+    },
+    {
+      "date": "2026-07-15",
+      "time": "",
+      "title": "UAL 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "UAL"
+      ],
+      "summary": "UAL：预估 EPS 1.77；预估收入 17569290000"
+    },
+    {
+      "date": "2026-07-16",
+      "time": "",
+      "title": "GE 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "GE"
+      ],
+      "summary": "GE：预估 EPS 1.87；预估收入 11770310000"
+    },
+    {
+      "date": "2026-07-16",
+      "time": "",
+      "title": "NFLX 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "NFLX"
+      ],
+      "summary": "NFLX：预估 EPS 0.79；预估收入 12579730000"
+    },
+    {
+      "date": "2026-07-16",
+      "time": "",
+      "title": "TSM 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "TSM"
+      ],
+      "summary": "TSM：预估 EPS 3.69；预估收入 40036390000"
+    },
+    {
+      "date": "2026-07-20",
+      "time": "",
+      "title": "VZ 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "VZ"
+      ],
+      "summary": "VZ：预估 EPS 1.27；预估收入 35476290000"
+    },
+    {
+      "date": "2026-07-21",
+      "time": "",
+      "title": "GM 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "GM"
+      ],
+      "summary": "GM：预估 EPS 3.19；预估收入 46864850000"
+    },
+    {
+      "date": "2026-07-22",
+      "time": "",
+      "title": "GOOGL 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "GOOGL"
+      ],
+      "summary": "GOOGL：预估 EPS 2.85；预估收入 116734100000"
+    },
+    {
+      "date": "2026-07-22",
+      "time": "",
+      "title": "T 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "T"
+      ],
+      "summary": "T：预估 EPS 0.59；预估收入 31791440000"
+    },
+    {
+      "date": "2026-07-22",
+      "time": "",
+      "title": "TSLA 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "TSLA"
+      ],
+      "summary": "TSLA：预估 EPS 0.45；预估收入 24299240000"
+    },
+    {
+      "date": "2026-07-23",
+      "time": "",
+      "title": "AAL 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "AAL"
+      ],
+      "summary": "AAL：预估 EPS -0.02；预估收入 16653890000"
+    },
+    {
+      "date": "2026-07-23",
+      "time": "",
+      "title": "INTC 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "INTC"
+      ],
+      "summary": "INTC：预估 EPS 0.21；预估收入 14338390000"
+    },
+    {
+      "date": "2026-07-23",
+      "time": "",
+      "title": "NOK 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "NOK"
+      ],
+      "summary": "NOK：预估 EPS 0.07；预估收入 5597662000"
+    },
+    {
+      "date": "2026-07-24",
+      "time": "",
+      "title": "HCA 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "HCA"
+      ],
+      "summary": "HCA：预估 EPS 7.37；预估收入 19353200000"
+    },
+    {
+      "date": "2026-07-27",
+      "time": "",
+      "title": "TLRY 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "TLRY"
+      ],
+      "summary": "TLRY：预估 EPS -0.01；预估收入 250480800"
+    },
+    {
+      "date": "2026-07-28",
+      "time": "",
+      "title": "BA 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "BA"
+      ],
+      "summary": "BA：预估 EPS -0.23；预估收入 23941610000"
+    },
+    {
+      "date": "2026-07-28",
+      "time": "",
+      "title": "KO 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "KO"
+      ],
+      "summary": "KO：预估 EPS 0.93；预估收入 13172600000"
+    },
+    {
+      "date": "2026-07-28",
+      "time": "",
+      "title": "LMT 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "LMT"
+      ],
+      "summary": "LMT：预估 EPS 7.2；预估收入 19352750000"
+    },
+    {
+      "date": "2026-07-28",
+      "time": "",
+      "title": "PYPL 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "PYPL"
+      ],
+      "summary": "PYPL：预估 EPS 1.28；预估收入 8466021000"
+    },
+    {
+      "date": "2026-07-28",
+      "time": "",
+      "title": "V 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "V"
+      ],
+      "summary": "V：预估 EPS 3.21；预估收入 11369410000"
+    },
+    {
+      "date": "2026-07-29",
+      "time": "",
+      "title": "ETSY 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "ETSY"
+      ],
+      "summary": "ETSY：预估 EPS 0.75；预估收入 644490700"
+    },
+    {
+      "date": "2026-07-29",
+      "time": "",
+      "title": "F 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "F"
+      ],
+      "summary": "F：预估 EPS 0.35；预估收入 46963910000"
+    },
+    {
+      "date": "2026-07-29",
+      "time": "",
+      "title": "HOOD 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "HOOD"
+      ],
+      "summary": "HOOD：预估 EPS 0.42；预估收入 1187950000"
+    },
+    {
+      "date": "2026-07-29",
+      "time": "",
+      "title": "META 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "META"
+      ],
+      "summary": "META：预估 EPS 7.18；预估收入 60180010000"
+    },
+    {
+      "date": "2026-07-29",
+      "time": "",
+      "title": "MGM 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "MGM"
+      ],
+      "summary": "MGM：预估 EPS 0.6；预估收入 4439534000"
+    },
+    {
+      "date": "2026-07-29",
+      "time": "",
+      "title": "MSFT 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "MSFT"
+      ],
+      "summary": "MSFT：预估 EPS 4.21；预估收入 87614680000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "AAPL 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "AAPL"
+      ],
+      "summary": "AAPL：预估 EPS 1.86；预估收入 108400600000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "ABBV 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "ABBV"
+      ],
+      "summary": "ABBV：预估 EPS 3.79；预估收入 16777270000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "AMZN 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "AMZN"
+      ],
+      "summary": "AMZN：预估 EPS 1.82；预估收入 196245200000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "COIN 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "COIN"
+      ],
+      "summary": "COIN：预估 EPS 0.09495；预估收入 1352808000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "RBLX 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "RBLX"
+      ],
+      "summary": "RBLX：预估 EPS -0.34；预估收入 1610712000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "RIOT 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "RIOT"
+      ],
+      "summary": "RIOT：预估 EPS -0.21；预估收入 155461400"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "RKT 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "RKT"
+      ],
+      "summary": "RKT：预估 EPS 0.19；预估收入 2850239000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "ROKU 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "ROKU"
+      ],
+      "summary": "ROKU：预估 EPS 0.61；预估收入 1297561000"
+    },
+    {
+      "date": "2026-07-30",
+      "time": "",
+      "title": "SIRI 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "SIRI"
+      ],
+      "summary": "SIRI：预估 EPS 0.78；预估收入 2136218000"
+    },
+    {
+      "date": "2026-07-31",
+      "time": "",
+      "title": "MRNA 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "MRNA"
+      ],
+      "summary": "MRNA：预估 EPS -2.01；预估收入 101753600"
+    },
+    {
+      "date": "2026-08-03",
+      "time": "",
+      "title": "PLTR 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "PLTR"
+      ],
+      "summary": "PLTR：预估 EPS 0.35；预估收入 1810946000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "AMD 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "AMD"
+      ],
+      "summary": "AMD：预估 EPS 1.6；预估收入 11246510000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "CARR 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "CARR"
+      ],
+      "summary": "CARR：预估 EPS 0.82；预估收入 5978709000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "LCID 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "LCID"
+      ],
+      "summary": "LCID：预估 EPS -2.40034；预估收入 441916700"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "PFE 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "PFE"
+      ],
+      "summary": "PFE：预估 EPS 0.68；预估收入 14439910000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "RIVN 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "RIVN"
+      ],
+      "summary": "RIVN：预估 EPS -0.66；预估收入 1425991000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "SBUX 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "SBUX"
+      ],
+      "summary": "SBUX：预估 EPS 0.65；预估收入 9203990000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "SNAP 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "SNAP"
+      ],
+      "summary": "SNAP：预估 EPS 0.07；预估收入 1537326000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "SOFI 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "SOFI"
+      ],
+      "summary": "SOFI：预估 EPS 0.12；预估收入 1116935000"
+    },
+    {
+      "date": "2026-08-04",
+      "time": "",
+      "title": "UNH 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "UNH"
+      ],
+      "summary": "UNH：预估 EPS 4.84；预估收入 110761300000"
+    },
+    {
+      "date": "2026-08-05",
+      "time": "",
+      "title": "CPRX 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "CPRX"
+      ],
+      "summary": "CPRX：预估 EPS 0.67；预估收入 155203200"
+    },
+    {
+      "date": "2026-08-05",
+      "time": "",
+      "title": "DIS 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "DIS"
+      ],
+      "summary": "DIS：预估 EPS 1.89；预估收入 25471780000"
+    },
+    {
+      "date": "2026-08-05",
+      "time": "",
+      "title": "ET 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "ET"
+      ],
+      "summary": "ET：预估 EPS 0.38；预估收入 28271300000"
+    },
+    {
+      "date": "2026-08-05",
+      "time": "",
+      "title": "SHOP 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "SHOP"
+      ],
+      "summary": "SHOP：预估 EPS 0.39；预估收入 3371474000"
+    },
+    {
+      "date": "2026-08-05",
+      "time": "",
+      "title": "UBER 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "UBER"
+      ],
+      "summary": "UBER：预估 EPS 0.84；预估收入 14187490000"
+    },
+    {
+      "date": "2026-08-06",
+      "time": "",
+      "title": "PINS 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "PINS"
+      ],
+      "summary": "PINS：预估 EPS 0.36；预估收入 1148295000"
+    },
+    {
+      "date": "2026-08-06",
+      "time": "",
+      "title": "SONY 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "SONY"
+      ],
+      "summary": "SONY：预估 EPS 0.2849；预估收入 17291960000"
+    },
+    {
+      "date": "2026-08-07",
+      "time": "",
+      "title": "CVX 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "CVX"
+      ],
+      "summary": "CVX：预估 EPS 5.23；预估收入 63241430000"
+    },
+    {
+      "date": "2026-08-07",
+      "time": "",
+      "title": "XOM 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "XOM"
+      ],
+      "summary": "XOM：预估 EPS 3.73；预估收入 111011400000"
+    },
+    {
+      "date": "2026-08-11",
+      "time": "",
+      "title": "FUBO 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "FUBO"
+      ],
+      "summary": "FUBO：预估 EPS -0.27333；预估收入 1497786000"
+    },
+    {
+      "date": "2026-08-12",
+      "time": "",
+      "title": "CSCO 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "CSCO"
+      ],
+      "summary": "CSCO：预估 EPS 1.17；预估收入 16819410000"
+    },
+    {
+      "date": "2026-08-14",
+      "time": "",
+      "title": "FUBO 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "FUBO"
+      ],
+      "summary": "FUBO：预估 EPS 0.07；预估收入 1577648000"
+    },
+    {
+      "date": "2026-08-19",
+      "time": "",
+      "title": "BIDU 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "BIDU"
+      ],
+      "summary": "BIDU：预估 EPS 1.91；预估收入 4918591000"
+    },
+    {
+      "date": "2026-08-19",
+      "time": "",
+      "title": "TGT 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "TGT"
+      ],
+      "summary": "TGT：预估 EPS 2.21；预估收入 26011790000"
+    },
+    {
+      "date": "2026-08-20",
+      "time": "",
+      "title": "BILI 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "BILI"
+      ],
+      "summary": "BILI：预估 EPS 0.23；预估收入 1169165000"
+    },
+    {
+      "date": "2026-08-20",
+      "time": "",
+      "title": "WMT 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "WMT"
+      ],
+      "summary": "WMT：预估 EPS 0.74；预估收入 186964300000"
+    },
+    {
+      "date": "2026-08-20",
+      "time": "",
+      "title": "ZM 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "ZM"
+      ],
+      "summary": "ZM：预估 EPS 1.49；预估收入 1268549000"
+    },
+    {
+      "date": "2026-08-26",
+      "time": "",
+      "title": "NVDA 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "NVDA"
+      ],
+      "summary": "NVDA：预估 EPS 2.07；预估收入 91697740000"
+    },
+    {
+      "date": "2026-08-28",
+      "time": "",
+      "title": "BABA 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "BABA"
+      ],
+      "summary": "BABA：预估 EPS 1.48；预估收入 39708280000"
+    },
+    {
+      "date": "2026-09-01",
+      "time": "",
+      "title": "NIO 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "NIO"
+      ],
+      "summary": "NIO：预估 EPS -0.07；预估收入 5502408000"
+    },
+    {
+      "date": "2026-09-03",
+      "time": "",
+      "title": "DOCU 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "DOCU"
+      ],
+      "summary": "DOCU：预估 EPS 1.06；预估收入 867203800"
+    },
+    {
+      "date": "2026-09-04",
+      "time": "",
+      "title": "BABA 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "BABA"
+      ],
+      "summary": "BABA：预估 EPS 2.59；预估收入 39902890000"
+    },
+    {
+      "date": "2026-09-09",
+      "time": "",
+      "title": "NIO 财报",
+      "type": "earnings",
+      "impact": "medium",
+      "sourceName": "Financial Modeling Prep",
+      "relatedModules": [
+        "财经日历",
+        "股票库",
+        "财报观察"
+      ],
+      "relatedAssets": [
+        "NIO"
+      ],
+      "summary": "NIO：预估 EPS -0.04779；预估收入 4935275000"
     }
   ],
   "impactRules": [
@@ -108,11 +1468,11 @@
     }
   ],
   "coverage": {
-    "earningsRows": 0,
+    "earningsRows": 80,
     "localEarningsRows": 0,
-    "manualEarningsRows": 0,
+    "manualEarningsRows": 80,
     "earningsWindowStart": "2026-06-11",
     "earningsWindowEnd": "2026-09-09",
-    "earningsSourceReady": false
+    "earningsSourceReady": true
   }
 }

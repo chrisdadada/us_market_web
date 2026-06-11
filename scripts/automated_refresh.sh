@@ -7,6 +7,7 @@ PY="${PYTHON_BIN:-/opt/anaconda3/envs/quant/bin/python}"
 DATA_ROOT="${DATA_ROOT:-/Volumes/Extreme SSD/market-data-lab/data}"
 LOG_DIR="${ROOT}/logs/automation"
 LOCK_DIR="${ROOT}/.automated_refresh.lock"
+LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-${HOME}/.dongbimao/refresh.env}"
 
 mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/refresh-$(date +%Y%m%d-%H%M%S).log"
@@ -22,6 +23,13 @@ cleanup() {
   rmdir "${LOCK_DIR}" 2>/dev/null || true
 }
 trap cleanup EXIT
+
+if [[ -f "${LOCAL_ENV_FILE}" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${LOCAL_ENV_FILE}"
+  set +a
+fi
 
 if [[ ! -d "${DATA_ROOT}" ]]; then
   echo "External data root is not mounted: ${DATA_ROOT}"
