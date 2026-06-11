@@ -2544,6 +2544,9 @@ const renderMarketSectionContext = (rows = getFilteredRows()) => {
 const renderFlowsPage = () => {
   const body = document.querySelector("#flowsSectorBody");
   const sectorList = document.querySelector("#flowsSectorList");
+  const inflowList = document.querySelector("#flowsInflowList");
+  const outflowList = document.querySelector("#flowsOutflowList");
+  const balance = document.querySelector("#flowsMapBalance");
   if (!body) return;
   const rows = sectorFlowDisplayRows();
   const stockRows = flowRows();
@@ -2552,6 +2555,15 @@ const renderFlowsPage = () => {
   const maxAbsFlow = Math.max(...rows.map((row) => Math.abs(Number(row.netFlowProxy) || 0)), 1);
   const positiveSectors = rows.filter((row) => (row.netFlowProxy || 0) > 0).length;
   const negativeSectors = rows.filter((row) => (row.netFlowProxy || 0) < 0).length;
+  const inflowRows = rows.filter((row) => (row.netFlowProxy || 0) > 0).slice(0, 6);
+  const outflowRows = rows
+    .filter((row) => (row.netFlowProxy || 0) < 0)
+    .sort((a, b) => Math.abs(b.netFlowProxy || 0) - Math.abs(a.netFlowProxy || 0))
+    .slice(0, 6);
+  const inflowTotal = rows.reduce((sum, row) => sum + Math.max(0, Number(row.netFlowProxy) || 0), 0);
+  const outflowTotal = rows.reduce((sum, row) => sum + Math.abs(Math.min(0, Number(row.netFlowProxy) || 0)), 0);
+  const flowTotal = inflowTotal + outflowTotal;
+  const inflowShare = flowTotal ? (inflowTotal / flowTotal) * 100 : 50;
   setText("#flowsAsOf", formatDisplayDate(state.sectorFlow?.asOf || state.meta?.volume?.updatedAt || state.meta?.day?.updatedAt));
   setText("#flowsHeroTitle", top ? `${sectorDisplayName(top.sector)} · ${formatSignedCompactMoney(top.netFlowProxy, top.netFlowLabel)}` : "等待板块数据");
   setText(
@@ -2565,6 +2577,45 @@ const renderFlowsPage = () => {
   setText("#flowsTopSector", activeSector ? sectorDisplayName(activeSector.sector) : "--");
   setText("#flowsAccumulationCount", positiveSectors ? String(positiveSectors) : "--");
   setText("#flowsDistributionCount", negativeSectors ? String(negativeSectors) : "--");
+  setText(
+    "#flowsMapTitle",
+    rows.length
+      ? `${positiveSectors} 个方向净流入，${negativeSectors} 个方向净流出`
+      : "等待板块资金方向",
+  );
+  setText(
+    "#flowsMapLead",
+    rows.length
+      ? `净流入代理 ${formatCompactMoney(inflowTotal)}，净流出代理 ${formatCompactMoney(outflowTotal)}。先看板块，再看龙头和成交确认。`
+      : "绿色为净流入代理，红色为净流出代理；条形越长，说明该板块对当日资金方向的贡献越大。",
+  );
+  if (balance) {
+    balance.innerHTML = `
+      <i class="is-positive" style="width:${Math.max(4, inflowShare).toFixed(1)}%"></i>
+      <i class="is-negative" style="width:${Math.max(4, 100 - inflowShare).toFixed(1)}%"></i>
+    `;
+  }
+  const renderFlowMapList = (items, direction) => {
+    const max = Math.max(...items.map((item) => Math.abs(Number(item.netFlowProxy) || 0)), 1);
+    return items.length
+      ? items.map((item) => {
+          const value = Math.abs(Number(item.netFlowProxy) || 0);
+          const leaders = (item.leaders || []).slice(0, 3).map((leader) => leader.symbol).filter(Boolean).join(" / ");
+          const width = Math.max(6, (value / max) * 100);
+          const toneClass = direction === "in" ? "is-positive" : "is-negative";
+          return `
+            <button class="flows-map-row ${toneClass}" type="button" data-flow-sector-open="${escapeHtml(item.sector)}">
+              <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
+              <i><b style="width:${width.toFixed(1)}%"></b></i>
+              <strong>${escapeHtml(formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong>
+              <small>${escapeHtml(`${Math.round(item.breadthPct || 0)}%上涨 · ${leaders || "等待龙头"}`)}</small>
+            </button>
+          `;
+        }).join("")
+      : `<p>${direction === "in" ? "暂无明显流入板块。" : "暂无明显流出板块。"}</p>`;
+  };
+  if (inflowList) inflowList.innerHTML = renderFlowMapList(inflowRows, "in");
+  if (outflowList) outflowList.innerHTML = renderFlowMapList(outflowRows, "out");
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="10">等待板块资金流向数据。</td></tr>`;
   } else {
@@ -6159,7 +6210,7 @@ const renderMarketOverviewView = (rows) => {
   `;
 };
 
-const renderMarketVisualBoard = (rows) => {
+const renderMarketVisualBoard = (rows = getFilteredRows()) => {
   const board = document.querySelector("#marketVisualBoard");
   if (!board) return;
   const total = rows.length;
@@ -10145,13 +10196,11 @@ const bindEvents = () => {
     const flowSectorOpen = event.target.closest("[data-flow-sector-open]");
     if (flowSectorOpen) {
       event.preventDefault();
-      state.sectorFilter = flowSectorOpen.dataset.flowSectorOpen || "all";
-      const sector = document.querySelector("#sectorFilter");
-      if (sector) sector.value = state.sectorFilter;
-      state.marketVisualMode = "overview";
-      state.marketWorkspaceSection = "movers";
-      showPage("market");
-      renderTable();
+      state.selectedMarketSector = flowSectorOpen.dataset.flowSectorOpen || "";
+      state.marketVisualMode = "sectors";
+      state.marketWorkspaceSection = "sectors";
+      showPage("market", { hash: "#market/sectors" });
+      renderMarketVisualBoard();
       return;
     }
     const macroSeriesRange = event.target.closest("[data-macro-series-range]");

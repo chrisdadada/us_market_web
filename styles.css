@@ -13493,6 +13493,165 @@ body {
   font-size: 18px;
 }
 
+.flows-map-panel {
+  overflow: hidden;
+  border-top: 1px solid rgba(128, 151, 183, 0.14);
+  border-bottom: 1px solid rgba(128, 151, 183, 0.14);
+  background: rgba(7, 12, 21, 0.38);
+}
+
+.flows-map-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.95fr);
+  gap: 14px;
+  align-items: start;
+  padding: 12px 14px 10px;
+}
+
+.flows-map-head span {
+  color: #8fa0b8;
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.flows-map-head strong {
+  display: block;
+  margin-top: 4px;
+  color: #edf5ff;
+  font-size: 15px;
+  font-weight: 620;
+}
+
+.flows-map-head p {
+  margin: 0;
+  color: #7f8da2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.flows-map-balance {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  background: rgba(128, 151, 183, 0.14);
+}
+
+.flows-map-balance i {
+  min-width: 4%;
+  transition: width 0.18s ease;
+}
+
+.flows-map-balance .is-positive {
+  background: linear-gradient(90deg, rgba(49, 211, 151, 0.58), rgba(49, 211, 151, 0.95));
+}
+
+.flows-map-balance .is-negative {
+  background: linear-gradient(90deg, rgba(255, 99, 112, 0.92), rgba(255, 99, 112, 0.56));
+}
+
+.flows-map-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(128, 151, 183, 0.14);
+}
+
+.flows-map-columns > div {
+  min-width: 0;
+  border-right: 1px solid rgba(128, 151, 183, 0.13);
+}
+
+.flows-map-columns > div:last-child {
+  border-right: 0;
+}
+
+.flows-map-columns h3 {
+  margin: 0;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.12);
+  color: #aebcd0;
+  font-size: 12px;
+  font-weight: 620;
+  padding: 8px 12px;
+}
+
+.flows-map-list {
+  display: grid;
+  gap: 0;
+}
+
+.flows-map-list p {
+  margin: 0;
+  color: #7f8da2;
+  font-size: 12px;
+  padding: 12px;
+}
+
+.flows-map-row {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.75fr) minmax(90px, 1fr) 92px;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.1);
+  background: rgba(4, 9, 18, 0.32);
+  color: inherit;
+  cursor: pointer;
+  padding: 8px 11px;
+  text-align: left;
+}
+
+.flows-map-row:hover {
+  background: rgba(53, 167, 255, 0.07);
+}
+
+.flows-map-row span {
+  overflow: hidden;
+  color: #dbe5f2;
+  font-size: 12px;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flows-map-row i {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(128, 151, 183, 0.16);
+}
+
+.flows-map-row i b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.flows-map-row.is-positive i b {
+  background: #31d397;
+}
+
+.flows-map-row.is-negative i b {
+  background: #ff6370;
+}
+
+.flows-map-row strong {
+  justify-self: end;
+  color: #edf5ff;
+  font-size: 12px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.flows-map-row small {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: #7f8da2;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .flows-layout {
   grid-template-columns: minmax(0, 1fr) 260px;
   gap: 14px;
@@ -13595,6 +13754,20 @@ body {
   .stocks-layout,
   .flows-layout {
     grid-template-columns: 1fr;
+  }
+
+  .flows-map-head,
+  .flows-map-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .flows-map-columns > div {
+    border-right: 0;
+    border-bottom: 1px solid rgba(128, 151, 183, 0.13);
+  }
+
+  .flows-map-columns > div:last-child {
+    border-bottom: 0;
   }
 
   .stocks-rail,

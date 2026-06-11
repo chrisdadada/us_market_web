@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-calendar1" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-flows3" />
   </head>
   <body>
     <div class="app-shell">
@@ -1990,6 +1990,34 @@
                   <article class="metric-cell"><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>下跌股票贡献成交额更多的板块数。</p></article>
                 </section>
 
+                <section class="flows-map-panel" aria-label="板块资金流向分布">
+                  <div class="flows-map-head">
+                    <div>
+                      <span>资金流向分布</span>
+                      <strong id="flowsMapTitle">等待板块资金方向</strong>
+                    </div>
+                    <p id="flowsMapLead">绿色为净流入代理，红色为净流出代理；条形越长，说明该板块对当日资金方向的贡献越大。</p>
+                  </div>
+                  <div class="flows-map-balance" id="flowsMapBalance">
+                    <i class="is-positive" style="width:50%"></i>
+                    <i class="is-negative" style="width:50%"></i>
+                  </div>
+                  <div class="flows-map-columns">
+                    <div>
+                      <h3>流入方向</h3>
+                      <div class="flows-map-list" id="flowsInflowList">
+                        <p>等待数据。</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h3>流出方向</h3>
+                      <div class="flows-map-list" id="flowsOutflowList">
+                        <p>等待数据。</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
                 <div class="table-wrap flows-table-wrap desk-panel-body">
                   <table class="flows-table data-table">
                     <thead>
@@ -2798,6 +2826,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-calendar1"></script>
+    <script src="./app.js?v=20260611-flows3"></script>
   </body>
 </html>
