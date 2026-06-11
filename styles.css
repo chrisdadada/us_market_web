@@ -16948,6 +16948,79 @@ body .page-view[data-view="events"] .calendar-layout {
   align-items: start;
 }
 
+body .page-view[data-view="events"] .calendar-timeline-panel {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(9, 16, 28, 0.9);
+  margin-bottom: 10px;
+}
+
+body .page-view[data-view="events"] .calendar-timeline {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(126px, 1fr));
+  border-top: 1px solid rgba(128, 151, 183, 0.14);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body .page-view[data-view="events"] .calendar-timeline article {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-height: 96px;
+  border-right: 1px solid rgba(128, 151, 183, 0.13);
+  background: rgba(7, 12, 21, 0.44);
+  padding: 10px 11px 10px 13px;
+}
+
+body .page-view[data-view="events"] .calendar-timeline article:last-child {
+  border-right: 0;
+}
+
+body .page-view[data-view="events"] .calendar-timeline article::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: rgba(53, 167, 255, 0.62);
+}
+
+body .page-view[data-view="events"] .calendar-timeline article.is-earnings::before {
+  background: rgba(36, 224, 164, 0.7);
+}
+
+body .page-view[data-view="events"] .calendar-timeline article.is-manual::before {
+  background: rgba(255, 200, 87, 0.7);
+}
+
+body .page-view[data-view="events"] .calendar-timeline time {
+  color: #8fa0b8;
+  font-size: 10px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+body .page-view[data-view="events"] .calendar-timeline strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #edf5ff;
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body .page-view[data-view="events"] .calendar-timeline span {
+  color: #7f8da2;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
 body .page-view[data-view="events"] .calendar-main-panel,
 body .page-view[data-view="events"] .calendar-earnings-panel,
 body .page-view[data-view="events"] .calendar-manual-panel {
@@ -17049,7 +17122,7 @@ body .page-view[data-view="events"] .calendar-table-wrap {
 }
 
 body .page-view[data-view="events"] .calendar-table {
-  min-width: 650px;
+  min-width: 720px;
   table-layout: fixed;
 }
 
@@ -17065,15 +17138,15 @@ body .page-view[data-view="events"] .calendar-table th {
 }
 
 body .page-view[data-view="events"] .calendar-table th:nth-child(1) {
-  width: 116px;
+  width: 126px;
 }
 
 body .page-view[data-view="events"] .calendar-table th:nth-child(3) {
-  width: 130px;
+  width: 190px;
 }
 
 body .page-view[data-view="events"] .calendar-table th:nth-child(4) {
-  width: 62px;
+  width: 70px;
 }
 
 body .page-view[data-view="events"] .calendar-table td {
@@ -17117,6 +17190,15 @@ body .page-view[data-view="events"] .calendar-related-cell strong {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+body .page-view[data-view="events"] .calendar-event-row.is-earnings .calendar-title-cell strong {
+  color: #6ff1c4;
+  font-size: 13px;
+}
+
+body .page-view[data-view="events"] .calendar-event-row.is-macro .calendar-title-cell strong {
+  color: #9fd0ff;
 }
 
 body .page-view[data-view="events"] .calendar-impact-cell {
@@ -17197,6 +17279,8 @@ body .page-view[data-view="events"] .calendar-impact-list {
 }
 
 body .page-view[data-view="events"] .calendar-impact-list article {
+  display: grid;
+  gap: 5px;
   border-bottom: 1px solid rgba(128, 151, 183, 0.12);
   background: rgba(7, 12, 21, 0.42);
   padding: 9px 10px;
@@ -17228,14 +17312,17 @@ body .page-view[data-view="events"] .calendar-impact-list p {
     grid-template-columns: 1fr;
   }
 
+  body .page-view[data-view="events"] .calendar-main-panel,
+  body .page-view[data-view="events"] .calendar-earnings-panel,
+  body .page-view[data-view="events"] .calendar-manual-panel,
   body .page-view[data-view="events"] .calendar-impact-panel {
+    grid-column: auto;
     grid-row: auto;
-    border-left: 0;
-    padding-left: 0;
   }
 
-  body .page-view[data-view="events"] .calendar-manual-panel {
-    grid-column: auto;
+  body .page-view[data-view="events"] .calendar-impact-panel {
+    border-left: 0;
+    padding-left: 0;
   }
 }
 

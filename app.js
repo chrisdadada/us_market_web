@@ -8944,19 +8944,19 @@ const eventTypeLabel = (type) => {
 
 const defaultCalendarImpactRules = [
   {
-    trigger: "CPI / PCE 高于预期",
-    effect: "利率压力上升，成长股估值和高波动股票需要降低优先级。",
+    trigger: "通胀数据",
+    effect: "先看 10Y 美债和美元是否上行，再判断成长股估值压力。",
     modules: ["市场温度", "指数估值", "股票库"],
   },
   {
-    trigger: "FOMC 偏鹰",
-    effect: "先看 10Y 美债、美元和 QQQ 承接，再判断是否收缩观察范围。",
-    modules: ["市场与资金", "风险监控"],
+    trigger: "利率会议",
+    effect: "先看政策措辞和长端利率，再决定复盘范围是否收缩。",
+    modules: ["市场温度", "市场与资金"],
   },
   {
-    trigger: "财报指引上修",
-    effect: "进入个股复盘，确认成交额、同板块扩散和价格承接。",
-    modules: ["个股复盘", "个股详情"],
+    trigger: "公司财报",
+    effect: "进入个股工作台，确认预期、成交额、同板块扩散和价格承接。",
+    modules: ["股票库", "个股详情"],
   },
 ];
 
@@ -8977,6 +8977,20 @@ const calendarDaysUntil = (item) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.round((eventTime - today.getTime()) / 86_400_000);
+};
+
+const calendarDayDistanceLabel = (item) => {
+  const days = calendarDaysUntil(item);
+  if (!Number.isFinite(days)) return item?.time || "";
+  if (days < 0) return `${Math.abs(days)}天前`;
+  if (days === 0) return item?.time ? `今天 ${item.time}` : "今天";
+  if (days === 1) return item?.time ? `明天 ${item.time}` : "明天";
+  return item?.time ? `${days}天后 · ${item.time}` : `${days}天后`;
+};
+
+const compactCalendarDate = (item) => {
+  const date = formatDisplayDate(item?.date) || "--";
+  return `${date}${item?.time ? ` ${item.time}` : ""}`;
 };
 
 const calendarEarningsSearchText = (item) => [
@@ -9016,19 +9030,54 @@ const renderCalendarEarningsSummary = (filteredEvents, allEvents) => {
   );
 };
 
+const calendarScopeText = (item) => {
+  const relatedAssets = (item.relatedAssets || []).slice(0, 4).join(" / ");
+  const relatedModules = (item.relatedModules || []).filter((label) => label !== "财经日历").slice(0, 3).join(" / ");
+  return relatedAssets || relatedModules || item.sourceName || eventTypeLabel(item.type);
+};
+
+const calendarSourceText = (item) => `${eventTypeLabel(item.type)}${item.sourceName ? ` · ${item.sourceName}` : ""}`;
+
+const calendarEarningsEstimate = (item) => {
+  const summary = String(item.summary || "");
+  const epsMatch = summary.match(/EPS\s*([+-]?\d+(?:\.\d+)?)/i);
+  const revenueMatch = summary.match(/收入\s*([0-9,.]+)/);
+  const pieces = [];
+  if (epsMatch) pieces.push(`EPS ${epsMatch[1]}`);
+  if (revenueMatch) pieces.push(`收入 ${formatCompactMoney(Number(revenueMatch[1].replace(/,/g, "")))}`);
+  return pieces.join(" / ") || summary || item.sourceName || "等待预估";
+};
+
 const renderCalendarRows = (events) =>
   events.map((item) => {
     const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
-    const relatedAssets = (item.relatedAssets || []).slice(0, 3).join(" / ");
-    const relatedModules = (item.relatedModules || []).slice(0, 3).join(" / ");
-    const scopeText = relatedAssets || relatedModules || item.sourceName || eventTypeLabel(item.type);
+    const scopeText = calendarScopeText(item);
     const typeText = item.type === "earnings" ? "财报日期" : item.type === "macro" ? "宏观事件" : eventTypeLabel(item.type);
     const typeClass = item.type === "earnings" ? "is-earnings" : item.type === "manual" ? "is-manual" : "is-macro";
+    if (item.type === "earnings") {
+      return `
+        <tr class="calendar-event-row ${typeClass}">
+          <td class="calendar-date-cell">
+            <strong>${escapeHtml(formatDisplayDate(item.date) || "--")}</strong>
+            <span>${escapeHtml(calendarDayDistanceLabel(item))}</span>
+          </td>
+          <td class="calendar-title-cell">
+            <strong>${escapeHtml((item.relatedAssets || [])[0] || item.title?.replace(/\s*财报$/, "") || "--")}</strong>
+            <p>${escapeHtml(item.title || "财报日期")}</p>
+          </td>
+          <td class="calendar-related-cell">
+            <strong>${escapeHtml(calendarEarningsEstimate(item))}</strong>
+            <span>${escapeHtml(calendarSourceText(item))}</span>
+          </td>
+          <td class="calendar-impact-cell"><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
+        </tr>
+      `;
+    }
     return `
       <tr class="calendar-event-row ${typeClass}">
         <td class="calendar-date-cell">
           <strong>${escapeHtml(formatDisplayDate(item.date) || "--")}</strong>
-          <span>${escapeHtml(item.time || "")}</span>
+          <span>${escapeHtml(calendarDayDistanceLabel(item))}</span>
         </td>
         <td class="calendar-title-cell">
           <strong>${escapeHtml(item.title || "--")}</strong>
@@ -9042,6 +9091,59 @@ const renderCalendarRows = (events) =>
       </tr>
     `;
   }).join("");
+
+const renderCalendarTimeline = (events) => {
+  const timeline = document.querySelector("#calendarTimeline");
+  if (!timeline) return;
+  const rows = events.slice(0, 7);
+  timeline.innerHTML = rows.length
+    ? rows
+        .map((item) => {
+          const typeClass = item.type === "earnings" ? "is-earnings" : item.type === "manual" ? "is-manual" : "is-macro";
+          return `
+            <article class="${typeClass}">
+              <time>${escapeHtml(compactCalendarDate(item))}</time>
+              <strong>${escapeHtml(item.title || "--")}</strong>
+              <span>${escapeHtml(`${eventTypeLabel(item.type)} · ${calendarDayDistanceLabel(item)}`)}</span>
+            </article>
+          `;
+        })
+        .join("")
+    : `
+      <article>
+        <time>--</time>
+        <strong>暂无未来财经日历</strong>
+        <span>宏观、财报和人工日志会分开展示</span>
+      </article>
+    `;
+};
+
+const calendarImpactFacts = (events, manualEvents, rules) => {
+  const macro = events.find((item) => item.type === "macro" || item.type === "policy");
+  const earnings = events.find((item) => item.type === "earnings");
+  const facts = [
+    macro
+      ? {
+          trigger: "下一条宏观事件",
+          effect: `${compactCalendarDate(macro)} · ${macro.title}。先看利率、美元和指数承接，不直接把事件当结论。`,
+          modules: ["市场温度", "市场与资金"],
+        }
+      : null,
+    earnings
+      ? {
+          trigger: "下一条财报日期",
+          effect: `${compactCalendarDate(earnings)} · ${earnings.title}。进入个股工作台看预估、成交额和同板块对比。`,
+          modules: ["股票库", "个股详情"],
+        }
+      : null,
+    {
+      trigger: "人工财经日志",
+      effect: manualEvents.length ? "人工维护内容单独列出，不混入宏观日历或财报日期。" : "暂无人工日志；等真实内容接入后会单独显示在人工财经日志表。",
+      modules: ["财经日历"],
+    },
+  ].filter(Boolean);
+  return facts.length ? facts : rules;
+};
 
 const renderEventsCalendar = (payload) => {
   if (Array.isArray(payload?.rows)) {
@@ -9071,12 +9173,14 @@ const renderEventsCalendar = (payload) => {
   const earningsEvents = getFilteredCalendarEarnings(allEarningsEvents);
   const macroCount = macroEvents.length;
   const earningsCount = allEarningsEvents.length;
-  setText("#calendarHeroTitle", first ? `${formatDisplayDate(first.date)} · ${first.title}` : "未来事件总览");
+  const timelineEvents = displayScheduledEvents.slice().sort(calendarEventSort);
+  renderCalendarTimeline(timelineEvents);
+  setText("#calendarHeroTitle", first ? `${compactCalendarDate(first)} · ${first.title}` : "未来事件总览");
   setText(
     "#calendarHeroLead",
     first
-      ? `${eventTypeLabel(first.type)} · ${first.summary || "先看事件会影响哪些模块。"}`
-      : "宏观事件、财报日期和人工财经日志会按来源分开展示。",
+      ? `${eventTypeLabel(first.type)} · ${first.summary || "先看日期、影响范围和相关资产。"}`
+      : "宏观事件、财报日期和人工财经日志按来源分开展示。",
   );
   setText("#calendarMacroStatus", macroCount ? `${macroCount}项` : "暂无");
   setText("#calendarEarningsStatus", earningsCount ? `${earningsCount}项` : "暂无");
@@ -9102,8 +9206,9 @@ const renderEventsCalendar = (payload) => {
       : '<tr class="calendar-empty-row"><td colspan="4"><strong>暂无人工财经日志</strong><p>人工上传内容会单独显示在这里，不与宏观日历或财报日期混在一起。</p></td></tr>';
   }
   if (impactList) {
-    impactList.innerHTML = rules.length
-      ? rules.map((rule) => `
+    const facts = calendarImpactFacts(timelineEvents, manualEvents, rules);
+    impactList.innerHTML = facts.length
+      ? facts.map((rule) => `
         <article>
           <strong>${escapeHtml(rule.trigger || "--")}</strong>
           <p>${escapeHtml(rule.effect || "")}</p>

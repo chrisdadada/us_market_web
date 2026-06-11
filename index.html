@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-risk1" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-calendar1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1348,6 +1348,21 @@
               <div><span>人工日志</span><strong id="calendarManualStatus">--</strong></div>
             </div>
           </section>
+          <section class="calendar-timeline-panel desk-panel" aria-label="近期财经日历时间轴">
+            <div class="calendar-panel-head desk-panel-header">
+              <div>
+                <span>近期时间轴</span>
+                <strong>先按时间看，再进入对应表格</strong>
+              </div>
+            </div>
+            <div class="calendar-timeline" id="calendarTimeline">
+              <article>
+                <time>--</time>
+                <strong>等待财经日历</strong>
+                <span>宏观 / 财报 / 人工日志分开展示</span>
+              </article>
+            </div>
+          </section>
 
           <div class="calendar-layout workspace-main">
             <section class="calendar-main-panel desk-panel">
@@ -1361,10 +1376,10 @@
                 <table class="calendar-table data-table">
                   <thead>
                     <tr>
-                      <th>时间</th>
-                      <th>事件</th>
-                      <th>资产 / 模块</th>
-                      <th>影响</th>
+                      <th>发布时间</th>
+                      <th>宏观事件</th>
+                      <th>影响范围</th>
+                      <th>重要性</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEventBody">
@@ -1414,10 +1429,10 @@
                 <table class="calendar-table data-table">
                   <thead>
                     <tr>
-                      <th>时间</th>
-                      <th>公司 / 事件</th>
-                      <th>关联</th>
-                      <th>影响</th>
+                      <th>日期</th>
+                      <th>公司</th>
+                      <th>预估口径</th>
+                      <th>重要性</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEarningsBody">
@@ -1430,8 +1445,8 @@
             <section class="calendar-manual-panel desk-panel" id="calendarManualPanel">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
-                  <span>人工财经备注</span>
-                  <strong>只展示人工上传或手动维护的内容</strong>
+                  <span>人工财经日志</span>
+                  <strong>只展示手动维护的周度大事和复盘备注</strong>
                 </div>
               </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
@@ -1453,9 +1468,9 @@
 
             <aside class="calendar-impact-panel workspace-side">
               <section>
-                <h2>事件影响映射</h2>
+                <h2>怎么看这些日期</h2>
                 <div id="calendarImpactList" class="calendar-impact-list">
-                  <p>加载后显示事件如何影响市场、风险、估值和股票库。</p>
+                  <p>加载后显示宏观、财报和人工日志各自应该检查什么。</p>
                 </div>
               </section>
             </aside>
@@ -2783,6 +2798,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-risk1"></script>
+    <script src="./app.js?v=20260611-calendar1"></script>
   </body>
 </html>
