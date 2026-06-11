@@ -204,6 +204,23 @@ PY
     --pause 0.03
 fi
 
+EVENTS_END_DATE="${EVENTS_END_DATE:-$("${PY}" - "${END_DATE}" "${EVENTS_FUTURE_DAYS}" <<'PY'
+from datetime import datetime, timedelta
+import sys
+base = datetime.fromisoformat(sys.argv[1]).date()
+print((base + timedelta(days=int(sys.argv[2]))).isoformat())
+PY
+)}"
+if [[ -n "${FMP_API_KEY:-}" ]]; then
+  run_root "download FMP earnings calendar" \
+    "${PY}" scripts/download_fmp_earnings_calendar.py \
+    --start "${END_DATE}" \
+    --end "${EVENTS_END_DATE}" \
+    --output "${ROOT}/data/manual/earnings-calendar.json"
+else
+  echo "FMP_API_KEY not configured; skipping FMP earnings calendar download"
+fi
+
 run_lab "build current-year tradable universe" \
   "${PY}" scripts/build_polygon_universe.py \
   --start "${YEAR_START}" --end "${END_DATE}" \

@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 DEFAULT_YTD_OUTPUT = ROOT / "data" / "ytd-gainers.json"
 DEFAULT_MOVERS_OUTPUT = ROOT / "data" / "market-movers.json"
+SECTOR_OVERRIDES_PATH = ROOT / "data" / "sector-overrides.json"
 
 
 def now_iso() -> str:
@@ -178,9 +179,10 @@ def infer_sector_from_sic(text: str) -> str | None:
 
 
 def load_sector_map(data_root: Path) -> dict[str, str]:
+    overrides = read_json(SECTOR_OVERRIDES_PATH).get("sectors", {})
     path = data_root / "raw" / "polygon_rest" / "corporate_actions_full" / "ticker_details_full.parquet"
     if not path.exists():
-        return {}
+        return {str(symbol).upper(): str(sector) for symbol, sector in overrides.items() if sector}
     columns = ["ticker", "name", "sic_description", "type"]
     details = pd.read_parquet(path, columns=columns)
     out: dict[str, str] = {}
@@ -189,6 +191,7 @@ def load_sector_map(data_root: Path) -> dict[str, str]:
         sector = infer_sector_from_sic(row.sic_description) or infer_sector(str(row.name or ""), str(row.type or ""))
         if sector and sector != "未分类":
             out[symbol] = sector
+    out.update({str(symbol).upper(): str(sector) for symbol, sector in overrides.items() if sector})
     return out
 
 

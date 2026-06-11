@@ -17,6 +17,7 @@ REPORTS = EXTERNAL / "reports"
 DAILY_DIR = EXTERNAL / "processed" / "polygon" / "stocks_split_adjusted" / "1d"
 EVENT_SIGNALS_PATH = EXTERNAL / "features" / "polygon" / "monetizable_signals" / "event_signals.parquet"
 EARNINGS_DIR = EXTERNAL / "raw" / "polygon_rest" / "earnings"
+MANUAL_EARNINGS_CALENDAR = DATA_DIR / "manual" / "earnings-calendar.json"
 
 
 def now_iso() -> str:
@@ -97,6 +98,49 @@ def earnings_impact(importance: Any) -> str:
 def compact_revenue(value: Any) -> str:
     label = money_compact(value)
     return label or "--"
+
+
+def normalize_manual_earnings_event(row: dict[str, Any], source_name: str) -> dict[str, Any] | None:
+    ticker = str(row.get("symbol") or row.get("ticker") or "").upper().strip()
+    event_date = str(row.get("date") or row.get("reportDate") or "").strip()
+    if not ticker or not event_date:
+        return None
+    company = str(row.get("company") or row.get("companyName") or row.get("name") or ticker).strip()
+    title = str(row.get("title") or f"{ticker} 财报").strip()
+    summary = str(row.get("summary") or f"{company}：财报日期来自 {source_name}。").strip()
+    return {
+        "date": event_date[:10],
+        "time": str(row.get("time") or "").strip(),
+        "title": title,
+        "type": "earnings",
+        "impact": str(row.get("impact") or "medium"),
+        "sourceName": str(row.get("sourceName") or source_name),
+        "relatedModules": row.get("relatedModules") or ["财经日历", "股票库", "财报观察"],
+        "relatedAssets": row.get("relatedAssets") or [ticker],
+        "summary": summary,
+    }
+
+
+def build_manual_earnings_calendar_events(start: date, end: date, limit: int = 240) -> list[dict[str, Any]]:
+    payload = read_json(MANUAL_EARNINGS_CALENDAR)
+    events = payload.get("events")
+    if not isinstance(events, list):
+        return []
+    source_name = str(payload.get("sourceName") or "manual earnings calendar")
+    out: list[dict[str, Any]] = []
+    for row in events:
+        if not isinstance(row, dict):
+            continue
+        event = normalize_manual_earnings_event(row, source_name)
+        if not event:
+            continue
+        try:
+            event_date = date.fromisoformat(str(event["date"])[:10])
+        except ValueError:
+            continue
+        if start <= event_date <= end:
+            out.append(event)
+    return sorted(out, key=lambda row: (row["date"], row.get("time") or "", row.get("title") or ""))[:limit]
 
 
 def build_earnings_calendar_events(start: date, end: date, limit: int = 120) -> list[dict[str, Any]]:
@@ -181,7 +225,19 @@ def build_events_calendar() -> dict[str, Any]:
         for event in existing.get("events", [])
         if str(event.get("type") or "").lower() != "earnings"
     ]
-    earnings_events = build_earnings_calendar_events(today, horizon_end)
+    local_earnings_events = build_earnings_calendar_events(today, horizon_end)
+    manual_earnings_events = build_manual_earnings_calendar_events(today, horizon_end)
+    earnings_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    for event in [*local_earnings_events, *manual_earnings_events]:
+        assets = event.get("relatedAssets") if isinstance(event.get("relatedAssets"), list) else []
+        symbol = str(assets[0] if assets else event.get("title") or "").upper()
+        key = (str(event.get("date") or ""), symbol)
+        if key[0] and key[1] and key not in earnings_by_key:
+            earnings_by_key[key] = event
+    earnings_events = sorted(
+        earnings_by_key.values(),
+        key=lambda row: (str(row.get("date") or ""), str(row.get("time") or ""), str(row.get("title") or "")),
+    )
     events = sorted(
         [*base_events, *earnings_events],
         key=lambda row: (str(row.get("date") or ""), str(row.get("time") or ""), str(row.get("title") or "")),
@@ -189,11 +245,13 @@ def build_events_calendar() -> dict[str, Any]:
     return {
         "generatedAt": now_iso(),
         "asOf": today.isoformat(),
-        "source": "official macro calendars + local Polygon/Benzinga earnings snapshots",
+        "source": "official macro calendars + local Polygon/Benzinga/FMP/manual earnings snapshots",
         "events": events,
         "impactRules": existing.get("impactRules") or [],
         "coverage": {
             "earningsRows": len(earnings_events),
+            "localEarningsRows": len(local_earnings_events),
+            "manualEarningsRows": len(manual_earnings_events),
             "earningsWindowStart": today.isoformat(),
             "earningsWindowEnd": horizon_end.isoformat(),
             "earningsSourceReady": bool(earnings_events),

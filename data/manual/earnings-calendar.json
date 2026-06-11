@@ -1,0 +1,6 @@
+{
+  "description": "Optional manually supplied or externally downloaded future earnings calendar. The product builder merges these rows into data/events-calendar.json.",
+  "updatedAt": "2026-06-11",
+  "sourceName": "manual",
+  "events": []
+}

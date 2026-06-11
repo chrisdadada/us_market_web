@@ -51,6 +51,8 @@ python3 scripts/check_product_coverage.py
 
 股票库列表页已经改为优先读取 `/api/product/symbols` 的 DB 查询结果，支持查询、板块、市值分层、事件/自选预设和排序参数。顶部全局搜索也优先用同一接口按输入词查询股票。前端只渲染当前表格窗口和当前搜索结果，接口不可用时才回退到旧的本地聚合路径。
 
+`data/sector-overrides.json` 是人工板块补全表，构建市场榜单和板块资金时都会读取。`data/manual/earnings-calendar.json` 是未来财报日历入口，可以由 FMP 下载脚本写入，也可以后续接人工上传流程。
+
 ## 设计原则
 
 - `symbols` 是股票主表，聚合代码、名称、板块、市值、价格、成交额等常用字段。

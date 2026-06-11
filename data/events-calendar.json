@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-11T07:52:53.799455+00:00",
+  "generatedAt": "2026-06-11T08:43:35.377061+00:00",
   "asOf": "2026-06-11",
-  "source": "official macro calendars + local Polygon/Benzinga earnings snapshots",
+  "source": "official macro calendars + local Polygon/Benzinga/FMP/manual earnings snapshots",
   "events": [
     {
       "date": "2026-06-10",
@@ -109,6 +109,8 @@
   ],
   "coverage": {
     "earningsRows": 0,
+    "localEarningsRows": 0,
+    "manualEarningsRows": 0,
     "earningsWindowStart": "2026-06-11",
     "earningsWindowEnd": "2026-09-09",
     "earningsSourceReady": false

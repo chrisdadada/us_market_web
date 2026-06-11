@@ -10,6 +10,10 @@ It updates recent Polygon stock bars, rebuilds current-year universe and split-a
 
 Restricted Benzinga event feeds are requested through a forward-looking window by default so the product can pick up upcoming earnings dates when the account is entitled to that feed. If the feed returns 403, the refresh logs a warning and keeps the rest of the product data pipeline moving.
 
+Future earnings can also be populated from Financial Modeling Prep. When `FMP_API_KEY` is configured, the automation downloads `/stable/earnings-calendar` into `data/manual/earnings-calendar.json`; when the key is absent, the step is skipped and the rest of the refresh continues. The product builder merges that file with local Polygon/Benzinga snapshots and keeps manual entries separate from macro events.
+
+Sector gaps are supplemented by `data/sector-overrides.json`. Use that file for clear manual classifications, especially ADRs and overseas listings where the upstream ticker metadata is sparse.
+
 ## Schedule
 
 Install the local macOS LaunchAgent:
@@ -46,6 +50,12 @@ Adjust the forward-looking event window:
 
 ```bash
 EVENTS_FUTURE_DAYS=120 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+```
+
+Enable the optional FMP earnings calendar pull:
+
+```bash
+FMP_API_KEY=... bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
 Process a wider recovery window:

@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 DEFAULT_INPUT = ROOT / "data" / "strength-scanner.json"
 DEFAULT_OUTPUT = ROOT / "data" / "sector-flow.json"
+SECTOR_OVERRIDES_PATH = ROOT / "data" / "sector-overrides.json"
 
 
 def now_iso() -> str:
@@ -97,9 +98,10 @@ def infer_sector_from_text(text: str) -> str | None:
 
 
 def load_sector_map(data_root: Path) -> dict[str, str]:
+    overrides = load_sector_overrides()
     path = data_root / "raw" / "polygon_rest" / "corporate_actions_full" / "ticker_details_full.parquet"
     if not path.exists():
-        return {}
+        return overrides
     import pandas as pd
 
     frame = pd.read_parquet(path, columns=["ticker", "name", "sic_description"])
@@ -108,6 +110,7 @@ def load_sector_map(data_root: Path) -> dict[str, str]:
         sector = infer_sector_from_text(f"{row.name or ''} {row.sic_description or ''}")
         if sector:
             out[str(row.ticker).upper()] = sector
+    out.update(overrides)
     return out
 
 
@@ -174,6 +177,19 @@ def sector_name(row: dict[str, Any], sector_map: dict[str, str]) -> str:
 
 def load_rows(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_sector_overrides() -> dict[str, str]:
+    if not SECTOR_OVERRIDES_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(SECTOR_OVERRIDES_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    sectors = payload.get("sectors")
+    if not isinstance(sectors, dict):
+        return {}
+    return {str(symbol).upper(): str(sector) for symbol, sector in sectors.items() if sector}
 
 
 def build_sector_flow(input_path: Path, output_path: Path, data_root: Path, limit: int) -> dict[str, Any]:
