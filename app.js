@@ -5873,6 +5873,34 @@ const marketSectorStats = (rows) => {
 
 const marketVisualTabs = () => "";
 
+const renderMarketSectorFocusList = (sectors, options = {}) => {
+  if (!sectors.length) return "";
+  const title = options.title || "板块方向";
+  const subtitle = options.subtitle || "按资金方向和成交活跃度切换右侧详情。";
+  const maxAbsFlow = Math.max(...sectors.map((item) => Math.abs(Number(item.netFlowProxy ?? item.avgChange) || 0)), 1);
+  return `
+    <div class="market-sector-focus-list" aria-label="${escapeHtml(title)}">
+      <div class="market-sector-focus-head">
+        <span>${escapeHtml(title)}</span>
+        <p>${escapeHtml(subtitle)}</p>
+      </div>
+      ${sectors.slice(0, 10).map((item, index) => {
+        const flowValue = Number(item.netFlowProxy ?? item.avgChange) || 0;
+        const tone = flowValue >= 0 ? "is-positive" : "is-negative";
+        const width = Math.max(6, (Math.abs(flowValue) / maxAbsFlow) * 100);
+        return `
+          <button class="${item.sector === state.selectedMarketSector ? "is-selected" : ""}" type="button" data-market-sector-pick="${escapeHtml(item.sector)}">
+            <em>${String(index + 1).padStart(2, "0")}</em>
+            <span>${escapeHtml(sectorDisplayName(item.sector))}</span>
+            <strong class="${tone}">${escapeHtml(item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong>
+            <i><b class="${tone}" style="width:${width.toFixed(1)}%"></b></i>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+};
+
 const sectorDetailRows = (rows, sector) =>
   knownSectorRows(rows)
     .filter((row) => (row.sector || "未分类") === sector)
@@ -5903,18 +5931,19 @@ const renderMarketSectorDetail = (rows, sectors) => {
   const flowValue = Number(sector?.netFlowProxy ?? sector?.avgChange ?? 0);
   const flowTone = flowValue >= 0 ? "is-positive" : "is-negative";
   const leaders = (sector?.leaders || detailRows).slice(0, 3).map((item) => item.symbol).filter(Boolean).join(" / ");
+  const activeValue = sector?.activeValueLabel || formatCompactMoney(sector?.activeValue || sector?.dollarVolume || 0);
   return `
     <aside class="market-sector-detail-pane" aria-label="板块详情">
       <div class="market-sector-detail-head">
         <span>板块详情</span>
         <strong>${escapeHtml(sectorDisplayName(selected))}</strong>
         <button class="table-action" type="button" data-sector-open="${escapeHtml(selected)}">筛到涨跌榜</button>
-        <p>点击左侧板块切换详情；下方按成交活跃度列出该板块前排股票。</p>
+        <p>切换板块后，先看资金方向和上涨广度，再看前排股票是否有成交额确认。</p>
       </div>
       <div class="market-sector-detail-metrics">
         <div><span>资金方向</span><b class="${flowTone}">${escapeHtml(sector?.netFlowProxy == null ? formatSignedPct(sector?.avgChange || 0) : formatSignedCompactMoney(sector.netFlowProxy, sector.netFlowLabel))}</b></div>
         <div><span>上涨广度</span><b>${escapeHtml(`${Math.round(sector?.breadthPct || 0)}%`)}</b></div>
-        <div><span>覆盖标的</span><b>${escapeHtml(String(sector?.count || detailRows.length || "--"))}</b></div>
+        <div><span>成交活跃</span><b>${escapeHtml(activeValue)}</b></div>
         <div><span>代表标的</span><b>${escapeHtml(leaders || "--")}</b></div>
       </div>
       <div class="market-sector-detail-table">
@@ -5968,6 +5997,7 @@ const renderMarketSectorRankingView = (rows) => {
           <div><span>流出板块</span><b class="is-negative">${escapeHtml(String(negativeCount))}</b></div>
           <div><span>成交最活跃</span><b>${escapeHtml(sectorDisplayName(activeSector?.sector))}</b></div>
         </div>
+        ${renderMarketSectorFocusList(sectors, { title: "主线排序", subtitle: "点击板块切换右侧详情，表格保留完整字段。" })}
       </div>
       <div class="market-sector-table-wrap">
         <table class="market-sector-terminal-table data-table">
@@ -6061,6 +6091,11 @@ const renderMarketHeatmapView = (rows) => {
     .sort((a, b) => b.heatSize - a.heatSize)
     .slice(0, 8);
   const maxGroupHeat = Math.max(...sectorGroups.map((group) => group.heatSize), 1);
+  const flowSectors = sectorFlowDisplayRows();
+  const detailSectors = knownSectorRows(flowSectors.length ? flowSectors : marketSectorStats(displayRows)).slice(0, 12);
+  if (!detailSectors.some((item) => item.sector === state.selectedMarketSector)) {
+    state.selectedMarketSector = sectorGroups[0]?.sector || detailSectors[0]?.sector || "";
+  }
   return `
     ${marketVisualTabs()}
     <section class="market-heatmap-view professional-market-board">
@@ -6071,8 +6106,9 @@ const renderMarketHeatmapView = (rows) => {
         <div class="market-visual-metrics">
           <div><span>上涨</span><b class="is-positive">${escapeHtml(String(upTiles))}</b></div>
           <div><span>下跌</span><b class="is-negative">${escapeHtml(String(downTiles))}</b></div>
-          <div><span>覆盖板块</span><b>${escapeHtml(String(sectorCount))}</b></div>
+          <div><span>热区板块</span><b>${escapeHtml(String(sectorCount))}</b></div>
         </div>
+        ${renderMarketSectorFocusList(detailSectors, { title: "板块热度", subtitle: "点击板块联动热力图详情，不离开当前页面。" })}
       </div>
       <div class="market-heatmap-shell">
         <div class="market-heatmap-legend">
@@ -6084,7 +6120,7 @@ const renderMarketHeatmapView = (rows) => {
           ${sectorGroups.map((group) => `
             <section class="market-heatmap-sector" style="--sector-weight:${Math.max(0.65, group.heatSize / maxGroupHeat).toFixed(2)}">
               <header>
-                <span>${escapeHtml(sectorDisplayName(group.sector))}</span>
+                <button type="button" data-market-sector-pick="${escapeHtml(group.sector)}">${escapeHtml(sectorDisplayName(group.sector))}</button>
                 <strong><b class="is-positive">${escapeHtml(`${group.upCount}涨`)}</b><i>/</i><b class="is-negative">${escapeHtml(`${group.downCount}跌`)}</b></strong>
               </header>
               <div class="market-heatmap-grid">
@@ -6113,6 +6149,7 @@ const renderMarketHeatmapView = (rows) => {
           `).join("")}
         </div>
       </div>
+      ${renderMarketSectorDetail(displayRows, detailSectors)}
     </section>
   `;
 };
@@ -10174,6 +10211,14 @@ const bindEvents = () => {
       state.marketVisualMode = "sectors";
       syncMarketWorkspaceTabs();
       renderMarketVisualBoard(getFilteredRows());
+      renderMarketSectionContext();
+      return;
+    }
+    const marketSectorPick = event.target.closest("[data-market-sector-pick]");
+    if (marketSectorPick) {
+      event.preventDefault();
+      state.selectedMarketSector = marketSectorPick.dataset.marketSectorPick || "";
+      renderMarketVisualBoard();
       renderMarketSectionContext();
       return;
     }
