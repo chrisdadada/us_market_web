@@ -205,6 +205,98 @@ def product_dataset_meta(conn: sqlite3.Connection) -> dict[str, Any]:
     }
 
 
+def product_coverage_payload(conn: sqlite3.Connection) -> dict[str, Any]:
+    counts = product_dataset_meta(conn).get("counts", {})
+    symbol_total = int(conn.execute("SELECT COUNT(*) FROM symbols").fetchone()[0])
+    liquid_symbols = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM symbols WHERE COALESCE(latest_dollar_volume, 0) >= 5000000"
+        ).fetchone()[0]
+    )
+    unknown_sector = int(
+        conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM symbols
+            WHERE sector IS NULL OR sector = '' OR sector IN ('未分类', '板块待补', '--')
+            """
+        ).fetchone()[0]
+    )
+    market_cap_missing = int(conn.execute("SELECT COUNT(*) FROM symbols WHERE market_cap_value IS NULL").fetchone()[0])
+    event_symbols = int(conn.execute("SELECT COUNT(DISTINCT symbol) FROM stock_event_rows").fetchone()[0])
+    earnings_symbols = int(conn.execute("SELECT COUNT(DISTINCT symbol) FROM earnings_quality_rows").fetchone()[0])
+    market_boards = [
+        {
+            "board": row["board"],
+            "rows": row["rows"],
+            "symbols": row["symbols"],
+            "unknownSector": row["unknown_sector"],
+            "marketCapMissing": row["market_cap_missing"],
+        }
+        for row in conn.execute(
+            """
+            SELECT board,
+                   COUNT(*) AS rows,
+                   COUNT(DISTINCT symbol) AS symbols,
+                   SUM(CASE WHEN sector IS NULL OR sector = '' OR sector IN ('未分类', '板块待补', '--') THEN 1 ELSE 0 END) AS unknown_sector,
+                   SUM(CASE WHEN market_cap_value IS NULL THEN 1 ELSE 0 END) AS market_cap_missing
+            FROM market_board_rows
+            GROUP BY board
+            ORDER BY board
+            """
+        ).fetchall()
+    ]
+    calendar = [
+        {"type": row["event_type"] or "unknown", "rows": row["rows"]}
+        for row in conn.execute(
+            """
+            SELECT event_type, COUNT(*) AS rows
+            FROM calendar_events
+            GROUP BY event_type
+            ORDER BY event_type
+            """
+        ).fetchall()
+    ]
+    options = [
+        {"board": row["board"], "rows": row["rows"]}
+        for row in conn.execute(
+            """
+            SELECT board, COUNT(*) AS rows
+            FROM options_flow_rows
+            GROUP BY board
+            ORDER BY board
+            """
+        ).fetchall()
+    ]
+    gaps = []
+    if symbol_total < 800:
+        gaps.append("股票主表低于 800 只")
+    if unknown_sector / max(1, symbol_total) > 0.2:
+        gaps.append("未分类板块比例偏高")
+    if market_cap_missing / max(1, symbol_total) > 0.05:
+        gaps.append("市值字段缺口偏高")
+    if not any(item["type"] == "earnings" and item["rows"] > 0 for item in calendar):
+        gaps.append("财报日历待接入")
+    if not options:
+        gaps.append("期权流向快照待接入")
+    return {
+        "ok": symbol_total >= 800 and bool(market_boards),
+        "counts": counts,
+        "symbols": {
+            "total": symbol_total,
+            "liquid": liquid_symbols,
+            "unknownSector": unknown_sector,
+            "marketCapMissing": market_cap_missing,
+            "eventLinked": event_symbols,
+            "earningsLinked": earnings_symbols,
+        },
+        "marketBoards": market_boards,
+        "calendar": calendar,
+        "options": options,
+        "gaps": gaps,
+    }
+
+
 def product_symbol_payload(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "symbol": row["symbol"],
@@ -983,6 +1075,10 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts) == 2 or (len(parts) == 3 and parts[2] in {"health", "meta"}):
                     meta = product_dataset_meta(conn)
                     self.send_json({"ok": True, **meta})
+                    return
+
+                if len(parts) >= 3 and parts[2] == "coverage":
+                    self.send_json(product_coverage_payload(conn))
                     return
 
                 if len(parts) >= 3 and parts[2] == "bootstrap":

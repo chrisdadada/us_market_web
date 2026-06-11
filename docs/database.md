@@ -41,6 +41,14 @@ PRODUCT_DB=/tmp/product.db python3 scripts/build_product_db.py
 bash scripts/update_product_data.sh
 ```
 
+更新完成后会自动运行覆盖度检查：
+
+```bash
+python3 scripts/check_product_coverage.py
+```
+
+当前硬门槛包括股票主表、各涨跌幅/成交额榜单、板块分类缺口、市值缺口、宏观日历和期权快照。财报日历在真实来源稳定前先作为警告项，接入后再升级为硬门槛。
+
 ## 设计原则
 
 - `symbols` 是股票主表，聚合代码、名称、板块、市值、价格、成交额等常用字段。

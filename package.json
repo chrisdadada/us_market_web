@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "bash scripts/run_release_gate.sh",
-    "test:routes": "node scripts/test_frontend_routes.mjs"
+    "test:routes": "node scripts/test_frontend_routes.mjs",
+    "data:coverage": "python3 scripts/check_product_coverage.py"
   },
   "keywords": [],
   "author": "",

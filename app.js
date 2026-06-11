@@ -70,6 +70,7 @@ const state = {
   globalSearchIndex: -1,
   searchUniverse: null,
   productMeta: null,
+  productCoverage: null,
   productSymbols: null,
   productSectors: null,
   productCalendar: null,
@@ -261,6 +262,26 @@ const loadProductMeta = () => {
   return state.loading.productMeta;
 };
 
+const loadProductCoverage = () => {
+  if (state.productCoverage) return Promise.resolve(state.productCoverage);
+  if (state.loading.productCoverage) return state.loading.productCoverage;
+  state.loading.productCoverage = productApiJson("/coverage")
+    .then((payload) => {
+      state.productCoverage = payload || null;
+      renderDataStatus();
+      return state.productCoverage;
+    })
+    .catch((error) => {
+      console.warn("Product coverage unavailable", error);
+      state.productCoverage = null;
+      return null;
+    })
+    .finally(() => {
+      delete state.loading.productCoverage;
+    });
+  return state.loading.productCoverage;
+};
+
 const loadProductSymbols = () => {
   if (state.productSymbols) return Promise.resolve(state.productSymbols);
   if (state.loading.productSymbols) return state.loading.productSymbols;
@@ -432,13 +453,16 @@ const ensurePageData = (page) => {
   if (page === "events") {
     jobs.push(loadProductCalendar().then((calendar) => (calendar ? renderEventsCalendar(calendar) : loadLazyDataset("eventsCalendar"))));
   }
-  if (page === "market" || page === "dashboard") jobs.push(loadProductSectors().then(() => {
-    renderDashboardIntelligence();
-    if (page === "market") {
-      renderFlowsPage();
-      renderMarketVisualBoard(getFilteredRows());
-    }
-  }));
+  if (page === "market" || page === "dashboard") {
+    jobs.push(loadProductCoverage());
+    jobs.push(loadProductSectors().then(() => {
+      renderDashboardIntelligence();
+      if (page === "market") {
+        renderFlowsPage();
+        renderMarketVisualBoard(getFilteredRows());
+      }
+    }));
+  }
   if (page === "stock-events") jobs.push(loadLazyDataset("eventOpportunities"), loadLazyDataset("validationCenter"));
   if (page === "validation") jobs.push(loadLazyDataset("validationCenter"));
   if (page === "stock") {
@@ -457,6 +481,7 @@ const ensurePageData = (page) => {
     jobs.push(
       Promise.all([
         loadProductMeta(),
+        loadProductCoverage(),
         loadGlobalSearchUniverse(),
         loadProductCalendar().then((calendar) => {
           if (calendar) renderEventsCalendar(calendar);
@@ -1913,8 +1938,21 @@ const renderStocksPage = () => {
   const sortedRows = sortedStockLibraryRows(filteredRows);
   const rows = sortedRows.slice(0, STOCK_LIBRARY_DISPLAY_LIMIT);
   const liquidCount = filteredRows.filter((item) => item.dollarVolume >= STOCK_LIQUID_DOLLAR_VOLUME_MIN).length;
-  const eventCount = filteredRows.filter((item) => item.hasEvent).length;
-  const qualityCount = filteredRows.filter((item) => item.qualityScore != null || item.qualityLabel).length;
+  const coverage = state.productCoverage || {};
+  const symbolCoverage = coverage.symbols || {};
+  const calendarCounts = Object.fromEntries((coverage.calendar || []).map((row) => [row.type, Number(row.rows || 0)]));
+  const unknownSector = Number(symbolCoverage.unknownSector || 0);
+  const missingMarketCap = Number(symbolCoverage.marketCapMissing || 0);
+  const coverageStatus = coverage.ok ? "可用" : state.loading.productCoverage ? "检查中" : "待检查";
+  const sortMetric = {
+    dollarVolume: "成交额",
+    dayChange: "1D",
+    weekChange: "5D",
+    monthChange: "1M",
+    ytdChange: "YTD",
+    marketCap: "市值",
+    symbol: "代码",
+  }[state.stocksSort] || "成交额";
   const label = state.stocksQuery
     ? `搜索：${state.stocksQuery}`
     : state.stocksPresetFilter === "liquid"
@@ -1927,8 +1965,23 @@ const renderStocksPage = () => {
   setText("#stocksResultLabel", label);
   setText("#stocksCurrentCount", label.replace(" · 成交额 $5M+", ""));
   setText("#stocksCurrentNote", rows.length < filteredRows.length ? `符合 ${formatNumber(filteredRows.length)} 只，表格显示前 ${rows.length} 只` : `符合 ${formatNumber(filteredRows.length)} 只`);
-  setText("#stocksEventCount", `${formatNumber(eventCount)}只`);
-  setText("#stocksQualityCount", `${formatNumber(qualityCount)}只`);
+  setText("#stocksCoverageStatus", coverageStatus);
+  setText("#stocksCoverageNote", `精搜走全库；当前筛选中高流动性 ${formatNumber(liquidCount)} 只。`);
+  setText("#stocksSectorGap", unknownSector ? "待补" : "完整");
+  setText(
+    "#stocksSectorGapNote",
+    unknownSector
+      ? `板块待补 ${formatNumber(unknownSector)} 只，市值待补 ${formatNumber(missingMarketCap)} 只。`
+      : "主要板块分类与市值字段已接入。",
+  );
+  setText("#stocksCalendarStatus", calendarCounts.earnings ? "宏观+财报" : calendarCounts.macro ? "宏观已接" : "待接入");
+  setText(
+    "#stocksCalendarNote",
+    calendarCounts.earnings
+      ? "个股财报日期会在详情页和日程列里联动。"
+      : "财报日期源下一步接入，人工日志单独展示。",
+  );
+  setText("#stocksSortMetric", sortMetric);
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="14">当前筛选下暂无结果。</td></tr>`;
     return;

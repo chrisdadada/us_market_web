@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-calendar1" />
+    <link rel="stylesheet" href="./styles.css?v=20260611-coverage1" />
   </head>
   <body>
     <div class="app-shell">
@@ -2016,23 +2016,23 @@
               <p id="stocksCurrentNote">按筛选条件显示</p>
             </article>
             <article>
-              <span>流动性阈值</span>
-              <strong>$5M</strong>
-              <p>按成交额筛掉高噪音标的</p>
+              <span>数据状态</span>
+              <strong id="stocksCoverageStatus">--</strong>
+              <p id="stocksCoverageNote">全库搜索与表格筛选分开承载。</p>
             </article>
             <article>
-              <span>事件关联</span>
-              <strong id="stocksEventCount">--</strong>
-              <p>有事件或线索记录</p>
+              <span>板块分类</span>
+              <strong id="stocksSectorGap">--</strong>
+              <p id="stocksSectorGapNote">低流动性和资料缺口会继续补。</p>
             </article>
             <article>
-              <span>财报线索</span>
-              <strong id="stocksQualityCount">--</strong>
-              <p>有财报质量数据</p>
+              <span>日程接入</span>
+              <strong id="stocksCalendarStatus">--</strong>
+              <p id="stocksCalendarNote">宏观日历与财报日期分开接入。</p>
             </article>
             <article>
               <span>排序口径</span>
-              <strong>成交额</strong>
+              <strong id="stocksSortMetric">成交额</strong>
               <p>默认按活跃度降序</p>
             </article>
           </section>
@@ -2754,6 +2754,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-calendar1"></script>
+    <script src="./app.js?v=20260611-coverage1"></script>
   </body>
 </html>

@@ -202,8 +202,18 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                     WHERE symbol = 'MU'
                     """
                 ).fetchone()
-                self.assertIsNotNone(sample)
-                self.assertTrue(sample[0])
+            self.assertIsNotNone(sample)
+            self.assertTrue(sample[0])
+            coverage = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "check_product_coverage.py"), "--db", str(db_path), "--json"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            coverage_payload = json.loads(coverage.stdout)
+            self.assertTrue(coverage_payload["ok"])
+            self.assertGreaterEqual(coverage_payload["symbols"]["total"], 800)
 
     def test_product_database_api_serves_core_workbench_data(self) -> None:
         db_path = Path(self.tempdir.name) / "product.db"
@@ -222,6 +232,14 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["schemaVersion"], "1")
         self.assertGreaterEqual(payload["counts"]["market_board_rows"], 800)
+
+        status, payload = client.get("/api/product/coverage")
+        self.assertEqual(status, 200, payload)
+        self.assertTrue(payload["ok"])
+        self.assertGreaterEqual(payload["symbols"]["total"], 800)
+        self.assertIn("marketBoards", payload)
+        self.assertIn("calendar", payload)
+        self.assertIn("options", payload)
 
         status, payload = client.get("/api/product/symbols?query=MU&limit=5")
         self.assertEqual(status, 200, payload)
