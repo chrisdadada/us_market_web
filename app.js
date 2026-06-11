@@ -427,6 +427,7 @@ const ensurePageData = (page) => {
   if (page === "risk") jobs.push(loadLazyDataset("macroSeries"));
   if (page === "valuation") jobs.push(loadLazyDataset("indexValuation"));
   if (page === "options") jobs.push(loadLazyDataset("optionsFlow"));
+  if (page === "signals") jobs.push(loadSignals());
   if (page === "earnings") jobs.push(loadLazyDataset("earningsQuality"));
   if (page === "events") {
     jobs.push(loadProductCalendar().then((calendar) => (calendar ? renderEventsCalendar(calendar) : loadLazyDataset("eventsCalendar"))));
@@ -1038,12 +1039,13 @@ const renderSignalDetail = (symbol) => {
   if (tag) tag.textContent = symbol;
   const firstEvent = [...events].reverse()[0] || current;
   const latestEvent = events[0] || current;
+  const side = signalPolarity(current);
   panel.innerHTML = `
     <div class="detail-hero">
       <div>
         <span>${escapeHtml(current.theme || "未分类")}</span>
         <strong>${escapeHtml(symbol)}</strong>
-        <p>${escapeHtml(directionLabel(current.direction, current.directionText))} · ${escapeHtml(current.intervalLabel || current.interval || "--")}</p>
+        <p><b class="signal-side-pill ${escapeHtml(side.className)}">${escapeHtml(side.label)}</b> · ${escapeHtml(current.intervalLabel || current.interval || "--")}</p>
       </div>
       <div>
         <span>最佳表现</span>
@@ -1067,7 +1069,7 @@ const renderSignalDetail = (symbol) => {
     </div>
     <div class="detail-summary">
       <span>复盘结论</span>
-      <p>从 ${escapeHtml(firstEvent.currentTime || current.firstSignalAt || "--")} 到 ${escapeHtml(latestEvent.currentTime || latestEvent.receivedAt || "--")}，当前方向为 ${escapeHtml(directionLabel(current.direction, current.directionText))}。重点看后续是否继续刷新顺向表现，或出现方向切换。</p>
+      <p>从 ${escapeHtml(firstEvent.currentTime || current.firstSignalAt || "--")} 到 ${escapeHtml(latestEvent.currentTime || latestEvent.receivedAt || "--")}，当前趋势信号为 ${escapeHtml(side.label)}。重点看后续是否继续刷新顺向表现，或出现方向切换。</p>
     </div>
   `;
 };
@@ -1110,24 +1112,40 @@ const renderSignalDashboard = () => {
     if (!state.selectedSignalSymbol && rows[0]) state.selectedSignalSymbol = rows[0].symbol;
     stateTable.innerHTML = rows.length
       ? `
-        <div class="signal-state-head">
+        <div class="signal-state-head signal-workbench-row">
           <span>标的</span>
-          <span>方向</span>
+          <span>当前趋势</span>
           <span>周期</span>
           <span>触发价</span>
-          <span title="最近一次可用复盘价格">现价</span>
-          <span title="从触发价到现价的涨跌幅，不等于账户收益">表现</span>
+          <span>现价</span>
+          <span>当前表现</span>
+          <span>最佳顺向</span>
+          <span>最大反向</span>
+          <span>持续</span>
+          <span>操作</span>
         </div>
-        ${rows.slice(0, 12).map((item) => `
-          <button class="signal-state-row ${state.selectedSignalSymbol === item.symbol ? "is-selected" : ""}" type="button" data-signal-symbol="${escapeHtml(item.symbol)}">
-            <strong>${escapeHtml(item.symbol)}</strong>
-            <span class="${item.direction === "short" ? "is-short" : "is-long"}">${escapeHtml(directionLabel(item.direction, item.directionText))}</span>
-            <span>${escapeHtml(item.intervalLabel || item.interval || "--")}</span>
-            <span>${escapeHtml(item.price || "--")}</span>
-            <span>${escapeHtml(item.livePrice || "--")}</span>
-            <b>${escapeHtml(item.marketChangePct || "--")}</b>
-          </button>
-        `).join("")}
+        ${rows.slice(0, 18).map((item) => {
+          const side = signalPolarity(item);
+          return `
+            <button class="signal-state-row signal-workbench-row ${state.selectedSignalSymbol === item.symbol ? "is-selected" : ""}" type="button" data-signal-symbol="${escapeHtml(item.symbol)}">
+              <strong>
+                ${escapeHtml(item.symbol)}
+                <small>${escapeHtml(item.theme || "未分类")}</small>
+              </strong>
+              <span class="signal-direction-cell ${escapeHtml(side.className)}"><i>${escapeHtml(side.label)}</i><small>${escapeHtml(directionLabel(item.direction, item.directionText))}</small></span>
+              <span>${escapeHtml(item.intervalLabel || item.interval || "--")}</span>
+              <span>${escapeHtml(item.price || "--")}</span>
+              <span>${escapeHtml(item.livePrice || "--")}</span>
+              <b class="${escapeHtml(stockSignedClass(item.marketChangePct))}">${escapeHtml(item.marketChangePct || "--")}</b>
+              <b class="${escapeHtml(stockSignedClass(item.maxFavorablePct))}">${escapeHtml(item.maxFavorablePct || "--")}</b>
+              <b class="${escapeHtml(stockSignedClass(item.maxAdversePct))}">${escapeHtml(item.maxAdversePct || "--")}</b>
+              <span>${escapeHtml(item.signalAge || "--")}</span>
+              <span class="signal-row-actions">
+                <em>点行复盘</em>
+              </span>
+            </button>
+          `;
+        }).join("")}
       `
       : "<div><span>等待记录</span><strong>有新信号后会显示方向、价格和表现。</strong></div>";
   }
@@ -1209,50 +1227,80 @@ const renderSignalDashboard = () => {
   renderAuthState();
 };
 
-const loadSignals = async () => {
-  try {
-    state.signals = await apiFetch("/api/signals");
-    renderSignalDashboard();
-    renderWatchlist();
-  } catch (error) {
-    const fallbackSignals = state.core?.risk?.signals || [];
-    const fallbackStates = fallbackSignals.map((item) => ({
+const fallbackSignalPayload = (core = state.core) => {
+  const fallbackSignals = core?.risk?.signals?.length
+    ? core.risk.signals
+    : [
+        { term: "SPY", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留大盘观察位。" },
+        { term: "QQQ", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留科技股观察位。" },
+        { term: "IWM", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留小盘股观察位。" },
+        { term: "VIX", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留波动率观察位。" },
+        { term: "10Y", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留利率观察位。" },
+      ];
+  const fallbackStates = fallbackSignals.map((item) => {
+    const bucket = item.bucket || "";
+    const direction = bucket === "watch" ? "short" : bucket === "positive" ? "long" : "neutral";
+    return {
       symbol: item.term,
-      direction: item.bucket === "watch" ? "short" : "long",
-      directionText: item.bucket === "watch" ? "谨慎观察" : item.label,
+      direction,
+      directionText: item.label,
       intervalLabel: "日线",
       price: item.label || "--",
-      livePrice: item.asOf || state.core?.asOf || "--",
-      marketChangePct: item.bucket === "positive" ? "偏强" : item.bucket === "watch" ? "压力" : "中性",
+      livePrice: item.asOf || core?.asOf || "--",
+      marketChangePct: bucket === "positive" ? "偏强" : bucket === "watch" ? "压力" : "中性",
       theme: "市场信号",
-      firstSignalAt: item.asOf || state.core?.asOf || "--",
+      firstSignalAt: item.asOf || core?.asOf || "--",
       signalAge: "核心信号",
       maxFavorablePct: "--",
       maxAdversePct: "--",
-    }));
-    state.signals = {
-      overview: {
-        activeSymbols: fallbackStates.length,
-        switches24h: 0,
-        reviewQueue: 0,
-        capturedMovePct: fallbackStates.length ? "核心信号" : "暂无记录",
-      },
-      states: fallbackStates,
-      feed: fallbackSignals.map((item) => ({
+    };
+  });
+  return {
+    overview: {
+      activeSymbols: fallbackStates.length,
+      switches24h: 0,
+      reviewQueue: 0,
+      capturedMovePct: fallbackStates.length ? "核心信号" : "暂无记录",
+    },
+    states: fallbackStates,
+    feed: fallbackSignals.map((item) => {
+      const bucket = item.bucket || "";
+      return {
         symbol: item.term,
         theme: "市场信号",
         intervalLabel: "日线",
         eventType: "core_signal",
-        direction: item.bucket === "watch" ? "short" : "long",
+        direction: bucket === "watch" ? "short" : bucket === "positive" ? "long" : "neutral",
         directionText: item.label,
         price: item.label,
-        livePrice: item.asOf || state.core?.asOf || "--",
-        marketChangePct: item.note || "--",
-        currentTime: item.asOf || state.core?.asOf || "--",
-      })),
-      sectors: [],
-      reviewQueue: [],
-    };
+        livePrice: item.asOf || core?.asOf || "--",
+        marketChangePct: neutralCopy(item.note || "--"),
+        currentTime: item.asOf || core?.asOf || "--",
+      };
+    }),
+    sectors: [],
+    reviewQueue: [],
+  };
+};
+
+const loadSignals = async () => {
+  try {
+    const payload = await apiFetch("/api/signals");
+    if (payload?.states?.length || payload?.feed?.length) {
+      state.signals = payload;
+    } else {
+      let fallback = fallbackSignalPayload();
+      if (!fallback.states.length) {
+        const bootstrap = await productApiJson("/bootstrap").catch(() => null);
+        if (bootstrap?.core && !state.core) state.core = bootstrap.core;
+        fallback = fallbackSignalPayload(bootstrap?.core || state.core);
+      }
+      state.signals = fallback;
+    }
+    renderSignalDashboard();
+    renderWatchlist();
+  } catch (error) {
+    state.signals = fallbackSignalPayload();
     renderSignalDashboard();
   }
 };
@@ -5130,9 +5178,6 @@ const showPage = (page, options = {}) => {
       const body = document.querySelector("#adminUsersBody");
       if (body) body.innerHTML = `<tr><td colspan="8">${escapeHtml(error.message || "用户列表加载失败")}</td></tr>`;
     });
-  }
-  if (page === "signals") {
-    loadSignals();
   }
   if (page === "earnings") {
     renderQualityTable();

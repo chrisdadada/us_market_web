@@ -19163,6 +19163,188 @@ body .stock-research-workspace .stock-detail-fact-table tr:last-child td {
   border-bottom: 0;
 }
 
+/* Trend signal terminal pass. */
+body .signal-workspace .signal-state-table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid rgba(128, 151, 183, 0.14);
+  border-radius: 4px;
+  background: rgba(7, 12, 21, 0.36);
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+body .signal-workspace .signal-workbench-row {
+  display: grid;
+  grid-template-columns: 118px 126px 80px 98px 98px 96px 96px 96px 96px 104px;
+  width: max-content;
+  min-width: 1010px;
+  column-gap: 0;
+  align-items: stretch;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.12);
+  padding: 0;
+}
+
+body .signal-workspace .signal-state-head.signal-workbench-row {
+  min-height: 34px;
+  background: #09111e;
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row {
+  min-height: 50px;
+  background: rgba(7, 12, 21, 0.32);
+  color: #dce7f5;
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row:hover,
+body .signal-workspace .signal-state-row.signal-workbench-row.is-selected {
+  background: rgba(53, 167, 255, 0.08);
+  transform: none;
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row.is-selected {
+  box-shadow: inset 2px 0 0 #35a7ff;
+}
+
+body .signal-workspace .signal-workbench-row > * {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  border-right: 1px solid rgba(128, 151, 183, 0.09);
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 0 10px;
+}
+
+body .signal-workspace .signal-workbench-row > *:last-child {
+  border-right: 0;
+}
+
+body .signal-workspace .signal-state-head.signal-workbench-row > * {
+  color: #8fa0b8;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row strong {
+  display: grid;
+  align-content: center;
+  color: #eef4ff;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row strong small,
+body .signal-workspace .signal-direction-cell small {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #7f8da2;
+  font-size: 10px;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row span,
+body .signal-workspace .signal-state-row.signal-workbench-row b {
+  color: #b8c6d8;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+body .signal-workspace .signal-direction-cell {
+  display: grid !important;
+  align-content: center;
+  text-align: left !important;
+}
+
+body .signal-workspace .signal-direction-cell i {
+  width: fit-content;
+  min-height: 22px;
+  border: 1px solid rgba(128, 151, 183, 0.16);
+  border-radius: 4px;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 20px;
+  padding: 0 7px;
+}
+
+body .signal-workspace .signal-direction-cell.is-long i {
+  border-color: rgba(36, 224, 164, 0.24);
+  background: rgba(36, 224, 164, 0.1);
+  color: var(--positive);
+}
+
+body .signal-workspace .signal-direction-cell.is-short i {
+  border-color: rgba(255, 95, 95, 0.24);
+  background: rgba(255, 95, 95, 0.1);
+  color: var(--negative);
+}
+
+body .signal-workspace .signal-direction-cell.is-neutral i {
+  color: #9fb0c6;
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row b.is-positive {
+  color: var(--positive);
+}
+
+body .signal-workspace .signal-state-row.signal-workbench-row b.is-negative {
+  color: var(--negative);
+}
+
+body .signal-workspace .signal-row-actions {
+  justify-content: flex-start;
+}
+
+body .signal-workspace .signal-row-actions i {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgba(53, 167, 255, 0.24);
+  border-radius: 4px;
+  background: rgba(53, 167, 255, 0.1);
+  color: #8fc7ff;
+  cursor: pointer;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+  padding: 0 8px;
+}
+
+body .signal-workspace .signal-row-actions i:hover {
+  border-color: rgba(53, 167, 255, 0.46);
+  background: rgba(53, 167, 255, 0.16);
+}
+
+body .signal-workspace .signal-row-actions em {
+  color: #7f8da2;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+}
+
+body .signal-workspace .detail-hero p .signal-side-pill {
+  margin-right: 6px;
+}
+
+body .signal-workspace .signal-main,
+body .signal-workspace .signal-panel,
+body .signal-workspace .signal-layout {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  body .signal-workspace .signal-workbench-row {
+    grid-template-columns: 104px 118px 76px 90px 90px 90px 90px 90px 88px 100px;
+    min-width: 936px;
+  }
+}
+
 /* Watchlist terminal pass: convert card pile into a compact review queue. */
 body .watchlist-view .watchlist-daily-plan,
 body .watchlist-view .watchlist-panel,
