@@ -25,6 +25,7 @@ scp "${ARCHIVE}" "${SERVER}:${REMOTE_ARCHIVE}"
 ssh "${SERVER}" 'set -e
 rm -rf /opt/dongbimao-dev/*
 tar -xzf /tmp/dongbimao-site.tar.gz -C /opt/dongbimao-dev
+(cd /opt/dongbimao-dev && python3 scripts/build_product_db.py)
 rm -rf /var/www/dongbimao-dev/*
 cp -a /opt/dongbimao-dev/index.html /opt/dongbimao-dev/styles.css /opt/dongbimao-dev/app.js /opt/dongbimao-dev/assets /opt/dongbimao-dev/mockups /var/www/dongbimao-dev/
 nginx -t
