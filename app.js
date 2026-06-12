@@ -6645,27 +6645,19 @@ const renderMarketSectorRankingView = (rows) => {
             <tr>
               <th><span>排名</span><em>方向</em></th>
               <th><span>板块</span><em>分类</em></th>
-              <th><span>资金方向</span><em>涨跌成交代理</em></th>
-              <th><span>1D</span><em>均值</em></th>
-              <th><span>5D</span><em>均值</em></th>
-              <th><span>成交额</span><em>活跃度</em></th>
+              <th><span>资金方向</span><em>强度</em></th>
               <th><span>上涨广度</span><em>涨/跌</em></th>
-              <th><span>龙头</span><em>成交领先</em></th>
-              <th><span>代表标的</span><em>前排样本</em></th>
             </tr>
           </thead>
           <tbody>
             ${sectors.map((item, index) => {
           const flowValue = item.netFlowProxy ?? item.avgChange ?? 0;
           const breadth = item.breadthPct == null ? 0 : item.breadthPct;
-          const detailRows = sectorDetailRows(rows, item.sector);
-          const leaders = (item.leaders?.length ? item.leaders : detailRows).slice(0, 4);
-          const leader = leaders[0];
           const upCount = item.upCount || 0;
           const downCount = item.downCount ?? Math.max(0, (item.count || 0) - upCount);
           const changeClass = flowValue >= 0 ? "is-positive" : "is-negative";
           const flowWidth = Math.max(5, (Math.abs(Number(flowValue) || 0) / maxAbsFlow) * 100);
-          const weekChange = sectorPeriodChange(item.sector, "week");
+          const activeValue = item.activeValueLabel || formatCompactMoney(item.activeValue || item.dollarVolume || 0);
           return `
             <tr class="${item.sector === state.selectedMarketSector ? "is-selected" : ""}">
               <td>${String(index + 1).padStart(2, "0")}</td>
@@ -6674,14 +6666,10 @@ const renderMarketSectorRankingView = (rows) => {
                 <div class="market-sector-flow-cell ${changeClass}">
                   <strong>${escapeHtml(item.netFlowProxy == null ? formatSignedPct(item.avgChange || 0) : formatSignedCompactMoney(item.netFlowProxy, item.netFlowLabel))}</strong>
                   <i><b style="width:${flowWidth.toFixed(1)}%"></b></i>
+                  <span>${escapeHtml(activeValue)}</span>
                 </div>
               </td>
-              <td class="${Number(item.avgChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(item.avgChange == null ? "--" : formatSignedPct(item.avgChange))}</td>
-              <td class="${Number(weekChange) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(weekChange == null ? "--" : formatSignedPct(weekChange))}</td>
-              <td>${escapeHtml(item.activeValueLabel || formatCompactMoney(item.activeValue || item.dollarVolume || 0))}</td>
               <td class="market-sector-breadth-cell"><strong>${escapeHtml(`${Math.round(breadth)}%`)}</strong><span><b class="is-positive">${escapeHtml(`${upCount}涨`)}</b><i>/</i><b class="is-negative">${escapeHtml(`${downCount}跌`)}</b></span></td>
-              <td>${leader?.symbol ? `<button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(leader.symbol)}">${escapeHtml(leader.symbol)}</button>` : "--"}</td>
-              <td>${escapeHtml(leaders.map((leaderItem) => leaderItem.symbol).filter(Boolean).join(" / ") || "--")}</td>
             </tr>
           `;
         }).join("")}

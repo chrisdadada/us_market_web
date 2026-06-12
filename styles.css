@@ -16632,12 +16632,14 @@ body .market-workspace .market-sector-rank-list button.is-selected {
 body .market-workspace .market-sector-table-wrap {
   min-width: 0;
   max-height: 560px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 10px 12px 12px;
 }
 
 body .market-workspace .market-sector-terminal-table {
-  min-width: 900px;
+  width: 100%;
+  min-width: 0;
   table-layout: fixed;
 }
 
@@ -16691,50 +16693,24 @@ body .market-workspace .market-sector-terminal-table tr.is-selected td {
 
 body .market-workspace .market-sector-terminal-table th:nth-child(1),
 body .market-workspace .market-sector-terminal-table td:nth-child(1) {
-  width: 54px;
+  width: 56px;
   color: #8fa0b8;
   text-align: right;
 }
 
 body .market-workspace .market-sector-terminal-table th:nth-child(2),
 body .market-workspace .market-sector-terminal-table td:nth-child(2) {
-  width: 110px;
+  width: 120px;
 }
 
 body .market-workspace .market-sector-terminal-table th:nth-child(3),
 body .market-workspace .market-sector-terminal-table td:nth-child(3) {
-  width: 142px;
+  width: auto;
 }
 
 body .market-workspace .market-sector-terminal-table th:nth-child(4),
-body .market-workspace .market-sector-terminal-table td:nth-child(4),
-body .market-workspace .market-sector-terminal-table th:nth-child(5),
-body .market-workspace .market-sector-terminal-table td:nth-child(5) {
-  width: 74px;
-  text-align: right;
-}
-
-body .market-workspace .market-sector-terminal-table th:nth-child(6),
-body .market-workspace .market-sector-terminal-table td:nth-child(6) {
-  width: 108px;
-  text-align: right;
-}
-
-body .market-workspace .market-sector-terminal-table th:nth-child(7),
-body .market-workspace .market-sector-terminal-table td:nth-child(7) {
+body .market-workspace .market-sector-terminal-table td:nth-child(4) {
   width: 118px;
-}
-
-body .market-workspace .market-sector-terminal-table th:nth-child(8),
-body .market-workspace .market-sector-terminal-table td:nth-child(8) {
-  width: 82px;
-}
-
-body .market-workspace .market-sector-terminal-table th:nth-child(9),
-body .market-workspace .market-sector-terminal-table td:nth-child(9) {
-  width: 168px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 body .market-workspace .market-sector-flow-cell {
@@ -16748,6 +16724,16 @@ body .market-workspace .market-sector-flow-cell strong {
   overflow: hidden;
   font-weight: 720;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .market-workspace .market-sector-flow-cell span {
+  display: block;
+  overflow: hidden;
+  color: #718299;
+  font-size: 10px;
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -17591,13 +17577,13 @@ body #marketFlowsPanel .flows-table td:nth-child(9) {
 
   body .market-workspace .market-sector-rank-list,
   body .market-workspace .market-sector-table-wrap {
-    overflow-x: auto;
+    overflow-x: hidden;
   }
 
   body .market-workspace .market-sector-rank-head,
   body .market-workspace .market-sector-rank-list button,
   body .market-workspace .market-sector-terminal-table {
-    min-width: 640px;
+    min-width: 0;
   }
 
   body .market-workspace .market-sector-detail-metrics {
