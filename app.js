@@ -3027,7 +3027,7 @@ const renderFlowsPage = () => {
   if (inflowList) inflowList.innerHTML = renderFlowMapList(inflowRows, "in");
   if (outflowList) outflowList.innerHTML = renderFlowMapList(outflowRows, "out");
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="10">等待板块资金流向数据。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="9">等待板块资金流向数据。</td></tr>`;
   } else {
     body.innerHTML = rows.slice(0, 16).map((row) => {
       const flowValue = Number(row.netFlowProxy) || 0;
@@ -3058,7 +3058,6 @@ const renderFlowsPage = () => {
           <td>${leader?.symbol ? `<button class="inline-stock-link market-leader-link" type="button" data-stock-open="${escapeHtml(leader.symbol)}">${escapeHtml(leader.symbol)}</button>` : "--"}</td>
           <td class="${Number(leader?.change) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(leader?.change == null ? "--" : formatSignedPct(leader.change))}</td>
           <td>${renderMarketSymbolTokens(leaders, 4)}</td>
-          <td><button class="table-action" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">看板块</button></td>
         </tr>
       `;
     }).join("");
@@ -6653,7 +6652,6 @@ const renderMarketSectorRankingView = (rows) => {
               <th><span>上涨广度</span><em>涨/跌</em></th>
               <th><span>龙头</span><em>成交领先</em></th>
               <th><span>代表标的</span><em>前排样本</em></th>
-              <th><span>操作</span><em>联动</em></th>
             </tr>
           </thead>
           <tbody>
@@ -6684,7 +6682,6 @@ const renderMarketSectorRankingView = (rows) => {
               <td class="market-sector-breadth-cell"><strong>${escapeHtml(`${Math.round(breadth)}%`)}</strong><span><b class="is-positive">${escapeHtml(`${upCount}涨`)}</b><i>/</i><b class="is-negative">${escapeHtml(`${downCount}跌`)}</b></span></td>
               <td>${leader?.symbol ? `<button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(leader.symbol)}">${escapeHtml(leader.symbol)}</button>` : "--"}</td>
               <td>${escapeHtml(leaders.map((leaderItem) => leaderItem.symbol).filter(Boolean).join(" / ") || "--")}</td>
-              <td><button class="table-action" type="button" data-sector-open="${escapeHtml(item.sector)}">筛到榜单</button></td>
             </tr>
           `;
         }).join("")}
