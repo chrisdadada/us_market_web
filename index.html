@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260612-watchstock1" />
+    <link rel="stylesheet" href="./styles.css?v=20260612-stocks1" />
   </head>
   <body>
     <div class="app-shell">
@@ -2105,6 +2105,13 @@
             </label>
           </section>
 
+          <section class="stocks-preset-strip" aria-label="股票库快速筛选">
+            <button type="button" data-stocks-preset="all">全部</button>
+            <button type="button" data-stocks-preset="liquid">高流动性</button>
+            <button type="button" data-stocks-preset="event">事件关联</button>
+            <button type="button" data-stocks-preset="watchlist">自选</button>
+          </section>
+
           <section class="stocks-rank-strip" id="stocksRankStrip" aria-label="当前筛选榜单速览">
             <div class="stocks-rank-empty">正在生成当前筛选速览。</div>
           </section>
@@ -2782,6 +2789,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260612-watchstock1"></script>
+    <script src="./app.js?v=20260612-stocks1"></script>
   </body>
 </html>

@@ -2205,6 +2205,14 @@ const syncStocksTableSortState = () => {
   });
 };
 
+const syncStocksPresetButtons = () => {
+  document.querySelectorAll("[data-stocks-preset]").forEach((button) => {
+    const active = button.dataset.stocksPreset === state.stocksPresetFilter;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+};
+
 const renderStocksSectorOptions = (rows) => {
   const select = document.querySelector("#stocksSectorFilter");
   if (!select) return;
@@ -2276,6 +2284,61 @@ const stockLibrarySectorFlow = (item) => {
   return stockSectorFlowDetail({ ...stockDisplayName(item.symbol), sector }, sectorRows);
 };
 
+const stockLibraryPeerPosition = (item) => {
+  const target = normalizeStockSymbol(item.symbol);
+  const sector = sectorDisplayName(item.sector);
+  const sectorRows = isKnownSector(sector)
+    ? uniqueBySymbol(allMarketRows().filter((row) => sectorDisplayName(row.sector) === sector))
+    : [];
+  const changeRows = sectorRows.slice().sort((a, b) => getChange(b) - getChange(a));
+  const rank = changeRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
+  const capRows = sectorRows
+    .filter((row) => marketCapNumber(row.marketCap) != null)
+    .sort((a, b) => marketCapNumber(b.marketCap) - marketCapNumber(a.marketCap));
+  const capRank = capRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
+  return {
+    rankText: rank > 0 ? `${rank}/${changeRows.length}` : "--",
+    capRankText: capRank > 0 ? `${capRank}/${capRows.length}` : "--",
+  };
+};
+
+const stockLibraryVolumeState = (item) => {
+  const ratio = parseRatio(item.volumeRatio);
+  const day = Number(item.dayChange);
+  if (Number.isFinite(ratio) && ratio >= 1.5 && Number.isFinite(day) && day > 0) {
+    return { label: "放量上涨", note: `成交额 ${formatVolumeRatioLabel(item.volumeRatio)}`, className: "is-positive" };
+  }
+  if (Number.isFinite(ratio) && ratio >= 1.5 && Number.isFinite(day) && day < 0) {
+    return { label: "放量下跌", note: `成交额 ${formatVolumeRatioLabel(item.volumeRatio)}`, className: "is-negative" };
+  }
+  if (Number.isFinite(ratio) && ratio >= 1.2) {
+    return { label: "成交活跃", note: `成交额 ${formatVolumeRatioLabel(item.volumeRatio)}`, className: "is-neutral" };
+  }
+  if (item.dollarVolume >= STOCK_LIQUID_DOLLAR_VOLUME_MIN) {
+    return { label: "流动性可用", note: formatCompactMoney(item.dollarVolume), className: "is-muted" };
+  }
+  return { label: "低流动性", note: item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--", className: "is-muted" };
+};
+
+const stockLibraryCatalystSummary = (item, calendar) => {
+  if (item.eventRow) {
+    return {
+      title: displayEventLabel(item.eventRow, "股票事件"),
+      meta: item.eventRow.eventDate ? `${formatDisplayDate(item.eventRow.eventDate)} · 事件` : "事件日期待补",
+      className: "is-neutral",
+    };
+  }
+  if (item.quality) {
+    const date = item.quality.latestEarningsDate || item.quality.reportDate;
+    return {
+      title: item.quality.userAngle || item.qualityLabel || "财报线索",
+      meta: date ? `${formatDisplayDate(date)} · 财报` : "财报日期待补",
+      className: "is-neutral",
+    };
+  }
+  return calendar;
+};
+
 const stockLibraryCalendarSummary = (item) => {
   const target = normalizeStockSymbol(item.symbol);
   const profile = stockDisplayName(target);
@@ -2333,7 +2396,7 @@ const stockLibraryTopBy = (rows, key, direction = "desc", limit = 5) =>
     })
     .slice(0, limit);
 
-const stockRankRow = (item, metric, className = "") => {
+const stockRankRow = (item, metric, className = "", index = 0) => {
   const value = metric === "volume"
     ? formatCompactMoney(item.dollarVolume)
     : metric === "ratio"
@@ -2344,6 +2407,7 @@ const stockRankRow = (item, metric, className = "") => {
     : `${sectorDisplayName(item.sector)} · ${item.marketCap || "--"}`;
   return `
     <button class="stocks-rank-row" type="button" data-stock-open="${escapeHtml(item.symbol)}">
+      <i>${escapeHtml(String(index + 1).padStart(2, "0"))}</i>
       <strong>${escapeHtml(item.symbol)}</strong>
       <span>${escapeHtml(compactText(item.name || sectorDisplayName(item.sector), 22))}</span>
       <em class="${escapeHtml(className)}">${escapeHtml(value)}</em>
@@ -2393,7 +2457,7 @@ const renderStocksRankStrip = (rows) => {
       </header>
       <div>
         ${panel.rows.length
-          ? panel.rows.map((item) => stockRankRow(item, panel.metric, panel.className)).join("")
+          ? panel.rows.map((item, index) => stockRankRow(item, panel.metric, panel.className, index)).join("")
           : '<p class="stocks-rank-empty">暂无匹配标的。</p>'}
       </div>
     </article>
@@ -2404,6 +2468,7 @@ const renderStocksPage = () => {
   const body = document.querySelector("#stocksTableBody");
   if (!body) return;
   syncStocksTableSortState();
+  syncStocksPresetButtons();
   const asOf = state.meta?.day?.updatedAt || state.marketTemperature?.asOf || "";
   setText("#stocksAsOf", formatDisplayDate(asOf));
   if (!state.productSectors && !state.loading.productSectors) {
@@ -2442,7 +2507,6 @@ const renderStocksPage = () => {
   const symbolCoverage = coverage.symbols || {};
   const calendarCounts = Object.fromEntries((coverage.calendar || []).map((row) => [row.type, Number(row.rows || 0)]));
   const unknownSector = Number(symbolCoverage.unknownSector || 0);
-  const missingMarketCap = Number(symbolCoverage.marketCapMissing || 0);
   const coverageStatus = state.stocksPresetFilter === "all" ? "成交额优先" : state.stocksPresetFilter === "liquid" ? "$5M+" : "按筛选";
   const sortMetric = {
     dollarVolume: "成交额",
@@ -2501,7 +2565,9 @@ const renderStocksPage = () => {
       const price = Number(item.price);
       const decision = stockLibraryDecision(item);
       const sectorFlow = stockLibrarySectorFlow(item);
-      const calendar = stockLibraryCalendarSummary(item);
+      const peerPosition = stockLibraryPeerPosition(item);
+      const volumeState = stockLibraryVolumeState(item);
+      const calendar = stockLibraryCatalystSummary(item, stockLibraryCalendarSummary(item));
       const sourceChips = stockLibrarySourceChips(item);
       const volumeRatioLabel = formatVolumeRatioLabel(item.volumeRatio);
       const capLabelText = stocksCapLabel(item.capBucket);
@@ -2520,11 +2586,11 @@ const renderStocksPage = () => {
           </td>
           <td class="stocks-sector-cell" data-label="板块">
             <strong>${escapeHtml(sectorDisplayName(item.sector))}</strong>
-            <span>${escapeHtml(sectorFlow.breadth)}</span>
+            <span>${escapeHtml(`涨跌位置 ${peerPosition.rankText} · 广度 ${sectorFlow.breadth}`)}</span>
           </td>
           <td class="stocks-num-cell" data-label="市值">
             <strong>${escapeHtml(item.marketCap || "--")}</strong>
-            <span>${escapeHtml(capLabelText)}</span>
+            <span>${escapeHtml(`${capLabelText} · 板块 ${peerPosition.capRankText}`)}</span>
           </td>
           <td class="stocks-num-cell" data-label="价格">${escapeHtml(Number.isFinite(price) ? formatMoney(price) : "--")}</td>
           <td class="stocks-num-cell ${escapeHtml(stockPctClass(item.dayChange))}" data-label="1D">${escapeHtml(formatStockCellPct(item.dayChange))}</td>
@@ -2532,10 +2598,13 @@ const renderStocksPage = () => {
           <td class="stocks-num-cell ${escapeHtml(stockPctClass(item.monthChange))}" data-label="1M">${escapeHtml(formatStockCellPct(item.monthChange))}</td>
           <td class="stocks-num-cell ${escapeHtml(stockPctClass(item.ytdChange))}" data-label="YTD">${escapeHtml(formatStockCellPct(item.ytdChange))}</td>
           <td class="stocks-num-cell" data-label="成交额">${escapeHtml(item.dollarVolume ? formatCompactMoney(item.dollarVolume) : "--")}</td>
-          <td class="stocks-num-cell" data-label="异动">${escapeHtml(volumeRatioLabel)}</td>
+          <td class="stocks-volume-cell ${escapeHtml(volumeState.className)}" data-label="异动">
+            <strong>${escapeHtml(volumeRatioLabel)}</strong>
+            <span>${escapeHtml(volumeState.label)}</span>
+          </td>
           <td class="stocks-flow-cell" data-label="板块资金">
             <strong class="${escapeHtml(sectorFlow.className)}">${escapeHtml(sectorFlow.netFlow)}</strong>
-            <span>${escapeHtml(sectorFlow.label)}</span>
+            <span>${escapeHtml(`${sectorFlow.label} · ${sectorFlow.activeValue}`)}</span>
           </td>
           <td class="stocks-calendar-cell ${escapeHtml(calendar.className)}" data-label="日程">
             <strong>${escapeHtml(calendar.title)}</strong>

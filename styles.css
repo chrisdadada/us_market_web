@@ -13723,7 +13723,42 @@ body {
 
 .stocks-toolbar {
   grid-template-columns: minmax(240px, 1.25fr) repeat(4, minmax(128px, 0.58fr));
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.stocks-preset-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(128, 151, 183, 0.14);
+  border-radius: 5px;
+  background: rgba(7, 12, 21, 0.62);
+  margin: 0 0 12px;
+  padding: 8px;
+}
+
+.stocks-preset-strip button {
+  min-height: 28px;
+  border: 1px solid rgba(128, 151, 183, 0.18);
+  border-radius: 4px;
+  background: rgba(11, 18, 32, 0.74);
+  color: #9fb0c6;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 620;
+  padding: 0 11px;
+}
+
+.stocks-preset-strip button:hover {
+  border-color: rgba(53, 167, 255, 0.36);
+  color: #cfe5ff;
+}
+
+.stocks-preset-strip button.is-active {
+  border-color: rgba(53, 167, 255, 0.48);
+  background: rgba(53, 167, 255, 0.14);
+  color: #8fc7ff;
 }
 
 .stocks-rank-strip {
@@ -13773,7 +13808,7 @@ body {
 .stocks-rank-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 76px;
+  grid-template-columns: 28px 54px minmax(0, 1fr) 76px;
   gap: 2px 8px;
   align-items: center;
   border: 0;
@@ -13794,12 +13829,18 @@ body {
 }
 
 .stocks-rank-row strong,
+.stocks-rank-row i,
 .stocks-rank-row em {
   color: #e6eef8;
   font-size: 12px;
   font-style: normal;
   font-weight: 620;
   font-variant-numeric: tabular-nums;
+}
+
+.stocks-rank-row i {
+  color: #62748d;
+  font-style: normal;
 }
 
 .stocks-rank-row span,
@@ -13816,7 +13857,7 @@ body {
 }
 
 .stocks-rank-row small {
-  grid-column: 2 / 4;
+  grid-column: 3 / 5;
 }
 
 .stocks-rank-empty {
@@ -19862,6 +19903,7 @@ body .stocks-profile-head {
 body .stocks-company-cell strong,
 body .stocks-sector-cell strong,
 body .stocks-num-cell strong,
+body .stocks-volume-cell strong,
 body .stocks-flow-cell strong,
 body .stocks-calendar-cell strong {
   display: block;
@@ -19877,6 +19919,7 @@ body .stocks-calendar-cell strong {
 body .stocks-company-cell span,
 body .stocks-sector-cell span,
 body .stocks-num-cell span,
+body .stocks-volume-cell span,
 body .stocks-flow-cell span,
 body .stocks-calendar-cell span {
   display: block;
@@ -19910,13 +19953,19 @@ body .stocks-source-chips b {
 }
 
 body .stocks-flow-cell .is-positive,
-body .stocks-num-cell.is-positive {
+body .stocks-num-cell.is-positive,
+body .stocks-volume-cell.is-positive strong {
   color: var(--positive);
 }
 
 body .stocks-flow-cell .is-negative,
-body .stocks-num-cell.is-negative {
+body .stocks-num-cell.is-negative,
+body .stocks-volume-cell.is-negative strong {
   color: var(--negative);
+}
+
+body .stocks-volume-cell.is-neutral strong {
+  color: #8fc7ff;
 }
 
 body .stocks-calendar-cell.is-neutral strong {
