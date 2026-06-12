@@ -6740,7 +6740,7 @@ const renderMarketHeatmapView = (rows) => {
       <div class="market-visual-copy">
         <span>成交额权重热力图</span>
         <strong>${escapeHtml(topTile?.symbol || "--")}</strong>
-        <p>面积代表成交活跃度，绿色为上涨，红色为下跌。先看大块集中在哪些板块，再进入个股详情确认原因。</p>
+        <p>条形代表成交活跃度，绿色为上涨，红色为下跌。先看成交集中在哪些板块，再进入个股详情确认原因。</p>
         <div class="market-visual-metrics">
           <div><span>上涨</span><b class="is-positive">${escapeHtml(String(upTiles))}</b></div>
           <div><span>下跌</span><b class="is-negative">${escapeHtml(String(downTiles))}</b></div>
@@ -6752,7 +6752,7 @@ const renderMarketHeatmapView = (rows) => {
         <div class="market-heatmap-legend">
           <span><i class="is-up"></i>上涨</span>
           <span><i class="is-down"></i>下跌</span>
-          <span><i></i>面积=成交活跃度</span>
+          <span><i></i>条形=成交活跃度</span>
         </div>
         <div class="market-heatmap-groups">
           ${sectorGroups.map((group) => `
