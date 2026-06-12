@@ -3227,12 +3227,18 @@ const stockWatchlistState = (symbol) => {
   }
   const item = enrichWatchlistItem(raw);
   const review = watchlistReviewPlan(item);
+  const priority = watchlistReviewPriority(item);
+  const status = watchlistStatus(item);
   return {
     active: true,
     title: review.due ? "自选待复盘" : "已在自选",
     note: watchlistNextStep(item),
     source: raw.source || "自选",
     review: watchlistReviewLabel(item),
+    score: priority.score,
+    reason: priority.reason,
+    statusLabel: status.label,
+    statusClass: status.className,
   };
 };
 
@@ -3545,7 +3551,7 @@ const renderWatchlistDailyPlan = (rows, reviewRows, priorityRows) => {
   const top = reviewRows[0] || priorityRows[0] || rows[0];
   if (!top) {
     focus.textContent = "先加入自选对象";
-    reason.textContent = "自选会根据复盘分、到期时间和数据覆盖自动排序。";
+    reason.textContent = "自选会根据复盘分、到期时间和已接入线索自动排序。";
     action.textContent = "等待观察对象";
     next.textContent = "从涨跌幅榜、强弱、财报或股票事件加入股票后，这里会给出下一步。";
     return;
@@ -3579,6 +3585,61 @@ const watchlistCalendarSummary = (item) => {
     label: `${formatDisplayDate(first.date)} · ${eventTypeLabel(first.type)}`,
     detail: first.title || first.summary || "关联日程",
     count: rows.length,
+  };
+};
+
+const watchlistPeerSummary = (item) => {
+  const target = normalizeStockSymbol(item.symbol);
+  const profile = stockDisplayName(target);
+  const sector = sectorDisplayName(profile.sector || item.sector);
+  const sectorRows = isKnownSector(sector)
+    ? uniqueBySymbol(allMarketRows().filter((row) => sectorDisplayName(row.sector) === sector))
+    : [];
+  const changeRows = sectorRows.slice().sort((a, b) => getChange(b) - getChange(a));
+  const rank = changeRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
+  const capRows = sectorRows
+    .filter((row) => marketCapNumber(row.marketCap) != null)
+    .sort((a, b) => marketCapNumber(b.marketCap) - marketCapNumber(a.marketCap));
+  const capRank = capRows.findIndex((row) => normalizeStockSymbol(row.symbol) === target) + 1;
+  const leader = changeRows.find((row) => normalizeStockSymbol(row.symbol) !== target) || changeRows[0];
+  const changes = changeRows.map(getChange).filter(Number.isFinite);
+  const average = changes.length ? changes.reduce((sum, value) => sum + value, 0) / changes.length : null;
+  return {
+    sector,
+    rankText: rank > 0 ? `${rank}/${changeRows.length}` : "--",
+    capRankText: capRank > 0 ? `${capRank}/${capRows.length}` : "--",
+    leaderText: leader?.symbol ? `${leader.symbol} ${formatChangeValue(leader)}` : "--",
+    averageText: average == null ? "--" : formatSignedPct(average),
+  };
+};
+
+const watchlistCatalystSummary = (item, calendar) => {
+  if (item.eventRow) {
+    return {
+      label: `事件 · ${formatDisplayDate(item.eventRow.eventDate)}`,
+      detail: item.eventRow.reason || displayEventLabel(item.eventRow, "股票事件"),
+      meta: item.eventRow.return20dPct == null ? "事件后表现待补" : `事件后20日 ${formatSignedPct(item.eventRow.return20dPct)}`,
+    };
+  }
+  if (item.quality) {
+    const date = item.quality.latestEarningsDate || item.quality.reportDate;
+    return {
+      label: `财报 · ${date ? formatDisplayDate(date) : "日期待补"}`,
+      detail: item.quality.userReason || item.quality.userAngle || "财报线索",
+      meta: item.quality.avgPriceTargetUpsidePct == null ? "目标价空间待补" : `目标空间 ${formatSignedPct(item.quality.avgPriceTargetUpsidePct)}`,
+    };
+  }
+  if (calendar.count) {
+    return {
+      label: calendar.label,
+      detail: calendar.detail,
+      meta: `${calendar.count}条关联日程`,
+    };
+  }
+  return {
+    label: "暂无直接日程",
+    detail: "先看行情、强弱、板块资金和成交额是否继续确认。",
+    meta: "等待事件或财报补充",
   };
 };
 
@@ -3728,8 +3789,8 @@ const renderWatchlist = () => {
           <span>股票</span>
           <span>复盘</span>
           <span>走势</span>
-          <span>板块资金</span>
-          <span>日程</span>
+          <span>板块 / 资金</span>
+          <span>事件 / 日程</span>
           <span>下一步</span>
           <span>操作</span>
         </div>
@@ -3747,6 +3808,8 @@ const renderWatchlist = () => {
       );
       const sectorFlow = watchlistSectorFlow(item);
       const calendar = watchlistCalendarSummary(item);
+      const peerSummary = watchlistPeerSummary(item);
+      const catalyst = watchlistCatalystSummary(item, calendar);
       const trendClass = watchlistTrendClass(item);
       const sourceChips = dataSources
         .filter(([, active]) => active)
@@ -3774,12 +3837,12 @@ const renderWatchlist = () => {
             <div class="watchlist-flow-cell">
               <strong class="${escapeHtml(sectorFlow.className)}">${escapeHtml(sectorFlow.netFlow)}</strong>
               <p>${escapeHtml(sectorFlow.label)} · 广度 ${escapeHtml(sectorFlow.breadth)}</p>
-              <small>活跃成交 ${escapeHtml(sectorFlow.activeValue)}</small>
+              <small>${escapeHtml(peerSummary.sector)} ${escapeHtml(peerSummary.rankText)} · 市值 ${escapeHtml(peerSummary.capRankText)}</small>
             </div>
             <div class="watchlist-calendar-cell">
-              <strong>${escapeHtml(calendar.label)}</strong>
-              <p>${escapeHtml(compactText(calendar.detail, 70))}</p>
-              <small>${escapeHtml(calendar.count ? `${calendar.count}条关联` : itemDataAsOf)}</small>
+              <strong>${escapeHtml(catalyst.label)}</strong>
+              <p>${escapeHtml(compactText(catalyst.detail, 70))}</p>
+              <small>${escapeHtml(catalyst.meta || itemDataAsOf)}</small>
             </div>
             <div class="watchlist-next-cell">
               <strong>${escapeHtml(compactText(priority.reason, 70))}</strong>
@@ -4233,7 +4296,7 @@ const renderStockHub = (symbol) => {
   setText("#stockHubSymbol", target);
   setText(
     "#stockHubSubtitle",
-    `${profile.chineseName ? `${profile.chineseName} · ` : ""}${profile.company || "单股观察"} · ${profile.sector}`,
+    `${profile.chineseName ? `${profile.chineseName} · ` : ""}${profile.company || "单股观察"} · ${profile.sector} · ${watchState.active ? `自选：${watchState.statusLabel}` : "未加入自选"}`,
   );
 
   content.innerHTML = `
@@ -4255,6 +4318,29 @@ const renderStockHub = (symbol) => {
         <strong>${escapeHtml(typeof currentPrice === "number" ? formatMoney(currentPrice) : currentPrice)}</strong>
         <p>${priceMeta}</p>
       </div>
+    </section>
+
+    <section class="stock-watchlist-bridge" aria-label="自选复盘联动">
+      <article>
+        <span>自选状态</span>
+        <strong class="${escapeHtml(watchState.active ? watchState.statusClass : "is-muted")}">${escapeHtml(watchState.title)}</strong>
+        <p>${escapeHtml(`${watchState.source} · ${watchState.review}`)}</p>
+      </article>
+      <article>
+        <span>复盘安排</span>
+        <strong>${escapeHtml(watchState.active && Number.isFinite(watchState.score) ? `${watchState.score}分` : `${priority.score}分`)}</strong>
+        <p>${escapeHtml(compactText(watchState.active ? watchState.reason : watchState.note, 82))}</p>
+      </article>
+      <article>
+        <span>板块位置</span>
+        <strong>${escapeHtml(sectorRankText)}</strong>
+        <p>${escapeHtml(`市值 ${marketCapPosition} · 板块均值 ${sectorAverageText}`)}</p>
+      </article>
+      <article>
+        <span>事件 / 财报</span>
+        <strong>${escapeHtml(nextCalendarRow ? `${formatDisplayDate(nextCalendarRow.date)} · ${eventTypeLabel(nextCalendarRow.type)}` : earningsDateText)}</strong>
+        <p>${escapeHtml(compactText(nextCalendarRow?.title || eventSummary || earningsSummary, 82))}</p>
+      </article>
     </section>
 
     <section class="stock-market-strip" aria-label="单股行情摘要">

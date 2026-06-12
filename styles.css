@@ -20049,6 +20049,73 @@ body .stock-move-link-panel .is-negative {
   color: var(--negative);
 }
 
+body .stock-watchlist-bridge {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid rgba(128, 151, 183, 0.14);
+  border-radius: 4px;
+  background: rgba(7, 12, 21, 0.46);
+  overflow: hidden;
+}
+
+body .stock-watchlist-bridge article {
+  min-width: 0;
+  border-right: 1px solid rgba(128, 151, 183, 0.12);
+  padding: 11px 12px;
+}
+
+body .stock-watchlist-bridge article:last-child {
+  border-right: 0;
+}
+
+body .stock-watchlist-bridge span {
+  display: block;
+  color: #8fa0b8;
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.2;
+}
+
+body .stock-watchlist-bridge strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 8px;
+  color: #eef4ff;
+  font-size: 18px;
+  font-weight: 680;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .stock-watchlist-bridge strong.is-ready {
+  color: var(--positive);
+}
+
+body .stock-watchlist-bridge strong.is-watch {
+  color: var(--negative);
+}
+
+body .stock-watchlist-bridge strong.is-event {
+  color: #ffd06a;
+}
+
+body .stock-watchlist-bridge strong.is-muted {
+  color: #9fb0c6;
+}
+
+body .stock-watchlist-bridge p {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 30px;
+  margin: 7px 0 0;
+  color: #8797ad;
+  font-size: 11px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 body .stock-terminal-panel {
   border-radius: 4px;
 }
@@ -20887,6 +20954,24 @@ body .watchlist-actions-cell .icon-action {
 }
 
 @media (max-width: 760px) {
+  body .stock-watchlist-bridge {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  body .stock-watchlist-bridge article {
+    min-height: 104px;
+    border-right: 1px solid rgba(128, 151, 183, 0.12);
+    border-bottom: 1px solid rgba(128, 151, 183, 0.12);
+  }
+
+  body .stock-watchlist-bridge article:nth-child(2n) {
+    border-right: 0;
+  }
+
+  body .stock-watchlist-bridge article:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+
   body .stock-research-workspace .stock-terminal-grid {
     grid-template-columns: 1fr;
   }
