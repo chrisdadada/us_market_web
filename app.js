@@ -9407,6 +9407,10 @@ const compactCalendarDate = (item) => {
   return `${date}${item?.time ? ` ${item.time}` : ""}`;
 };
 
+const calendarEventDateOnly = (item) => formatDisplayDate(item?.date) || "--";
+
+const calendarEventTimeOnly = (item) => item?.time || "--";
+
 const calendarEarningsSearchText = (item) => [
   item.title,
   item.summary,
@@ -9462,44 +9466,58 @@ const calendarEarningsEstimate = (item) => {
   return pieces.join(" / ") || summary || item.sourceName || "等待预估";
 };
 
-const renderCalendarRows = (events) =>
+const calendarEarningsSymbol = (item) =>
+  normalizeStockSymbol((item.relatedAssets || [])[0] || item.symbol || item.ticker || String(item.title || "").replace(/\s*财报.*/, ""));
+
+const renderCalendarMacroRows = (events) =>
   events.map((item) => {
     const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
-    const scopeText = calendarScopeText(item);
-    const typeText = item.type === "earnings" ? "财报日期" : item.type === "macro" ? "宏观事件" : eventTypeLabel(item.type);
-    const typeClass = item.type === "earnings" ? "is-earnings" : item.type === "manual" ? "is-manual" : "is-macro";
-    if (item.type === "earnings") {
-      return `
-        <tr class="calendar-event-row ${typeClass}">
-          <td class="calendar-date-cell">
-            <strong>${escapeHtml(formatDisplayDate(item.date) || "--")}</strong>
-            <span>${escapeHtml(calendarDayDistanceLabel(item))}</span>
-          </td>
-          <td class="calendar-title-cell">
-            <strong>${escapeHtml((item.relatedAssets || [])[0] || item.title?.replace(/\s*财报$/, "") || "--")}</strong>
-            <p>${escapeHtml(item.title || "财报日期")}</p>
-          </td>
-          <td class="calendar-related-cell">
-            <strong>${escapeHtml(calendarEarningsEstimate(item))}</strong>
-            <span>${escapeHtml(calendarSourceText(item))}</span>
-          </td>
-          <td class="calendar-impact-cell"><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
-        </tr>
-      `;
-    }
     return `
-      <tr class="calendar-event-row ${typeClass}">
+      <tr class="calendar-event-row is-macro">
         <td class="calendar-date-cell">
-          <strong>${escapeHtml(formatDisplayDate(item.date) || "--")}</strong>
+          <strong>${escapeHtml(calendarEventDateOnly(item))}</strong>
           <span>${escapeHtml(calendarDayDistanceLabel(item))}</span>
         </td>
+        <td class="calendar-time-cell">${escapeHtml(calendarEventTimeOnly(item))}</td>
         <td class="calendar-title-cell">
           <strong>${escapeHtml(item.title || "--")}</strong>
-          <p>${escapeHtml(item.summary || item.sourceName || "")}</p>
+          <p>${escapeHtml(item.summary || "")}</p>
+        </td>
+        <td class="calendar-source-cell">
+          <strong>${escapeHtml(item.sourceName || "--")}</strong>
+          <span>${escapeHtml(eventTypeLabel(item.type))}</span>
         </td>
         <td class="calendar-related-cell">
-          <strong>${escapeHtml(scopeText || "--")}</strong>
-          <span>${escapeHtml(`${typeText}${item.sourceName ? ` · ${item.sourceName}` : ""}`)}</span>
+          <strong>${escapeHtml(calendarScopeText(item) || "--")}</strong>
+        </td>
+        <td class="calendar-impact-cell"><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
+      </tr>
+    `;
+  }).join("");
+
+const renderCalendarEarningsRows = (events) =>
+  events.map((item) => {
+    const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
+    const symbol = calendarEarningsSymbol(item);
+    return `
+      <tr class="calendar-event-row is-earnings">
+        <td class="calendar-date-cell">
+          <strong>${escapeHtml(calendarEventDateOnly(item))}</strong>
+          <span>${escapeHtml(calendarDayDistanceLabel(item))}</span>
+        </td>
+        <td class="calendar-symbol-cell">
+          <strong>${escapeHtml(symbol || "--")}</strong>
+        </td>
+        <td class="calendar-title-cell">
+          <strong>${escapeHtml(item.title || "财报日期")}</strong>
+          <p>${escapeHtml(calendarScopeText(item))}</p>
+        </td>
+        <td class="calendar-related-cell">
+          <strong>${escapeHtml(calendarEarningsEstimate(item))}</strong>
+        </td>
+        <td class="calendar-source-cell">
+          <strong>${escapeHtml(item.sourceName || "--")}</strong>
+          <span>${escapeHtml(calendarSourceText(item))}</span>
         </td>
         <td class="calendar-impact-cell"><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
       </tr>
@@ -9603,21 +9621,36 @@ const renderEventsCalendar = (payload) => {
   renderCalendarEarningsSummary(earningsEvents, allEarningsEvents);
   if (body) {
     body.innerHTML = macroEvents.length
-      ? renderCalendarRows(macroEvents)
-      : '<tr class="calendar-empty-row"><td colspan="4"><strong>暂无未来宏观事件</strong><p>当前宏观日历源没有更多未来事件。数据接入后会按时间、影响和相关资产展示。</p></td></tr>';
+      ? renderCalendarMacroRows(macroEvents)
+      : '<tr class="calendar-empty-row"><td colspan="6"><strong>暂无未来宏观事件</strong><p>当前宏观日历源没有更多未来事件。数据接入后会按时间、来源、影响和相关市场展示。</p></td></tr>';
   }
   if (earningsBody) {
     earningsBody.innerHTML = earningsEvents.length
-      ? renderCalendarRows(earningsEvents)
+      ? renderCalendarEarningsRows(earningsEvents)
       : allEarningsEvents.length
-        ? '<tr class="calendar-empty-row"><td colspan="4"><strong>当前筛选下没有财报</strong><p>可以放宽时间窗、影响级别，或直接输入股票代码搜索具体公司。</p></td></tr>'
-        : '<tr class="calendar-empty-row"><td colspan="4"><strong>公司财报日期待接入</strong><p>当前数据库还没有未来财报日期源。后续接入后会展示公司、日期、影响等级和关联个股工作台。</p></td></tr>';
+        ? '<tr class="calendar-empty-row"><td colspan="6"><strong>当前筛选下没有财报</strong><p>可以放宽时间窗、影响级别，或直接输入股票代码搜索具体公司。</p></td></tr>'
+        : '<tr class="calendar-empty-row"><td colspan="6"><strong>公司财报日期待接入</strong><p>当前数据库还没有未来财报日期源。后续接入后会展示公司、日期、来源和影响等级。</p></td></tr>';
   }
   if (manualPanel && manualBody) {
     manualPanel.hidden = false;
     manualBody.innerHTML = manualEvents.length
-      ? renderCalendarRows(manualEvents)
-      : '<tr class="calendar-empty-row"><td colspan="4"><strong>暂无人工财经日志</strong><p>人工上传内容会单独显示在这里，不与宏观日历或财报日期混在一起。</p></td></tr>';
+      ? `<div class="table-wrap calendar-table-wrap">
+          <table class="calendar-table data-table">
+            <thead><tr><th>日期</th><th>标题</th><th>来源</th><th>影响</th></tr></thead>
+            <tbody>${manualEvents.map((item) => {
+              const impactClass = item.impact === "high" ? "is-high" : item.impact === "medium" ? "is-medium" : "";
+              return `
+                <tr class="calendar-event-row is-manual">
+                  <td class="calendar-date-cell"><strong>${escapeHtml(calendarEventDateOnly(item))}</strong><span>${escapeHtml(calendarDayDistanceLabel(item))}</span></td>
+                  <td class="calendar-title-cell"><strong>${escapeHtml(item.title || "--")}</strong><p>${escapeHtml(item.summary || "")}</p></td>
+                  <td class="calendar-source-cell"><strong>${escapeHtml(item.sourceName || "手动维护")}</strong><span>${escapeHtml(calendarScopeText(item))}</span></td>
+                  <td class="calendar-impact-cell"><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
+                </tr>
+              `;
+            }).join("")}</tbody>
+          </table>
+        </div>`
+      : '<strong>暂无人工财经日志</strong><p>这里不会放系统生成的占位内容；等你提供真实周报、交易前事项或复盘备注后，再单独进入这里。</p>';
   }
   if (impactList) {
     const facts = calendarImpactFacts(timelineEvents, manualEvents, rules);

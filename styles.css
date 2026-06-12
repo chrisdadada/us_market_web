@@ -17726,7 +17726,7 @@ body .page-view[data-view="events"] .calendar-table-wrap {
 }
 
 body .page-view[data-view="events"] .calendar-table {
-  min-width: 720px;
+  min-width: 860px;
   table-layout: fixed;
 }
 
@@ -17742,15 +17742,24 @@ body .page-view[data-view="events"] .calendar-table th {
 }
 
 body .page-view[data-view="events"] .calendar-table th:nth-child(1) {
-  width: 126px;
+  width: 116px;
+}
+
+body .page-view[data-view="events"] .calendar-table th:nth-child(2) {
+  width: 92px;
 }
 
 body .page-view[data-view="events"] .calendar-table th:nth-child(3) {
-  width: 190px;
+  width: auto;
 }
 
-body .page-view[data-view="events"] .calendar-table th:nth-child(4) {
-  width: 70px;
+body .page-view[data-view="events"] .calendar-table th:nth-child(4),
+body .page-view[data-view="events"] .calendar-table th:nth-child(5) {
+  width: 150px;
+}
+
+body .page-view[data-view="events"] .calendar-table th:nth-child(6) {
+  width: 64px;
 }
 
 body .page-view[data-view="events"] .calendar-table td {
@@ -17780,6 +17789,25 @@ body .page-view[data-view="events"] .calendar-date-cell strong {
   font-variant-numeric: tabular-nums;
 }
 
+body .page-view[data-view="events"] .calendar-time-cell,
+body .page-view[data-view="events"] .calendar-symbol-cell {
+  color: #dbe5f2;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+body .page-view[data-view="events"] .calendar-symbol-cell strong {
+  display: inline-flex;
+  align-items: center;
+  min-width: 54px;
+  height: 24px;
+  border: 1px solid rgba(36, 224, 164, 0.24);
+  border-radius: 4px;
+  background: rgba(36, 224, 164, 0.08);
+  color: #7af0c8;
+  padding: 0 8px;
+}
+
 body .page-view[data-view="events"] .calendar-title-cell p {
   display: -webkit-box;
   overflow: hidden;
@@ -17792,6 +17820,21 @@ body .page-view[data-view="events"] .calendar-related-cell strong {
   overflow: hidden;
   color: #cbd8ea;
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .page-view[data-view="events"] .calendar-source-cell strong {
+  display: block;
+  overflow: hidden;
+  color: #cbd8ea;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .page-view[data-view="events"] .calendar-source-cell span {
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -17858,6 +17901,29 @@ body .page-view[data-view="events"] .calendar-empty-row strong {
 body .page-view[data-view="events"] .calendar-empty-row p {
   max-width: 760px;
   margin: 6px 0 0;
+  color: #7f8da2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+body .page-view[data-view="events"] .calendar-manual-state {
+  display: grid;
+  gap: 6px;
+  min-height: 82px;
+  align-content: center;
+  border-top: 0;
+  padding: 14px 16px;
+}
+
+body .page-view[data-view="events"] .calendar-manual-state > strong {
+  color: #dbe5f2;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="events"] .calendar-manual-state > p {
+  max-width: 760px;
+  margin: 0;
   color: #7f8da2;
   font-size: 12px;
   line-height: 1.45;
@@ -17952,7 +18018,7 @@ body .page-view[data-view="events"] .calendar-impact-list p {
   }
 
   body .page-view[data-view="events"] .calendar-table {
-    min-width: 620px;
+    min-width: 760px;
   }
 }
 

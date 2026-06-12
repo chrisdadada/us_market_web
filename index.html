@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260611-marketflowmatrix2" />
+    <link rel="stylesheet" href="./styles.css?v=20260612-calendarterminal1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1283,7 +1283,7 @@
             <div>
               <p class="eyebrow" id="eventsEyebrow">财经日历</p>
               <h1 id="eventsPageTitle">财经日历</h1>
-              <p class="subtitle" id="eventsPageSubtitle">宏观事件、公司财报日期和人工财经日志分开管理；日历只负责时间、影响和关联范围。</p>
+              <p class="subtitle" id="eventsPageSubtitle">宏观日历、公司财报日期和人工财经日志分开看；这里只展示时间、来源、影响范围和需要复核的事实。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1295,7 +1295,7 @@
             <div class="calendar-hero-copy">
               <span>未来事件</span>
               <strong id="calendarHeroTitle">未来事件总览</strong>
-              <p id="calendarHeroLead">宏观事件和财报日期分开展示，先看时间，再看影响范围和相关资产。</p>
+              <p id="calendarHeroLead">宏观日历和财报日期分开展示，先看时间，再看来源、影响范围和相关资产。</p>
             </div>
             <div class="calendar-source-board">
               <div><span>宏观事件</span><strong id="calendarMacroStatus">--</strong></div>
@@ -1332,14 +1332,16 @@
                 <table class="calendar-table data-table">
                   <thead>
                     <tr>
-                      <th>发布时间</th>
+                      <th>日期</th>
+                      <th>时间</th>
                       <th>宏观事件</th>
-                      <th>影响范围</th>
+                      <th>来源</th>
+                      <th>关联市场</th>
                       <th>重要性</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEventBody">
-                    <tr><td colspan="4">正在加载财经日历。</td></tr>
+                    <tr><td colspan="6">正在加载财经日历。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1386,13 +1388,15 @@
                   <thead>
                     <tr>
                       <th>日期</th>
-                      <th>公司</th>
+                      <th>股票</th>
+                      <th>公司 / 事件</th>
                       <th>预估口径</th>
+                      <th>来源</th>
                       <th>重要性</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEarningsBody">
-                    <tr><td colspan="4">暂无已接入财报日期。</td></tr>
+                    <tr><td colspan="6">暂无已接入财报日期。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1402,23 +1406,12 @@
               <div class="calendar-panel-head desk-panel-header">
                 <div>
                   <span>人工财经日志</span>
-                  <strong>只展示手动维护的周度大事和复盘备注</strong>
+                  <strong>只展示你后续提供的真实周度大事和复盘备注</strong>
                 </div>
               </div>
-              <div class="table-wrap calendar-table-wrap desk-panel-body">
-                <table class="calendar-table data-table">
-                  <thead>
-                    <tr>
-                      <th>日期</th>
-                      <th>标题</th>
-                      <th>关联</th>
-                      <th>影响</th>
-                    </tr>
-                  </thead>
-                  <tbody id="calendarManualBody">
-                    <tr><td colspan="4">暂无人工财经日志。等你提供真实内容后，这里会单独呈现，不混入宏观日历。</td></tr>
-                  </tbody>
-                </table>
+              <div class="calendar-manual-state desk-panel-body" id="calendarManualBody">
+                <strong>暂无人工财经日志</strong>
+                <p>这块不会放系统生成的占位内容；等你提供真实内容后，再单独进入这里。</p>
               </div>
             </section>
 
@@ -2790,6 +2783,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260611-marketflowmatrix2"></script>
+    <script src="./app.js?v=20260612-calendarterminal1"></script>
   </body>
 </html>
