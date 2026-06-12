@@ -393,7 +393,7 @@ def product_market_board_payload(conn: sqlite3.Connection, board: str, limit: in
     return [product_market_row_payload(row) for row in rows]
 
 
-def product_bootstrap_payload(conn: sqlite3.Connection) -> dict[str, Any]:
+def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500) -> dict[str, Any]:
     meta = product_dataset_meta(conn)
     ytd_raw = product_raw_payload(conn, "ytd-gainers") or {}
     movers_raw = product_raw_payload(conn, "market-movers") or {}
@@ -404,7 +404,7 @@ def product_bootstrap_payload(conn: sqlite3.Connection) -> dict[str, Any]:
     market_temperature_raw = product_raw_payload(conn, "market-temperature")
     generated_at = meta.get("generatedAt")
 
-    ytd_rows = product_market_board_payload(conn, "ytd", 500)
+    ytd_rows = product_market_board_payload(conn, "ytd", board_limit)
     ytd = {
         **ytd_raw,
         "updatedAt": ytd_raw.get("updatedAt") or generated_at,
@@ -417,7 +417,7 @@ def product_bootstrap_payload(conn: sqlite3.Connection) -> dict[str, Any]:
         raw_board = raw_boards.get(board) if isinstance(raw_boards.get(board), dict) else {}
         boards[board] = {
             **raw_board,
-            "rows": product_market_board_payload(conn, board, 500),
+            "rows": product_market_board_payload(conn, board, board_limit),
         }
     movers = {
         **movers_raw,
@@ -1113,7 +1113,8 @@ class Handler(BaseHTTPRequestHandler):
                     return
 
                 if len(parts) >= 3 and parts[2] == "bootstrap":
-                    self.send_json(product_bootstrap_payload(conn))
+                    board_limit = int_param(params, "limit", 500, maximum=500)
+                    self.send_json(product_bootstrap_payload(conn, board_limit))
                     return
 
                 if len(parts) >= 4 and parts[2] == "raw":

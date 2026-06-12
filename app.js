@@ -4,6 +4,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = "meigu_strategy_sidebar_collapsed_v1";
 const GLOBAL_SEARCH_LIMIT = 12;
 const PRODUCT_SYMBOL_LIMIT = 3000;
 const STOCK_LIBRARY_DISPLAY_LIMIT = 360;
+const PRODUCT_BOOTSTRAP_BOARD_LIMIT = 120;
 const STOCK_LIQUID_DOLLAR_VOLUME_MIN = 5_000_000;
 
 const state = {
@@ -594,16 +595,22 @@ const ensurePageData = (page) => {
       Promise.all([
         loadProductMeta(),
         loadProductCoverage(),
-        loadProductCalendar().then((calendar) => {
-          if (calendar) renderEventsCalendar(calendar);
-          return calendar;
-        }),
         loadProductSectors(),
         loadProductStockLibrary(),
-        loadLazyDataset("earningsQuality"),
-        loadLazyDataset("eventOpportunities"),
       ])
-        .then(() => renderStocksPage()),
+        .then(() => {
+          renderStocksPage();
+          window.setTimeout(() => {
+            Promise.all([
+              loadProductCalendar().then((calendar) => {
+                if (calendar) renderEventsCalendar(calendar);
+                return calendar;
+              }),
+              loadLazyDataset("earningsQuality"),
+              loadLazyDataset("eventOpportunities"),
+            ]).then(() => renderStocksPage());
+          }, 0);
+        }),
     );
   }
   if (page === "watchlist") {
@@ -11635,7 +11642,7 @@ const bindEvents = () => {
 };
 
 const init = async () => {
-  const bootstrap = await productApiJson("/bootstrap");
+  const bootstrap = await productApiJson(`/bootstrap?limit=${PRODUCT_BOOTSTRAP_BOARD_LIMIT}`);
   if (!bootstrap?.ytd || !bootstrap?.movers) {
     throw new Error("产品数据库启动数据不可用");
   }
