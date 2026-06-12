@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260612-stocks1" />
+    <link rel="stylesheet" href="./styles.css?v=20260612-market1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1938,6 +1938,14 @@
                   <article class="metric-cell"><span>流出板块</span><strong id="flowsDistributionCount">--</strong><p>下跌股票贡献成交额更多的板块数。</p></article>
                 </section>
 
+                <section class="market-route-strip" aria-label="市场模块联动">
+                  <span>联动查看</span>
+                  <button type="button" data-market-section="sectors"><strong>板块排行</strong><small>看主线</small></button>
+                  <button class="is-active" type="button" data-market-section="flows"><strong>板块资金</strong><small>看流向</small></button>
+                  <button type="button" data-market-section="heatmap"><strong>成交热力图</strong><small>看权重</small></button>
+                  <button type="button" data-market-section="movers"><strong>涨跌幅榜</strong><small>看个股</small></button>
+                </section>
+
                 <section class="market-flow-matrix-shell" id="flowsDirectionMatrix" aria-label="板块资金矩阵">
                   <p class="market-flow-empty">等待板块资金矩阵。</p>
                 </section>
@@ -2789,6 +2797,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260612-stocks1"></script>
+    <script src="./app.js?v=20260612-market1"></script>
   </body>
 </html>

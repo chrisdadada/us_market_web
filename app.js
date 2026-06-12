@@ -2834,6 +2834,41 @@ const renderMarketSectionContext = (rows = getFilteredRows()) => {
   if (page) page.dataset.marketWorkspaceSection = section;
 };
 
+const renderMarketRouteStrip = (active = "movers") => {
+  const items = [
+    ["sectors", "板块排行", "看主线"],
+    ["flows", "板块资金", "看流向"],
+    ["heatmap", "成交热力图", "看权重"],
+    ["movers", "涨跌幅榜", "看个股"],
+  ];
+  return `
+    <div class="market-route-strip" aria-label="市场模块联动">
+      <span>联动查看</span>
+      ${items.map(([key, label, hint]) => `
+        <button class="${key === active ? "is-active" : ""}" type="button" data-market-section="${key}">
+          <strong>${escapeHtml(label)}</strong>
+          <small>${escapeHtml(hint)}</small>
+        </button>
+      `).join("")}
+    </div>
+  `;
+};
+
+const renderMarketSymbolTokens = (items, limit = 4) => {
+  const symbols = uniqueBySymbol((items || []).map((item) => ({ symbol: item?.symbol || item })))
+    .map((item) => normalizeStockSymbol(item.symbol))
+    .filter(Boolean)
+    .slice(0, limit);
+  if (!symbols.length) return "--";
+  return `
+    <div class="market-symbol-tokens">
+      ${symbols.map((symbol) => `
+        <button type="button" data-stock-open="${escapeHtml(symbol)}">${escapeHtml(symbol)}</button>
+      `).join("")}
+    </div>
+  `;
+};
+
 const renderFlowsPage = () => {
   const body = document.querySelector("#flowsSectorBody");
   const sectorList = document.querySelector("#flowsSectorList");
@@ -2947,10 +2982,10 @@ const renderFlowsPage = () => {
             <strong>${escapeHtml(`${Math.round(row.breadthPct || 0)}%`)}</strong>
             <span><b class="is-positive">${escapeHtml(`${upCount}涨`)}</b><i>/</i><b class="is-negative">${escapeHtml(`${downCount}跌`)}</b></span>
           </td>
-          <td>${escapeHtml(leader?.symbol || "--")}</td>
+          <td>${leader?.symbol ? `<button class="inline-stock-link market-leader-link" type="button" data-stock-open="${escapeHtml(leader.symbol)}">${escapeHtml(leader.symbol)}</button>` : "--"}</td>
           <td class="${Number(leader?.change) >= 0 ? "gain-cell" : "loss-cell"}">${escapeHtml(leader?.change == null ? "--" : formatSignedPct(leader.change))}</td>
-          <td>${escapeHtml(leaders.map((item) => item.symbol).join(" / ") || "--")}</td>
-          <td><button class="table-action" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">筛选</button></td>
+          <td>${renderMarketSymbolTokens(leaders, 4)}</td>
+          <td><button class="table-action" type="button" data-flow-sector-open="${escapeHtml(row.sector)}">看板块</button></td>
         </tr>
       `;
     }).join("");
@@ -5370,8 +5405,8 @@ const getPageFromHash = () => {
     return "stock-events";
   }
   if (page === "market") {
-    if (symbol === "sectors" || symbol === "heatmap") {
-      state.marketVisualMode = symbol === "sectors" ? "sectors" : "heatmap";
+    if (symbol === "sectors" || symbol === "heatmap" || symbol === "flows") {
+      state.marketVisualMode = symbol === "sectors" ? "sectors" : symbol === "heatmap" ? "heatmap" : "overview";
       state.marketWorkspaceSection = symbol;
     } else {
       state.marketVisualMode = "overview";
@@ -6467,6 +6502,7 @@ const renderMarketSectorRankingView = (rows) => {
   }
   return `
     ${marketVisualTabs()}
+    ${renderMarketRouteStrip("sectors")}
     <section class="market-sector-ranking professional-market-board">
       <div class="market-visual-copy">
         <span>板块排行</span>
@@ -6579,6 +6615,7 @@ const renderMarketHeatmapView = (rows) => {
   }
   return `
     ${marketVisualTabs()}
+    ${renderMarketRouteStrip("heatmap")}
     <section class="market-heatmap-view professional-market-board">
       <div class="market-visual-copy">
         <span>成交额权重热力图</span>
