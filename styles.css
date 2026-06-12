@@ -13761,6 +13761,72 @@ body {
   color: #8fc7ff;
 }
 
+.stocks-context-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(128, 151, 183, 0.16);
+  border-radius: 5px;
+  background: rgba(7, 12, 21, 0.7);
+  margin: 0 0 12px;
+}
+
+.stocks-context-strip article {
+  min-width: 0;
+  border-right: 1px solid rgba(128, 151, 183, 0.12);
+  padding: 10px 12px;
+}
+
+.stocks-context-strip article:last-child {
+  border-right: 0;
+}
+
+.stocks-context-strip span {
+  display: block;
+  color: #8393aa;
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.2;
+}
+
+.stocks-context-strip strong {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  overflow: hidden;
+  margin-top: 7px;
+  color: #e7eef8;
+  font-size: 16px;
+  font-weight: 620;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stocks-context-strip strong b {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.stocks-context-strip strong .is-positive {
+  color: var(--positive);
+}
+
+.stocks-context-strip strong .is-negative {
+  color: var(--negative);
+}
+
+.stocks-context-strip p {
+  overflow: hidden;
+  margin: 6px 0 0;
+  color: #74849a;
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .stocks-rank-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -13930,6 +13996,10 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .stocks-context-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .stocks-rank-panel {
     border-right: 0;
     border-bottom: 1px solid rgba(128, 151, 183, 0.13);
@@ -13976,7 +14046,8 @@ body {
   .dashboard-snapshot-board,
   .dashboard-focus-grid,
   .cockpit-grid,
-  .flows-summary-grid {
+  .flows-summary-grid,
+  .stocks-context-strip {
     grid-template-columns: 1fr;
   }
 }

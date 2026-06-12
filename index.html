@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260612-earnings2" />
+    <link rel="stylesheet" href="./styles.css?v=20260612-stocks1" />
   </head>
   <body>
     <div class="app-shell">
@@ -2070,7 +2070,7 @@
             <article>
               <span>排序口径</span>
               <strong id="stocksSortMetric">成交额</strong>
-              <p>默认按活跃度降序</p>
+              <p id="stocksSortNote">按成交额降序</p>
             </article>
           </section>
 
@@ -2125,6 +2125,13 @@
             <button type="button" data-stocks-preset="watchlist">自选</button>
           </section>
 
+          <section class="stocks-context-strip" id="stocksContextStrip" aria-label="当前筛选结构">
+            <article><span>涨跌结构</span><strong>--</strong><p>等待股票库数据。</p></article>
+            <article><span>成交焦点</span><strong>--</strong><p>等待成交额数据。</p></article>
+            <article><span>板块集中</span><strong>--</strong><p>等待板块分类。</p></article>
+            <article><span>日程线索</span><strong>--</strong><p>等待财经日历和事件数据。</p></article>
+          </section>
+
           <section class="stocks-rank-strip" id="stocksRankStrip" aria-label="当前筛选榜单速览">
             <div class="stocks-rank-empty">正在生成当前筛选速览。</div>
           </section>
@@ -2133,7 +2140,7 @@
             <section class="stocks-main desk-panel" aria-label="股票列表">
               <div class="stocks-table-head desk-panel-header">
                 <div>
-                  <span>股票列表</span>
+                  <span>终端列表</span>
                   <strong id="stocksResultLabel">按当前筛选展示</strong>
                 </div>
                 <button class="ghost-action" type="button" data-stocks-clear>清除筛选</button>
@@ -2802,6 +2809,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260612-earnings2"></script>
+    <script src="./app.js?v=20260612-stocks1"></script>
   </body>
 </html>

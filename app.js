@@ -2192,6 +2192,16 @@ const stocksSortLabel = () => ({
   symbol: "代码升序",
 }[state.stocksSort] || "成交额降序");
 
+const stocksSortNote = () => ({
+  dollarVolume: "按成交额降序，优先看当前资金活跃标的。",
+  dayChange: "按当日涨跌幅降序，用于查看日内强势股。",
+  weekChange: "按 5D 涨跌幅降序，用于查看短线延续。",
+  monthChange: "按 1M 涨跌幅降序，用于查看月度趋势。",
+  ytdChange: "按 YTD 涨跌幅降序，用于查看年内主线。",
+  marketCap: "按市值降序，用于查看大盘权重标的。",
+  symbol: "按代码升序，用于快速核对清单。",
+}[state.stocksSort] || "按成交额降序，优先看当前资金活跃标的。");
+
 const setStocksSort = (sortKey) => {
   state.stocksSort = sortKey || "dollarVolume";
   const sort = document.querySelector("#stocksSortFilter");
@@ -2424,6 +2434,72 @@ const stockRankRow = (item, metric, className = "", index = 0) => {
   `;
 };
 
+const stockLibrarySectorFocus = (rows) => {
+  const sectors = new Map();
+  rows.forEach((item) => {
+    const sector = sectorDisplayName(item.sector);
+    if (!isKnownSector(sector)) return;
+    const entry = sectors.get(sector) || { sector, count: 0, dollarVolume: 0, up: 0, down: 0 };
+    entry.count += 1;
+    entry.dollarVolume += Number(item.dollarVolume || 0);
+    const change = Number(item.dayChange);
+    if (Number.isFinite(change) && change > 0) entry.up += 1;
+    if (Number.isFinite(change) && change < 0) entry.down += 1;
+    sectors.set(sector, entry);
+  });
+  return [...sectors.values()].sort((a, b) => b.dollarVolume - a.dollarVolume || b.count - a.count)[0] || null;
+};
+
+const renderStocksContextStrip = (rows) => {
+  const strip = document.querySelector("#stocksContextStrip");
+  if (!strip) return;
+  if (!rows.length) {
+    strip.innerHTML = `
+      <article><span>涨跌结构</span><strong>--</strong><p>当前筛选下暂无股票。</p></article>
+      <article><span>成交焦点</span><strong>--</strong><p>放宽筛选后再看成交额。</p></article>
+      <article><span>板块集中</span><strong>--</strong><p>等待板块分类。</p></article>
+      <article><span>日程线索</span><strong>--</strong><p>暂无可展示日程。</p></article>
+    `;
+    return;
+  }
+  const validDayRows = rows.filter((item) => Number.isFinite(Number(item.dayChange)));
+  const up = validDayRows.filter((item) => Number(item.dayChange) > 0).length;
+  const down = validDayRows.filter((item) => Number(item.dayChange) < 0).length;
+  const flat = Math.max(0, validDayRows.length - up - down);
+  const topVolume = stockLibraryTopBy(rows, "dollarVolume", "desc", 1)[0];
+  const topGainer = stockLibraryTopBy(rows, "dayChange", "desc", 1)[0];
+  const topLoser = stockLibraryTopBy(rows, "dayChange", "asc", 1)[0];
+  const sectorFocus = stockLibrarySectorFocus(rows);
+  const linkedRows = rows.filter((item) => item.hasEvent || item.quality || item.eventDate || item.qualityLabel);
+  const firstLinkedSummary = linkedRows[0]
+    ? stockLibraryCatalystSummary(linkedRows[0], stockLibraryCalendarSummary(linkedRows[0]))
+    : null;
+  const strongestText = topGainer ? `${topGainer.symbol} ${formatStockCellPct(topGainer.dayChange)}` : "--";
+  const weakestText = topLoser ? `${topLoser.symbol} ${formatStockCellPct(topLoser.dayChange)}` : "--";
+  strip.innerHTML = `
+    <article>
+      <span>涨跌结构</span>
+      <strong><b class="is-positive">${escapeHtml(String(up))}涨</b><b class="is-negative">${escapeHtml(String(down))}跌</b></strong>
+      <p>${escapeHtml(`最强 ${strongestText} · 最弱 ${weakestText}${flat ? ` · ${flat}平` : ""}`)}</p>
+    </article>
+    <article>
+      <span>成交焦点</span>
+      <strong>${escapeHtml(topVolume ? `${topVolume.symbol} ${formatCompactMoney(topVolume.dollarVolume)}` : "--")}</strong>
+      <p>${escapeHtml(topVolume ? `${sectorDisplayName(topVolume.sector)} · ${formatVolumeRatioLabel(topVolume.volumeRatio) || "成交额排序"}` : "等待成交额数据。")}</p>
+    </article>
+    <article>
+      <span>板块集中</span>
+      <strong>${escapeHtml(sectorFocus ? sectorFocus.sector : "--")}</strong>
+      <p>${escapeHtml(sectorFocus ? `${sectorFocus.up}涨/${sectorFocus.down}跌 · 成交额 ${formatCompactMoney(sectorFocus.dollarVolume)}` : "当前筛选下板块分类待补。")}</p>
+    </article>
+    <article>
+      <span>日程线索</span>
+      <strong>${escapeHtml(linkedRows.length ? `${linkedRows.length}条可跟进` : "--")}</strong>
+      <p>${escapeHtml(linkedRows[0] ? `${linkedRows[0].symbol} · ${firstLinkedSummary.title}` : "暂无事件或财报日程。")}</p>
+    </article>
+  `;
+};
+
 const renderStocksRankStrip = (rows) => {
   const strip = document.querySelector("#stocksRankStrip");
   if (!strip) return;
@@ -2559,6 +2635,8 @@ const renderStocksPage = () => {
       : "财报日期源下一步接入，人工日志单独展示。",
   );
   setText("#stocksSortMetric", sortMetric);
+  setText("#stocksSortNote", stocksSortNote());
+  renderStocksContextStrip(rows);
   renderStocksRankStrip(rows);
   if (!rows.length) {
     if (loadingCurrentApiRows && !state.productStockLibrary?.ok) {
