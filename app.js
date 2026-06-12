@@ -8981,6 +8981,28 @@ const qualityConclusion = (row) => {
   return "先放入候选池";
 };
 
+const qualityRevisionText = (row) => {
+  const eps = row?.epsRevisionPct == null ? "--" : formatSignedPct(row.epsRevisionPct);
+  const revenue = row?.revenueRevisionPct == null ? "--" : formatSignedPct(row.revenueRevisionPct);
+  const epsSurprise = row?.epsSurprisePct == null ? "--" : formatSignedPct(row.epsSurprisePct);
+  return { main: `EPS ${eps}`, sub: `收入 ${revenue} / 超预期 ${epsSurprise}` };
+};
+
+const qualityPriceText = (row) => ({
+  main: row?.return20dPct == null ? "--" : formatSignedPct(row.return20dPct),
+  sub: `20日成交额 ${formatCompactMoney(row?.dollarVolume20d)}`,
+  className: Number(row?.return20dPct) >= 0 ? "is-positive" : "is-negative",
+});
+
+const qualityInstitutionText = (row) => {
+  const heat = row?.analystHeatScore == null ? "--" : `${Number(row.analystHeatScore).toFixed(1)}分`;
+  const target = row?.avgPriceTargetUpsidePct == null ? "目标价待补" : `目标价空间 ${formatSignedPct(row.avgPriceTargetUpsidePct)}`;
+  return {
+    main: heat,
+    sub: `${row?.firms30d == null ? "暂无机构覆盖" : `${row.firms30d}家机构`} / ${target}`,
+  };
+};
+
 const qualityNextReview = (row) => {
   if (!row) return "有新候选后，先看财报、预期、股价和成交额是否同时确认。";
   if (qualityRiskFlag(row)) return "先看财报后价格是否站稳，成交额是否连续确认；如果快速回落，就降低观察频率。";
@@ -9094,11 +9116,11 @@ const renderQualityDetail = (row) => {
       <p>${escapeHtml(row.userRisk || "--")}</p>
     </section>
     <section class="quality-reason-box">
-      <span>点进详情看什么</span>
-      <p>${escapeHtml(`${preview.title}；${preview.sources}`)}</p>
+      <span>交叉验证</span>
+      <p>${escapeHtml(preview.sources)}</p>
     </section>
     <section class="quality-reason-box">
-      <span>下一步复盘</span>
+      <span>复盘动作</span>
       <p>${escapeHtml(qualityNextReview(row))}</p>
     </section>
     <div class="quality-detail-grid">
@@ -9225,7 +9247,7 @@ const renderQualityTable = () => {
   }
 
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="8">没有符合条件的股票</td></tr>';
+    body.innerHTML = '<tr><td colspan="7">没有符合条件的股票</td></tr>';
     renderQualityDetail(null);
     return;
   }
@@ -9233,8 +9255,10 @@ const renderQualityTable = () => {
   body.innerHTML = rows
     .map((row) => {
       const selected = row.ticker === state.selectedQualitySymbol;
-      const heat = row.analystHeatScore == null ? "--" : Number(row.analystHeatScore).toFixed(1);
       const priority = reviewPriorityForQualityRow(row);
+      const revision = qualityRevisionText(row);
+      const price = qualityPriceText(row);
+      const institution = qualityInstitutionText(row);
       return `
         <tr class="quality-row ${selected ? "is-selected" : ""}" data-quality-symbol="${escapeHtml(row.ticker)}">
           <td class="rank-cell" data-label="排名">${escapeHtml(row.rank)}</td>
@@ -9246,23 +9270,26 @@ const renderQualityTable = () => {
               <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.ticker)}" data-watchlist-source="财报观察">${isInWatchlist(row.ticker) ? "已自选" : "加入自选"}</button>
             </div>
           </td>
-          <td class="quality-angle-cell" data-label="财报">
+          <td class="quality-angle-cell" data-label="财报事实">
             <strong>${escapeHtml(row.userAngle || "--")}</strong>
-            <span>${escapeHtml(row.latestEarningsDate || "--")} 财报</span>
+            <span>${escapeHtml(`${row.latestEarningsDate || "--"} · 上调 ${row.guidanceUpCount || 0} 次 / 超预期 ${row.earningsBeatCount || 0} 次`)}</span>
           </td>
-          <td class="quality-reason-cell" data-label="理由"><span>${escapeHtml(row.userReason || "--")}</span></td>
-          <td class="quality-score-cell" data-label="复盘分">
-            <div class="quality-score-stack">
-              <strong>${escapeHtml(String(priority.score))}</strong>
-              <small class="macro-rank-reason">${escapeHtml(priority.reason)}</small>
-            </div>
+          <td class="quality-mini-cell" data-label="预期变化">
+            <strong>${escapeHtml(revision.main)}</strong>
+            <span>${escapeHtml(revision.sub)}</span>
           </td>
-          <td class="${Number(row.return20dPct) >= 0 ? "gain-cell" : "loss-cell"}" data-label="20日表现">${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</td>
+          <td class="quality-mini-cell ${price.className}" data-label="价格 / 成交">
+            <strong>${escapeHtml(price.main)}</strong>
+            <span>${escapeHtml(price.sub)}</span>
+          </td>
           <td class="quality-mini-cell" data-label="机构">
-            <strong>${escapeHtml(heat)}</strong>
-            <span>${escapeHtml(row.firms30d == null ? "暂无覆盖" : `${row.firms30d} 家机构`)}</span>
+            <strong>${escapeHtml(institution.main)}</strong>
+            <span>${escapeHtml(institution.sub)}</span>
           </td>
-          <td class="quality-risk-cell" data-label="风险"><span class="quality-risk-text">${escapeHtml(qualityRiskSummary(row))}</span></td>
+          <td class="quality-risk-cell" data-label="风险 / 动作">
+            <strong>${escapeHtml(String(priority.score))} · ${escapeHtml(qualityConclusion(row))}</strong>
+            <span class="quality-risk-text">${escapeHtml(`${qualityRiskSummary(row)}；${priority.reason}`)}</span>
+          </td>
         </tr>
       `;
     })
@@ -9812,6 +9839,17 @@ const eventCurrentPosition = (row) => {
   return `近20日表现 ${return20d}，历史观察窗口参考 ${fwd20d}。`;
 };
 
+const eventScoreText = (row, priority) => ({
+  main: `${row?.signalScore == null ? "--" : Number(row.signalScore).toFixed(1)} / ${priority.score}`,
+  sub: priority.reason,
+});
+
+const eventPriceText = (row) => ({
+  main: row?.return20dPct == null ? "--" : formatSignedPct(row.return20dPct),
+  sub: `5日 ${row?.fwd5dPct == null ? "--" : formatSignedPct(row.fwd5dPct)} / 20日 ${row?.fwd20dPct == null ? "--" : formatSignedPct(row.fwd20dPct)}`,
+  className: Number(row?.return20dPct) >= 0 ? "is-positive" : "is-negative",
+});
+
 const eventDetailPreview = (row) => {
   const ticker = normalizeStockSymbol(row?.ticker || row?.symbol);
   const market = findMarketRow(ticker);
@@ -9966,7 +10004,7 @@ const renderEventDetail = (row) => {
     <section class="event-report-box">
       <span>下一步复盘</span>
       <strong>${escapeHtml(eventNextReview(row))}</strong>
-      <p>加入自选后，按价格确认、成交变化和市场温度变化继续复盘。</p>
+      <p>按价格确认、成交变化和市场温度变化继续复盘。</p>
     </section>
     <div class="event-detail-grid">
       ${eventMetric(eventDateLabel(row), row.eventDate || "--")}
@@ -10045,13 +10083,12 @@ const renderEventTable = () => {
   }
 
   if (cardGrid) {
-    cardGrid.innerHTML = rows.slice(0, 12).map((row) => {
+    cardGrid.innerHTML = rows.slice(0, 8).map((row) => {
       const ticker = normalizeStockSymbol(row.ticker || row.symbol);
       const selected = ticker === state.selectedEventSymbol;
       const conclusion = eventConclusion(row);
-      const preview = eventDetailPreview(row);
       const priority = reviewPriorityForEventRow(row);
-      const returnClass = Number(row.return20dPct) >= 0 ? "is-positive" : "is-negative";
+      const price = eventPriceText(row);
       return `
         <article class="event-observation-card ${selected ? "is-selected" : ""}" data-event-symbol="${escapeHtml(ticker)}">
           <div class="event-card-head">
@@ -10064,25 +10101,10 @@ const renderEventTable = () => {
           </div>
           <div class="event-card-metrics">
             <div><span>复盘分</span><strong>${escapeHtml(String(priority.score))}</strong></div>
-            <div><span>20日表现</span><strong class="${returnClass}">${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</strong></div>
+            <div><span>20日表现</span><strong class="${price.className}">${escapeHtml(price.main)}</strong></div>
             <div><span>流动性</span><strong>${escapeHtml(row.liquidity || "--")}</strong></div>
           </div>
-          <section>
-            <span>为什么出现</span>
-            <p>${escapeHtml(eventReasonForUser(row))}</p>
-          </section>
-          <section>
-            <span>现在怎么看</span>
-            <p>${escapeHtml(eventNextReview(row))}</p>
-          </section>
-          <section>
-            <span>主要风险</span>
-            <p>${escapeHtml(row.risk || "先看价格和成交额是否继续确认。")}</p>
-          </section>
-          <section>
-            <span>点进详情看什么</span>
-            <p>${escapeHtml(`${preview.title}；${preview.sources}`)}</p>
-          </section>
+          <p class="event-card-brief">${escapeHtml(eventReasonForUser(row))}</p>
           <div class="event-card-actions">
             <button class="ghost-action" type="button" data-stock-open="${escapeHtml(ticker)}">股票详情</button>
             ${watchlistActionButton(ticker, "股票事件")}
@@ -10097,6 +10119,8 @@ const renderEventTable = () => {
       const ticker = normalizeStockSymbol(row.ticker || row.symbol);
       const selected = ticker === state.selectedEventSymbol;
       const priority = reviewPriorityForEventRow(row);
+      const scoreText = eventScoreText(row, priority);
+      const price = eventPriceText(row);
       return `
         <tr class="event-row ${selected ? "is-selected" : ""}" data-event-symbol="${escapeHtml(ticker)}">
           <td class="rank-cell" data-label="排名">${escapeHtml(row.rank || index + 1)}</td>
@@ -10120,15 +10144,21 @@ const renderEventTable = () => {
             </div>
           </td>
           <td class="event-reason-cell" data-label="进入原因"><span class="event-reason-text">${escapeHtml(eventReasonForUser(row))}</span></td>
-          <td class="quality-score-cell" data-label="复盘分">
+          <td class="quality-score-cell" data-label="事件 / 复盘分">
             <div class="event-score-stack">
-              <strong>${escapeHtml(String(priority.score))}</strong>
-              <small class="macro-rank-reason">${escapeHtml(priority.reason)}</small>
+              <strong>${escapeHtml(scoreText.main)}</strong>
+              <small class="macro-rank-reason">${escapeHtml(scoreText.sub)}</small>
             </div>
           </td>
-          <td class="${Number(row.return20dPct) >= 0 ? "gain-cell" : "loss-cell"}" data-label="20日表现">${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</td>
+          <td class="event-mini-cell ${price.className}" data-label="价格确认">
+            <strong>${escapeHtml(price.main)}</strong>
+            <span>${escapeHtml(price.sub)}</span>
+          </td>
           <td class="event-mini-cell" data-label="流动性">${escapeHtml(row.liquidity || "--")}</td>
-          <td class="quality-risk-cell" data-label="风险"><span class="event-risk-text">${escapeHtml(eventRiskSummary(row))}</span></td>
+          <td class="quality-risk-cell" data-label="风险 / 动作">
+            <strong>${escapeHtml(eventRiskFlag(row) ? "降低频率" : "继续跟踪")}</strong>
+            <span class="event-risk-text">${escapeHtml(`${eventRiskSummary(row)}；${eventNextReview(row)}`)}</span>
+          </td>
         </tr>
       `;
     })
