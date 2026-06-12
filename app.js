@@ -6594,14 +6594,16 @@ const renderMarketSectorDetail = (rows, sectors) => {
         ${
           detailRows.length
             ? detailRows.map((row) => {
-                const change = getChange(row);
-                const tone = change >= 0 ? "is-positive" : "is-negative";
+                const dayChange = Number(row.dayChange);
+                const weekChange = Number(row.weekChange);
+                const dayTone = Number.isFinite(dayChange) ? (dayChange >= 0 ? "is-positive" : "is-negative") : "is-muted";
+                const weekTone = Number.isFinite(weekChange) ? (weekChange >= 0 ? "is-positive" : "is-negative") : "is-muted";
                 return `
                   <button class="market-sector-detail-row" type="button" data-stock-open="${escapeHtml(row.symbol)}">
                     <span><b>${escapeHtml(row.symbol)}</b><small>${escapeHtml(capLabel(row))}</small></span>
                     <i><em style="width:${Math.max(7, (row.heatSize / maxHeat) * 100).toFixed(1)}%"></em></i>
-                    <strong class="${row.dayChange >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(formatSignedPct(row.dayChange))}</strong>
-                    <strong class="${row.weekChange == null || row.weekChange >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(row.weekChange == null ? "--" : formatSignedPct(row.weekChange))}</strong>
+                    <strong class="${dayTone}">${escapeHtml(Number.isFinite(dayChange) ? formatSignedPct(dayChange) : "—")}</strong>
+                    <strong class="${weekTone}">${escapeHtml(Number.isFinite(weekChange) ? formatSignedPct(weekChange) : "—")}</strong>
                   </button>
                 `;
               }).join("")
@@ -6775,10 +6777,10 @@ const renderMarketHeatmapView = (rows) => {
                     ? formatCompactMoney(rawVolume)
                     : row.volumeRatio || "成交活跃";
                   return `
-                    <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}" style="--heat-size:${heatRows.toFixed(2)}; --heat-alpha:${marketHeatmapIntensity(change)};">
-                      <small>${escapeHtml(row.chineseName || sectorDisplayName(row.sector))}</small>
+                    <button class="market-heat-tile ${tone} ${span}" type="button" data-stock-open="${escapeHtml(row.symbol)}" style="--heat-size:${heatRows.toFixed(2)}; --heat-alpha:${marketHeatmapIntensity(change)}; --heat-share:${Math.max(8, heatShare * 100).toFixed(1)}%;">
                       <strong>${escapeHtml(row.symbol)}</strong>
                       <span>${escapeHtml(formatSignedPct(change))}</span>
+                      <i class="market-heat-volume"><b></b></i>
                       <em>${escapeHtml(volumeLabel)}</em>
                     </button>
                   `;
