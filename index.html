@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260612-market1" />
+    <link rel="stylesheet" href="./styles.css?v=20260612-calendar1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1303,6 +1303,11 @@
               <div><span>人工日志</span><strong id="calendarManualStatus">--</strong></div>
             </div>
           </section>
+          <section class="calendar-section-nav" aria-label="财经日历二级导航">
+            <button type="button" data-calendar-section-target="calendarMacroSection"><strong>宏观日历</strong><span>CPI / FOMC / 非农</span></button>
+            <button type="button" data-calendar-section-target="calendarEarningsSection"><strong>财报日期</strong><span>公司财报时间</span></button>
+            <button type="button" data-calendar-section-target="calendarManualSection"><strong>人工日志</strong><span>只放你提供的内容</span></button>
+          </section>
           <section class="calendar-timeline-panel desk-panel" aria-label="近期财经日历时间轴">
             <div class="calendar-panel-head desk-panel-header">
               <div>
@@ -1320,7 +1325,7 @@
           </section>
 
           <div class="calendar-layout workspace-main">
-            <section class="calendar-main-panel desk-panel">
+            <section class="calendar-main-panel desk-panel" id="calendarMacroSection">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
                   <span>宏观事件</span>
@@ -1346,7 +1351,7 @@
               </div>
             </section>
 
-            <section class="calendar-earnings-panel desk-panel">
+            <section class="calendar-earnings-panel desk-panel" id="calendarEarningsSection">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
                   <span>财报日期</span>
@@ -1401,7 +1406,7 @@
               </div>
             </section>
 
-            <section class="calendar-manual-panel desk-panel" id="calendarManualPanel">
+            <section class="calendar-manual-panel desk-panel" id="calendarManualSection">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
                   <span>人工财经日志</span>
@@ -2797,6 +2802,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260612-market1"></script>
+    <script src="./app.js?v=20260612-calendar1"></script>
   </body>
 </html>

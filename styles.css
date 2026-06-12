@@ -17622,6 +17622,53 @@ body .page-view[data-view="events"] .calendar-hero {
   margin-bottom: 10px;
 }
 
+body .page-view[data-view="events"] .calendar-section-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(8, 13, 23, 0.82);
+  margin-bottom: 10px;
+}
+
+body .page-view[data-view="events"] .calendar-section-nav button {
+  display: grid;
+  min-width: 0;
+  min-height: 42px;
+  align-content: center;
+  gap: 2px;
+  border: 0;
+  border-right: 1px solid rgba(128, 151, 183, 0.14);
+  background: transparent;
+  color: #dbe5f2;
+  cursor: pointer;
+  padding: 7px 12px;
+  text-align: left;
+}
+
+body .page-view[data-view="events"] .calendar-section-nav button:last-child {
+  border-right: 0;
+}
+
+body .page-view[data-view="events"] .calendar-section-nav button:hover {
+  background: rgba(53, 167, 255, 0.09);
+}
+
+body .page-view[data-view="events"] .calendar-section-nav strong {
+  color: #dbe5f2;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="events"] .calendar-section-nav span {
+  overflow: hidden;
+  color: #718299;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 body .page-view[data-view="events"] .calendar-hero-copy {
   display: grid;
   align-content: center;
@@ -17937,6 +17984,29 @@ body .page-view[data-view="events"] .calendar-symbol-cell strong {
   background: rgba(36, 224, 164, 0.08);
   color: #7af0c8;
   padding: 0 8px;
+}
+
+body .page-view[data-view="events"] .calendar-symbol-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 24px;
+  border: 1px solid rgba(36, 224, 164, 0.24);
+  border-radius: 4px;
+  background: rgba(36, 224, 164, 0.08);
+  color: #7af0c8;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  padding: 0 8px;
+}
+
+body .page-view[data-view="events"] .calendar-symbol-button:hover {
+  border-color: rgba(36, 224, 164, 0.5);
+  background: rgba(36, 224, 164, 0.16);
+  color: #d9fff4;
 }
 
 body .page-view[data-view="events"] .calendar-title-cell p {
@@ -18352,6 +18422,19 @@ body .page-view[data-view="stock-events"] .event-table td:nth-child(8) {
 
   body .page-view[data-view="events"] .calendar-earnings-tools {
     grid-template-columns: 1fr 1fr;
+  }
+
+  body .page-view[data-view="events"] .calendar-section-nav {
+    grid-template-columns: 1fr;
+  }
+
+  body .page-view[data-view="events"] .calendar-section-nav button {
+    border-right: 0;
+    border-bottom: 1px solid rgba(128, 151, 183, 0.14);
+  }
+
+  body .page-view[data-view="events"] .calendar-section-nav button:last-child {
+    border-bottom: 0;
   }
 
   body .page-view[data-view="events"] .calendar-earnings-summary {

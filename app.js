@@ -9725,7 +9725,7 @@ const renderCalendarEarningsRows = (events) =>
           <span>${escapeHtml(calendarDayDistanceLabel(item))}</span>
         </td>
         <td class="calendar-symbol-cell">
-          <strong>${escapeHtml(symbol || "--")}</strong>
+          ${symbol ? `<button class="calendar-symbol-button" type="button" data-stock-open="${escapeHtml(symbol)}">${escapeHtml(symbol)}</button>` : "<strong>--</strong>"}
         </td>
         <td class="calendar-title-cell">
           <strong>${escapeHtml(item.title || "财报日期")}</strong>
@@ -9789,7 +9789,7 @@ const calendarImpactFacts = (events, manualEvents, rules) => {
       : null,
     {
       trigger: "人工财经日志",
-      effect: manualEvents.length ? "人工维护内容单独列出，不混入宏观日历或财报日期。" : "暂无人工日志；等真实内容接入后会单独显示在人工财经日志表。",
+      effect: manualEvents.length ? "人工维护内容单独列出，不混入宏观日历或财报日期。" : "暂无人工日志；等你提供真实内容后，会单独显示在人工财经日志表。",
       modules: ["财经日历"],
     },
   ].filter(Boolean);
@@ -9811,7 +9811,7 @@ const renderEventsCalendar = (payload) => {
   const manualEvents = events.filter((item) => item.type === "manual").sort(calendarEventSort);
   const body = document.querySelector("#calendarEventBody");
   const earningsBody = document.querySelector("#calendarEarningsBody");
-  const manualPanel = document.querySelector("#calendarManualPanel");
+  const manualPanel = document.querySelector("#calendarManualSection");
   const manualBody = document.querySelector("#calendarManualBody");
   const impactList = document.querySelector("#calendarImpactList");
   setText("#eventsAsOf", formatDisplayDate(data.asOf || data.generatedAt || state.eventOpportunities?.asOf));
@@ -9836,7 +9836,7 @@ const renderEventsCalendar = (payload) => {
   setText("#calendarMacroStatus", macroCount ? `${macroCount}项` : "暂无");
   setText("#calendarEarningsStatus", earningsCount ? `${earningsCount}项` : "暂无");
   setText("#calendarHighImpactStatus", highEvents.length ? `${highEvents.length}项` : "暂无");
-  setText("#calendarManualStatus", manualEvents.length ? `${manualEvents.length}条` : "待接入");
+  setText("#calendarManualStatus", manualEvents.length ? `${manualEvents.length}条` : "暂无");
   renderCalendarEarningsSummary(earningsEvents, allEarningsEvents);
   if (body) {
     body.innerHTML = macroEvents.length
@@ -9848,7 +9848,7 @@ const renderEventsCalendar = (payload) => {
       ? renderCalendarEarningsRows(earningsEvents)
       : allEarningsEvents.length
         ? '<tr class="calendar-empty-row"><td colspan="6"><strong>当前筛选下没有财报</strong><p>可以放宽时间窗、影响级别，或直接输入股票代码搜索具体公司。</p></td></tr>'
-        : '<tr class="calendar-empty-row"><td colspan="6"><strong>公司财报日期待接入</strong><p>当前数据库还没有未来财报日期源。后续接入后会展示公司、日期、来源和影响等级。</p></td></tr>';
+        : '<tr class="calendar-empty-row"><td colspan="6"><strong>暂无未来公司财报日期</strong><p>当前数据库没有可展示的未来财报日期；有新数据后会展示公司、日期、来源和影响等级。</p></td></tr>';
   }
   if (manualPanel && manualBody) {
     manualPanel.hidden = false;
@@ -11254,6 +11254,14 @@ const bindEvents = () => {
   if (calendarEarningsImpactFilter) calendarEarningsImpactFilter.addEventListener("change", (event) => {
     state.calendarEarningsImpact = event.target.value;
     renderEventsCalendar(state.eventsCalendar);
+  });
+
+  document.querySelectorAll("[data-calendar-section-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = document.querySelector(`#${button.dataset.calendarSectionTarget}`);
+      if (!target) return;
+      target.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
   });
 
   document.querySelectorAll(".quality-tab").forEach((tab) => {
