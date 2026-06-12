@@ -2927,26 +2927,6 @@ const renderMarketSectionContext = (rows = getFilteredRows()) => {
   if (page) page.dataset.marketWorkspaceSection = section;
 };
 
-const renderMarketRouteStrip = (active = "movers") => {
-  const items = [
-    ["sectors", "板块排行", "看主线"],
-    ["flows", "板块资金", "看流向"],
-    ["heatmap", "成交热力图", "看权重"],
-    ["movers", "涨跌幅榜", "看个股"],
-  ];
-  return `
-    <div class="market-route-strip" aria-label="市场模块联动">
-      <span>联动查看</span>
-      ${items.map(([key, label, hint]) => `
-        <button class="${key === active ? "is-active" : ""}" type="button" data-market-section="${key}">
-          <strong>${escapeHtml(label)}</strong>
-          <small>${escapeHtml(hint)}</small>
-        </button>
-      `).join("")}
-    </div>
-  `;
-};
-
 const renderMarketSymbolTokens = (items, limit = 4) => {
   const symbols = uniqueBySymbol((items || []).map((item) => ({ symbol: item?.symbol || item })))
     .map((item) => normalizeStockSymbol(item.symbol))
@@ -6645,7 +6625,6 @@ const renderMarketSectorRankingView = (rows) => {
   }
   return `
     ${marketVisualTabs()}
-    ${renderMarketRouteStrip("sectors")}
     <section class="market-sector-ranking professional-market-board">
       <div class="market-visual-copy">
         <span>板块排行</span>
@@ -6758,7 +6737,6 @@ const renderMarketHeatmapView = (rows) => {
   }
   return `
     ${marketVisualTabs()}
-    ${renderMarketRouteStrip("heatmap")}
     <section class="market-heatmap-view professional-market-board">
       <div class="market-visual-copy">
         <span>成交额权重热力图</span>

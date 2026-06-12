@@ -15723,63 +15723,6 @@ section.market-workspace .market-overview-grid > .market-chart-card {
   background: rgba(7, 12, 21, 0.34);
 }
 
-.market-route-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid rgba(128, 151, 183, 0.16);
-  border-radius: 5px;
-  background: rgba(7, 12, 21, 0.5);
-}
-
-.market-route-strip > span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 38px;
-  border-right: 1px solid rgba(128, 151, 183, 0.14);
-  color: #8fa0b8;
-  font-size: 11px;
-  font-weight: 560;
-  padding: 0 11px;
-}
-
-.market-route-strip button {
-  display: grid;
-  min-width: 116px;
-  min-height: 38px;
-  align-content: center;
-  gap: 1px;
-  border: 0;
-  border-right: 1px solid rgba(128, 151, 183, 0.12);
-  background: transparent;
-  color: #cfd9e7;
-  cursor: pointer;
-  padding: 5px 11px;
-  text-align: left;
-}
-
-.market-route-strip button:last-child {
-  border-right: 0;
-}
-
-.market-route-strip button:hover,
-.market-route-strip button.is-active {
-  background: rgba(53, 167, 255, 0.1);
-}
-
-.market-route-strip button strong {
-  color: #dbe5f2;
-  font-size: 11px;
-  font-weight: 620;
-}
-
-.market-route-strip button small {
-  color: #718199;
-  font-size: 10px;
-}
-
 .market-flow-matrix {
   overflow: hidden;
   border: 1px solid rgba(128, 151, 183, 0.15);
@@ -15998,10 +15941,6 @@ section.market-workspace .market-overview-grid > .market-chart-card {
 }
 
 #marketFlowsPanel .market-flow-matrix-shell {
-  margin: 8px 0;
-}
-
-#marketFlowsPanel .market-route-strip {
   margin: 8px 0;
 }
 
