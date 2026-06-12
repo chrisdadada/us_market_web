@@ -547,7 +547,15 @@ const ensurePageData = (page) => {
   if (page === "valuation") jobs.push(loadLazyDataset("indexValuation"));
   if (page === "options") jobs.push(loadLazyDataset("optionsFlow"));
   if (page === "signals") jobs.push(loadSignals());
-  if (page === "earnings") jobs.push(loadLazyDataset("earningsQuality"));
+  if (page === "earnings") {
+    jobs.push(
+      loadLazyDataset("earningsQuality"),
+      loadProductCalendar().then((calendar) => {
+        if (calendar && state.earningsQuality) renderQualityTable();
+        return calendar;
+      }),
+    );
+  }
   if (page === "events") {
     jobs.push(loadProductCalendar().then((calendar) => (calendar ? renderEventsCalendar(calendar) : loadLazyDataset("eventsCalendar"))));
   }
@@ -3992,6 +4000,54 @@ const calendarRows = () => {
   return (Array.isArray(rows) ? rows : []).map(normalizeProductCalendarRow).sort(calendarEventSort);
 };
 
+const calendarEarningsEventForSymbol = (symbol, { futureOnly = false } = {}) => {
+  const target = normalizeStockSymbol(symbol);
+  if (!target) return null;
+  const rows = calendarRows()
+    .filter((row) => row.type === "earnings")
+    .filter((row) => normalizedReferenceSet(row.relatedAssets).has(target) || calendarEarningsSymbol(row) === target)
+    .sort(calendarEventSort);
+  const futureRows = rows.filter(isFutureCalendarEvent);
+  if (futureRows.length) return futureRows[0];
+  return futureOnly ? null : rows[0] || null;
+};
+
+const calendarEarningsFactForSymbol = (symbol, quality) => {
+  const event = calendarEarningsEventForSymbol(symbol);
+  if (event?.date) {
+    const estimate = calendarEarningsEstimate(event);
+    return {
+      event,
+      dateLabel: formatDisplayDate(event.date),
+      estimate,
+      source: event.sourceName || "财经日历",
+      title: event.title || "财报日期",
+      note: compactText(`${estimate}${event.sourceName ? ` · ${event.sourceName}` : ""}`, 96),
+      isFuture: isFutureCalendarEvent(event),
+    };
+  }
+  if (quality?.latestEarningsDate) {
+    return {
+      event: null,
+      dateLabel: formatDisplayDate(quality.latestEarningsDate),
+      estimate: "预估待接入",
+      source: "财报观察",
+      title: quality.userAngle || "最近财报",
+      note: compactText(quality.userReason || "来自财报观察数据。", 96),
+      isFuture: false,
+    };
+  }
+  return {
+    event: null,
+    dateLabel: "财报日期待接入",
+    estimate: "预估待接入",
+    source: "--",
+    title: "暂无财报日期",
+    note: "财经日历和财报观察暂未提供该标的日期。",
+    isFuture: false,
+  };
+};
+
 const calendarRowMatchesStock = (row, target, profile, macroExposure) => {
   const assets = normalizedReferenceSet(row.relatedAssets);
   const modules = splitReferenceList(row.relatedModules).join(" ").toLowerCase();
@@ -4042,9 +4098,10 @@ const stockEarningsDateLabel = (linkedRows, quality) => {
 const stockEarningsFact = (linkedRows, quality) => {
   const earnings = linkedRows.find((row) => row.type === "earnings");
   if (earnings?.date) {
+    const estimate = calendarEarningsEstimate(earnings);
     return {
       label: formatDisplayDate(earnings.date),
-      note: compactText(`${earnings.title || "财报日期"}${earnings.sourceName ? ` · ${earnings.sourceName}` : ""}`, 88),
+      note: compactText(`${estimate}${earnings.sourceName ? ` · ${earnings.sourceName}` : ""}`, 88),
     };
   }
   if (quality?.latestEarningsDate) {
@@ -4235,6 +4292,7 @@ const renderStockHub = (symbol) => {
   const directCalendarCount = linkedCalendarRows.filter((row) => row.matchType === "direct").length;
   const macroCalendarCount = linkedCalendarRows.filter((row) => row.matchType === "macro").length;
   const nextCalendarRow = linkedCalendarRows[0] || null;
+  const primaryCalendarRow = linkedCalendarRows.find((row) => row.matchType === "direct") || nextCalendarRow;
   const earningsDateText = stockEarningsDateLabel(linkedCalendarRows, quality);
   const earningsFact = stockEarningsFact(linkedCalendarRows, quality);
   const sectorFlowDetailData = stockSectorFlowDetail(profile, sectorRankRows);
@@ -4375,12 +4433,12 @@ const renderStockHub = (symbol) => {
     </tr>
   `;
   const calendarFactValue = nextCalendarRow
-    ? `${formatDisplayDate(nextCalendarRow.date)} · ${eventTypeLabel(nextCalendarRow.type)}`
+    ? `${formatDisplayDate(primaryCalendarRow.date)} · ${eventTypeLabel(primaryCalendarRow.type)}`
     : "暂无直接日程";
   const eventReturnClass = eventRow?.return20dPct == null ? "" : signedNumberClass(eventRow.return20dPct);
   const targetUpsideClass = quality?.avgPriceTargetUpsidePct == null ? "" : signedNumberClass(quality.avgPriceTargetUpsidePct);
   const eventFactRows = [
-    stockFactRow("财经日历", calendarFactValue, nextCalendarRow?.title || `直接 ${directCalendarCount} 条，宏观 ${macroCalendarCount} 条`),
+    stockFactRow("财经日历", calendarFactValue, primaryCalendarRow?.title || `直接 ${directCalendarCount} 条，宏观 ${macroCalendarCount} 条`),
     stockFactRow("下一次财报", earningsFact.label, earningsFact.note),
     stockFactRow("事件类型", eventRow ? displayEventLabel(eventRow) : "--", eventRow?.eventDate ? `事件日期 ${formatDisplayDate(eventRow.eventDate)}` : "暂无独立事件日期"),
     stockFactRow("事件后20日", eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct), compactText(eventRow?.reason, 96) || "暂无事件表现数据", eventReturnClass),
@@ -4442,8 +4500,8 @@ const renderStockHub = (symbol) => {
       </article>
       <article>
         <span>事件 / 财报</span>
-        <strong>${escapeHtml(nextCalendarRow ? `${formatDisplayDate(nextCalendarRow.date)} · ${eventTypeLabel(nextCalendarRow.type)}` : earningsDateText)}</strong>
-        <p>${escapeHtml(compactText(nextCalendarRow?.title || eventSummary || earningsSummary, 82))}</p>
+        <strong>${escapeHtml(primaryCalendarRow ? `${formatDisplayDate(primaryCalendarRow.date)} · ${eventTypeLabel(primaryCalendarRow.type)}` : earningsDateText)}</strong>
+        <p>${escapeHtml(compactText(primaryCalendarRow?.title || eventSummary || earningsSummary, 82))}</p>
       </article>
     </section>
 
@@ -4553,9 +4611,9 @@ const renderStockHub = (symbol) => {
       <article>
         <div>
           <span>事件 / 财报</span>
-          <strong>${escapeHtml(nextCalendarRow ? `${formatDisplayDate(nextCalendarRow.date)} · ${eventTypeLabel(nextCalendarRow.type)}` : earningsDateText)}</strong>
+          <strong>${escapeHtml(primaryCalendarRow ? `${formatDisplayDate(primaryCalendarRow.date)} · ${eventTypeLabel(primaryCalendarRow.type)}` : earningsDateText)}</strong>
         </div>
-        <p>${escapeHtml(nextCalendarRow?.title || eventSummary)}</p>
+        <p>${escapeHtml(primaryCalendarRow?.title || eventSummary)}</p>
         <p>财报 ${escapeHtml(earningsDateText)}${quality?.avgPriceTargetUpsidePct == null ? "" : ` · 目标价空间 ${escapeHtml(targetUpside)}`}</p>
       </article>
     </section>
@@ -4599,7 +4657,7 @@ const renderStockHub = (symbol) => {
         <div class="stock-linked-calendar">
           <div class="stock-linked-summary">
             <span>财经日历关联</span>
-            <strong>${escapeHtml(nextCalendarRow ? nextCalendarRow.title : "暂无直接日程")}</strong>
+            <strong>${escapeHtml(primaryCalendarRow ? primaryCalendarRow.title : "暂无直接日程")}</strong>
             <em>${escapeHtml(`直接 ${directCalendarCount} · 宏观 ${macroCalendarCount}`)}</em>
           </div>
           <div class="stock-linked-list">
@@ -9222,6 +9280,64 @@ const qualityDetailPreview = (row) => {
   };
 };
 
+const qualityPeerComparisonRows = (row, limit = 5) => {
+  const target = normalizeStockSymbol(row?.ticker || row?.symbol);
+  const profile = stockDisplayName(target);
+  const sector = profile?.sector;
+  const targetMarket = findMarketRow(target) || { symbol: target, company: row?.companyName || row?.name, sector };
+  if (!target || !isKnownSector(sector)) return [{ ...targetMarket, quality: row, symbol: target }];
+  return uniqueBySymbol([
+    { ...targetMarket, quality: row, symbol: target },
+    ...allMarketRows()
+      .filter((marketRow) => marketRow.sector === sector)
+      .map((marketRow) => ({
+        ...marketRow,
+        quality: findQualityRow(marketRow.symbol),
+      })),
+  ])
+    .filter((marketRow) => normalizeStockSymbol(marketRow.symbol))
+    .sort((a, b) => {
+      const aSymbol = normalizeStockSymbol(a.symbol);
+      const bSymbol = normalizeStockSymbol(b.symbol);
+      if (aSymbol === target) return -1;
+      if (bSymbol === target) return 1;
+      const qualityDiff = Number(b.quality?.score || 0) - Number(a.quality?.score || 0);
+      if (qualityDiff) return qualityDiff;
+      return (marketCapNumber(b.marketCap) || 0) - (marketCapNumber(a.marketCap) || 0);
+    })
+    .slice(0, limit);
+};
+
+const renderQualityPeerTable = (row) => {
+  const target = normalizeStockSymbol(row?.ticker || row?.symbol);
+  const peers = qualityPeerComparisonRows(row, 6);
+  if (!peers.length) return '<p class="quality-empty-note">等待同板块样本。</p>';
+  return `
+    <div class="quality-peer-table" role="table" aria-label="同板块财报对比">
+      <div class="quality-peer-row is-head" role="row">
+        <span>股票</span>
+        <span>财报分</span>
+        <span>1D</span>
+        <span>市值</span>
+      </div>
+      ${peers.map((peer) => {
+        const symbol = normalizeStockSymbol(peer.symbol);
+        const quality = symbol === target ? row : peer.quality;
+        const change = getChange(peer);
+        const changeClass = Number.isFinite(change) && change < 0 ? "is-negative" : Number.isFinite(change) && change > 0 ? "is-positive" : "";
+        return `
+          <button class="quality-peer-row ${symbol === target ? "is-current" : ""}" type="button" data-stock-open="${escapeHtml(symbol)}" role="row">
+            <strong>${escapeHtml(symbol || "--")}</strong>
+            <b>${escapeHtml(quality?.score == null ? "--" : Number(quality.score).toFixed(1))}</b>
+            <b class="${escapeHtml(changeClass)}">${escapeHtml(Number.isFinite(change) ? formatSignedPct(change) : "--")}</b>
+            <span>${escapeHtml(peer.marketCap || "--")}</span>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+};
+
 const renderQualityFocusGrid = (rows) => {
   const top = rows
     .map((row) => ({ row, priority: reviewPriorityForQualityRow(row) }))
@@ -9273,12 +9389,22 @@ const renderQualityDetail = (row) => {
   const targetLabel = row.avgPriceTargetUpsidePct == null ? "--" : formatSignedPct(row.avgPriceTargetUpsidePct);
   const preview = qualityDetailPreview(row);
   const priority = reviewPriorityForQualityRow(row);
+  const ticker = normalizeStockSymbol(row.ticker || row.symbol);
+  const profile = stockDisplayName(ticker);
+  const earningsFact = calendarEarningsFactForSymbol(ticker, row);
+  const signedClass = (value) => {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number === 0) return "";
+    return number > 0 ? "is-positive" : "is-negative";
+  };
+  const targetClass = signedClass(row.avgPriceTargetUpsidePct);
+  const returnClass = signedClass(row.return20dPct);
   panel.innerHTML = `
     <div class="quality-detail-head">
       <div>
         <span>${escapeHtml(row.userAngle || "财报后走强")}</span>
-        <h2>${escapeHtml(row.ticker)}</h2>
-        <p>${escapeHtml(row.companyName || row.name || "")}</p>
+        <h2>${escapeHtml(ticker)}</h2>
+        <p>${escapeHtml(`${row.companyName || row.name || ""}${profile.sector ? ` · ${profile.sector}` : ""}`)}</p>
       </div>
       <div class="quality-head-actions">
         ${watchlistActionButton(row.ticker, "财报观察")}
@@ -9315,20 +9441,35 @@ const renderQualityDetail = (row) => {
       <span>复盘动作</span>
       <p>${escapeHtml(qualityNextReview(row))}</p>
     </section>
-    <div class="quality-detail-grid">
-      ${qualityMetric("公司上调预期", `${row.guidanceUpCount || 0} 次`)}
-      ${qualityMetric("财报超预期", `${row.earningsBeatCount || 0} 次`)}
-      ${qualityMetric("每股收益预期上调", row.epsRevisionPct == null ? "--" : formatSignedPct(row.epsRevisionPct), "is-positive")}
-      ${qualityMetric("收入预期上调", row.revenueRevisionPct == null ? "--" : formatSignedPct(row.revenueRevisionPct), "is-positive")}
-      ${qualityMetric("每股收益超预期", row.epsSurprisePct == null ? "--" : formatSignedPct(row.epsSurprisePct), "is-positive")}
-      ${qualityMetric("收入超预期", row.revenueSurprisePct == null ? "--" : formatSignedPct(row.revenueSurprisePct), "is-positive")}
-      ${qualityMetric("20日表现", row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct), Number(row.return20dPct) >= 0 ? "is-positive" : "is-negative")}
-      ${qualityMetric("分析师目标价空间", targetLabel, Number(row.avgPriceTargetUpsidePct) >= 0 ? "is-positive" : "is-negative")}
-      ${qualityMetric("分析师热度", heatLabel)}
-      ${qualityMetric("覆盖机构", row.firms30d == null ? "--" : `${row.firms30d} 家`)}
-      ${qualityMetric("20日成交额", formatCompactMoney(row.dollarVolume20d))}
-      ${qualityMetric("财报日期", row.latestEarningsDate || "--")}
-    </div>
+    <section class="quality-calendar-card">
+      <div>
+        <span>${escapeHtml(earningsFact.isFuture ? "下一次财报" : "最近财报")}</span>
+        <strong>${escapeHtml(earningsFact.dateLabel)}</strong>
+      </div>
+      <p>${escapeHtml(earningsFact.note)}</p>
+    </section>
+    <section class="quality-fact-section">
+      <h3>财报事实表</h3>
+      <table class="quality-fact-table">
+        <tbody>
+          <tr><th>财报日期</th><td>${escapeHtml(earningsFact.dateLabel)}</td><td>${escapeHtml(earningsFact.source)}</td></tr>
+          <tr><th>财报预估</th><td>${escapeHtml(earningsFact.estimate)}</td><td>${escapeHtml(earningsFact.title)}</td></tr>
+          <tr><th>公司上调预期</th><td>${escapeHtml(`${row.guidanceUpCount || 0} 次`)}</td><td>${escapeHtml(row.latestGuidanceDate || "--")}</td></tr>
+          <tr><th>财报超预期</th><td>${escapeHtml(`${row.earningsBeatCount || 0} 次`)}</td><td>${escapeHtml(row.latestEarningsDate || "--")}</td></tr>
+          <tr><th>EPS 预期上调</th><td class="${escapeHtml(signedClass(row.epsRevisionPct))}">${escapeHtml(row.epsRevisionPct == null ? "--" : formatSignedPct(row.epsRevisionPct))}</td><td>未来预期</td></tr>
+          <tr><th>收入预期上调</th><td class="${escapeHtml(signedClass(row.revenueRevisionPct))}">${escapeHtml(row.revenueRevisionPct == null ? "--" : formatSignedPct(row.revenueRevisionPct))}</td><td>未来预期</td></tr>
+          <tr><th>EPS 超预期</th><td class="${escapeHtml(signedClass(row.epsSurprisePct))}">${escapeHtml(row.epsSurprisePct == null ? "--" : formatSignedPct(row.epsSurprisePct))}</td><td>实际财报</td></tr>
+          <tr><th>收入超预期</th><td class="${escapeHtml(signedClass(row.revenueSurprisePct))}">${escapeHtml(row.revenueSurprisePct == null ? "--" : formatSignedPct(row.revenueSurprisePct))}</td><td>实际财报</td></tr>
+          <tr><th>20日表现</th><td class="${escapeHtml(returnClass)}">${escapeHtml(row.return20dPct == null ? "--" : formatSignedPct(row.return20dPct))}</td><td>${escapeHtml(formatCompactMoney(row.dollarVolume20d))}</td></tr>
+          <tr><th>目标价空间</th><td class="${escapeHtml(targetClass)}">${escapeHtml(targetLabel)}</td><td>${escapeHtml(row.firms30d == null ? "机构覆盖待补" : `${row.firms30d} 家机构`)}</td></tr>
+          <tr><th>分析师热度</th><td>${escapeHtml(heatLabel)}</td><td>机构共振</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="quality-fact-section">
+      <h3>同板块对比</h3>
+      ${renderQualityPeerTable(row)}
+    </section>
   `;
 };
 

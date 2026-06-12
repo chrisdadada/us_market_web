@@ -18246,6 +18246,171 @@ body .page-view[data-view="stock-events"] .event-risk-text {
   -webkit-line-clamp: 2;
 }
 
+body .page-view[data-view="earnings"] .quality-calendar-card,
+body .page-view[data-view="earnings"] .quality-fact-section {
+  border-top: 1px solid rgba(128, 151, 183, 0.13);
+  background: rgba(7, 12, 21, 0.36);
+  padding: 12px 14px;
+}
+
+body .page-view[data-view="earnings"] .quality-calendar-card {
+  display: grid;
+  gap: 8px;
+}
+
+body .page-view[data-view="earnings"] .quality-calendar-card div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body .page-view[data-view="earnings"] .quality-calendar-card span,
+body .page-view[data-view="earnings"] .quality-fact-section h3 {
+  margin: 0;
+  color: #93a3b8;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="earnings"] .quality-calendar-card strong {
+  color: #edf5ff;
+  font-size: 18px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="earnings"] .quality-calendar-card p,
+body .page-view[data-view="earnings"] .quality-empty-note {
+  margin: 0;
+  color: #8090a7;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+body .page-view[data-view="earnings"] .quality-fact-section {
+  display: grid;
+  gap: 10px;
+}
+
+body .page-view[data-view="earnings"] .quality-fact-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid rgba(128, 151, 183, 0.12);
+  background: rgba(3, 8, 15, 0.34);
+}
+
+body .page-view[data-view="earnings"] .quality-fact-table th,
+body .page-view[data-view="earnings"] .quality-fact-table td {
+  border-bottom: 1px solid rgba(128, 151, 183, 0.1);
+  color: #dbe5f2;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 9px;
+}
+
+body .page-view[data-view="earnings"] .quality-fact-table tr:last-child th,
+body .page-view[data-view="earnings"] .quality-fact-table tr:last-child td {
+  border-bottom: 0;
+}
+
+body .page-view[data-view="earnings"] .quality-fact-table th {
+  width: 34%;
+  color: #8797ad;
+  font-weight: 560;
+}
+
+body .page-view[data-view="earnings"] .quality-fact-table td:nth-child(2) {
+  width: 30%;
+  font-weight: 620;
+}
+
+body .page-view[data-view="earnings"] .quality-fact-table .is-positive,
+body .page-view[data-view="earnings"] .quality-peer-row .is-positive {
+  color: var(--positive);
+}
+
+body .page-view[data-view="earnings"] .quality-fact-table .is-negative,
+body .page-view[data-view="earnings"] .quality-peer-row .is-negative {
+  color: var(--negative);
+}
+
+body .page-view[data-view="earnings"] .quality-peer-table {
+  display: grid;
+  overflow-x: auto;
+  border: 1px solid rgba(128, 151, 183, 0.12);
+  background: rgba(3, 8, 15, 0.34);
+  -webkit-overflow-scrolling: touch;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row {
+  display: grid;
+  grid-template-columns: 76px 72px 68px 98px;
+  min-width: 314px;
+  min-height: 34px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.1);
+  background: transparent;
+  color: #dbe5f2;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row.is-head {
+  min-height: 30px;
+  background: #09111e;
+  cursor: default;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row:last-child {
+  border-bottom: 0;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row.is-current {
+  background: rgba(53, 167, 255, 0.09);
+  box-shadow: inset 2px 0 0 #35a7ff;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row:hover:not(.is-head) {
+  background: rgba(53, 167, 255, 0.07);
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row > * {
+  overflow: hidden;
+  min-width: 0;
+  border-right: 1px solid rgba(128, 151, 183, 0.08);
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 8px;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row > *:last-child {
+  border-right: 0;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row.is-head > * {
+  color: #8fa0b8;
+  font-weight: 620;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row strong,
+body .page-view[data-view="earnings"] .quality-peer-row b,
+body .page-view[data-view="earnings"] .quality-peer-row span {
+  font-style: normal;
+  font-weight: 620;
+}
+
+body .page-view[data-view="earnings"] .quality-peer-row b,
+body .page-view[data-view="earnings"] .quality-peer-row span {
+  text-align: right;
+}
+
 body .page-view[data-view="stock-events"] .event-card-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
