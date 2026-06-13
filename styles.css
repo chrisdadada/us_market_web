@@ -19961,12 +19961,17 @@ body .page-view[data-view="risk"] .macro-asset-list {
   overflow: hidden;
 }
 
+body .page-view[data-view="risk"] .macro-factor-bars {
+  max-height: none;
+  overflow: visible;
+}
+
 body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
   display: grid;
-  grid-template-columns: minmax(132px, 0.85fr) minmax(112px, 1fr) 48px minmax(138px, 0.9fr);
-  gap: 10px;
+  grid-template-columns: minmax(170px, 0.9fr) minmax(140px, 1fr) 54px minmax(170px, 0.95fr);
+  gap: 12px;
   align-items: center;
-  min-height: 44px;
+  min-height: 48px;
   border: 0;
   border-bottom: 1px solid rgba(128, 151, 183, 0.12);
   background: rgba(7, 12, 21, 0.46);
@@ -19975,8 +19980,8 @@ body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
 
 body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header {
   display: grid;
-  grid-template-columns: minmax(132px, 0.85fr) minmax(112px, 1fr) 48px minmax(138px, 0.9fr);
-  gap: 10px;
+  grid-template-columns: minmax(170px, 0.9fr) minmax(140px, 1fr) 54px minmax(170px, 0.95fr);
+  gap: 12px;
   align-items: center;
   min-height: 30px;
   border-bottom: 1px solid rgba(128, 151, 183, 0.16);
@@ -19999,6 +20004,7 @@ body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row:last-child 
 body .page-view[data-view="risk"] .macro-factor-bars b {
   display: grid;
   gap: 3px;
+  min-width: 0;
   border-radius: 0;
   background: transparent;
   color: #dce7f5;
@@ -20008,9 +20014,13 @@ body .page-view[data-view="risk"] .macro-factor-bars b {
 }
 
 body .page-view[data-view="risk"] .macro-factor-bars b span {
+  min-width: 0;
+  overflow: hidden;
   color: #7f8da2;
   font-size: 11px;
   font-weight: 520;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body .page-view[data-view="risk"] .macro-factor-bars i {
@@ -20050,11 +20060,15 @@ body .page-view[data-view="risk"] .macro-factor-bars strong span {
 }
 
 body .page-view[data-view="risk"] .macro-factor-bars small {
+  min-width: 0;
+  overflow: hidden;
   color: #8392a8;
   font-size: 11px;
   font-weight: 520;
   line-height: 1.3;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row {
