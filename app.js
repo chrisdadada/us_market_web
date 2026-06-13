@@ -2843,9 +2843,9 @@ const marketSectionContext = (section, rows) => {
     const negativeCount = Math.max(0, sectorRows.length - positiveCount);
     const activeSector = sectorRows.slice().sort((a, b) => (b.activeValue || b.dollarVolume || 0) - (a.activeValue || a.dollarVolume || 0))[0];
     return {
-      kicker: "板块排行",
-      title: "板块排行",
-      note: "按板块资金方向、成交活跃度和上涨广度排序，先确认主线是不是板块级扩散。",
+      kicker: "当前视图",
+      title: "主线扩散检查",
+      note: "用资金方向、成交活跃度和上涨广度判断强势是否已经扩散到板块层面。",
       primaryLabel: "领先板块",
       primary: sectorDisplayName(topSector?.sector) || "--",
       primaryTone: Number(topSector?.netFlowProxy ?? topSector?.avgChange) >= 0 ? "is-positive" : "is-negative",
@@ -2861,9 +2861,9 @@ const marketSectionContext = (section, rows) => {
     const positiveCount = flowSectors.filter((item) => (item.netFlowProxy || 0) > 0).length;
     const negativeCount = flowSectors.filter((item) => (item.netFlowProxy || 0) < 0).length;
     return {
-      kicker: "板块资金",
-      title: "板块资金方向",
-      note: "用板块成交额、涨跌方向和上涨广度做资金流向代理，观察钱更集中流向哪些方向。",
+      kicker: "当前视图",
+      title: "资金集中度检查",
+      note: "用成交额、涨跌方向和上涨广度做资金流向代理，观察资金集中在哪些方向。",
       primaryLabel: "流入领先",
       primary: topFlow ? sectorDisplayName(topFlow.sector) : "--",
       primaryTone: (topFlow?.netFlowProxy || 0) >= 0 ? "is-positive" : "is-negative",
@@ -2883,8 +2883,8 @@ const marketSectionContext = (section, rows) => {
     const downTiles = tiles.filter((row) => getChange(row) < 0).length;
     const topTile = tiles[0];
     return {
-      kicker: "成交热力图",
-      title: "成交额热力图",
+      kicker: "当前视图",
+      title: "成交集中度检查",
       note: "面积代表成交活跃度，颜色代表涨跌方向，用来快速发现资金集中交易的股票和板块。",
       primaryLabel: "最大热区",
       primary: topTile?.symbol || "--",
@@ -2898,8 +2898,8 @@ const marketSectionContext = (section, rows) => {
   const boardMeta = state.meta[state.activeBoard] || {};
   const volumeHot = rows.filter((row) => parseRatio(getBoardRow("volume", row.symbol)?.volumeRatio || row.volumeRatio) >= 2).length;
   return {
-    kicker: "涨跌幅榜",
-    title: "行情异动",
+    kicker: "当前视图",
+    title: "异动股票筛选",
     note: "按涨跌幅、成交额、市值和风险标签筛出需要复盘的股票，再进入个股工作台确认原因。",
     primaryLabel: "当前榜单",
     primary: boardMeta.title || "涨跌幅榜",

@@ -16160,18 +16160,18 @@ body .market-workspace .market-workspace-tabs {
 }
 
 body .market-workspace .market-workspace-tabs button {
-  display: grid;
+  display: flex;
   min-width: 132px;
-  min-height: 42px;
-  align-content: center;
-  gap: 2px;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-right: 1px solid rgba(128, 151, 183, 0.14);
   border-radius: 0;
   background: transparent;
   color: #8fa0b8;
-  text-align: left;
-  padding: 7px 12px;
+  text-align: center;
+  padding: 6px 10px;
 }
 
 body .market-workspace .market-workspace-tabs button:last-child {
@@ -16185,10 +16185,7 @@ body .market-workspace .market-workspace-tabs button span {
 }
 
 body .market-workspace .market-workspace-tabs button em {
-  color: #718299;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: 560;
+  display: none;
 }
 
 body .market-workspace .market-workspace-tabs button.is-active {
