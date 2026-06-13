@@ -19819,16 +19819,16 @@ body .page-view[data-view="risk"] .macro-pressure-legend {
 }
 
 body .page-view[data-view="risk"] .macro-composite-chart {
-  min-height: 336px;
-  height: 336px;
+  min-height: 326px;
+  height: 326px;
   border-left: 1px solid rgba(128, 151, 183, 0.14);
   background: #07101d;
   padding: 8px 10px 2px;
 }
 
 body .page-view[data-view="risk"] .macro-monitor-svg {
-  min-height: 324px;
-  height: 324px;
+  min-height: 314px;
+  height: 314px;
 }
 
 body .page-view[data-view="risk"] .macro-monitor-plot {
@@ -19913,14 +19913,38 @@ body .page-view[data-view="risk"] .macro-monitor-callout-link {
 }
 
 body .page-view[data-view="risk"] .macro-monitor-rail rect {
-  fill: rgba(8, 13, 23, 0.78);
-  stroke: rgba(128, 151, 183, 0.14);
+  fill: rgba(9, 16, 29, 0.9);
+  stroke: rgba(128, 151, 183, 0.2);
 }
 
 body .page-view[data-view="risk"] .macro-monitor-rail text {
   fill: #7f8da2;
   font-size: 11px;
   font-weight: 560;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-rail line {
+  stroke: rgba(128, 151, 183, 0.16);
+}
+
+body .page-view[data-view="risk"] .macro-monitor-rail .macro-monitor-rail-value {
+  fill: #eef4ff;
+  font-size: 34px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-rail .macro-monitor-rail-state {
+  fill: #f2c86b;
+  font-size: 14px;
+  font-weight: 620;
+}
+
+body .page-view[data-view="risk"] .macro-monitor-rail .macro-monitor-rail-date,
+body .page-view[data-view="risk"] .macro-monitor-rail .macro-monitor-rail-delta,
+body .page-view[data-view="risk"] .macro-monitor-rail .macro-monitor-rail-note {
+  fill: #8392a8;
+  font-size: 11px;
+  font-weight: 520;
 }
 
 body .page-view[data-view="risk"] .macro-monitor-callout rect {
@@ -19966,10 +19990,14 @@ body .page-view[data-view="risk"] .macro-factor-bars {
   overflow: visible;
 }
 
+body .page-view[data-view="risk"] .macro-asset-list {
+  max-height: none;
+}
+
 body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
   display: grid;
-  grid-template-columns: minmax(170px, 0.9fr) minmax(140px, 1fr) 54px minmax(170px, 0.95fr);
-  gap: 12px;
+  grid-template-columns: minmax(118px, 0.9fr) minmax(86px, 1fr) 44px minmax(96px, 0.9fr);
+  gap: 8px;
   align-items: center;
   min-height: 48px;
   border: 0;
@@ -19980,8 +20008,8 @@ body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-row {
 
 body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header {
   display: grid;
-  grid-template-columns: minmax(170px, 0.9fr) minmax(140px, 1fr) 54px minmax(170px, 0.95fr);
-  gap: 12px;
+  grid-template-columns: minmax(118px, 0.9fr) minmax(86px, 1fr) 44px minmax(96px, 0.9fr);
+  gap: 8px;
   align-items: center;
   min-height: 30px;
   border-bottom: 1px solid rgba(128, 151, 183, 0.16);
@@ -20071,12 +20099,33 @@ body .page-view[data-view="risk"] .macro-factor-bars small {
   white-space: nowrap;
 }
 
+body .page-view[data-view="risk"] .macro-asset-list .macro-asset-header,
 body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 92px minmax(0, 1.25fr);
-  gap: 10px;
+  grid-template-columns: minmax(90px, 0.9fr) 78px minmax(82px, 0.85fr) minmax(0, 1.25fr);
+  gap: 8px;
   align-items: center;
-  min-height: 58px;
+}
+
+body .page-view[data-view="risk"] .macro-asset-list .macro-asset-header {
+  min-height: 30px;
+  border-bottom: 1px solid rgba(128, 151, 183, 0.16);
+  background: rgba(15, 23, 42, 0.82);
+  padding: 7px 10px;
+}
+
+body .page-view[data-view="risk"] .macro-asset-list .macro-asset-header span {
+  overflow: hidden;
+  color: #78889d;
+  font-size: 10px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row {
+  min-height: 52px;
   border: 0;
   border-bottom: 1px solid rgba(128, 151, 183, 0.12);
   border-radius: 0;
@@ -20085,6 +20134,7 @@ body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row {
 }
 
 body .page-view[data-view="risk"] .macro-asset-list strong {
+  min-width: 0;
   min-height: 22px;
   justify-content: center;
   border-radius: 4px;
@@ -20102,10 +20152,13 @@ body .page-view[data-view="risk"] .macro-asset-list .macro-asset-row > span {
 }
 
 body .page-view[data-view="risk"] .macro-asset-list em {
-  grid-column: 3;
+  min-width: 0;
+  overflow: hidden;
   color: #8392a8;
   font-size: 11px;
   line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body .page-view[data-view="risk"] .macro-series-panel {
@@ -21586,7 +21639,8 @@ body .watchlist-actions-cell .icon-action {
     grid-template-columns: 1fr;
   }
 
-  body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header {
+  body .page-view[data-view="risk"] .macro-factor-bars .macro-factor-header,
+  body .page-view[data-view="risk"] .macro-asset-list .macro-asset-header {
     display: none;
   }
 

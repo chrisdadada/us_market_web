@@ -8066,8 +8066,8 @@ const macroMonitorCompositePoints = () => {
 const macroMonitorSvg = (points) => {
   if (points.length < 2) return '<div class="macro-chart-empty">等待图表</div>';
   const width = 1160;
-  const height = 380;
-  const pad = { left: 66, right: 242, top: 38, bottom: 58 };
+  const height = 360;
+  const pad = { left: 66, right: 214, top: 38, bottom: 52 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const min = 0;
@@ -8105,8 +8105,6 @@ const macroMonitorSvg = (points) => {
       </g>
     `;
   };
-  const calloutX = pad.left + plotW + 30;
-  const calloutY = Math.max(pad.top + 10, Math.min(pad.top + plotH - 92, lastY - 44));
   return `
     <svg class="macro-monitor-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="宏观综合压力走势">
       <rect class="macro-monitor-plot" x="${pad.left}" y="${pad.top}" width="${plotW}" height="${plotH}"></rect>
@@ -8128,18 +8126,15 @@ const macroMonitorSvg = (points) => {
       <line class="macro-monitor-guide" x1="${lastX.toFixed(1)}" x2="${lastX.toFixed(1)}" y1="${pad.top}" y2="${pad.top + plotH}"></line>
       <line class="macro-monitor-current-level" x1="${pad.left}" x2="${width - pad.right}" y1="${lastY.toFixed(1)}" y2="${lastY.toFixed(1)}"></line>
       <circle class="macro-monitor-dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="5.5"></circle>
-      <line class="macro-monitor-callout-link" x1="${lastX.toFixed(1)}" x2="${(calloutX - 12).toFixed(1)}" y1="${lastY.toFixed(1)}" y2="${(calloutY + 43).toFixed(1)}"></line>
-      <g class="macro-monitor-rail" transform="translate(${(pad.left + plotW + 16).toFixed(1)}, ${pad.top})">
-        <rect width="${(pad.right - 34).toFixed(1)}" height="${plotH.toFixed(1)}" rx="0"></rect>
-        <text x="14" y="22">当前读数</text>
-        <text x="14" y="${(plotH - 18).toFixed(1)}">数值越高，宏观扰动越强</text>
-      </g>
-      <g class="macro-monitor-callout" transform="translate(${calloutX.toFixed(1)}, ${calloutY.toFixed(1)})">
-        <rect width="176" height="86" rx="7"></rect>
-        <text x="13" y="20">${escapeHtml(stateLabel)}</text>
-        <text class="macro-monitor-callout-value" x="13" y="50">${Math.round(last.value)}</text>
-        <text class="macro-monitor-callout-date" x="76" y="49">${escapeHtml(formatDisplayDate(last.date).slice(0, 10))}</text>
-        <text class="macro-monitor-callout-delta" x="13" y="68">${escapeHtml(deltaLabel)}</text>
+      <g class="macro-monitor-rail" transform="translate(${(pad.left + plotW + 14).toFixed(1)}, ${pad.top})">
+        <rect width="${(pad.right - 28).toFixed(1)}" height="${plotH.toFixed(1)}" rx="4"></rect>
+        <text x="14" y="24">当前压力</text>
+        <text class="macro-monitor-rail-value" x="14" y="68">${Math.round(last.value)}</text>
+        <text class="macro-monitor-rail-state" x="14" y="96">${escapeHtml(stateLabel)}</text>
+        <text class="macro-monitor-rail-date" x="14" y="134">${escapeHtml(formatDisplayDate(last.date).slice(0, 10))}</text>
+        <text class="macro-monitor-rail-delta" x="14" y="156">${escapeHtml(deltaLabel)}</text>
+        <line x1="14" x2="${(pad.right - 42).toFixed(1)}" y1="${(plotH - 56).toFixed(1)}" y2="${(plotH - 56).toFixed(1)}"></line>
+        <text class="macro-monitor-rail-note" x="14" y="${(plotH - 30).toFixed(1)}">0-35低 / 35-65中 / 65+高</text>
       </g>
       ${labels.map((point, index) => {
         const pointIndex = index === 0 ? 0 : index === 1 ? Math.floor(points.length / 2) : points.length - 1;
@@ -8305,14 +8300,22 @@ const renderMacroMonitor = () => {
 
   const impact = document.querySelector("#macroAssetImpact");
   if (impact) {
-    impact.innerHTML = macroAssetImpactRows(macroRows, Number(lastScore)).map(({ asset, stateLabel, driver, note, stateClass }) => `
-      <div class="macro-asset-row ${escapeHtml(stateClass)}">
-        <b>${escapeHtml(asset)}</b>
-        <strong>${escapeHtml(stateLabel)}</strong>
-        <span>${escapeHtml(driver)}</span>
-        <em>${escapeHtml(note)}</em>
+    impact.innerHTML = `
+      <div class="macro-asset-header">
+        <span>资产</span>
+        <span>状态</span>
+        <span>驱动变量</span>
+        <span>观察动作</span>
       </div>
-    `).join("");
+      ${macroAssetImpactRows(macroRows, Number(lastScore)).map(({ asset, stateLabel, driver, note, stateClass }) => `
+        <div class="macro-asset-row ${escapeHtml(stateClass)}">
+          <b>${escapeHtml(asset)}</b>
+          <strong>${escapeHtml(stateLabel)}</strong>
+          <span>${escapeHtml(driver)}</span>
+          <em>${escapeHtml(note)}</em>
+        </div>
+      `).join("")}
+    `;
   }
 };
 
