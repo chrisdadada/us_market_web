@@ -17975,6 +17975,13 @@ body .page-view[data-view="events"] .calendar-earnings-summary strong {
   white-space: nowrap;
 }
 
+body .page-view[data-view="events"] .calendar-earnings-summary p {
+  margin: 0;
+  color: #74849a;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 body .page-view[data-view="events"] .calendar-table-wrap {
   max-height: 590px;
   border: 0;
@@ -17986,6 +17993,10 @@ body .page-view[data-view="events"] .calendar-table-wrap {
 body .page-view[data-view="events"] .calendar-table {
   min-width: 860px;
   table-layout: fixed;
+}
+
+body .page-view[data-view="events"] .calendar-system-table {
+  min-width: 760px;
 }
 
 body .page-view[data-view="events"] .calendar-table th {
@@ -18018,6 +18029,26 @@ body .page-view[data-view="events"] .calendar-table th:nth-child(5) {
 
 body .page-view[data-view="events"] .calendar-table th:nth-child(6) {
   width: 64px;
+}
+
+body .page-view[data-view="events"] .calendar-system-table th:nth-child(1) {
+  width: 116px;
+}
+
+body .page-view[data-view="events"] .calendar-system-table th:nth-child(2) {
+  width: 92px;
+}
+
+body .page-view[data-view="events"] .calendar-system-table th:nth-child(3) {
+  width: auto;
+}
+
+body .page-view[data-view="events"] .calendar-system-table th:nth-child(4) {
+  width: 184px;
+}
+
+body .page-view[data-view="events"] .calendar-system-table th:nth-child(5) {
+  width: 76px;
 }
 
 body .page-view[data-view="events"] .calendar-table td {

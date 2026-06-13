@@ -9867,8 +9867,6 @@ const calendarScopeText = (item) => {
   return relatedAssets || relatedModules || item.sourceName || eventTypeLabel(item.type);
 };
 
-const calendarSourceText = (item) => `${eventTypeLabel(item.type)}${item.sourceName ? ` · ${item.sourceName}` : ""}`;
-
 const calendarEarningsEstimate = (item) => {
   const summary = String(item.summary || "");
   const epsMatch = summary.match(/EPS\s*([+-]?\d+(?:\.\d+)?)/i);
@@ -9895,10 +9893,6 @@ const renderCalendarMacroRows = (events) =>
         <td class="calendar-title-cell">
           <strong>${escapeHtml(item.title || "--")}</strong>
           <p>${escapeHtml(item.summary || "")}</p>
-        </td>
-        <td class="calendar-source-cell">
-          <strong>${escapeHtml(item.sourceName || "--")}</strong>
-          <span>${escapeHtml(eventTypeLabel(item.type))}</span>
         </td>
         <td class="calendar-related-cell">
           <strong>${escapeHtml(calendarScopeText(item) || "--")}</strong>
@@ -9927,10 +9921,6 @@ const renderCalendarEarningsRows = (events) =>
         </td>
         <td class="calendar-related-cell">
           <strong>${escapeHtml(calendarEarningsEstimate(item))}</strong>
-        </td>
-        <td class="calendar-source-cell">
-          <strong>${escapeHtml(item.sourceName || "--")}</strong>
-          <span>${escapeHtml(calendarSourceText(item))}</span>
         </td>
         <td class="calendar-impact-cell"><em class="calendar-impact ${impactClass}">${escapeHtml(eventImpactLabel(item.impact))}</em></td>
       </tr>
@@ -10035,14 +10025,14 @@ const renderEventsCalendar = (payload) => {
   if (body) {
     body.innerHTML = macroEvents.length
       ? renderCalendarMacroRows(macroEvents)
-      : '<tr class="calendar-empty-row"><td colspan="6"><strong>暂无未来宏观事件</strong><p>当前宏观日历源没有更多未来事件。数据接入后会按时间、来源、影响和相关市场展示。</p></td></tr>';
+      : '<tr class="calendar-empty-row"><td colspan="5"><strong>暂无未来宏观事件</strong><p>当前宏观日历源没有更多未来事件。数据接入后会按时间、影响等级和相关市场展示。</p></td></tr>';
   }
   if (earningsBody) {
     earningsBody.innerHTML = earningsEvents.length
       ? renderCalendarEarningsRows(earningsEvents)
       : allEarningsEvents.length
-        ? '<tr class="calendar-empty-row"><td colspan="6"><strong>当前筛选下没有财报</strong><p>可以放宽时间窗、影响级别，或直接输入股票代码搜索具体公司。</p></td></tr>'
-        : '<tr class="calendar-empty-row"><td colspan="6"><strong>暂无未来公司财报日期</strong><p>当前数据库没有可展示的未来财报日期；有新数据后会展示公司、日期、来源和影响等级。</p></td></tr>';
+        ? '<tr class="calendar-empty-row"><td colspan="5"><strong>当前筛选下没有财报</strong><p>可以放宽时间窗、影响等级，或直接输入股票代码搜索具体公司。</p></td></tr>'
+        : '<tr class="calendar-empty-row"><td colspan="5"><strong>暂无未来公司财报日期</strong><p>当前数据库没有可展示的未来财报日期；有新数据后会展示公司、日期和影响等级。</p></td></tr>';
   }
   if (manualPanel && manualBody) {
     manualPanel.hidden = false;

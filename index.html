@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260613-marketnav1" />
+    <link rel="stylesheet" href="./styles.css?v=20260613-calendar1" />
   </head>
   <body>
     <div class="app-shell">
@@ -1282,7 +1282,7 @@
             <div>
               <p class="eyebrow" id="eventsEyebrow">财经日历</p>
               <h1 id="eventsPageTitle">财经日历</h1>
-              <p class="subtitle" id="eventsPageSubtitle">宏观日历、公司财报日期和人工财经日志分开看；这里只展示时间、来源、影响范围和需要复核的事实。</p>
+              <p class="subtitle" id="eventsPageSubtitle">宏观日历、公司财报日期和人工财经日志分开看；这里只展示时间、影响范围和需要复核的事实。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1294,7 +1294,7 @@
             <div class="calendar-hero-copy">
               <span>未来事件</span>
               <strong id="calendarHeroTitle">未来事件总览</strong>
-              <p id="calendarHeroLead">宏观日历和财报日期分开展示，先看时间，再看来源、影响范围和相关资产。</p>
+              <p id="calendarHeroLead">宏观日历和财报日期分开展示，先看时间、影响范围和相关资产。</p>
             </div>
             <div class="calendar-source-board">
               <div><span>宏观事件</span><strong id="calendarMacroStatus">--</strong></div>
@@ -1333,19 +1333,18 @@
                 </div>
               </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
-                <table class="calendar-table data-table">
+                <table class="calendar-table calendar-system-table data-table">
                   <thead>
                     <tr>
                       <th>日期</th>
                       <th>时间</th>
                       <th>宏观事件</th>
-                      <th>来源</th>
                       <th>关联市场</th>
-                      <th>重要性</th>
+                      <th>影响等级</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEventBody">
-                    <tr><td colspan="6">正在加载财经日历。</td></tr>
+                    <tr><td colspan="5">正在加载财经日历。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1374,7 +1373,7 @@
                   </select>
                 </label>
                 <label>
-                  <span>影响</span>
+                  <span>影响等级</span>
                   <select id="calendarEarningsImpactFilter">
                     <option value="all">全部</option>
                     <option value="high">高影响</option>
@@ -1385,22 +1384,22 @@
                 <div class="calendar-earnings-summary">
                   <span id="calendarEarningsMeta">--</span>
                   <strong id="calendarEarningsLead">等待财报日期数据。</strong>
+                  <p>影响等级：宏观沿用事件源等级；财报按数据源 importance 映射，4+ 高、2-3 中、低于 2 低。</p>
                 </div>
               </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
-                <table class="calendar-table data-table">
+                <table class="calendar-table calendar-system-table data-table">
                   <thead>
                     <tr>
                       <th>日期</th>
                       <th>股票</th>
                       <th>公司 / 事件</th>
                       <th>预估口径</th>
-                      <th>来源</th>
-                      <th>重要性</th>
+                      <th>影响等级</th>
                     </tr>
                   </thead>
                   <tbody id="calendarEarningsBody">
-                    <tr><td colspan="6">暂无已接入财报日期。</td></tr>
+                    <tr><td colspan="5">暂无已接入财报日期。</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -2800,6 +2799,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260613-marketnav1"></script>
+    <script src="./app.js?v=20260613-calendar1"></script>
   </body>
 </html>
