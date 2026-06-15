@@ -11,6 +11,25 @@ from common import data_path, load_env, parse_date, write_parquet
 
 
 HORIZONS = [5, 20, 60]
+CONSENSUS_COLUMNS = [
+    "ticker",
+    "company_name",
+    "last_event_date",
+    "events_30d",
+    "firms_30d",
+    "upgrades_30d",
+    "downgrades_30d",
+    "positive_actions_30d",
+    "negative_actions_30d",
+    "avg_price_target_upside",
+    "max_price_target_upside",
+    "latest_firm",
+    "latest_rating_action",
+    "latest_rating",
+    "latest_price_target",
+    "latest_reason",
+    "analyst_heat_score",
+]
 
 
 def load_events() -> pd.DataFrame:
@@ -135,7 +154,7 @@ def consensus_board(events: pd.DataFrame, asof: date, lookback_days: int) -> pd.
         )
     out = pd.DataFrame(rows)
     if out.empty:
-        return out
+        return pd.DataFrame(columns=CONSENSUS_COLUMNS)
     out["analyst_heat_score"] = (
         out["upgrades_30d"] * 3
         - out["downgrades_30d"] * 3
