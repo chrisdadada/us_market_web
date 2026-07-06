@@ -222,6 +222,12 @@ def create_schema(conn: sqlite3.Connection) -> None:
           PRIMARY KEY (as_of, sector)
         );
 
+        CREATE TABLE sector_overrides (
+          symbol TEXT PRIMARY KEY,
+          sector TEXT NOT NULL,
+          updated_at TEXT
+        );
+
         CREATE TABLE stock_event_rows (
           board TEXT NOT NULL,
           rank INTEGER,
@@ -894,6 +900,19 @@ def import_market_opinion(conn: sqlite3.Connection) -> int:
     return count
 
 
+def import_sector_overrides(conn: sqlite3.Connection) -> int:
+    from sector_overrides import load_legacy_sector_overrides, load_sector_overrides
+
+    overrides = load_sector_overrides() or load_legacy_sector_overrides()
+    now = now_iso()
+    for symbol, sector in overrides.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO sector_overrides (symbol, sector, updated_at) VALUES (?, ?, ?)",
+            (symbol_value(symbol), normalize_sector(sector) or sector, now),
+        )
+    return len(overrides)
+
+
 def import_raw_only(conn: sqlite3.Connection, names: Iterable[str]) -> None:
     for name in names:
         path = DATA_DIR / f"{name}.json"
@@ -914,6 +933,7 @@ def build_database(output: Path) -> dict[str, int]:
         try:
             create_schema(conn)
             import_counts = {
+                "sector_overrides": import_sector_overrides(conn),
                 "market_board_rows": import_market_boards(conn),
                 "tracking_pool_rows": import_tracking_pool(conn),
                 "sector_flow_rows": import_sector_flow(conn),
@@ -933,6 +953,7 @@ def build_database(output: Path) -> dict[str, int]:
                 name: table_count(conn, name)
                 for name in [
                     "symbols",
+                    "sector_overrides",
                     "market_board_rows",
                     "sector_flow_rows",
                     "stock_event_rows",
@@ -954,6 +975,7 @@ def build_database(output: Path) -> dict[str, int]:
         with sqlite3.connect(output) as verify:
             verify_counts = {name: table_count(verify, name) for name in [
                 "symbols",
+                "sector_overrides",
                 "market_board_rows",
                 "sector_flow_rows",
                 "stock_event_rows",

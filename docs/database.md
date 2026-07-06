@@ -8,7 +8,7 @@
    - 这类数据不可随意重建，部署静态站点时不应覆盖。
 
 2. `data/product.db`
-   - 产品数据仓库，由 `scripts/build_product_db.py` 从 `data/*.json` 快照生成。
+   - 产品数据仓库，由离线数据脚本生成。
    - 存放市场榜单、板块资金、财经日历、股票事件、财报观察、强弱扫描、市场温度计和期权摘要。
    - 这是可重建数据，默认不提交到 git；本地或服务器执行 `scripts/update_product_data.sh` 会重新生成。
 
@@ -19,7 +19,7 @@
 - 单文件，部署和备份简单。
 - Python 标准库原生支持，不增加服务依赖。
 - 足够支撑当前几千到几十万行级别的产品查询。
-- 可以先把 JSON 数据规范化成表，后续迁移到 Postgres 时 schema 和导入逻辑可以复用。
+- 可以先把数据规范化成表，后续迁移到 Postgres 时 schema 和导入逻辑可以复用。
 
 当出现多任务并发写入、复杂权限查询、实时行情写入或多服务共享数据库时，再迁移到 Postgres。
 
@@ -51,18 +51,18 @@ python3 scripts/check_product_coverage.py
 
 股票库列表页已经改为优先读取 `/api/product/symbols` 的 DB 查询结果，支持查询、板块、市值分层、事件/自选预设和排序参数。顶部全局搜索也优先用同一接口按输入词查询股票。前端只渲染当前表格窗口和当前搜索结果，接口不可用时才回退到旧的本地聚合路径。
 
-`data/sector-overrides.json` 是人工板块补全表，构建市场榜单和板块资金时都会读取。`data/manual/earnings-calendar.json` 是未来财报日历入口，可以由 FMP 下载脚本写入，也可以后续接人工上传流程。
+人工板块补全已经迁到 `sector_overrides` 表，构建市场榜单和板块资金时都会读取这张表。未来财报日历由下载脚本写入产品 DB，后续也可以接后台人工上传流程。
 
 ## 设计原则
 
 - `symbols` 是股票主表，聚合代码、名称、板块、市值、价格、成交额等常用字段。
 - 业务表按模块拆分，例如 `market_board_rows`、`sector_flow_rows`、`stock_event_rows`、`calendar_events`。
-- 每张业务表都保留 `payload_json`，原始 JSON 字段不会丢，后续页面新增字段时不用立刻做大迁移。
-- `datasets` 和 `raw_payloads` 记录每个源文件的 `asOf`、生成时间、行数和原始 payload，方便排查数据新旧。
+- 每张业务表都保留 `payload_json`，原始字段不会丢，后续页面新增字段时不用立刻做大迁移。
+- `datasets` 和 `raw_payloads` 记录每个数据集的 `asOf`、生成时间、行数和原始 payload，方便排查数据新旧。
 
 ## 后续迁移顺序
 
 1. 先让自动化任务稳定生成 `data/product.db`。
 2. 增加只读 API，从 DB 查询股票详情、板块排行、财经日历。
-3. 前端从 JSON 逐步切到 API。股票库列表和顶部全局搜索已经切换，后续继续迁移板块热力图和财经日历详情。
+3. 前端统一走 API。不要再新增前端直读数据文件的路径。
 4. 如果数据量和并发需要，再把 SQLite schema 迁到 Postgres。

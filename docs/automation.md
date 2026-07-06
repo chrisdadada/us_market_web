@@ -6,13 +6,13 @@ This project now has one main refresh entrypoint:
 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
-It updates recent Polygon daily stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, regenerates front-end JSON, validates JSON, and runs the release gate.
+It updates recent Polygon daily stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, rebuilds the product DB, and runs the release gate.
 
 Restricted Benzinga event feeds are requested through a forward-looking window by default so the product can pick up upcoming earnings dates when the account is entitled to that feed. If the feed returns 403, the refresh logs a warning and keeps the rest of the product data pipeline moving.
 
-Future earnings are populated through `scripts/download_earnings_calendar.py`, which merges Nasdaq's public web calendar endpoint plus every configured API provider into `data/manual/earnings-calendar.json`. Optional provider keys are `FMP_API_KEY`, `ALPHA_VANTAGE_API_KEY`/`ALPHAVANTAGE_API_KEY`, and `FINNHUB_API_KEY`. The script logs provider row counts and warns when key watchlist symbols are missing from the forward window. The product builder merges that file with local Polygon/Benzinga snapshots and keeps manual entries separate from macro events.
+Future earnings are populated through `scripts/download_earnings_calendar.py`, which merges Nasdaq's public web calendar endpoint plus every configured API provider into the product DB build input. Optional provider keys are `FMP_API_KEY`, `ALPHA_VANTAGE_API_KEY`/`ALPHAVANTAGE_API_KEY`, and `FINNHUB_API_KEY`. The script logs provider row counts and warns when key watchlist symbols are missing from the forward window. The product builder keeps company earnings separate from macro events.
 
-Sector gaps are supplemented by `data/sector-overrides.json`. Use that file for clear manual classifications, especially ADRs and overseas listings where the upstream ticker metadata is sparse.
+Sector gaps are supplemented by the `sector_overrides` table in `data/product.db`, especially ADRs and overseas listings where the upstream ticker metadata is sparse.
 
 ## Manual Run
 

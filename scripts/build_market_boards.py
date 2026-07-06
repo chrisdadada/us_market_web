@@ -179,10 +179,12 @@ def infer_sector_from_sic(text: str) -> str | None:
 
 
 def load_sector_map(data_root: Path) -> dict[str, str]:
-    overrides = read_json(SECTOR_OVERRIDES_PATH).get("sectors", {})
+    from sector_overrides import load_legacy_sector_overrides, load_sector_overrides
+
+    overrides = load_sector_overrides() or load_legacy_sector_overrides(SECTOR_OVERRIDES_PATH)
     path = data_root / "raw" / "polygon_rest" / "corporate_actions_full" / "ticker_details_full.parquet"
     if not path.exists():
-        return {str(symbol).upper(): str(sector) for symbol, sector in overrides.items() if sector}
+        return overrides
     columns = ["ticker", "name", "sic_description", "type"]
     details = pd.read_parquet(path, columns=columns)
     out: dict[str, str] = {}
@@ -191,7 +193,7 @@ def load_sector_map(data_root: Path) -> dict[str, str]:
         sector = infer_sector_from_sic(row.sic_description) or infer_sector(str(row.name or ""), str(row.type or ""))
         if sector and sector != "未分类":
             out[symbol] = sector
-    out.update({str(symbol).upper(): str(sector) for symbol, sector in overrides.items() if sector})
+    out.update(overrides)
     return out
 
 

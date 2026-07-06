@@ -180,16 +180,9 @@ def load_rows(path: Path) -> dict[str, Any]:
 
 
 def load_sector_overrides() -> dict[str, str]:
-    if not SECTOR_OVERRIDES_PATH.exists():
-        return {}
-    try:
-        payload = json.loads(SECTOR_OVERRIDES_PATH.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
-    sectors = payload.get("sectors")
-    if not isinstance(sectors, dict):
-        return {}
-    return {str(symbol).upper(): str(sector) for symbol, sector in sectors.items() if sector}
+    from sector_overrides import load_legacy_sector_overrides, load_sector_overrides
+
+    return load_sector_overrides() or load_legacy_sector_overrides(SECTOR_OVERRIDES_PATH)
 
 
 def build_sector_flow(input_path: Path, output_path: Path, data_root: Path, limit: int) -> dict[str, Any]:
