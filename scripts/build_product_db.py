@@ -161,52 +161,10 @@ def load_options_flow_payload() -> tuple[dict[str, Any], Path]:
 
 
 def load_earnings_quality_payload() -> tuple[dict[str, Any], Path]:
-    try:
-        sys.path.insert(0, str(ROOT / "scripts"))
-        from data_agent import DEFAULT_DATA_ROOT, build_earnings_quality, latest_trade_date
-
-        data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
-        as_of = text_value(os.environ.get("TRACKING_ASOF")) or latest_trade_date(data_root)
-        return build_earnings_quality(data_root, as_of, 160), Path("direct:earnings-quality")
-    except Exception as exc:
-        print(f"WARN: earnings quality direct import skipped: {exc}")
     return load_existing_dataset_payload("earnings-quality")
 
 
 def load_site_data_index_payload() -> tuple[dict[str, Any], Path]:
-    try:
-        sys.path.insert(0, str(ROOT / "scripts"))
-        from data_agent import (
-            DEFAULT_DATA_ROOT,
-            build_analyst_heat,
-            build_earnings_quality,
-            build_health,
-            build_manifest,
-            build_market_leaders,
-            build_market_temperature,
-            latest_trade_date,
-            now_iso as agent_now_iso,
-        )
-
-        data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
-        as_of = text_value(os.environ.get("TRACKING_ASOF")) or latest_trade_date(data_root)
-        health = build_health(data_root, as_of)
-        return {
-            "generatedAt": agent_now_iso(),
-            "asOf": as_of,
-            "sourceRoot": str(data_root),
-            "health": health,
-            "manifest": build_manifest(as_of, health),
-            "payloads": {
-                "marketTemperature": build_market_temperature(data_root),
-                "marketLeaders": build_market_leaders(data_root, as_of, 100),
-                "earningsQuality": build_earnings_quality(data_root, as_of, 160),
-                "analystHeat": build_analyst_heat(data_root, 100),
-                "sectorFlow": load_sector_flow_payload()[0],
-            },
-        }, Path("direct:site-data-index")
-    except Exception as exc:
-        print(f"WARN: site data index direct import skipped: {exc}")
     return load_existing_dataset_payload("site-data-index")
 
 
@@ -968,7 +926,7 @@ def import_strength(conn: sqlite3.Connection) -> int:
             sys.path.insert(0, str(ROOT / "scripts"))
             from build_strength_scanner import build_scanner
 
-            payload = build_scanner(data_root, None, None, 5_000_000, 40)
+            payload = build_scanner(data_root, None, 5_000_000, 40)
             path = Path("direct:strength-scanner")
         except Exception as exc:
             print(f"WARN: strength scanner direct import skipped: {exc}")

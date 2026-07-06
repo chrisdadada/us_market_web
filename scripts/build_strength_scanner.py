@@ -145,88 +145,6 @@ def ytd_return(panel: pd.DataFrame) -> pd.Series:
     return (year_panel.iloc[-1] / year_panel.iloc[0] - 1) * 100
 
 
-def build_review(snapshot_dir: Path, latest_date: str, close_panel: pd.DataFrame, spy: pd.Series) -> dict:
-    reviews: list[dict] = []
-    if not snapshot_dir.exists():
-        return {
-            "summary": "暂无足够历史记录，系统会从本次刷新开始跟踪这些判断后续是否有效。",
-            "labels": [],
-            "factors": [],
-        }
-
-    for path in sorted(snapshot_dir.glob("*.json")):
-        try:
-            snap = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            continue
-        snap_date = snap.get("asOf")
-        if not snap_date or snap_date >= latest_date or snap_date not in close_panel.index:
-            continue
-        current = close_panel.iloc[-1]
-        base = close_panel.loc[snap_date]
-        spy_current = float(spy.iloc[-1])
-        spy_base = float(spy.loc[snap_date]) if snap_date in spy.index else None
-        if not spy_base:
-            continue
-        spy_return = (spy_current / spy_base - 1) * 100
-        for row in snap.get("rows", []):
-            symbol = row.get("symbol")
-            if symbol not in current.index or symbol not in base.index:
-                continue
-            base_price = base.get(symbol)
-            current_price = current.get(symbol)
-            if not base_price or pd.isna(base_price) or pd.isna(current_price):
-                continue
-            future_return = (float(current_price) / float(base_price) - 1) * 100
-            reviews.append(
-                {
-                    "label": row.get("label", "未分类"),
-                    "bucket": row.get("bucket", "watchlist"),
-                    "factor": row.get("primaryFactor", "综合表现"),
-                    "excess": future_return - spy_return,
-                }
-            )
-
-    if not reviews:
-        return {
-            "summary": "历史记录还不够，继续刷新后会显示哪些标签相对大盘更强。",
-            "labels": [],
-            "factors": [],
-        }
-
-    review_df = pd.DataFrame(reviews)
-    label_rows = []
-    for label, group in review_df.groupby("label"):
-        if len(group) < 3:
-            continue
-        label_rows.append(
-            {
-                "name": label,
-                "sample": int(len(group)),
-                "winRate": fmt_pct(float((group["excess"] > 0).mean() * 100), 0),
-                "avgExcess": fmt_pct(float(group["excess"].mean())),
-            }
-        )
-    factor_rows = []
-    for factor, group in review_df.groupby("factor"):
-        if len(group) < 3:
-            continue
-        factor_rows.append(
-            {
-                "name": factor,
-                "sample": int(len(group)),
-                "avgExcess": fmt_pct(float(group["excess"].mean())),
-            }
-        )
-    label_rows = sorted(label_rows, key=lambda item: float(item["avgExcess"].replace("%", "").replace("+", "")), reverse=True)[:6]
-    factor_rows = sorted(factor_rows, key=lambda item: float(item["avgExcess"].replace("%", "").replace("+", "")), reverse=True)[:5]
-    return {
-        "summary": f"已回看 {len(reviews)} 条历史记录，重点看它们后续是否强于 SPY。",
-        "labels": label_rows,
-        "factors": factor_rows,
-    }
-
-
 def label_for(row: pd.Series) -> tuple[str, str, str]:
     score = row["strength_score"]
     crowding = row["crowding_score"]
@@ -301,50 +219,7 @@ def build_theme_summary(work: pd.DataFrame) -> dict:
     }
 
 
-def build_on_board_map(rows: list[dict], snapshot_dir: Path | None, latest_date: str) -> dict[str, dict]:
-    history: list[tuple[str, set[str]]] = []
-    if snapshot_dir and snapshot_dir.exists():
-        for path in sorted(snapshot_dir.glob("*.json")):
-            try:
-                snap = json.loads(path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                continue
-            snap_date = snap.get("asOf")
-            if not snap_date or snap_date >= latest_date:
-                continue
-            symbols = {item.get("symbol") for item in snap.get("rows", []) if item.get("symbol")}
-            history.append((snap_date, symbols))
-
-    current_symbols = {row["symbol"] for row in rows}
-    result: dict[str, dict] = {}
-    for symbol in current_symbols:
-        seen_dates = [snap_date for snap_date, symbols in history if symbol in symbols]
-        total_days = len(seen_dates) + 1
-        streak = 1
-        streak_dates: list[str] = []
-        for snap_date, symbols in reversed(history):
-            if symbol not in symbols:
-                break
-            streak += 1
-            streak_dates.append(snap_date)
-        stint_started = streak_dates[-1] if streak_dates else latest_date
-        if total_days == 1:
-            label = "今日新上榜"
-        elif streak > 1:
-            label = f"连续 {streak} 天"
-        else:
-            label = "今日回榜"
-        result[symbol] = {
-            "label": label,
-            "days": streak,
-            "streak": streak,
-            "totalDays": total_days,
-            "firstSeen": stint_started,
-        }
-    return result
-
-
-def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path | None, min_adv: float, limit: int) -> dict:
+def build_scanner(data_root: Path, output: Path | None, min_adv: float, limit: int) -> dict:
     current_year = datetime.now().year
     years = [current_year - 1, current_year]
     daily = load_daily(data_root, years)
@@ -525,29 +400,8 @@ def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path | Non
         return rows
 
     rows = to_rows(strongest, "strongest") + to_rows(weakest, "weakest") + to_rows(watchlist, "watchlist")
-    on_board_map = build_on_board_map(rows, snapshot_dir, latest_date)
     for row in rows:
-        row["onBoard"] = on_board_map.get(
-            row["symbol"],
-            {"label": "今日新上榜", "days": 1, "streak": 1, "firstSeen": latest_date},
-        )
-    snapshot_rows = [
-        {
-            "symbol": row["symbol"],
-            "bucket": row["bucket"],
-            "score": row["score"],
-            "label": row["label"],
-            "primaryFactor": row["primaryFactor"],
-            "onBoard": row["onBoard"],
-        }
-        for row in rows
-    ]
-
-    review = (
-        build_review(snapshot_dir, latest_date, close_panel, close_panel["SPY"])
-        if snapshot_dir
-        else {"summary": "", "labels": [], "factors": []}
-    )
+        row["onBoard"] = {"label": "已入榜", "days": None, "streak": None, "firstSeen": latest_date}
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "asOf": latest_date,
@@ -571,7 +425,7 @@ def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path | Non
         },
         "rows": rows,
         "themes": themes,
-        "review": review,
+        "review": {"summary": "", "labels": [], "factors": []},
         "method": [
             "先看“优先研究”前 10，只挑你熟悉、流动性好的股票继续研究。",
             "看到“强但偏热”，默认等回踩或分歧，不把它当成立刻行动信号。",
@@ -582,13 +436,6 @@ def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path | Non
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    if snapshot_dir is not None:
-        snapshot_dir.mkdir(parents=True, exist_ok=True)
-        snapshot_path = snapshot_dir / f"{latest_date}.json"
-        snapshot_path.write_text(
-            json.dumps({"asOf": latest_date, "generatedAt": payload["generatedAt"], "rows": snapshot_rows}, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
     return payload
 
 
@@ -596,12 +443,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--output", type=Path, default=None)
-    parser.add_argument("--snapshot-dir", type=Path, default=None)
     parser.add_argument("--min-adv", type=float, default=5_000_000)
     parser.add_argument("--limit", type=int, default=40)
     args = parser.parse_args()
 
-    payload = build_scanner(args.data_root, args.output, args.snapshot_dir, args.min_adv, args.limit)
+    payload = build_scanner(args.data_root, args.output, args.min_adv, args.limit)
     target = f"Wrote {args.output}" if args.output else "Built strength scanner"
     print(f"{target} as of {payload['asOf']} with {payload['universe']['total']} symbols")
 
