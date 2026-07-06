@@ -213,32 +213,7 @@ const MARKET_OPINION_SECTION_LABELS = {
 
 const MARKET_OPINION_HOME_SECTIONS = ["weekly", "premarket", "daily", "research", "postmarket", "journal"];
 
-const MARKET_OPINION_FALLBACK_ITEMS = {
-  premarket: {
-    id: "premarket-fomc-2026-06-18",
-    section: "premarket",
-    sectionLabel: "盘前前瞻",
-    title: "FOMC 后先看指数缺口和半导体承接",
-    tradeDate: "2026-06-18",
-    summary: "盘前重点看 SPY 740-750、QQQ 是否继续补缺口，以及 SMH / SOXX 能否延续逆势强度。",
-    symbols: ["SPY", "QQQ", "SMH", "SOXX", "INTC", "ARM", "WDC", "MU"],
-    topics: ["FOMC", "半导体", "存储"],
-    highlights: ["SPY 740-750", "半导体逆势承接", "存储和 Intel 链继续跟踪"],
-    body: "指数仍在消化利率预期，盘前先看 SPY 740-750 区间和 QQQ 是否继续补缺口。\n\n半导体如果继续逆势，说明资金仍在做修复。重点观察 SMH、SOXX、INTC、ARM、WDC、MU。",
-  },
-  postmarket: {
-    id: "postmarket-fomc-2026-06-18",
-    section: "postmarket",
-    sectionLabel: "盘后复盘延展",
-    title: "指数补缺口、半导体逆势、软件继续弱",
-    tradeDate: "2026-06-18",
-    summary: "盘后复盘重点拆指数、半导体、软件和 M7 成交量，判断成长股能不能重新扩散。",
-    symbols: ["SPY", "QQQ", "SMH", "SOXX", "IGV", "META", "MSFT", "AMZN"],
-    topics: ["盘后复盘", "半导体", "软件", "M7"],
-    highlights: ["指数缺口是否补完", "半导体是否继续强于指数", "软件是否止跌"],
-    body: "收盘后先确认 SPY / QQQ 缺口是否补完，以及是否重新站回关键位置。\n\n再看 SMH、SOXX、WDC、MU、ARM 是否继续强于指数。最后看 IGV 和 M7 成交量，判断成长股能否重新扩散。",
-  },
-};
+const MARKET_OPINION_FALLBACK_ITEMS = {};
 
 const normalizeProductSymbolRow = (row = {}) => {
   const symbol = normalizeStockSymbol(row.symbol);
