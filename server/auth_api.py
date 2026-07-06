@@ -295,7 +295,6 @@ def product_db_candidates() -> list[Path]:
     candidates.extend(
         [
             STATIC_ROOT / "data" / "product.db",
-            Path("/opt/dongbimao-prod/data/product.db"),
             Path(__file__).resolve().parents[1] / "data" / "product.db",
         ]
     )
