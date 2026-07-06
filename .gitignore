@@ -36,3 +36,7 @@ screenshots/
 mockups/output/
 .tmp/
 logs/
+
+# Generated data snapshots live in DB/runtime, not source control.
+data/**/*.json
+!data/sector-overrides.json
