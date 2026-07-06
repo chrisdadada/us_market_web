@@ -5,12 +5,15 @@
 - Test: `https://dev.dongbimao.org`
 - Production: `https://www.dongbimao.org`
 
-Both environments use the same API service for now. Static frontend files are separated:
+Dev and production frontend files are separated:
 
 - Test root: `/var/www/dongbimao-dev`
 - Production root: `/var/www/dongbimao-prod`
 
 ## Deploy To Test
+
+Code deploy does not rebuild `data/product.db` by default. Data refresh is owned
+by the automated refresh jobs.
 
 ```bash
 ./scripts/deploy_dev.sh
@@ -18,26 +21,32 @@ Both environments use the same API service for now. Static frontend files are se
 
 Check `https://dev.dongbimao.org` first.
 
+To force a product DB rebuild during a manual deploy:
+
+```bash
+BUILD_PRODUCT_DB=1 ./scripts/deploy_dev.sh
+```
+
 ## Automated Refresh Deploy
 
-The market data refresh now deploys automatically after product JSON validation,
+The market data refresh now deploys automatically after product DB validation,
 release gate tests, and package creation pass:
 
 ```bash
 ./scripts/automated_refresh.sh
 ```
 
-By default it deploys to `https://dev.dongbimao.org` and then promotes that build to
-`https://www.dongbimao.org`. For a dry refresh that stops before deploy:
+By default it deploys to `https://dev.dongbimao.org` only. For a dry refresh
+that stops before deploy:
 
 ```bash
 DEPLOY_AFTER_REFRESH=0 ./scripts/automated_refresh.sh
 ```
 
-To deploy only to test and skip production promotion:
+Production promotion is blocked unless explicitly enabled:
 
 ```bash
-PROMOTE_PROD_AFTER_DEPLOY=0 ./scripts/automated_refresh.sh
+ALLOW_PROD_PROMOTE=1 PROMOTE_PROD_AFTER_DEPLOY=1 ./scripts/automated_refresh.sh
 ```
 
 Options flow refresh is part of this automation by default. It uses Polygon REST
