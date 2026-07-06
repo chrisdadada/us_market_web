@@ -56,6 +56,10 @@ OPTIONS_MAX_DAYS="${OPTIONS_MAX_DAYS:-1}"
 OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"
 DEPLOY_AFTER_REFRESH="${DEPLOY_AFTER_REFRESH:-1}"
 PROMOTE_PROD_AFTER_DEPLOY="${PROMOTE_PROD_AFTER_DEPLOY:-0}"
+if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" && "${ALLOW_PROD_PROMOTE:-0}" != "1" ]]; then
+  echo "Production promote blocked. Set ALLOW_PROD_PROMOTE=1 only after explicit user approval."
+  exit 2
+fi
 if [[ -z "${REQUIRE_FRESH_ASOF:-}" ]]; then
   if [[ -n "${END_DATE_OVERRIDE}" ]]; then
     REQUIRE_FRESH_ASOF=0
