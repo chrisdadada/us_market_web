@@ -176,6 +176,8 @@ def sector_name(row: dict[str, Any], sector_map: dict[str, str]) -> str:
 
 
 def load_rows(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -185,7 +187,7 @@ def load_sector_overrides() -> dict[str, str]:
     return load_sector_overrides() or load_legacy_sector_overrides(SECTOR_OVERRIDES_PATH)
 
 
-def build_sector_flow(input_path: Path, output_path: Path, data_root: Path, limit: int) -> dict[str, Any]:
+def build_sector_flow(input_path: Path, output_path: Path | None, data_root: Path, limit: int) -> dict[str, Any]:
     payload = load_rows(input_path)
     source_mode = "strength-scanner"
     universe_count = 0
@@ -305,8 +307,9 @@ def build_sector_flow(input_path: Path, output_path: Path, data_root: Path, limi
         },
         "rows": sector_rows,
     }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return result
 
 

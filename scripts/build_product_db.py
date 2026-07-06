@@ -471,17 +471,31 @@ def upsert_symbol(conn: sqlite3.Connection, row: dict[str, Any], source: str) ->
     )
 
 
+def load_market_board_payloads() -> tuple[dict[str, Any], dict[str, Any], Path, Path]:
+    data_root = Path(os.environ.get("MARKET_DATA_ROOT", "/Volumes/Extreme SSD/market-data-lab/data"))
+    if data_root.exists():
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from build_market_boards import build_payloads, latest_trade_date
+
+            as_of = os.environ.get("TRACKING_ASOF") or latest_trade_date(data_root)
+            ytd, movers = build_payloads(data_root, as_of, 5000, 3000.0, 5_000_000)
+            return ytd, movers, Path("direct:market-boards/ytd"), Path("direct:market-boards/movers")
+        except Exception as exc:
+            print(f"WARN: market boards direct import skipped: {exc}")
+    ytd_path = DATA_DIR / "ytd-gainers.json"
+    movers_path = DATA_DIR / "market-movers.json"
+    return read_json(ytd_path), read_json(movers_path), ytd_path, movers_path
+
+
 def import_market_boards(conn: sqlite3.Connection) -> int:
     count = 0
-    ytd_path = DATA_DIR / "ytd-gainers.json"
-    ytd = read_json(ytd_path)
+    ytd, movers, ytd_path, movers_path = load_market_board_payloads()
     record_dataset(conn, "ytd-gainers", ytd_path, ytd, len(ytd.get("rows") or []))
     for row in ytd.get("rows") or []:
         import_market_row(conn, "ytd", ytd.get("updatedAt"), row, "ytd-gainers")
         count += 1
 
-    movers_path = DATA_DIR / "market-movers.json"
-    movers = read_json(movers_path)
     board_count = 0
     for board, board_payload in (movers.get("boards") or {}).items():
         rows = board_payload.get("rows") if isinstance(board_payload, dict) else []
@@ -596,9 +610,22 @@ def import_market_row(conn: sqlite3.Connection, board: str, trade_date: Any, row
     )
 
 
-def import_sector_flow(conn: sqlite3.Connection) -> int:
+def load_sector_flow_payload() -> tuple[dict[str, Any], Path]:
+    data_root = Path(os.environ.get("MARKET_DATA_ROOT", "/Volumes/Extreme SSD/market-data-lab/data"))
+    if data_root.exists():
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from build_sector_flow import DEFAULT_INPUT, build_sector_flow
+
+            return build_sector_flow(DEFAULT_INPUT, None, data_root, 24), Path("direct:sector-flow")
+        except Exception as exc:
+            print(f"WARN: sector flow direct import skipped: {exc}")
     path = DATA_DIR / "sector-flow.json"
-    payload = read_json(path)
+    return read_json(path), path
+
+
+def import_sector_flow(conn: sqlite3.Connection) -> int:
+    payload, path = load_sector_flow_payload()
     rows = payload.get("rows") or []
     record_dataset(conn, "sector-flow", path, payload, len(rows))
     for row in rows:
@@ -993,7 +1020,7 @@ def build_database(output: Path) -> dict[str, int]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build the Dongbimao product SQLite database from data/*.json snapshots.")
+    parser = argparse.ArgumentParser(description="Build the Dongbimao product SQLite database.")
     parser.add_argument("--output", type=Path, default=Path(os.environ.get("PRODUCT_DB", DEFAULT_OUTPUT)))
     args = parser.parse_args()
     counts = build_database(args.output)

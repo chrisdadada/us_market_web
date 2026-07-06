@@ -301,7 +301,7 @@ run_lab "build monetizable signal features" \
   --stats-start 2024-01-01 \
   --stats-end "${ASOF}"
 
-run_root "rebuild product JSON" \
+run_root "rebuild product database" \
   bash scripts/update_product_data.sh
 
 if [[ "${RUN_OPTIONS_FLOW}" == "1" ]]; then
