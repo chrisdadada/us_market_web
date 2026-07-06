@@ -54,8 +54,8 @@ RUN_OPTIONS_FLOW=0 ./scripts/automated_refresh.sh
 OPTIONS_START_DATE=2026-05-18 OPTIONS_END_DATE=2026-05-26 OPTIONS_MAX_DAYS=5 ./scripts/automated_refresh.sh
 ```
 
-The options step writes `data/options-flow-snapshot.json` and the release gate
-checks that the page shell and options JSON are present before deployment.
+The options step imports aggregates into `data/product.db` and the release gate
+checks that the page shell and product API payload are present before deployment.
 
 ## Promote To Production
 

@@ -241,7 +241,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build macro indicator history series JSON from local FRED parquet files.")
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--fred-dir", type=Path)
-    parser.add_argument("--output", type=Path, default=DATA_DIR / "macro-series.json")
+    parser.add_argument("--output", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -249,9 +249,10 @@ def main() -> None:
     args = parse_args()
     fred_dir = resolve_fred_dir(args.data_root, args.fred_dir)
     payload = build_payload(fred_dir)
-    write_json(args.output, payload)
+    if args.output:
+        write_json(args.output, payload)
     print(json.dumps({
-        "output": str(args.output),
+        "output": str(args.output) if args.output else "",
         "indicators": len(payload["indicators"]),
         "asOf": payload["asOf"],
         "missing": payload["missing"],

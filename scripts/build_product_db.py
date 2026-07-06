@@ -41,13 +41,24 @@ def now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def read_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
+def existing_product_db() -> Path | None:
+    path = Path(os.environ.get("PRODUCT_DB") or DEFAULT_OUTPUT)
+    return path if path.exists() else None
+
+
+def load_existing_dataset_payload(name: str) -> tuple[dict[str, Any], Path]:
+    path = existing_product_db()
+    if not path:
+        return {}, Path(f"db:{name}:missing")
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"Invalid JSON: {path}: {exc}") from exc
+        with sqlite3.connect(path) as conn:
+            row = conn.execute("SELECT payload_json FROM datasets WHERE name = ?", (name,)).fetchone()
+    except sqlite3.Error as exc:
+        print(f"WARN: existing DB dataset read skipped for {name}: {exc}")
+        return {}, Path(f"db:{name}:error")
+    if not row:
+        return {}, Path(f"db:{name}:missing")
+    return parse_json_text(row[0], {}), Path(f"db:{path.name}:{name}")
 
 
 def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
@@ -74,8 +85,7 @@ def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
             PRODUCT_DATA_PAYLOADS = {}
     if name in PRODUCT_DATA_PAYLOADS:
         return PRODUCT_DATA_PAYLOADS[name], Path(f"direct:{name}")
-    path = DATA_DIR / f"{name}.json"
-    return read_json(path), path
+    return load_existing_dataset_payload(name)
 
 
 def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
@@ -117,8 +127,7 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
             return build_signals(data_root), Path("direct:core-signals")
     except Exception as exc:
         print(f"WARN: {name} direct import skipped: {exc}")
-    path = DATA_DIR / f"{name}.json"
-    return read_json(path), path
+    return load_existing_dataset_payload(name)
 
 
 def date_value(value: Any):
@@ -145,8 +154,10 @@ def load_options_flow_payload() -> tuple[dict[str, Any], Path]:
         return build_payload(df), Path("direct:options-flow-snapshot")
     except Exception as exc:
         print(f"WARN: options flow direct import skipped: {exc}")
-    path = DATA_DIR / "options-flow-snapshot.json"
-    return read_json(path), path
+    payload, path = load_existing_dataset_payload("options-flow-snapshot")
+    if payload:
+        return payload, path
+    return {"asOf": "", "meta": {}, "summary": {}, "timeline": [], "bullish": [], "bearish": [], "boards": {}}, Path("db:options-flow-snapshot:missing")
 
 
 def load_earnings_quality_payload() -> tuple[dict[str, Any], Path]:
@@ -159,8 +170,7 @@ def load_earnings_quality_payload() -> tuple[dict[str, Any], Path]:
         return build_earnings_quality(data_root, as_of, 160), Path("direct:earnings-quality")
     except Exception as exc:
         print(f"WARN: earnings quality direct import skipped: {exc}")
-    path = DATA_DIR / "earnings-quality.json"
-    return read_json(path), path
+    return load_existing_dataset_payload("earnings-quality")
 
 
 def load_site_data_index_payload() -> tuple[dict[str, Any], Path]:
@@ -197,8 +207,7 @@ def load_site_data_index_payload() -> tuple[dict[str, Any], Path]:
         }, Path("direct:site-data-index")
     except Exception as exc:
         print(f"WARN: site data index direct import skipped: {exc}")
-    path = DATA_DIR / "site-data-index.json"
-    return read_json(path), path
+    return load_existing_dataset_payload("site-data-index")
 
 
 def load_strength_review_payload() -> tuple[dict[str, Any], Path]:
@@ -210,8 +219,7 @@ def load_strength_review_payload() -> tuple[dict[str, Any], Path]:
         return build_review(data_root, TMP_DIR / "strength-snapshots", [1, 3, 5, 20]), Path("direct:strength-review")
     except Exception as exc:
         print(f"WARN: strength review direct import skipped: {exc}")
-    path = DATA_DIR / "strength-review.json"
-    return read_json(path), path
+    return load_existing_dataset_payload("strength-review")
 
 
 def json_text(value: Any) -> str:
@@ -656,9 +664,9 @@ def load_market_board_payloads() -> tuple[dict[str, Any], dict[str, Any], Path, 
             return ytd, movers, Path("direct:market-boards/ytd"), Path("direct:market-boards/movers")
         except Exception as exc:
             print(f"WARN: market boards direct import skipped: {exc}")
-    ytd_path = DATA_DIR / "ytd-gainers.json"
-    movers_path = DATA_DIR / "market-movers.json"
-    return read_json(ytd_path), read_json(movers_path), ytd_path, movers_path
+    ytd, ytd_path = load_existing_dataset_payload("ytd-gainers")
+    movers, movers_path = load_existing_dataset_payload("market-movers")
+    return ytd, movers, ytd_path, movers_path
 
 
 def import_market_boards(conn: sqlite3.Connection) -> int:
@@ -793,8 +801,7 @@ def load_sector_flow_payload() -> tuple[dict[str, Any], Path]:
             return build_sector_flow(DEFAULT_INPUT, None, data_root, 24), Path("direct:sector-flow")
         except Exception as exc:
             print(f"WARN: sector flow direct import skipped: {exc}")
-    path = DATA_DIR / "sector-flow.json"
-    return read_json(path), path
+    return load_existing_dataset_payload("sector-flow")
 
 
 def import_sector_flow(conn: sqlite3.Connection) -> int:
@@ -962,7 +969,7 @@ def import_earnings_quality(conn: sqlite3.Connection) -> int:
 
 def import_strength(conn: sqlite3.Connection) -> int:
     data_root = Path(os.environ.get("MARKET_DATA_ROOT", "/Volumes/Extreme SSD/market-data-lab/data"))
-    path = DATA_DIR / "strength-scanner.json"
+    path = Path("db:strength-scanner:missing")
     payload: dict[str, Any] = {}
     if data_root.exists():
         try:
@@ -974,7 +981,7 @@ def import_strength(conn: sqlite3.Connection) -> int:
         except Exception as exc:
             print(f"WARN: strength scanner direct import skipped: {exc}")
     if not payload:
-        payload = read_json(path)
+        payload, path = load_existing_dataset_payload("strength-scanner")
     rows = payload.get("rows") or []
     for row in rows:
         symbol = symbol_value(row.get("symbol"))
@@ -1071,9 +1078,10 @@ def import_options_flow(conn: sqlite3.Connection) -> int:
 def import_market_opinion(conn: sqlite3.Connection, existing_db: Path | None = None) -> int:
     path = Path("direct:market-opinion-db")
     rows: list[dict[str, Any]] = []
-    if existing_db and existing_db.exists() and existing_db.stat().st_size > 0:
+    source_db = existing_db if existing_db and existing_db.exists() and existing_db.stat().st_size > 0 else existing_product_db()
+    if source_db and source_db.exists() and source_db.stat().st_size > 0:
         try:
-            with sqlite3.connect(f"file:{existing_db}?mode=ro", uri=True) as source:
+            with sqlite3.connect(f"file:{source_db}?mode=ro", uri=True) as source:
                 source.row_factory = sqlite3.Row
                 rows = [
                     parse_json_text(row["payload_json"], {})
@@ -1124,9 +1132,9 @@ def import_market_opinion(conn: sqlite3.Connection, existing_db: Path | None = N
 
 
 def import_sector_overrides(conn: sqlite3.Connection) -> int:
-    from sector_overrides import load_legacy_sector_overrides, load_sector_overrides
+    from sector_overrides import load_sector_overrides
 
-    overrides = load_sector_overrides() or load_legacy_sector_overrides()
+    overrides = load_sector_overrides()
     now = now_iso()
     for symbol, sector in overrides.items():
         conn.execute(

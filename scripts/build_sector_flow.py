@@ -16,7 +16,6 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 DEFAULT_INPUT = ROOT / ".tmp" / "strength-scanner.json"
 DEFAULT_OUTPUT = ROOT / ".tmp" / "sector-flow.json"
-SECTOR_OVERRIDES_PATH = ROOT / "data" / "sector-overrides.json"
 
 
 def now_iso() -> str:
@@ -182,9 +181,9 @@ def load_rows(path: Path) -> dict[str, Any]:
 
 
 def load_sector_overrides() -> dict[str, str]:
-    from sector_overrides import load_legacy_sector_overrides, load_sector_overrides
+    from sector_overrides import load_sector_overrides
 
-    return load_sector_overrides() or load_legacy_sector_overrides(SECTOR_OVERRIDES_PATH)
+    return load_sector_overrides()
 
 
 def build_sector_flow(input_path: Path, output_path: Path | None, data_root: Path, limit: int) -> dict[str, Any]:

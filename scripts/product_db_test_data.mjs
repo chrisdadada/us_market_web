@@ -14,7 +14,7 @@ export async function readProductJson(relativePath) {
 
   const payload = execFileSync(
     "sqlite3",
-    ["-readonly", "-cmd", ".timeout 10000", productDbPath, `select payload_json from datasets where name = '${match[1]}'`],
+    ["-cmd", ".timeout 10000", productDbPath, `select payload_json from datasets where name = '${match[1]}'`],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   ).trim();
 

@@ -18,25 +18,10 @@ REPORTS = EXTERNAL / "reports"
 DAILY_DIR = EXTERNAL / "processed" / "polygon" / "stocks_split_adjusted" / "1d"
 EVENT_SIGNALS_PATH = EXTERNAL / "features" / "polygon" / "monetizable_signals" / "event_signals.parquet"
 EARNINGS_DIR = EXTERNAL / "raw" / "polygon_rest" / "earnings"
-MANUAL_EARNINGS_CALENDAR = DATA_DIR / "manual" / "earnings-calendar.json"
 
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def read_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
 
 
 def clean_number(value: Any) -> float | None:
@@ -138,7 +123,7 @@ def build_manual_earnings_calendar_events(start: date, end: date, limit: int = 5
         )
     except Exception as exc:
         print(f"WARN: direct earnings calendar fetch skipped: {exc}")
-        payload = read_json(MANUAL_EARNINGS_CALENDAR)
+        payload = {}
     events = payload.get("events")
     if not isinstance(events, list):
         return []
@@ -233,7 +218,7 @@ def build_earnings_calendar_events(start: date, end: date, limit: int = 120) -> 
 
 
 def build_events_calendar() -> dict[str, Any]:
-    existing = read_json(DATA_DIR / "events-calendar.json")
+    existing: dict[str, Any] = {}
     today = datetime.now(timezone.utc).date()
     horizon_end = today + timedelta(days=90)
     base_events = [
@@ -1161,10 +1146,6 @@ def main() -> None:
     calendar = build_events_calendar()
     events = build_event_opportunities()
     validation = build_validation_center(events)
-    write_json(DATA_DIR / "market-temperature.json", market)
-    write_json(DATA_DIR / "events-calendar.json", calendar)
-    write_json(DATA_DIR / "event-opportunities.json", events)
-    write_json(DATA_DIR / "validation-center.json", validation)
     total_events = sum(len(board["rows"]) for board in events["boards"].values())
     print(json.dumps({
         "marketIndicators": len(market["indicators"]),

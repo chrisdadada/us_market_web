@@ -1,4 +1,4 @@
-const DATA_PATH = "./data/options-flow-snapshot.json";
+const DATA_PATH = "/api/product/raw/options-flow-snapshot";
 
 const money = (value) => {
   const number = Number(value);

@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 DEFAULT_YTD_OUTPUT = ROOT / ".tmp" / "ytd-gainers.json"
 DEFAULT_MOVERS_OUTPUT = ROOT / ".tmp" / "market-movers.json"
-SECTOR_OVERRIDES_PATH = ROOT / "data" / "sector-overrides.json"
 
 
 def now_iso() -> str:
@@ -179,9 +178,9 @@ def infer_sector_from_sic(text: str) -> str | None:
 
 
 def load_sector_map(data_root: Path) -> dict[str, str]:
-    from sector_overrides import load_legacy_sector_overrides, load_sector_overrides
+    from sector_overrides import load_sector_overrides
 
-    overrides = load_sector_overrides() or load_legacy_sector_overrides(SECTOR_OVERRIDES_PATH)
+    overrides = load_sector_overrides()
     path = data_root / "raw" / "polygon_rest" / "corporate_actions_full" / "ticker_details_full.parquet"
     if not path.exists():
         return overrides

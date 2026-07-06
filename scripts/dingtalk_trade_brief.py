@@ -8,6 +8,7 @@ import hashlib
 import hmac
 import json
 import os
+import sqlite3
 import sys
 import time
 import urllib.parse
@@ -44,10 +45,15 @@ def load_env(path: Path = DEFAULT_ENV) -> None:
 
 
 def read_json(name: str, fallback: Any) -> Any:
-    path = DATA_DIR / name
-    if not path.exists():
+    dataset = name.removesuffix(".json")
+    product_db = Path(os.environ.get("PRODUCT_DB", DATA_DIR / "product.db"))
+    if not product_db.exists():
         return fallback
-    return json.loads(path.read_text(encoding="utf-8"))
+    with sqlite3.connect(product_db) as conn:
+        row = conn.execute("SELECT payload_json FROM datasets WHERE name = ?", (dataset,)).fetchone()
+    if not row:
+        return fallback
+    return json.loads(row[0])
 
 
 def load_profile() -> dict[str, Any]:

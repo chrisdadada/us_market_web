@@ -2,7 +2,7 @@
 
 ## 当前结论
 
-当前已接入 QQQ 当前持仓权重、外接盘最新日线价格和分红明细，可生成最小可用数据结构。`data/index-valuation.json` 现在是 `partial_data`：持仓权重、Top holdings、当前权重覆盖和股息率可展示；PE、PB、ROE、PEG、历史分位和趋势序列仍等待完整财务口径。
+当前已接入 QQQ 当前持仓权重、外接盘最新日线价格和分红明细，可生成最小可用数据结构。指数估值数据已进入产品 DB；持仓权重、Top holdings、当前权重覆盖和股息率可展示；PE、PB、ROE、PEG、历史分位和趋势序列仍等待完整财务口径。
 
 ## 已检查的数据
 
@@ -23,8 +23,8 @@
 - `/Volumes/Extreme SSD/market-data-lab/data/raw/polygon_rest/tickers_active.parquet` 和 `tickers_inactive.parquet`
   - 文件存在，schema 包含 `ticker`、`name`、`market`、`primary_exchange`、`type`、`active` 等基础字段。
   - 这些是股票列表，不包含 QQQ/NDX 或 SPY 成分权重。
-- `data/*.json`
-  - 现有 JSON 主要是市场温度、宏观序列、强势扫描、财报质量、事件机会等产品数据。
+- 产品 DB
+  - 现有产品数据主要是市场温度、宏观序列、强势扫描、财报质量、事件机会等。
   - 未发现可直接作为指数估值计算输入的权重、历史市值、每日 TTM EPS 或指数级估值序列。
 - `/Users/linlifu/Documents/美股PA ` 与 `/Users/linlifu/Documents/pcdn_ng/data`
   - 发现较多 SPY/QQQ 价格行为研究产物，但未发现成分权重、TTM 财务面板或估值历史序列。

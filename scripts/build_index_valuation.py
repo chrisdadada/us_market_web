@@ -17,7 +17,7 @@ DATA_DIR = ROOT / "data"
 DEFAULT_MARKET_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 LOCAL_MARKET_DATA_ROOT = ROOT / "market-data-lab" / "data"
 POLYGON_REST = DEFAULT_MARKET_DATA_ROOT / "raw" / "polygon_rest"
-OUTPUT_PATH = DATA_DIR / "index-valuation.json"
+OUTPUT_PATH = None
 DEFAULT_QQQ_HOLDINGS_URL = (
     "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/QQQ/"
     "holdings/fund?idType=ticker&interval=monthly&productType=ETF"
@@ -1266,7 +1266,7 @@ def parse_args() -> argparse.Namespace:
         "--output",
         type=Path,
         default=OUTPUT_PATH,
-        help="Output JSON path.",
+        help="Optional output JSON path.",
     )
     parser.add_argument(
         "--qqq-holdings-url",
@@ -1294,8 +1294,11 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     payload = build_payload(args.market_data_root, args.qqq_holdings_url, args.qqq_fact_sheet_url, args.spy_holdings_url, args.spy_fact_sheet_url)
-    write_json(args.output, payload)
-    print(f"Wrote {args.output}")
+    if args.output:
+        write_json(args.output, payload)
+        print(f"Wrote {args.output}")
+    else:
+        print(json.dumps(payload, ensure_ascii=False))
     return 0
 
 

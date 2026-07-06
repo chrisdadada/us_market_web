@@ -181,7 +181,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start", default="")
     parser.add_argument("--end", default="")
-    parser.add_argument("--output", type=Path, default=ROOT.parent / "data" / "options-flow-snapshot.json")
+    parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
     start = parse_date(args.start)
     end = parse_date(args.end)
@@ -189,7 +189,10 @@ def main() -> None:
     if df.empty:
         raise SystemExit("No options aggs found for requested range.")
     payload = build_payload(df, args.output)
-    print(f"saved {args.output} asOf={payload['asOf']} focus={payload['meta']['symbol']}", flush=True)
+    if args.output:
+        print(f"saved {args.output} asOf={payload['asOf']} focus={payload['meta']['symbol']}", flush=True)
+    else:
+        print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 
 if __name__ == "__main__":
