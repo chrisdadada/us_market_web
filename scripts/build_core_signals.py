@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Build front-end strategy signal JSON from local market-data-lab parquet files."""
+"""Build strategy signal payloads from local market-data-lab parquet files."""
 
 from __future__ import annotations
 
 import argparse
-import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -340,16 +339,10 @@ def build_signals(data_root: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
-    parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
     payload = build_signals(args.data_root)
-    if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"Wrote {args.output} as of {payload['asOf']}")
-    else:
-        print(f"Built core signals as of {payload['asOf']}")
+    print(f"Built core signals as of {payload['asOf']}")
 
 
 if __name__ == "__main__":

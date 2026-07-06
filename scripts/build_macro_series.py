@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import os
 from dataclasses import dataclass
@@ -52,11 +51,6 @@ def clean_number(value: Any, digits: int = 2) -> float | None:
     if not math.isfinite(number):
         return None
     return round(number, digits)
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def resolve_fred_dir(data_root: Path | None = None, fred_dir: Path | None = None) -> Path:
@@ -238,10 +232,9 @@ def build_payload(fred_dir: Path) -> dict[str, Any]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build macro indicator history series JSON from local FRED parquet files.")
+    parser = argparse.ArgumentParser(description="Build macro indicator history series payloads from local FRED parquet files.")
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--fred-dir", type=Path)
-    parser.add_argument("--output", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -249,14 +242,7 @@ def main() -> None:
     args = parse_args()
     fred_dir = resolve_fred_dir(args.data_root, args.fred_dir)
     payload = build_payload(fred_dir)
-    if args.output:
-        write_json(args.output, payload)
-    print(json.dumps({
-        "output": str(args.output) if args.output else "",
-        "indicators": len(payload["indicators"]),
-        "asOf": payload["asOf"],
-        "missing": payload["missing"],
-    }, ensure_ascii=False))
+    print(f"Built macro series as of {payload['asOf']} with {len(payload['indicators'])} indicators")
 
 
 if __name__ == "__main__":

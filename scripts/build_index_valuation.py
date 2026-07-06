@@ -13,11 +13,9 @@ from xml.etree import ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = ROOT / "data"
 DEFAULT_MARKET_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 LOCAL_MARKET_DATA_ROOT = ROOT / "market-data-lab" / "data"
 POLYGON_REST = DEFAULT_MARKET_DATA_ROOT / "raw" / "polygon_rest"
-OUTPUT_PATH = None
 DEFAULT_QQQ_HOLDINGS_URL = (
     "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/QQQ/"
     "holdings/fund?idType=ticker&interval=monthly&productType=ETF"
@@ -119,11 +117,6 @@ REQUIRED_DATASETS = [
 
 def now_iso() -> str:
     return datetime.now(UTC).isoformat()
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def parse_date(value: Any) -> date | None:
@@ -1263,12 +1256,6 @@ def parse_args() -> argparse.Namespace:
         help="Path to market-data-lab/data.",
     )
     parser.add_argument(
-        "--output",
-        type=Path,
-        default=OUTPUT_PATH,
-        help="Optional output JSON path.",
-    )
-    parser.add_argument(
         "--qqq-holdings-url",
         default=DEFAULT_QQQ_HOLDINGS_URL,
         help="Official QQQ holdings endpoint.",
@@ -1294,11 +1281,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     payload = build_payload(args.market_data_root, args.qqq_holdings_url, args.qqq_fact_sheet_url, args.spy_holdings_url, args.spy_fact_sheet_url)
-    if args.output:
-        write_json(args.output, payload)
-        print(f"Wrote {args.output}")
-    else:
-        print(json.dumps(payload, ensure_ascii=False))
+    print(f"Built index valuation as of {payload.get('asOf') or '--'}")
     return 0
 
 

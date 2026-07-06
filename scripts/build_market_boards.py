@@ -13,8 +13,6 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
-DEFAULT_YTD_OUTPUT: Path | None = None
-DEFAULT_MOVERS_OUTPUT: Path | None = None
 
 
 def now_iso() -> str:
@@ -50,36 +48,6 @@ def compact_money(value: Any) -> str:
     if abs_value >= 1_000:
         return f"{number / 1_000:.2f}K"
     return f"{number:.0f}"
-
-
-def read_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def existing_name_map(*paths: Path | None) -> dict[str, dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for path in paths:
-        if path is None:
-            continue
-        payload = read_json(path)
-        if isinstance(payload.get("rows"), list):
-            rows.extend(payload["rows"])
-        boards = payload.get("boards")
-        if isinstance(boards, dict):
-            for board in boards.values():
-                if isinstance(board, dict) and isinstance(board.get("rows"), list):
-                    rows.extend(board["rows"])
-    return {str(row.get("symbol", "")).upper(): row for row in rows if row.get("symbol")}
 
 
 def latest_trade_date(data_root: Path) -> str:
@@ -251,7 +219,6 @@ def load_market_caps(data_root: Path, prices: pd.Series) -> dict[str, float]:
 def build_rows(
     frame: pd.DataFrame,
     change_col: str,
-    old_map: dict[str, dict[str, Any]],
     market_caps: dict[str, float],
     sector_map: dict[str, str],
     limit: int,
@@ -260,37 +227,31 @@ def build_rows(
     for rank, row in enumerate(frame.head(limit).itertuples(index=False), start=1):
         item = pd.Series(row._asdict())
         symbol = str(item["symbol"])
-        previous = old_map.get(symbol, {})
-        company = str(item.get("company") or previous.get("company") or symbol)
+        company = str(item.get("company") or symbol)
         change = float(item[change_col])
-        previous_sector = previous.get("sector")
-        sector = sector_map.get(symbol) or (previous_sector if previous_sector and previous_sector != "未分类" else "") or infer_sector(company, str(item.get("type") or ""))
-        risk = previous.get("risk") or risk_for(item, change)
+        sector = sector_map.get(symbol) or infer_sector(company, str(item.get("type") or ""))
+        risk = risk_for(item, change)
         out.append(
             {
                 "rank": rank,
                 "symbol": symbol,
                 "company": company,
-                "chineseName": previous.get("chineseName") or symbol,
+                "chineseName": symbol,
                 "sector": sector,
                 "risk": risk,
-                "actionNote": previous.get("actionNote") or action_for(risk, change),
+                "actionNote": action_for(risk, change),
                 "change": clean_number(change, 2),
                 "price": clean_number(item.get("price"), 3),
                 "volume": compact_number(item.get("volume")),
                 "dollarVolume": clean_number(item.get("dollarVolume"), 0),
-                "volumeRatio": f"{clean_number(item.get('volumeRatio'), 2)}x" if clean_number(item.get("volumeRatio"), 2) is not None else previous.get("volumeRatio") or "--",
-                "marketCap": compact_money(market_caps.get(symbol)) if market_caps.get(symbol) else previous.get("marketCap") or "--",
+                "volumeRatio": f"{clean_number(item.get('volumeRatio'), 2)}x" if clean_number(item.get("volumeRatio"), 2) is not None else "--",
+                "marketCap": compact_money(market_caps.get(symbol)) if market_caps.get(symbol) else "--",
             }
         )
     return out
 
 
 def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: float, min_dollar_volume: float) -> tuple[dict[str, Any], dict[str, Any]]:
-    ytd_output = DEFAULT_YTD_OUTPUT
-    movers_output = DEFAULT_MOVERS_OUTPUT
-    old_map = existing_name_map(ytd_output, movers_output)
-
     universe = load_universe(data_root, as_of)
     daily = load_daily(data_root, as_of)
     symbols = set(
@@ -335,7 +296,6 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     ytd_rows = build_rows(
         ytd_work.sort_values("returnYtd", ascending=False).rename(columns={"returnYtd": "changeYtd"}),
         "changeYtd",
-        old_map,
         market_caps,
         sector_map,
         limit,
@@ -346,7 +306,6 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     day_rows = build_rows(
         work.assign(abs_return=work["return1d"].abs()).sort_values("abs_return", ascending=False),
         "return1d",
-        old_map,
         market_caps,
         sector_map,
         limit,
@@ -354,7 +313,6 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     week_rows = build_rows(
         work.assign(abs_return=work["return5d"].abs()).sort_values("abs_return", ascending=False),
         "return5d",
-        old_map,
         market_caps,
         sector_map,
         limit,
@@ -362,7 +320,6 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     month_rows = build_rows(
         work.dropna(subset=["return21d"]).assign(abs_return=work["return21d"].abs()).sort_values("abs_return", ascending=False),
         "return21d",
-        old_map,
         market_caps,
         sector_map,
         limit,
@@ -370,7 +327,6 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
     volume_rows = build_rows(
         work.dropna(subset=["volumeRatio"]).sort_values(["volumeRatio", "dollarVolume"], ascending=False),
         "return1d",
-        old_map,
         market_caps,
         sector_map,
         limit,
@@ -429,16 +385,10 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=5000)
     parser.add_argument("--min-dollar-volume", type=float, default=5_000_000)
     parser.add_argument("--max-ytd-return", type=float, default=3000.0)
-    parser.add_argument("--ytd-output", type=Path, default=DEFAULT_YTD_OUTPUT)
-    parser.add_argument("--movers-output", type=Path, default=DEFAULT_MOVERS_OUTPUT)
     args = parser.parse_args()
 
     as_of = args.asof or latest_trade_date(args.data_root)
     ytd, movers = build_payloads(args.data_root, as_of, args.limit, args.max_ytd_return, args.min_dollar_volume)
-    if args.ytd_output:
-        write_json(args.ytd_output, ytd)
-    if args.movers_output:
-        write_json(args.movers_output, movers)
     print(json.dumps({
         "asOf": as_of,
         "universeCount": ytd.get("universeCount"),

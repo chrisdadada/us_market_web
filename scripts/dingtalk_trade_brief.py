@@ -44,13 +44,12 @@ def load_env(path: Path = DEFAULT_ENV) -> None:
         os.environ.setdefault(key.strip(), value.strip())
 
 
-def read_json(name: str, fallback: Any) -> Any:
-    dataset = name.removesuffix(".json")
+def read_dataset(name: str, fallback: Any) -> Any:
     product_db = Path(os.environ.get("PRODUCT_DB", DATA_DIR / "product.db"))
     if not product_db.exists():
         return fallback
     with sqlite3.connect(product_db) as conn:
-        row = conn.execute("SELECT payload_json FROM datasets WHERE name = ?", (dataset,)).fetchone()
+        row = conn.execute("SELECT payload_json FROM datasets WHERE name = ?", (name,)).fetchone()
     if not row:
         return fallback
     return json.loads(row[0])
@@ -879,13 +878,13 @@ def weekly_review_summary(
 def build_brief(mode: str) -> str:
     profile = load_profile()
     journal = load_journal()
-    core = read_json("core-signals.json", {})
-    temp = read_json("market-temperature.json", {})
-    strength = read_json("strength-scanner.json", {})
-    movers = read_json("market-movers.json", {})
-    events = read_json("event-opportunities.json", {})
-    earnings = read_json("earnings-quality.json", {})
-    validation = read_json("validation-center.json", {})
+    core = read_dataset("core-signals", {})
+    temp = read_dataset("market-temperature", {})
+    strength = read_dataset("strength-scanner", {})
+    movers = read_dataset("market-movers", {})
+    events = read_dataset("event-opportunities", {})
+    earnings = read_dataset("earnings-quality", {})
+    validation = read_dataset("validation-center", {})
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     market = core.get("marketRegime") or {}

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Build sector-level fund-flow proxy data for the product front end."""
+"""Build sector-level fund-flow proxy payloads for the product DB."""
 
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import sys
 from datetime import UTC, datetime
@@ -14,8 +13,6 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
-DEFAULT_INPUT: Path | None = None
-DEFAULT_OUTPUT: Path | None = None
 
 
 def now_iso() -> str:
@@ -30,11 +27,6 @@ def clean_number(value: Any) -> float | None:
     if not math.isfinite(number):
         return None
     return number
-
-
-def parse_pct(value: Any) -> float:
-    number = clean_number(str(value or "").replace("%", "").replace("+", "").replace(",", ""))
-    return number if number is not None else 0.0
 
 
 def parse_money(value: Any) -> float:
@@ -113,7 +105,7 @@ def load_sector_map(data_root: Path) -> dict[str, str]:
     return out
 
 
-def build_universe_rows(data_root: Path, as_of: str) -> tuple[list[dict[str, Any]], int]:
+def build_universe_rows(data_root: Path, as_of: str) -> tuple[list[dict[str, Any]], int, str]:
     import pandas as pd
     import sys
 
@@ -133,7 +125,7 @@ def build_universe_rows(data_root: Path, as_of: str) -> tuple[list[dict[str, Any
     close = daily.pivot(index="trade_date", columns="symbol", values="adj_close").ffill()
     volume = daily.pivot(index="trade_date", columns="symbol", values="adj_volume").fillna(0)
     if len(close) < 2:
-      return [], 0
+        return [], 0, trade_date
     current = close.iloc[-1]
     previous = close.shift(1).iloc[-1]
     latest_volume = volume.iloc[-1]
@@ -160,7 +152,7 @@ def build_universe_rows(data_root: Path, as_of: str) -> tuple[list[dict[str, Any
             "liquidityValue": float(dollar_volume or 0),
             "marketCap": money_label(float(market_caps.get(str(symbol).upper()) or 0)) if market_caps.get(str(symbol).upper()) else "--",
         })
-    return rows, int(tradable["symbol"].nunique())
+    return rows, int(tradable["symbol"].nunique()), trade_date
 
 
 def sector_name(row: dict[str, Any], sector_map: dict[str, str]) -> str:
@@ -174,33 +166,22 @@ def sector_name(row: dict[str, Any], sector_map: dict[str, str]) -> str:
     return raw
 
 
-def load_rows(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 def load_sector_overrides() -> dict[str, str]:
     from sector_overrides import load_sector_overrides
 
     return load_sector_overrides()
 
 
-def build_sector_flow(input_path: Path | None, output_path: Path | None, data_root: Path, limit: int) -> dict[str, Any]:
-    payload = load_rows(input_path) if input_path is not None else {}
-    source_mode = "strength-scanner"
+def build_sector_flow(data_root: Path, limit: int) -> dict[str, Any]:
     universe_count = 0
     fallback_reason = ""
+    as_of = ""
     try:
-        rows, universe_count = build_universe_rows(data_root, str(payload.get("asOf") or ""))
-        if rows:
-            source_mode = "tradable-universe"
+        rows, universe_count, as_of = build_universe_rows(data_root, "")
     except Exception as error:
         fallback_reason = str(error)
-        print(f"warning: sector-flow full-universe build failed, falling back to scanner: {fallback_reason}", file=sys.stderr)
+        print(f"warning: sector-flow full-universe build failed: {fallback_reason}", file=sys.stderr)
         rows = []
-    if not rows:
-        rows = payload.get("rows") if isinstance(payload.get("rows"), list) else []
     groups: dict[str, dict[str, Any]] = {}
     seen_symbols: set[str] = set()
     sector_map = load_sector_map(data_root)
@@ -210,9 +191,9 @@ def build_sector_flow(input_path: Path | None, output_path: Path | None, data_ro
             continue
         seen_symbols.add(symbol)
         sector = sector_name(row, sector_map)
-        change = clean_number(row.get("change")) if source_mode == "tradable-universe" else parse_pct((row.get("periods") or {}).get("1d"))
+        change = clean_number(row.get("change"))
         change = float(change or 0)
-        liquidity = clean_number(row.get("liquidityValue")) if source_mode == "tradable-universe" else parse_money(row.get("liquidity"))
+        liquidity = clean_number(row.get("liquidityValue"))
         liquidity = float(liquidity or 0)
         signed_flow = liquidity * (1 if change > 0 else -1 if change < 0 else 0)
         current = groups.setdefault(
@@ -290,10 +271,10 @@ def build_sector_flow(input_path: Path | None, output_path: Path | None, data_ro
     negative = [item for item in sector_rows if item["netFlowProxy"] < 0]
     top = sector_rows[0] if sector_rows else None
     result = {
-        "asOf": payload.get("asOf") or "",
+        "asOf": as_of,
         "generatedAt": now_iso(),
-        "source": "Polygon tradable universe liquidity + one-day price direction" if source_mode == "tradable-universe" else "strength-scanner liquidity + one-day price direction",
-        "method": "按全量可交易股票的成交额/流动性与涨跌方向聚合，生成板块资金流向代理；不等同于逐笔主买主卖或真实资金净流入。" if source_mode == "tradable-universe" else "按扫描池聚合成交额/流动性与涨跌方向，生成资金流向代理；不等同于逐笔主买主卖或真实资金净流入。",
+        "source": "Polygon tradable universe liquidity + one-day price direction",
+        "method": "按全量可交易股票的成交额/流动性与涨跌方向聚合，生成板块资金流向代理；不等同于逐笔主买主卖或真实资金净流入。",
         "universeCount": universe_count or len(seen_symbols),
         "fallbackReason": fallback_reason,
         "summary": {
@@ -306,21 +287,16 @@ def build_sector_flow(input_path: Path | None, output_path: Path | None, data_ro
         },
         "rows": sector_rows,
     }
-    if output_path is not None:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return result
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build sector fund-flow proxy JSON.")
-    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser = argparse.ArgumentParser(description="Build sector fund-flow proxy payloads.")
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--limit", type=int, default=24)
     args = parser.parse_args()
-    payload = build_sector_flow(args.input, args.output, args.data_root, args.limit)
-    print(json.dumps({"asOf": payload["asOf"], "rows": len(payload["rows"])}, ensure_ascii=False))
+    payload = build_sector_flow(args.data_root, args.limit)
+    print(f"Built sector flow as of {payload['asOf'] or '--'} with {len(payload['rows'])} sectors")
 
 
 if __name__ == "__main__":

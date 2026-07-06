@@ -746,9 +746,9 @@ def load_sector_flow_payload() -> tuple[dict[str, Any], Path]:
     if data_root.exists():
         try:
             sys.path.insert(0, str(ROOT / "scripts"))
-            from build_sector_flow import DEFAULT_INPUT, build_sector_flow
+            from build_sector_flow import build_sector_flow
 
-            return build_sector_flow(DEFAULT_INPUT, None, data_root, 24), Path("direct:sector-flow")
+            return build_sector_flow(data_root, 24), Path("direct:sector-flow")
         except Exception as exc:
             print(f"WARN: sector flow direct import skipped: {exc}")
     return load_existing_dataset_payload("sector-flow")
@@ -926,7 +926,7 @@ def import_strength(conn: sqlite3.Connection) -> int:
             sys.path.insert(0, str(ROOT / "scripts"))
             from build_strength_scanner import build_scanner
 
-            payload = build_scanner(data_root, None, 5_000_000, 40)
+            payload = build_scanner(data_root, 5_000_000, 40)
             path = Path("direct:strength-scanner")
         except Exception as exc:
             print(f"WARN: strength scanner direct import skipped: {exc}")

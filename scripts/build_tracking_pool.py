@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import os
 from datetime import UTC, datetime
@@ -14,7 +13,6 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
-DEFAULT_OUTPUT: Path | None = None
 DEFAULT_SYMBOLS = [
     "AAPL",
     "AMD",
@@ -216,26 +214,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build the manually curated strong-stock tracking pool snapshot.")
     parser.add_argument("--data-root", type=Path, default=Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT)))
     parser.add_argument("--asof", default="")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--symbols", nargs="*", default=DEFAULT_SYMBOLS)
     args = parser.parse_args()
 
     as_of = args.asof or latest_trade_date(args.data_root)
     rows, missing = build_rows(args.data_root, as_of, args.symbols)
-    payload = {
-        "generatedAt": now_iso(),
-        "asOf": as_of,
-        "source": "local Polygon split-adjusted daily bars for the curated tracking pool",
-        "symbols": [symbol.upper() for symbol in args.symbols],
-        "rows": rows,
-        "missing": missing,
-    }
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"wrote {len(rows)} tracking rows to {args.output}")
-    else:
-        print(f"built {len(rows)} tracking rows for {as_of}")
+    print(f"built {len(rows)} tracking rows for {as_of}")
     if missing:
         print("missing:", ", ".join(row["symbol"] for row in missing))
 

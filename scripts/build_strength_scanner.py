@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Build a cross-sectional relative-strength scanner JSON for the front end."""
+"""Build cross-sectional relative-strength scanner payloads for the product DB."""
 
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -219,7 +218,7 @@ def build_theme_summary(work: pd.DataFrame) -> dict:
     }
 
 
-def build_scanner(data_root: Path, output: Path | None, min_adv: float, limit: int) -> dict:
+def build_scanner(data_root: Path, min_adv: float, limit: int) -> dict:
     current_year = datetime.now().year
     years = [current_year - 1, current_year]
     daily = load_daily(data_root, years)
@@ -433,23 +432,18 @@ def build_scanner(data_root: Path, output: Path | None, min_adv: float, limit: i
         ],
     }
 
-    if output is not None:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return payload
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
-    parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--min-adv", type=float, default=5_000_000)
     parser.add_argument("--limit", type=int, default=40)
     args = parser.parse_args()
 
-    payload = build_scanner(args.data_root, args.output, args.min_adv, args.limit)
-    target = f"Wrote {args.output}" if args.output else "Built strength scanner"
-    print(f"{target} as of {payload['asOf']} with {payload['universe']['total']} symbols")
+    payload = build_scanner(args.data_root, args.min_adv, args.limit)
+    print(f"Built strength scanner as of {payload['asOf']} with {payload['universe']['total']} symbols")
 
 
 if __name__ == "__main__":

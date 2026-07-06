@@ -13,7 +13,6 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUTPUT: Path | None = None
 FMP_ENDPOINT = "https://financialmodelingprep.com/stable/earnings-calendar"
 
 
@@ -25,7 +24,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Download future earnings calendar rows from Financial Modeling Prep.")
     parser.add_argument("--start", default=today_iso(), help="Start date, YYYY-MM-DD.")
     parser.add_argument("--end", default=None, help="End date, YYYY-MM-DD. Defaults to start + 90 days.")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--api-key", default=os.environ.get("FMP_API_KEY", ""))
     parser.add_argument("--timeout", type=int, default=30)
     return parser.parse_args()
@@ -86,12 +84,7 @@ def main() -> int:
         "windowEnd": end.isoformat(),
         "events": events,
     }
-    if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"wrote {len(events)} FMP earnings events to {args.output}")
-    else:
-        print(f"fetched {len(events)} FMP earnings events")
+    print(f"fetched {len(events)} FMP earnings events")
     return 0
 
 

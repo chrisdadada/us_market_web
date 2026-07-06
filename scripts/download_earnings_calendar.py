@@ -17,7 +17,6 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUTPUT: Path | None = None
 DEFAULT_WATCHLIST = [
     "AAPL",
     "AMZN",
@@ -42,7 +41,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Download and merge upcoming earnings calendar rows from multiple providers.")
     parser.add_argument("--start", default=datetime.now(UTC).date().isoformat(), help="Start date, YYYY-MM-DD.")
     parser.add_argument("--end", default=None, help="End date, YYYY-MM-DD. Defaults to start + 90 days.")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--watchlist", default=",".join(DEFAULT_WATCHLIST), help="Comma-separated symbols to warn on if missing.")
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--nasdaq-workers", type=int, default=8)
@@ -323,12 +321,7 @@ def main() -> int:
         alpha_vantage_api_key=args.alpha_vantage_api_key,
         finnhub_api_key=args.finnhub_api_key,
     )
-    if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"wrote {len(out['events'])} earnings events to {args.output}")
-    else:
-        print(f"fetched {len(out['events'])} earnings events")
+    print(f"fetched {len(out['events'])} earnings events")
     print(f"providerCounts={out['providerCounts']}")
     if out["providerErrors"]:
         print(f"providerErrors={out['providerErrors']}", file=sys.stderr)
