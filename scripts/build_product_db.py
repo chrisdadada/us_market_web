@@ -818,8 +818,20 @@ def import_earnings_quality(conn: sqlite3.Connection) -> int:
 
 
 def import_strength(conn: sqlite3.Connection) -> int:
+    data_root = Path(os.environ.get("MARKET_DATA_ROOT", "/Volumes/Extreme SSD/market-data-lab/data"))
     path = DATA_DIR / "strength-scanner.json"
-    payload = read_json(path)
+    payload: dict[str, Any] = {}
+    if data_root.exists():
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from build_strength_scanner import build_scanner
+
+            payload = build_scanner(data_root, None, DATA_DIR / "strength-snapshots", 5_000_000, 40)
+            path = Path("direct:strength-scanner")
+        except Exception as exc:
+            print(f"WARN: strength scanner direct import skipped: {exc}")
+    if not payload:
+        payload = read_json(path)
     rows = payload.get("rows") or []
     for row in rows:
         symbol = symbol_value(row.get("symbol"))

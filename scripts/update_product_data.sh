@@ -11,7 +11,6 @@ fi
 echo "Updating product data with: ${PYTHON_BIN}"
 ${PYTHON_BIN} scripts/build_macro_series.py
 ${PYTHON_BIN} scripts/build_index_valuation.py
-${PYTHON_BIN} scripts/update_strength_board.py
 ${PYTHON_BIN} scripts/build_core_signals.py
 ${PYTHON_BIN} scripts/build_product_db.py
 ${PYTHON_BIN} scripts/update_macro_calendar_results.py

@@ -344,7 +344,7 @@ def build_on_board_map(rows: list[dict], snapshot_dir: Path, latest_date: str) -
     return result
 
 
-def build_scanner(data_root: Path, output: Path, snapshot_dir: Path, min_adv: float, limit: int) -> dict:
+def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path, min_adv: float, limit: int) -> dict:
     current_year = datetime.now().year
     years = [current_year - 1, current_year]
     daily = load_daily(data_root, years)
@@ -575,8 +575,9 @@ def build_scanner(data_root: Path, output: Path, snapshot_dir: Path, min_adv: fl
         ],
     }
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     snapshot_dir.mkdir(parents=True, exist_ok=True)
     snapshot_path = snapshot_dir / f"{latest_date}.json"
     snapshot_path.write_text(
