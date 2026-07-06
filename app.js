@@ -1664,57 +1664,16 @@ const renderSignalDashboard = () => {
   renderAuthState();
 };
 
-const fallbackSignalPayload = (core = state.core) => {
-  const fallbackSignals = core?.risk?.signals?.length
-    ? core.risk.signals
-    : [
-        { term: "SPY", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留大盘观察位。" },
-        { term: "QQQ", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留科技股观察位。" },
-        { term: "IWM", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留小盘股观察位。" },
-        { term: "VIX", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留波动率观察位。" },
-        { term: "10Y", bucket: "neutral", label: "待接入", note: "趋势信号接口暂无记录，先保留利率观察位。" },
-      ];
-  const fallbackStates = fallbackSignals.map((item) => {
-    const bucket = item.bucket || "";
-    const direction = bucket === "watch" ? "short" : bucket === "positive" ? "long" : "neutral";
-    return {
-      symbol: item.term,
-      direction,
-      directionText: item.label,
-      intervalLabel: "日线",
-      price: item.label || "--",
-      livePrice: item.asOf || core?.asOf || "--",
-      marketChangePct: bucket === "positive" ? "偏强" : bucket === "watch" ? "压力" : "中性",
-      theme: "市场信号",
-      firstSignalAt: item.asOf || core?.asOf || "--",
-      signalAge: "核心信号",
-      maxFavorablePct: "--",
-      maxAdversePct: "--",
-    };
-  });
+const fallbackSignalPayload = () => {
   return {
     overview: {
-      activeSymbols: fallbackStates.length,
+      activeSymbols: 0,
       switches24h: 0,
       reviewQueue: 0,
-      capturedMovePct: fallbackStates.length ? "核心信号" : "暂无记录",
+      capturedMovePct: "暂无记录",
     },
-    states: fallbackStates,
-    feed: fallbackSignals.map((item) => {
-      const bucket = item.bucket || "";
-      return {
-        symbol: item.term,
-        theme: "市场信号",
-        intervalLabel: "日线",
-        eventType: "core_signal",
-        direction: bucket === "watch" ? "short" : bucket === "positive" ? "long" : "neutral",
-        directionText: item.label,
-        price: item.label,
-        livePrice: item.asOf || core?.asOf || "--",
-        marketChangePct: neutralCopy(item.note || "--"),
-        currentTime: item.asOf || core?.asOf || "--",
-      };
-    }),
+    states: [],
+    feed: [],
     sectors: [],
     reviewQueue: [],
   };
@@ -1726,13 +1685,7 @@ const loadSignals = async () => {
     if (payload?.states?.length || payload?.feed?.length) {
       state.signals = payload;
     } else {
-      let fallback = fallbackSignalPayload();
-      if (!fallback.states.length) {
-        const bootstrap = await productApiJson("/bootstrap").catch(() => null);
-        if (bootstrap?.core && !state.core) state.core = bootstrap.core;
-        fallback = fallbackSignalPayload(bootstrap?.core || state.core);
-      }
-      state.signals = fallback;
+      state.signals = fallbackSignalPayload();
     }
     renderSignalDashboard();
     renderWatchlist();
@@ -7942,13 +7895,7 @@ const renderMarketOverviewView = (rows) => {
     .filter((row) => Number.isFinite(row.ratio) && row.ratio > 0)
     .sort((a, b) => b.ratio - a.ratio)
     .slice(0, 5);
-  const fallbackVolumeRows = !hotVolumeRows.length
-    ? (state.boards.volume || [])
-        .map((row) => ({ ...row, ratio: parseRatio(row.volumeRatio) }))
-        .filter((row) => Number.isFinite(row.ratio) && row.ratio > 0)
-        .slice(0, 5)
-    : hotVolumeRows;
-  const maxVolumeRatio = Math.max(...fallbackVolumeRows.map((row) => row.ratio), 1);
+  const maxVolumeRatio = Math.max(...hotVolumeRows.map((row) => row.ratio), 1);
   return `
     ${marketVisualTabs()}
     <div class="market-overview-grid professional-market-board">
@@ -7999,13 +7946,13 @@ const renderMarketOverviewView = (rows) => {
           <strong>${escapeHtml(hotVolumeRows[0]?.symbol || "--")}</strong>
         </div>
         <div class="market-volume-rank">
-          ${fallbackVolumeRows.length ? fallbackVolumeRows.map((row) => `
+          ${hotVolumeRows.length ? hotVolumeRows.map((row) => `
             <div>
               <b>${escapeHtml(row.symbol)}</b>
               <i><em style="width:${Math.max(5, (row.ratio / maxVolumeRatio) * 100).toFixed(1)}%"></em></i>
               <strong>${escapeHtml(row.volumeRatio || `${row.ratio.toFixed(1)}x`)}</strong>
             </div>
-          `).join("") : "<p>当前榜单暂无成交额倍数字段。</p>"}
+          `).join("") : ""}
         </div>
       </article>
     </div>
