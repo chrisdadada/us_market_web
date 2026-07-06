@@ -2,4 +2,4 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-python3 scripts/update_strength_board.py
+bash scripts/update_product_data.sh

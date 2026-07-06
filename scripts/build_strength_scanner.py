@@ -596,7 +596,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--output", type=Path, default=None)
-    parser.add_argument("--snapshot-dir", type=Path, default=Path(".tmp/strength-snapshots"))
+    parser.add_argument("--snapshot-dir", type=Path, default=None)
     parser.add_argument("--min-adv", type=float, default=5_000_000)
     parser.add_argument("--limit", type=int, default=40)
     args = parser.parse_args()

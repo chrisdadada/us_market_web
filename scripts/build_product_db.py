@@ -211,17 +211,6 @@ def load_site_data_index_payload() -> tuple[dict[str, Any], Path]:
 
 
 def load_strength_review_payload() -> tuple[dict[str, Any], Path]:
-    snapshot_dir = TMP_DIR / "strength-snapshots"
-    if not snapshot_dir.exists() or not any(snapshot_dir.glob("*.json")):
-        return load_existing_dataset_payload("strength-review")
-    try:
-        sys.path.insert(0, str(ROOT / "scripts"))
-        from review_strength_snapshots import DEFAULT_DATA_ROOT, build_review
-
-        data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
-        return build_review(data_root, snapshot_dir, [1, 3, 5, 20]), Path("direct:strength-review")
-    except Exception as exc:
-        print(f"WARN: strength review direct import skipped: {exc}")
     return load_existing_dataset_payload("strength-review")
 
 
