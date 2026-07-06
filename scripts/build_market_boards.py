@@ -13,8 +13,8 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
-DEFAULT_YTD_OUTPUT = ROOT / ".tmp" / "ytd-gainers.json"
-DEFAULT_MOVERS_OUTPUT = ROOT / ".tmp" / "market-movers.json"
+DEFAULT_YTD_OUTPUT: Path | None = None
+DEFAULT_MOVERS_OUTPUT: Path | None = None
 
 
 def now_iso() -> str:
@@ -66,9 +66,11 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def existing_name_map(*paths: Path) -> dict[str, dict[str, Any]]:
+def existing_name_map(*paths: Path | None) -> dict[str, dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for path in paths:
+        if path is None:
+            continue
         payload = read_json(path)
         if isinstance(payload.get("rows"), list):
             rows.extend(payload["rows"])
@@ -421,7 +423,7 @@ def build_payloads(data_root: Path, as_of: str, limit: int, max_ytd_return: floa
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build visible market board JSON from local adjusted daily bars.")
+    parser = argparse.ArgumentParser(description="Build visible market board payloads from local adjusted daily bars.")
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--asof", default="")
     parser.add_argument("--limit", type=int, default=5000)
@@ -433,8 +435,10 @@ def main() -> None:
 
     as_of = args.asof or latest_trade_date(args.data_root)
     ytd, movers = build_payloads(args.data_root, as_of, args.limit, args.max_ytd_return, args.min_dollar_volume)
-    write_json(args.ytd_output, ytd)
-    write_json(args.movers_output, movers)
+    if args.ytd_output:
+        write_json(args.ytd_output, ytd)
+    if args.movers_output:
+        write_json(args.movers_output, movers)
     print(json.dumps({
         "asOf": as_of,
         "universeCount": ytd.get("universeCount"),

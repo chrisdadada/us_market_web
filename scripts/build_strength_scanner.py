@@ -301,9 +301,9 @@ def build_theme_summary(work: pd.DataFrame) -> dict:
     }
 
 
-def build_on_board_map(rows: list[dict], snapshot_dir: Path, latest_date: str) -> dict[str, dict]:
+def build_on_board_map(rows: list[dict], snapshot_dir: Path | None, latest_date: str) -> dict[str, dict]:
     history: list[tuple[str, set[str]]] = []
-    if snapshot_dir.exists():
+    if snapshot_dir and snapshot_dir.exists():
         for path in sorted(snapshot_dir.glob("*.json")):
             try:
                 snap = json.loads(path.read_text(encoding="utf-8"))
@@ -344,7 +344,7 @@ def build_on_board_map(rows: list[dict], snapshot_dir: Path, latest_date: str) -
     return result
 
 
-def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path, min_adv: float, limit: int) -> dict:
+def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path | None, min_adv: float, limit: int) -> dict:
     current_year = datetime.now().year
     years = [current_year - 1, current_year]
     daily = load_daily(data_root, years)
@@ -543,7 +543,11 @@ def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path, min_
         for row in rows
     ]
 
-    review = build_review(snapshot_dir, latest_date, close_panel, close_panel["SPY"])
+    review = (
+        build_review(snapshot_dir, latest_date, close_panel, close_panel["SPY"])
+        if snapshot_dir
+        else {"summary": "", "labels": [], "factors": []}
+    )
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "asOf": latest_date,
@@ -578,12 +582,13 @@ def build_scanner(data_root: Path, output: Path | None, snapshot_dir: Path, min_
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    snapshot_dir.mkdir(parents=True, exist_ok=True)
-    snapshot_path = snapshot_dir / f"{latest_date}.json"
-    snapshot_path.write_text(
-        json.dumps({"asOf": latest_date, "generatedAt": payload["generatedAt"], "rows": snapshot_rows}, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    if snapshot_dir is not None:
+        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        snapshot_path = snapshot_dir / f"{latest_date}.json"
+        snapshot_path.write_text(
+            json.dumps({"asOf": latest_date, "generatedAt": payload["generatedAt"], "rows": snapshot_rows}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
     return payload
 
 

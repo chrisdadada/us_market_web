@@ -15,7 +15,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 DEFAULT_INPUT = ROOT / ".tmp" / "strength-scanner.json"
-DEFAULT_OUTPUT = ROOT / ".tmp" / "sector-flow.json"
+DEFAULT_OUTPUT: Path | None = None
 
 
 def now_iso() -> str:
@@ -186,8 +186,8 @@ def load_sector_overrides() -> dict[str, str]:
     return load_sector_overrides()
 
 
-def build_sector_flow(input_path: Path, output_path: Path | None, data_root: Path, limit: int) -> dict[str, Any]:
-    payload = load_rows(input_path)
+def build_sector_flow(input_path: Path | None, output_path: Path | None, data_root: Path, limit: int) -> dict[str, Any]:
+    payload = load_rows(input_path) if input_path is not None else {}
     source_mode = "strength-scanner"
     universe_count = 0
     fallback_reason = ""
