@@ -1526,7 +1526,7 @@ function OpinionsPage({
 
   return (
     <div className="opinionReaderPage">
-      <article className="readerPanel">
+      <article className="readerPanel articleReaderPanel">
         <div className="readerTop">
           <button type="button" onClick={onBack}>返回市场观点</button>
           <button type="button" onClick={() => onPage("home")}>返回首页</button>
@@ -1547,11 +1547,11 @@ function OpinionsPage({
             </div>
             <div className={locked ? "readerLockedArea readerFadePaywall" : ""}>
               {locked ? (
-                <div className="readerBody locked">
+                <div className="readerBody articleProse locked">
                   {richBodyNodes(selected?.body || selected?.summary)}
                 </div>
               ) : (
-                <div className="readerBody">
+                <div className="readerBody articleProse">
                   {richBodyNodes(selected?.body || selected?.summary)}
                 </div>
               )}
