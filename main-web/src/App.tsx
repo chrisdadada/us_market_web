@@ -1481,8 +1481,6 @@ function OpinionsPage({
   const selectedIndex = sectionRows.findIndex((item) => item.id === selected?.id);
   const previousItem = selectedIndex >= 0 ? sectionRows[selectedIndex + 1] : null;
   const nextItem = selectedIndex > 0 ? sectionRows[selectedIndex - 1] : null;
-  const sameSectionRows = sectionRows.filter((item) => item.id !== selected?.id);
-  const sideRows = sameSectionRows.slice(0, 5);
   const displayRows = rows;
 
   if (!selectedId) {
@@ -1581,19 +1579,6 @@ function OpinionsPage({
               </nav>
             ) : null}
           </main>
-          <aside className="readerSide opinionReaderSide">
-            {sideRows.length ? (
-              <section>
-                <strong>更多观点</strong>
-                {sideRows.map((item) => (
-                  <button type="button" key={item.id} onClick={() => onSelect(item)}>
-                    <b>{opinionDisplayTitle(item, 44)}</b>
-                    <span>{formatOpinionTime(item.tradeDate)}</span>
-                  </button>
-                ))}
-              </section>
-            ) : null}
-          </aside>
         </div>
       </article>
     </div>
