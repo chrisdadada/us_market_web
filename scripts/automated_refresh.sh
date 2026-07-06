@@ -80,7 +80,6 @@ has_successful_log_today() {
       && grep -q -- "OK" "${candidate}" \
       && grep -q -- "--- build deploy package ---" "${candidate}" \
       && grep -q -- "Dev deployed:" "${candidate}" \
-      && grep -q -- "Prod promoted:" "${candidate}" \
       && grep -q -- "=== automated refresh finished" "${candidate}"; then
       echo "${candidate}"
       return 0
@@ -296,9 +295,6 @@ run_lab "build monetizable signal features" \
   --stats-start 2024-01-01 \
   --stats-end "${ASOF}"
 
-run_root "rebuild product database" \
-  bash scripts/update_product_data.sh
-
 if [[ "${RUN_OPTIONS_FLOW}" == "1" ]]; then
   OPTIONS_START_DATE="${OPTIONS_START_DATE:-${START_DATE}}"
   OPTIONS_END_DATE="${OPTIONS_END_DATE:-${ASOF}}"
@@ -320,10 +316,7 @@ run_root "refresh app data cache version" \
   sed -i '' -E "s/v=[0-9]{8}-[A-Za-z0-9_-]+/v=${CACHE_VERSION}/g" app.js index.html
 
 run_root "build product DB" \
-  env TRACKING_ASOF="${ASOF}" MARKET_DATA_ROOT="${DATA_ROOT}" "${PY}" scripts/build_product_db.py
-
-run_root "update macro calendar results" \
-  "${PY}" scripts/update_macro_calendar_results.py
+  env TRACKING_ASOF="${ASOF}" MARKET_DATA_ROOT="${DATA_ROOT}" OPTIONS_START_DATE="${OPTIONS_START_DATE:-${START_DATE}}" OPTIONS_END_DATE="${OPTIONS_END_DATE:-${ASOF}}" PYTHON_BIN="${PY}" bash scripts/update_product_data.sh
 
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v
@@ -334,7 +327,7 @@ run_root "build deploy package" \
 
 if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   run_root "deploy latest build to dev" \
-    bash scripts/deploy_dev.sh
+    env SKIP_PRODUCT_DB_BUILD=1 bash scripts/deploy_dev.sh
 
   if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
     run_root "promote latest build to production" \

@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -101,7 +104,7 @@ def normalize_manual_earnings_event(row: dict[str, Any], source_name: str) -> di
         "type": "earnings",
         "impact": str(row.get("impact") or "medium"),
         "sourceName": str(row.get("sourceName") or source_name),
-        "relatedModules": row.get("relatedModules") or ["财经日历", "股票库", "财报观察"],
+        "relatedModules": row.get("relatedModules") or ["美股财经前瞻", "股票库", "财报观察"],
         "relatedAssets": row.get("relatedAssets") or [ticker],
         "summary": summary,
     }
@@ -209,7 +212,7 @@ def build_earnings_calendar_events(start: date, end: date, limit: int = 120) -> 
                 "type": "earnings",
                 "impact": earnings_impact(row.importance),
                 "sourceName": "Polygon/Benzinga",
-                "relatedModules": ["财经日历", "股票库", "财报观察"],
+                "relatedModules": ["美股财经前瞻", "股票库", "财报观察"],
                 "relatedAssets": [ticker],
                 "summary": f"{company}：{summary}",
             }
@@ -217,15 +220,141 @@ def build_earnings_calendar_events(start: date, end: date, limit: int = 120) -> 
     return events
 
 
+def fetch_text(url: str, timeout: int = 20) -> str:
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; dongbimao/1.0; +https://www.dongbimao.org)"},
+    )
+    return urllib.request.urlopen(request, timeout=timeout).read().decode("utf-8", "ignore")
+
+
+def china_event_time(et_value: str) -> tuple[str, str] | None:
+    match = re.search(r"(\d{8})T(\d{4})", et_value)
+    if not match:
+        return None
+    raw = datetime.strptime("".join(match.groups()), "%Y%m%d%H%M").replace(tzinfo=ZoneInfo("America/New_York"))
+    cn = raw.astimezone(ZoneInfo("Asia/Shanghai"))
+    return cn.date().isoformat(), cn.strftime("%H:%M")
+
+
+def build_bls_macro_events(start: date, end: date) -> list[dict[str, Any]]:
+    try:
+        text = fetch_text("https://www.bls.gov/schedule/news_release/bls.ics")
+    except Exception:
+        return []
+    events: list[dict[str, Any]] = []
+    for block in text.split("BEGIN:VEVENT"):
+        summary = re.search(r"^SUMMARY:(.+)$", block, re.M)
+        dtstart = re.search(r"^DTSTART[^:]*:(.+)$", block, re.M)
+        if not summary or not dtstart:
+            continue
+        name = summary.group(1).strip()
+        if name not in {"Employment Situation", "Consumer Price Index"}:
+            continue
+        converted = china_event_time(dtstart.group(1).strip())
+        if not converted:
+            continue
+        event_date, event_time = converted
+        day = date.fromisoformat(event_date)
+        if not (start <= day <= end):
+            continue
+        title = "美国非农就业" if name == "Employment Situation" else "美国 CPI"
+        summary_text = "就业数据会影响降息预期、小盘风险偏好和美元利率交易。" if name == "Employment Situation" else "通胀数据会影响降息预期、成长股估值和美债利率。"
+        events.append(
+            {
+                "date": event_date,
+                "time": event_time,
+                "title": title,
+                "type": "macro",
+                "impact": "high",
+                "sourceName": "BLS",
+                "relatedModules": ["美股财经前瞻"],
+                "relatedAssets": [],
+                "summary": summary_text,
+            }
+        )
+    return events
+
+
+def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
+    try:
+        text = fetch_text("https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm")
+    except Exception:
+        return []
+    current_year = ""
+    current_month = ""
+    events: list[dict[str, Any]] = []
+    month_numbers = {
+        "January": 1,
+        "February": 2,
+        "March": 3,
+        "April": 4,
+        "May": 5,
+        "June": 6,
+        "July": 7,
+        "August": 8,
+        "September": 9,
+        "October": 10,
+        "November": 11,
+        "December": 12,
+    }
+    for match in re.finditer(r"(\d{4}) FOMC Meetings|fomc-meeting__month[^>]*><strong>([^<]+)</strong>|fomc-meeting__date[^>]*>([^<]+)<", text):
+        if match.group(1):
+            current_year = match.group(1)
+            current_month = ""
+            continue
+        if match.group(2):
+            current_month = match.group(2).strip()
+            continue
+        if not current_year or not current_month or not match.group(3):
+            continue
+        raw_day = match.group(3).strip()
+        days = [int(part) for part in re.findall(r"\d+", raw_day)]
+        if not days or current_month not in month_numbers:
+            continue
+        meeting_day = date(int(current_year), month_numbers[current_month], days[-1])
+        raw = datetime(meeting_day.year, meeting_day.month, meeting_day.day, 14, 0, tzinfo=ZoneInfo("America/New_York"))
+        cn = raw.astimezone(ZoneInfo("Asia/Shanghai"))
+        if not (start <= cn.date() <= end):
+            continue
+        events.append(
+            {
+                "date": cn.date().isoformat(),
+                "time": cn.strftime("%H:%M"),
+                "title": "FOMC 议息会议",
+                "type": "macro",
+                "impact": "high",
+                "sourceName": "Federal Reserve",
+                "relatedModules": ["美股财经前瞻"],
+                "relatedAssets": [],
+                "summary": "美联储利率决议会影响美债利率、成长股估值和美元流动性。",
+            }
+        )
+    return events
+
+
+def build_macro_calendar_events(start: date, end: date, limit: int = 200) -> list[dict[str, Any]]:
+    seen: set[tuple[str, str, str]] = set()
+    events: list[dict[str, Any]] = []
+    for event in [*build_bls_macro_events(start, end), *build_fomc_macro_events(start, end)]:
+        key = (str(event.get("date") or ""), str(event.get("time") or ""), str(event.get("title") or ""))
+        if key not in seen:
+            seen.add(key)
+            events.append(event)
+    return sorted(events, key=lambda row: (row["date"], row.get("time") or "", row.get("title") or ""))[:limit]
+
+
 def build_events_calendar() -> dict[str, Any]:
     existing: dict[str, Any] = {}
     today = datetime.now(timezone.utc).date()
     horizon_end = today + timedelta(days=90)
+    macro_start = today - timedelta(days=45)
     base_events = [
         event
         for event in existing.get("events", [])
         if str(event.get("type") or "").lower() != "earnings"
     ]
+    macro_events = build_macro_calendar_events(macro_start, horizon_end)
     local_earnings_events = build_earnings_calendar_events(today, horizon_end)
     manual_earnings_events = build_manual_earnings_calendar_events(today, horizon_end)
     earnings_by_key: dict[tuple[str, str], dict[str, Any]] = {}
@@ -240,7 +369,7 @@ def build_events_calendar() -> dict[str, Any]:
         key=lambda row: (str(row.get("date") or ""), str(row.get("time") or ""), str(row.get("title") or "")),
     )
     events = sorted(
-        [*base_events, *earnings_events],
+        [*base_events, *macro_events, *earnings_events],
         key=lambda row: (str(row.get("date") or ""), str(row.get("time") or ""), str(row.get("title") or "")),
     )
     return {
@@ -251,6 +380,7 @@ def build_events_calendar() -> dict[str, Any]:
         "impactRules": existing.get("impactRules") or [],
         "coverage": {
             "earningsRows": len(earnings_events),
+            "macroRows": len(macro_events),
             "localEarningsRows": len(local_earnings_events),
             "manualEarningsRows": len(manual_earnings_events),
             "earningsWindowStart": today.isoformat(),

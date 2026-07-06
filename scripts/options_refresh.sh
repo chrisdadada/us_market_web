@@ -112,8 +112,8 @@ run_lab "refresh options flow daily aggregates" \
   --max-retries 8
 
 run_root "build product database" \
-  env TRACKING_ASOF="${OPTIONS_END_DATE}" OPTIONS_START_DATE="${OPTIONS_START_DATE}" OPTIONS_END_DATE="${OPTIONS_END_DATE}" MARKET_DATA_ROOT="${DATA_ROOT}" \
-  "${PY}" scripts/build_product_db.py
+  env TRACKING_ASOF="${OPTIONS_END_DATE}" OPTIONS_START_DATE="${OPTIONS_START_DATE}" OPTIONS_END_DATE="${OPTIONS_END_DATE}" MARKET_DATA_ROOT="${DATA_ROOT}" PYTHON_BIN="${PY}" \
+  bash scripts/update_product_data.sh
 
 CACHE_VERSION="$(date +%Y%m%d)-options1"
 run_root "refresh app data cache version" \
@@ -124,11 +124,11 @@ run_root "release gate" \
 
 run_root "build deploy package" \
   tar -czf ytd-gainers-site.tar.gz \
-  index.html styles.css app.js data server scripts mockups TESTING.md
+  index.html styles.css app.js data/product.db server scripts mockups TESTING.md
 
 if [[ "${OPTIONS_DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   run_root "deploy latest build to dev" \
-    bash scripts/deploy_dev.sh
+    env SKIP_PRODUCT_DB_BUILD=1 bash scripts/deploy_dev.sh
 
   if [[ "${OPTIONS_PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
     run_root "promote latest build to production" \
