@@ -51,9 +51,10 @@ fi
 
 OPTIONS_END_DATE="${OPTIONS_END_DATE:-$("${PY}" - <<'PY'
 import sqlite3
+import os
 from pathlib import Path
 
-path = Path("/Users/linlifu/Documents/New project/data/product.db")
+path = Path(os.environ.get("PRODUCT_DB") or os.environ.get("APP_PRODUCT_DB") or "data/product.db")
 if not path.exists():
     print("")
 else:
