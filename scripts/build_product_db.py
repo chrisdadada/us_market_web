@@ -33,6 +33,7 @@ KNOWN_SECTORS = {
     "公用事业",
 }
 UNKNOWN_SECTORS = {"", "--", "未分类", "板块待补", "None", "null", "nan"}
+PRODUCT_DATA_PAYLOADS: dict[str, dict[str, Any]] | None = None
 
 
 def now_iso() -> str:
@@ -46,6 +47,34 @@ def read_json(path: Path) -> dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise SystemExit(f"Invalid JSON: {path}: {exc}") from exc
+
+
+def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
+    global PRODUCT_DATA_PAYLOADS
+    if PRODUCT_DATA_PAYLOADS is None:
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from build_product_data import (
+                build_event_opportunities,
+                build_events_calendar,
+                build_market_temperature,
+                build_validation_center,
+            )
+
+            events = build_event_opportunities()
+            PRODUCT_DATA_PAYLOADS = {
+                "market-temperature": build_market_temperature(),
+                "events-calendar": build_events_calendar(),
+                "event-opportunities": events,
+                "validation-center": build_validation_center(events),
+            }
+        except Exception as exc:
+            print(f"WARN: product data direct import skipped: {exc}")
+            PRODUCT_DATA_PAYLOADS = {}
+    if name in PRODUCT_DATA_PAYLOADS:
+        return PRODUCT_DATA_PAYLOADS[name], Path(f"direct:{name}")
+    path = DATA_DIR / f"{name}.json"
+    return read_json(path), path
 
 
 def json_text(value: Any) -> str:
@@ -659,8 +688,7 @@ def import_sector_flow(conn: sqlite3.Connection) -> int:
 
 
 def import_stock_events(conn: sqlite3.Connection) -> int:
-    path = DATA_DIR / "event-opportunities.json"
-    payload = read_json(path)
+    payload, path = load_product_data_payload("event-opportunities")
     count = 0
     for board, board_payload in (payload.get("boards") or {}).items():
         rows = board_payload.get("rows") if isinstance(board_payload, dict) else []
@@ -707,8 +735,7 @@ def import_stock_events(conn: sqlite3.Connection) -> int:
 
 
 def import_calendar(conn: sqlite3.Connection) -> int:
-    path = DATA_DIR / "events-calendar.json"
-    payload = read_json(path)
+    payload, path = load_product_data_payload("events-calendar")
     events = payload.get("events") or []
     for row in events:
         basis = json_text([row.get("date"), row.get("time"), row.get("title"), row.get("sourceName")])
@@ -832,8 +859,7 @@ def import_strength(conn: sqlite3.Connection) -> int:
 
 
 def import_market_temperature(conn: sqlite3.Connection) -> int:
-    path = DATA_DIR / "market-temperature.json"
-    payload = read_json(path)
+    payload, path = load_product_data_payload("market-temperature")
     rows = payload.get("indicators") or []
     for row in rows:
         key = text_value(row.get("key") or row.get("name"))
@@ -942,8 +968,11 @@ def import_sector_overrides(conn: sqlite3.Connection) -> int:
 
 def import_raw_only(conn: sqlite3.Connection, names: Iterable[str]) -> None:
     for name in names:
-        path = DATA_DIR / f"{name}.json"
-        payload = read_json(path)
+        if name == "validation-center":
+            payload, path = load_product_data_payload(name)
+        else:
+            path = DATA_DIR / f"{name}.json"
+            payload = read_json(path)
         record_dataset(conn, name, path, payload, 0)
 
 
