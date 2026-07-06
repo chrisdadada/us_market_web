@@ -77,6 +77,40 @@ def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
     return read_json(path), path
 
 
+def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
+    if name == "validation-center":
+        return load_product_data_payload(name)
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        if name == "macro-series":
+            from build_macro_series import DEFAULT_DATA_ROOT, build_payload, resolve_fred_dir
+
+            fred_dir = resolve_fred_dir(Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT)))
+            return build_payload(fred_dir), Path("direct:macro-series")
+        if name == "index-valuation":
+            from build_index_valuation import (
+                DEFAULT_QQQ_FACT_SHEET_URL,
+                DEFAULT_QQQ_HOLDINGS_URL,
+                DEFAULT_SPY_FACT_SHEET_URL,
+                DEFAULT_SPY_HOLDINGS_URL,
+                DEFAULT_MARKET_DATA_ROOT,
+                build_payload,
+            )
+
+            market_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_MARKET_DATA_ROOT))
+            return build_payload(
+                market_root,
+                DEFAULT_QQQ_HOLDINGS_URL,
+                DEFAULT_QQQ_FACT_SHEET_URL,
+                DEFAULT_SPY_HOLDINGS_URL,
+                DEFAULT_SPY_FACT_SHEET_URL,
+            ), Path("direct:index-valuation")
+    except Exception as exc:
+        print(f"WARN: {name} direct import skipped: {exc}")
+    path = DATA_DIR / f"{name}.json"
+    return read_json(path), path
+
+
 def json_text(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
@@ -980,11 +1014,7 @@ def import_sector_overrides(conn: sqlite3.Connection) -> int:
 
 def import_raw_only(conn: sqlite3.Connection, names: Iterable[str]) -> None:
     for name in names:
-        if name == "validation-center":
-            payload, path = load_product_data_payload(name)
-        else:
-            path = DATA_DIR / f"{name}.json"
-            payload = read_json(path)
+        payload, path = load_raw_payload(name)
         record_dataset(conn, name, path, payload, 0)
 
 
