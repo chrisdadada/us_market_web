@@ -2,8 +2,8 @@
 
 ## Environments
 
-- Test: `dev.dongbimao.com`
-- Production: `www.dongbimao.com`
+- Test: `https://dev.dongbimao.org`
+- Production: `https://www.dongbimao.org`
 
 Both environments use the same API service for now. Static frontend files are separated:
 
@@ -16,7 +16,7 @@ Both environments use the same API service for now. Static frontend files are se
 ./scripts/deploy_dev.sh
 ```
 
-Check `dev.dongbimao.com` first.
+Check `https://dev.dongbimao.org` first.
 
 ## Automated Refresh Deploy
 
@@ -27,8 +27,8 @@ release gate tests, and package creation pass:
 ./scripts/automated_refresh.sh
 ```
 
-By default it deploys to `dev.dongbimao.com` and then promotes that build to
-`www.dongbimao.com`. For a dry refresh that stops before deploy:
+By default it deploys to `https://dev.dongbimao.org` and then promotes that build to
+`https://www.dongbimao.org`. For a dry refresh that stops before deploy:
 
 ```bash
 DEPLOY_AFTER_REFRESH=0 ./scripts/automated_refresh.sh
@@ -70,6 +70,6 @@ the test domain:
 
 After the domain `clientHold` status is removed and public DNS resolves normally, issue certificates for:
 
-- `dev.dongbimao.com`
-- `www.dongbimao.com`
-- `dongbimao.com`
+- `https://dev.dongbimao.org`
+- `https://www.dongbimao.org`
+- `https://admin.dongbimao.org`

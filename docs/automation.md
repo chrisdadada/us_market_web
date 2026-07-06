@@ -1,4 +1,4 @@
-# Data Refresh Automation
+# Data Refresh
 
 This project now has one main refresh entrypoint:
 
@@ -6,23 +6,23 @@ This project now has one main refresh entrypoint:
 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
-It updates recent Polygon stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, regenerates front-end JSON, validates JSON, and runs the release gate.
+It updates recent Polygon daily stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, regenerates front-end JSON, validates JSON, and runs the release gate.
 
 Restricted Benzinga event feeds are requested through a forward-looking window by default so the product can pick up upcoming earnings dates when the account is entitled to that feed. If the feed returns 403, the refresh logs a warning and keeps the rest of the product data pipeline moving.
 
-Future earnings can also be populated from Financial Modeling Prep. When `FMP_API_KEY` is configured, the automation downloads `/stable/earnings-calendar` into `data/manual/earnings-calendar.json`; when the key is absent, the step is skipped and the rest of the refresh continues. The product builder merges that file with local Polygon/Benzinga snapshots and keeps manual entries separate from macro events.
+Future earnings are populated through `scripts/download_earnings_calendar.py`, which merges Nasdaq's public web calendar endpoint plus every configured API provider into `data/manual/earnings-calendar.json`. Optional provider keys are `FMP_API_KEY`, `ALPHA_VANTAGE_API_KEY`/`ALPHAVANTAGE_API_KEY`, and `FINNHUB_API_KEY`. The script logs provider row counts and warns when key watchlist symbols are missing from the forward window. The product builder merges that file with local Polygon/Benzinga snapshots and keeps manual entries separate from macro events.
 
 Sector gaps are supplemented by `data/sector-overrides.json`. Use that file for clear manual classifications, especially ADRs and overseas listings where the upstream ticker metadata is sparse.
 
-## Schedule
+## Manual Run
 
-Install the local macOS LaunchAgent:
+Use one manual command when you want to refresh local data, rebuild `data/product.db`, and deploy it:
 
 ```bash
-bash "/Users/linlifu/Documents/New project/scripts/install_refresh_automation.sh"
+SKIP_IF_SUCCESSFUL_TODAY=0 RUN_OPTIONS_FLOW=0 RUN_MINUTE_BARS=0 RUN_REFERENCE=0 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
-The default schedule is daily at 19:30 local time. That is intentionally after the US market close plus a buffer, and the script looks back 10 calendar days so holidays, weekends, and delayed Polygon flatfiles are picked up later.
+The refresh fails closed when `REQUIRE_FRESH_ASOF=1`: if the rebuilt product ASOF is older than the latest expected NYSE trading day, it stops before deploy/promote instead of publishing stale data.
 
 ## Logs
 
@@ -52,16 +52,34 @@ Adjust the forward-looking event window:
 EVENTS_FUTURE_DAYS=120 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
-Enable the optional FMP earnings calendar pull:
+Add optional API earnings calendar providers:
 
 ```bash
-FMP_API_KEY=... bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+FMP_API_KEY=... FINNHUB_API_KEY=... ALPHA_VANTAGE_API_KEY=... bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
 Process a wider recovery window:
 
 ```bash
 DAYS_BACK=30 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+```
+
+Run the slower options flow separately:
+
+```bash
+RUN_OPTIONS_FLOW=1 OPTIONS_MAX_DAYS=1 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+```
+
+Run the slower minute-bar refresh separately:
+
+```bash
+RUN_MINUTE_BARS=1 REQUIRE_FRESH_ASOF=0 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+```
+
+For catch-up after downtime, run more days manually:
+
+```bash
+OPTIONS_MAX_DAYS=5 bash "/Users/linlifu/Documents/New project/scripts/options_refresh.sh"
 ```
 
 The script uses a lock directory, so overlapping runs exit without starting a second refresh.

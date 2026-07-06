@@ -9,33 +9,87 @@ import os
 import re
 import secrets
 import sqlite3
+import threading
 import time
 import mimetypes
+import urllib.request
+import urllib.error
 from contextlib import contextmanager
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterator
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, urlencode, unquote, urlparse
+
+import funding_scanner
 
 
 DB_PATH = Path(os.environ.get("APP_DB", "/var/lib/ytd-gainers/app.db"))
 STATIC_ROOT = Path(os.environ.get("APP_STATIC_ROOT", str(Path(__file__).resolve().parents[1]))).resolve()
 API_DATA_ROOT = Path(os.environ.get("APP_API_DATA_ROOT", str(STATIC_ROOT / "data" / "api"))).resolve()
 PRODUCT_DB_ENV = os.environ.get("PRODUCT_DB") or os.environ.get("APP_PRODUCT_DB")
+UPLOAD_ROOT = Path(os.environ.get("APP_UPLOAD_ROOT", "/var/lib/ytd-gainers/uploads")).resolve()
+UPLOAD_MAX_BYTES = int(os.environ.get("APP_UPLOAD_MAX_BYTES", str(8 * 1024 * 1024)))
 HOST = os.environ.get("APP_HOST", "127.0.0.1")
 PORT = int(os.environ.get("APP_PORT", "8787"))
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "")
 SESSION_TTL = int(os.environ.get("SESSION_TTL_SECONDS", str(14 * 24 * 3600)))
+REGISTER_IP_LIMIT = int(os.environ.get("REGISTER_IP_LIMIT", "12"))
+REGISTER_IP_WINDOW_SECONDS = int(os.environ.get("REGISTER_IP_WINDOW_SECONDS", str(60 * 60)))
+REGISTER_EMAIL_LIMIT = int(os.environ.get("REGISTER_EMAIL_LIMIT", "3"))
+REGISTER_EMAIL_WINDOW_SECONDS = int(os.environ.get("REGISTER_EMAIL_WINDOW_SECONDS", str(60 * 60)))
+LOGIN_FAIL_IP_LIMIT = int(os.environ.get("LOGIN_FAIL_IP_LIMIT", "30"))
+LOGIN_FAIL_EMAIL_LIMIT = int(os.environ.get("LOGIN_FAIL_EMAIL_LIMIT", "10"))
+LOGIN_FAIL_WINDOW_SECONDS = int(os.environ.get("LOGIN_FAIL_WINDOW_SECONDS", str(15 * 60)))
+PASSWORD_RESET_IP_LIMIT = int(os.environ.get("PASSWORD_RESET_IP_LIMIT", "5"))
+PASSWORD_RESET_EMAIL_LIMIT = int(os.environ.get("PASSWORD_RESET_EMAIL_LIMIT", "3"))
+PASSWORD_RESET_WINDOW_SECONDS = int(os.environ.get("PASSWORD_RESET_WINDOW_SECONDS", str(60 * 60)))
+PASSWORD_RESET_TTL_SECONDS = int(os.environ.get("PASSWORD_RESET_TTL_SECONDS", str(30 * 60)))
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+MAIL_FROM = os.environ.get("MAIL_FROM", "")
+PUBLIC_SITE_URL = os.environ.get("PUBLIC_SITE_URL", "")
+EMAIL_MAX_LENGTH = 254
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
 SUPER_ADMIN_EMAIL = os.environ.get("SUPER_ADMIN_EMAIL", "admin@meigustrategy.local").strip().lower()
 SUPER_ADMIN_PASSWORD = os.environ.get("SUPER_ADMIN_PASSWORD", "")
 SIGNALS_API_TOKEN = os.environ.get("SIGNALS_API_TOKEN", "")
+MARKET_OPINION_SECTIONS = {
+    "weekly": "每周交易主线",
+    "premarket": "盘前前瞻",
+    "daily": "每日个股行情观点",
+    "research": "研报解析",
+    "postmarket": "盘后复盘延展",
+    "journal": "交易日记",
+}
+ALLOWED_UPLOAD_MIMES = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+}
 
-PLANS = {"free", "paid"}
+PLANS = {"free", "paid", "monthly", "yearly"}
 ROLES = {"user", "admin", "super_admin"}
-LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus"}
+LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus", "monthly", "yearly"}
+MARKET_OPINION_STATUSES = {"published", "draft"}
+COURSE_STATUSES = {"published", "draft"}
+COURSE_COS_SECRET_ID = os.environ.get("COURSE_COS_SECRET_ID") or os.environ.get("TENCENT_COS_SECRET_ID") or ""
+COURSE_COS_SECRET_KEY = os.environ.get("COURSE_COS_SECRET_KEY") or os.environ.get("TENCENT_COS_SECRET_KEY") or ""
+COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCENT_COS_BUCKET") or ""
+COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCENT_COS_REGION") or ""
+COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
+COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
+COURSE_VIDEO_UPLOAD_MAX_BYTES = int(os.environ.get("COURSE_VIDEO_UPLOAD_MAX_BYTES", str(5 * 1024 * 1024 * 1024)))
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+REGISTER_RATE_BUCKETS: dict[str, list[float]] = {}
+REGISTER_RATE_LOCK = threading.Lock()
+LOGIN_FAIL_BUCKETS: dict[str, list[float]] = {}
+LOGIN_FAIL_LOCK = threading.Lock()
+PASSWORD_RESET_BUCKETS: dict[str, list[float]] = {}
+PASSWORD_RESET_LOCK = threading.Lock()
 
 
 def now_iso() -> str:
@@ -66,6 +120,121 @@ def verify_password(password: str, salt: str, password_hash: str) -> bool:
     return hmac.compare_digest(candidate, password_hash)
 
 
+def reset_register_rate_limits() -> None:
+    with REGISTER_RATE_LOCK:
+        REGISTER_RATE_BUCKETS.clear()
+    with LOGIN_FAIL_LOCK:
+        LOGIN_FAIL_BUCKETS.clear()
+    with PASSWORD_RESET_LOCK:
+        PASSWORD_RESET_BUCKETS.clear()
+
+
+def register_rate_check(ip: str, email: str) -> tuple[bool, int]:
+    now = time.time()
+    checks = [
+        (f"ip:{ip or 'unknown'}", REGISTER_IP_LIMIT, REGISTER_IP_WINDOW_SECONDS),
+        (f"email:{email or 'unknown'}", REGISTER_EMAIL_LIMIT, REGISTER_EMAIL_WINDOW_SECONDS),
+    ]
+    with REGISTER_RATE_LOCK:
+        retry_after = 0
+        cleaned: dict[str, list[float]] = {}
+        for key, limit, window in checks:
+            if limit <= 0 or window <= 0:
+                cleaned[key] = []
+                continue
+            attempts = [value for value in REGISTER_RATE_BUCKETS.get(key, []) if now - value < window]
+            cleaned[key] = attempts
+            if len(attempts) >= limit:
+                oldest = min(attempts)
+                retry_after = max(retry_after, max(1, int(window - (now - oldest))))
+        if retry_after:
+            for key, attempts in cleaned.items():
+                REGISTER_RATE_BUCKETS[key] = attempts
+            return False, retry_after
+        for key, attempts in cleaned.items():
+            attempts.append(now)
+            REGISTER_RATE_BUCKETS[key] = attempts
+    return True, 0
+
+
+def normalize_email(email: Any) -> str:
+    return str(email or "").strip().lower()
+
+
+def validate_email(email: str) -> None:
+    if not email or len(email) > EMAIL_MAX_LENGTH or not EMAIL_PATTERN.fullmatch(email):
+        raise ValueError("邮箱格式不正确")
+
+
+def validate_password(password: str) -> None:
+    if len(password) < PASSWORD_MIN_LENGTH:
+        raise ValueError("密码至少 8 位")
+    if len(password) > PASSWORD_MAX_LENGTH:
+        raise ValueError("密码不能超过 128 位")
+
+
+def login_failure_retry_after(ip: str, email: str) -> int:
+    now = time.time()
+    checks = [
+        (f"ip:{ip or 'unknown'}", LOGIN_FAIL_IP_LIMIT),
+        (f"email:{email or 'unknown'}", LOGIN_FAIL_EMAIL_LIMIT),
+    ]
+    with LOGIN_FAIL_LOCK:
+        retry_after = 0
+        for key, limit in checks:
+            if limit <= 0 or LOGIN_FAIL_WINDOW_SECONDS <= 0:
+                LOGIN_FAIL_BUCKETS[key] = []
+                continue
+            attempts = [value for value in LOGIN_FAIL_BUCKETS.get(key, []) if now - value < LOGIN_FAIL_WINDOW_SECONDS]
+            LOGIN_FAIL_BUCKETS[key] = attempts
+            if len(attempts) >= limit:
+                oldest = min(attempts)
+                retry_after = max(retry_after, max(1, int(LOGIN_FAIL_WINDOW_SECONDS - (now - oldest))))
+    return retry_after
+
+
+def record_login_failure(ip: str, email: str) -> None:
+    if LOGIN_FAIL_WINDOW_SECONDS <= 0:
+        return
+    now = time.time()
+    checks = [
+        (f"ip:{ip or 'unknown'}", LOGIN_FAIL_IP_LIMIT),
+        (f"email:{email or 'unknown'}", LOGIN_FAIL_EMAIL_LIMIT),
+    ]
+    with LOGIN_FAIL_LOCK:
+        for key, limit in checks:
+            if limit <= 0:
+                LOGIN_FAIL_BUCKETS[key] = []
+                continue
+            attempts = [value for value in LOGIN_FAIL_BUCKETS.get(key, []) if now - value < LOGIN_FAIL_WINDOW_SECONDS]
+            attempts.append(now)
+            LOGIN_FAIL_BUCKETS[key] = attempts
+
+
+def password_reset_rate_check(ip: str, email: str) -> tuple[bool, int]:
+    now = time.time()
+    checks = [
+        (f"ip:{ip or 'unknown'}", PASSWORD_RESET_IP_LIMIT),
+        (f"email:{email or 'unknown'}", PASSWORD_RESET_EMAIL_LIMIT),
+    ]
+    with PASSWORD_RESET_LOCK:
+        retry_after = 0
+        for key, limit in checks:
+            if limit <= 0 or PASSWORD_RESET_WINDOW_SECONDS <= 0:
+                PASSWORD_RESET_BUCKETS[key] = []
+                continue
+            attempts = [value for value in PASSWORD_RESET_BUCKETS.get(key, []) if now - value < PASSWORD_RESET_WINDOW_SECONDS]
+            PASSWORD_RESET_BUCKETS[key] = attempts
+            if len(attempts) >= limit:
+                oldest = min(attempts)
+                retry_after = max(retry_after, max(1, int(PASSWORD_RESET_WINDOW_SECONDS - (now - oldest))))
+        if retry_after:
+            return False, retry_after
+        for key in [item[0] for item in checks]:
+            PASSWORD_RESET_BUCKETS.setdefault(key, []).append(now)
+    return True, 0
+
+
 def get_secret() -> bytes:
     if not SESSION_SECRET:
         raise RuntimeError("SESSION_SECRET is required")
@@ -80,7 +249,7 @@ def sign_session(user_id: int, issued_at: int | None = None) -> str:
     return f"{payload_part}.{b64url(sig)}"
 
 
-def verify_session(token: str) -> int | None:
+def verify_session(token: str) -> dict[str, Any] | None:
     try:
         payload_part, sig_part = token.split(".", 1)
         expected = hmac.new(get_secret(), payload_part.encode("ascii"), hashlib.sha256).digest()
@@ -89,9 +258,20 @@ def verify_session(token: str) -> int | None:
         payload = json.loads(b64url_decode(payload_part))
         if int(payload.get("exp", 0)) < int(time.time()):
             return None
-        return int(payload["uid"])
+        int(payload["uid"])
+        return payload
     except Exception:
         return None
+
+
+def timestamp_epoch(value: Any) -> int:
+    text = str(value or "").strip()
+    if not text:
+        return 0
+    try:
+        return int(datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp())
+    except ValueError:
+        return 0
 
 
 @contextmanager
@@ -116,7 +296,6 @@ def product_db_candidates() -> list[Path]:
         [
             STATIC_ROOT / "data" / "product.db",
             Path("/opt/dongbimao-prod/data/product.db"),
-            Path("/opt/dongbimao-dev/data/product.db"),
             Path(__file__).resolve().parents[1] / "data" / "product.db",
         ]
     )
@@ -138,6 +317,251 @@ def product_db_path() -> Path | None:
     return None
 
 
+def market_opinion_slug(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return slug[:60] or str(int(time.time()))
+
+
+def market_opinion_list(value: Any, *, upper: bool = False) -> list[str]:
+    if isinstance(value, list):
+        raw = value
+    else:
+        raw = re.split(r"[,，\n]+", str(value or ""))
+    items = [str(item).strip() for item in raw if str(item).strip()]
+    return [item.upper() for item in items] if upper else items
+
+
+def safe_upload_filename(value: str, fallback: str = "image") -> str:
+    stem = Path(str(value or fallback)).stem
+    cleaned = re.sub(r"[^a-zA-Z0-9._-]+", "-", stem).strip(".-")
+    return (cleaned[:48] or fallback).lower()
+
+
+def upload_root() -> Path:
+    return UPLOAD_ROOT.expanduser().resolve()
+
+
+def ensure_upload_child(path: Path) -> Path:
+    root = upload_root()
+    resolved = path.resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("上传路径不正确") from exc
+    return resolved
+
+
+def decode_upload_image(payload: dict[str, Any]) -> tuple[bytes, str, str]:
+    mime = str(payload.get("type", "")).strip().lower()
+    data = str(payload.get("data", "")).strip()
+    match = re.match(r"^data:(image/(?:png|jpeg|jpg|webp|gif));base64,(.+)$", data, re.I | re.S)
+    if match:
+        mime = match.group(1).lower().replace("image/jpg", "image/jpeg")
+        data = match.group(2)
+    if mime == "image/jpg":
+        mime = "image/jpeg"
+    if mime not in ALLOWED_UPLOAD_MIMES:
+        raise ValueError("只支持 PNG、JPG、WebP、GIF 图片")
+    try:
+        raw = base64.b64decode(data, validate=True)
+    except Exception as exc:
+        raise ValueError("图片数据不正确") from exc
+    if not raw:
+        raise ValueError("图片为空")
+    if len(raw) > UPLOAD_MAX_BYTES:
+        raise ValueError("图片太大，单张不能超过 8MB")
+    return raw, mime, ALLOWED_UPLOAD_MIMES[mime]
+
+
+def save_upload_image(payload: dict[str, Any]) -> dict[str, str]:
+    raw, mime, ext = decode_upload_image(payload)
+    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    root = upload_root()
+    scope = str(payload.get("scope") or "opinions").strip().lower()
+    if scope not in {"opinions", "courses"}:
+        scope = "opinions"
+    folder = ensure_upload_child(root / scope / day)
+    folder.mkdir(parents=True, exist_ok=True)
+    name = safe_upload_filename(str(payload.get("name", "")))
+    filename = f"{int(time.time())}-{secrets.token_hex(5)}-{name}{ext}"
+    path = ensure_upload_child(folder / filename)
+    path.write_bytes(raw)
+    relative_path = f"{scope}/{day}/{filename}"
+    return {
+        "url": f"/api/upload?path={quote(relative_path, safe='/._-')}",
+        "mime": mime,
+        "name": filename,
+    }
+
+
+def db_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def normalize_market_opinion_datetime(value: Any) -> str:
+    text = str(value or "").strip().replace("T", " ")
+    if not text:
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+        return f"{text} 00:00:00"
+    match = re.match(r"^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})(?::(\d{2}))?", text)
+    if match:
+        return f"{match.group(1)} {match.group(2)}:{match.group(3) or '00'}"
+    return text[:19]
+
+
+def save_market_opinion(payload: dict[str, Any]) -> dict[str, Any]:
+    section = str(payload.get("section", "")).strip()
+    title = str(payload.get("title", "")).strip()
+    body = str(payload.get("body", "")).strip()
+    trade_date = normalize_market_opinion_datetime(payload.get("tradeDate"))
+    status = str(payload.get("status", "published")).strip().lower()
+    item_id = str(payload.get("id", "")).strip()
+    if section not in MARKET_OPINION_SECTIONS:
+        raise ValueError("栏目不正确")
+    if status not in MARKET_OPINION_STATUSES:
+        raise ValueError("发布状态不正确")
+    if not title:
+        raise ValueError("标题不能为空")
+    if status == "published" and not body:
+        raise ValueError("正文不能为空")
+
+    item = {
+        "id": item_id or f"{section}-{market_opinion_slug(trade_date)}-{market_opinion_slug(title)}",
+        "section": section,
+        "sectionLabel": MARKET_OPINION_SECTIONS[section],
+        "title": title,
+        "tradeDate": trade_date,
+        "status": status,
+        "featured": bool(payload.get("featured")),
+        "summary": str(payload.get("summary", "")).strip(),
+        "symbols": market_opinion_list(payload.get("symbols"), upper=True),
+        "topics": market_opinion_list(payload.get("topics")),
+        "highlights": market_opinion_list(payload.get("highlights")),
+        "body": body,
+    }
+
+    with product_db_write() as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO market_opinion_items
+            (item_id, section, section_label, title, trade_date, summary,
+             symbols_json, topics_json, highlights_json, body, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                item["id"],
+                item["section"],
+                item["sectionLabel"],
+                item["title"],
+                item["tradeDate"],
+                item["summary"],
+                db_json(item["symbols"]),
+                db_json(item["topics"]),
+                db_json(item["highlights"]),
+                item["body"],
+                db_json(item),
+            ),
+        )
+    return item
+
+
+def query_market_opinions(
+    *,
+    include_drafts: bool = False,
+    section: str = "",
+    limit: int = 50,
+    offset: int = 0,
+    status: str = "",
+    date_from: str = "",
+    date_to: str = "",
+    query: str = "",
+    sort: str = "latest",
+) -> dict[str, Any]:
+    where = []
+    values: list[Any] = []
+    if section:
+        where.append("section = ?")
+        values.append(section)
+    if date_from:
+        where.append("substr(trade_date, 1, 10) >= ?")
+        values.append(date_from)
+    if date_to:
+        where.append("substr(trade_date, 1, 10) <= ?")
+        values.append(date_to)
+    where_sql = "WHERE " + " AND ".join(where) if where else ""
+    with product_db() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT *
+            FROM market_opinion_items
+            {where_sql}
+            ORDER BY trade_date DESC, item_id DESC
+            """,
+            values,
+        ).fetchall()
+    items = [product_market_opinion_payload(row) for row in rows]
+    if not include_drafts:
+        items = [item for item in items if item.get("status") == "published"]
+    if status in MARKET_OPINION_STATUSES:
+        items = [item for item in items if item.get("status") == status]
+    needle = query.strip().lower()
+    if needle:
+        items = [
+            item
+            for item in items
+            if needle
+            in " ".join(
+                [
+                    str(item.get("title") or ""),
+                    str(item.get("summary") or ""),
+                    str(item.get("sectionLabel") or ""),
+                    " ".join(item.get("symbols") or []),
+                    " ".join(item.get("topics") or []),
+                ]
+            ).lower()
+        ]
+    items.sort(key=lambda item: (1 if item.get("featured") else 0, str(item.get("tradeDate") or "")), reverse=True)
+    if sort == "draftFirst":
+        items.sort(key=lambda item: 0 if item.get("status") == "draft" else 1)
+    elif sort == "publishedFirst":
+        items.sort(key=lambda item: 0 if item.get("status") == "published" else 1)
+    total = len(items)
+    start = max(0, offset)
+    end = start + max(0, limit)
+    return {
+        "rows": items[start:end],
+        "total": total,
+        "limit": limit,
+        "offset": start,
+        "section": section,
+    }
+
+
+def list_market_opinions(
+    *,
+    include_drafts: bool = False,
+    section: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    return query_market_opinions(
+        include_drafts=include_drafts,
+        section=section,
+        limit=limit,
+        offset=offset,
+    )["rows"]
+
+
+def delete_market_opinion(item_id: str) -> bool:
+    item_id = str(item_id or "").strip()
+    if not item_id:
+        return False
+    with product_db_write() as conn:
+        cursor = conn.execute("DELETE FROM market_opinion_items WHERE item_id = ?", (item_id,))
+    return cursor.rowcount > 0
+
+
 @contextmanager
 def product_db() -> Iterator[sqlite3.Connection]:
     path = product_db_path()
@@ -147,6 +571,21 @@ def product_db() -> Iterator[sqlite3.Connection]:
     conn.row_factory = sqlite3.Row
     try:
         yield conn
+    finally:
+        conn.close()
+
+
+@contextmanager
+def product_db_write() -> Iterator[sqlite3.Connection]:
+    path = product_db_path()
+    if not path:
+        raise FileNotFoundError("product.db not found")
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys=ON")
+    try:
+        with conn:
+            yield conn
     finally:
         conn.close()
 
@@ -359,16 +798,20 @@ def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
     return payload
 
 
-def product_stock_library_order(sort_key: str) -> str:
-    return {
-        "dollarVolume": "COALESCE(s.latest_dollar_volume, volume.dollar_volume, day.dollar_volume, 0) DESC, s.symbol ASC",
-        "dayChange": "COALESCE(day.change_pct, -999999) DESC, s.symbol ASC",
-        "weekChange": "COALESCE(week.change_pct, -999999) DESC, s.symbol ASC",
-        "monthChange": "COALESCE(month.change_pct, -999999) DESC, s.symbol ASC",
-        "ytdChange": "COALESCE(ytd.change_pct, -999999) DESC, s.symbol ASC",
-        "marketCap": "COALESCE(s.market_cap_value, 0) DESC, s.symbol ASC",
-        "symbol": "s.symbol ASC",
-    }.get(sort_key, "COALESCE(s.latest_dollar_volume, volume.dollar_volume, day.dollar_volume, 0) DESC, s.symbol ASC")
+def product_stock_library_order(sort_key: str, sort_dir: str = "desc") -> str:
+    direction = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
+    expressions = {
+        "dollarVolume": "COALESCE(s.latest_dollar_volume, volume.dollar_volume, day.dollar_volume)",
+        "dayChange": "day.change_pct",
+        "weekChange": "week.change_pct",
+        "monthChange": "month.change_pct",
+        "ytdChange": "ytd.change_pct",
+        "marketCap": "s.market_cap_value",
+    }
+    if sort_key == "symbol":
+        return f"s.symbol {'DESC' if direction == 'DESC' else 'ASC'}"
+    expr = expressions.get(sort_key, expressions["dollarVolume"])
+    return f"CASE WHEN {expr} IS NULL THEN 1 ELSE 0 END ASC, {expr} {direction}, s.symbol ASC"
 
 
 def product_raw_payload(conn: sqlite3.Connection, name: str) -> dict[str, Any] | None:
@@ -379,7 +822,12 @@ def product_raw_payload(conn: sqlite3.Connection, name: str) -> dict[str, Any] |
     return payload if isinstance(payload, dict) else None
 
 
-def product_market_board_payload(conn: sqlite3.Connection, board: str, limit: int = 500) -> list[dict[str, Any]]:
+def product_market_board_payload(
+    conn: sqlite3.Connection,
+    board: str,
+    limit: int = 500,
+    symbols: list[str] | None = None,
+) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT *
@@ -390,38 +838,69 @@ def product_market_board_payload(conn: sqlite3.Connection, board: str, limit: in
         """,
         (board, limit),
     ).fetchall()
-    return [product_market_row_payload(row) for row in rows]
+    merged = list(rows)
+    seen = {row["symbol"] for row in merged}
+    extra_symbols = [symbol for symbol in (symbols or []) if symbol and symbol not in seen]
+    if extra_symbols:
+        placeholders = ",".join(["?"] * len(extra_symbols))
+        extra_rows = conn.execute(
+            f"""
+            SELECT *
+            FROM market_board_rows
+            WHERE board = ? AND symbol IN ({placeholders})
+            ORDER BY rank ASC
+            """,
+            (board, *extra_symbols),
+        ).fetchall()
+        merged.extend(extra_rows)
+    payloads = [product_market_row_payload(row) for row in merged]
+    missing_cap_symbols = [
+        payload["symbol"]
+        for payload in payloads
+        if (not payload.get("marketCap") or payload.get("marketCap") == "--") and payload.get("symbol")
+    ]
+    if missing_cap_symbols:
+        placeholders = ",".join(["?"] * len(missing_cap_symbols))
+        symbol_rows = conn.execute(
+            f"""
+            SELECT symbol, market_cap_label, market_cap_value
+            FROM symbols
+            WHERE symbol IN ({placeholders})
+            """,
+            missing_cap_symbols,
+        ).fetchall()
+        cap_map = {row["symbol"]: row for row in symbol_rows}
+        for payload in payloads:
+            cap_row = cap_map.get(payload["symbol"])
+            if not cap_row:
+                continue
+            if cap_row["market_cap_label"] and cap_row["market_cap_label"] != "--":
+                payload["marketCap"] = cap_row["market_cap_label"]
+            if cap_row["market_cap_value"] is not None:
+                payload["marketCapValue"] = cap_row["market_cap_value"]
+    return payloads
 
 
-def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500) -> dict[str, Any]:
+def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, symbols: list[str] | None = None) -> dict[str, Any]:
     meta = product_dataset_meta(conn)
-    ytd_raw = product_raw_payload(conn, "ytd-gainers") or {}
-    movers_raw = product_raw_payload(conn, "market-movers") or {}
     core_raw = product_raw_payload(conn, "core-signals")
     strength_raw = product_raw_payload(conn, "strength-scanner")
-    strength_review_raw = product_raw_payload(conn, "strength-review")
     sector_flow_raw = product_raw_payload(conn, "sector-flow")
-    market_temperature_raw = product_raw_payload(conn, "market-temperature")
     generated_at = meta.get("generatedAt")
 
-    ytd_rows = product_market_board_payload(conn, "ytd", board_limit)
+    ytd_rows = product_market_board_payload(conn, "ytd", board_limit, symbols)
     ytd = {
-        **ytd_raw,
-        "updatedAt": ytd_raw.get("updatedAt") or generated_at,
+        "updatedAt": generated_at,
         "rows": ytd_rows,
     }
 
-    raw_boards = movers_raw.get("boards") if isinstance(movers_raw.get("boards"), dict) else {}
     boards: dict[str, Any] = {}
     for board in ["day", "week", "month", "volume"]:
-        raw_board = raw_boards.get(board) if isinstance(raw_boards.get(board), dict) else {}
         boards[board] = {
-            **raw_board,
-            "rows": product_market_board_payload(conn, board, board_limit),
+            "rows": product_market_board_payload(conn, board, board_limit, symbols),
         }
     movers = {
-        **movers_raw,
-        "updatedAt": movers_raw.get("updatedAt") or generated_at,
+        "updatedAt": generated_at,
         "boards": boards,
     }
     return {
@@ -430,9 +909,7 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500) 
         "movers": movers,
         "core": core_raw,
         "strength": strength_raw,
-        "strengthReview": strength_review_raw,
         "sectorFlow": sector_flow_raw,
-        "marketTemperature": market_temperature_raw,
     }
 
 
@@ -453,6 +930,71 @@ def product_sector_payload(row: sqlite3.Row) -> dict[str, Any]:
         "outflowProxy": row["outflow_proxy"],
         "leaders": parse_json_field(row["leaders_json"], []),
     }
+
+
+def product_sector_board_payload(conn: sqlite3.Connection, board: str, include_unknown: bool, limit: int, offset: int) -> dict[str, Any]:
+    unknown_filter = "" if include_unknown else "AND sector NOT IN ('未分类', '板块待补', '--')"
+    rows = conn.execute(
+        f"""
+        SELECT
+          sector,
+          COUNT(*) AS stock_count,
+          SUM(CASE WHEN COALESCE(change_pct, 0) >= 0 THEN 1 ELSE 0 END) AS up_count,
+          SUM(CASE WHEN COALESCE(change_pct, 0) < 0 THEN 1 ELSE 0 END) AS down_count,
+          AVG(change_pct) AS avg_change_pct,
+          SUM(COALESCE(dollar_volume, 0)) AS active_value,
+          SUM(CASE WHEN COALESCE(change_pct, 0) >= 0 THEN COALESCE(dollar_volume, 0) ELSE -COALESCE(dollar_volume, 0) END) AS net_flow_proxy
+        FROM market_board_rows
+        WHERE board = ? {unknown_filter}
+        GROUP BY sector
+        ORDER BY net_flow_proxy DESC
+        LIMIT ? OFFSET ?
+        """,
+        (board, limit, offset),
+    ).fetchall()
+    total = conn.execute(
+        f"""
+        SELECT COUNT(*) AS count FROM (
+          SELECT sector
+          FROM market_board_rows
+          WHERE board = ? {unknown_filter}
+          GROUP BY sector
+        )
+        """,
+        (board,),
+    ).fetchone()["count"]
+    as_of = conn.execute("SELECT MAX(trade_date) AS as_of FROM market_board_rows WHERE board = ?", (board,)).fetchone()["as_of"]
+    payload_rows = []
+    for index, row in enumerate(rows, start=offset + 1):
+        leaders = conn.execute(
+            """
+            SELECT symbol, company, change_pct, dollar_volume
+            FROM market_board_rows
+            WHERE board = ? AND sector = ?
+            ORDER BY COALESCE(dollar_volume, 0) DESC
+            LIMIT 4
+            """,
+            (board, row["sector"]),
+        ).fetchall()
+        payload_rows.append(
+            {
+                "asOf": as_of,
+                "rank": index,
+                "sector": row["sector"],
+                "count": row["stock_count"],
+                "upCount": row["up_count"],
+                "downCount": row["down_count"],
+                "breadthPct": round((row["up_count"] or 0) / max(1, row["stock_count"] or 0) * 100, 2),
+                "avgChangePct": row["avg_change_pct"],
+                "activeValue": row["active_value"],
+                "netFlowProxy": row["net_flow_proxy"],
+                "leaders": [
+                    {"symbol": leader["symbol"], "name": leader["company"], "changePct": leader["change_pct"], "liquidity": leader["dollar_volume"]}
+                    for leader in leaders
+                ],
+            }
+        )
+    return {"rows": payload_rows, "total": total, "limit": limit, "offset": offset, "asOf": as_of, "board": board}
 
 
 def product_event_payload(row: sqlite3.Row) -> dict[str, Any]:
@@ -500,6 +1042,10 @@ def product_earnings_payload(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def product_calendar_payload(row: sqlite3.Row) -> dict[str, Any]:
+    def clean_label(value):
+        text = "" if value is None else str(value).strip()
+        return None if text.lower() in {"", "null", "undefined"} else text
+
     return {
         "id": row["event_id"],
         "date": row["event_date"],
@@ -508,6 +1054,13 @@ def product_calendar_payload(row: sqlite3.Row) -> dict[str, Any]:
         "type": row["event_type"],
         "impact": row["impact"],
         "sourceName": row["source_name"],
+        "actualValue": row["actual_value"],
+        "actualLabel": clean_label(row["actual_label"]),
+        "forecastValue": row["forecast_value"],
+        "forecastLabel": clean_label(row["forecast_label"]),
+        "previousValue": row["previous_value"],
+        "previousLabel": clean_label(row["previous_label"]),
+        "resultUpdatedAt": row["result_updated_at"],
         "relatedModules": parse_json_field(row["related_modules_json"], []),
         "relatedAssets": parse_json_field(row["related_assets_json"], []),
         "summary": row["summary"],
@@ -535,7 +1088,29 @@ def product_strength_payload(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def product_market_opinion_payload(row: sqlite3.Row) -> dict[str, Any]:
+    payload = parse_json_field(row["payload_json"], {}) if "payload_json" in row.keys() else {}
+    status = str(payload.get("status") or "published")
+    if status not in MARKET_OPINION_STATUSES:
+        status = "published"
+    return {
+        "id": row["item_id"],
+        "section": row["section"],
+        "sectionLabel": row["section_label"],
+        "title": row["title"],
+        "tradeDate": row["trade_date"],
+        "status": status,
+        "featured": bool(payload.get("featured")),
+        "summary": row["summary"],
+        "symbols": parse_json_field(row["symbols_json"], []),
+        "topics": parse_json_field(row["topics_json"], []),
+        "highlights": parse_json_field(row["highlights_json"], []),
+        "body": row["body"],
+    }
+
+
 def init_db() -> None:
+    reset_register_rate_limits()
     with db() as conn:
         conn.executescript(
             """
@@ -551,7 +1126,9 @@ def init_db() -> None:
               is_active INTEGER NOT NULL DEFAULT 1,
               created_at TEXT NOT NULL,
               updated_at TEXT NOT NULL,
-              last_login_at TEXT
+              password_changed_at TEXT,
+              last_login_at TEXT,
+              onboarding_seen_at TEXT
             );
 
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -602,12 +1179,100 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_signal_events_symbol ON signal_events(symbol);
             CREATE INDEX IF NOT EXISTS idx_signal_events_received_at ON signal_events(received_at);
+
+            CREATE TABLE IF NOT EXISTS user_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              actor_user_id INTEGER,
+              actor_email TEXT,
+              target_user_id INTEGER,
+              target_email TEXT,
+              action TEXT NOT NULL,
+              before_json TEXT,
+              after_json TEXT,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_user_events_target ON user_events(target_user_id, id DESC);
+            CREATE INDEX IF NOT EXISTS idx_user_events_actor ON user_events(actor_user_id, id DESC);
+
+            CREATE TABLE IF NOT EXISTS analytics_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER,
+              event_type TEXT NOT NULL,
+              event_key TEXT NOT NULL,
+              path TEXT,
+              created_at TEXT NOT NULL,
+              FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_analytics_events_user_time ON analytics_events(user_id, created_at);
+            CREATE INDEX IF NOT EXISTS idx_analytics_events_type_time ON analytics_events(event_type, created_at);
+
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              token_hash TEXT NOT NULL UNIQUE,
+              expires_at TEXT NOT NULL,
+              used_at TEXT,
+              request_ip TEXT,
+              created_at TEXT NOT NULL,
+              FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user_id, id DESC);
+
+            CREATE TABLE IF NOT EXISTS course_series (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              slug TEXT NOT NULL UNIQUE,
+              title TEXT NOT NULL,
+              summary TEXT,
+              cover_url TEXT,
+              sort_order INTEGER NOT NULL DEFAULT 1,
+              status TEXT NOT NULL DEFAULT 'draft',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS course_lessons (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              series_id INTEGER NOT NULL,
+              title TEXT NOT NULL,
+              sort_order INTEGER NOT NULL DEFAULT 1,
+              duration_label TEXT,
+              video_key TEXT NOT NULL,
+              status TEXT NOT NULL DEFAULT 'published',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              FOREIGN KEY(series_id) REFERENCES course_series(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS course_grants (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              series_id INTEGER NOT NULL,
+              user_id INTEGER NOT NULL,
+              granted_by_user_id INTEGER,
+              created_at TEXT NOT NULL,
+              UNIQUE(series_id, user_id),
+              FOREIGN KEY(series_id) REFERENCES course_series(id),
+              FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_course_lessons_series ON course_lessons(series_id, sort_order DESC, id DESC);
+            CREATE INDEX IF NOT EXISTS idx_course_grants_user ON course_grants(user_id, series_id);
+            CREATE INDEX IF NOT EXISTS idx_course_grants_series ON course_grants(series_id, user_id);
             """
         )
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
         if "created_by_user_id" not in columns:
             conn.execute("ALTER TABLE users ADD COLUMN created_by_user_id INTEGER")
+        if "password_changed_at" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN password_changed_at TEXT")
+        if "onboarding_seen_at" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN onboarding_seen_at TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_users_created_by ON users(created_by_user_id)")
+        course_series_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_series)").fetchall()}
+        if "sort_order" not in course_series_columns:
+            conn.execute("ALTER TABLE course_series ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 1")
         if SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD:
             existing = conn.execute("SELECT id FROM users WHERE email = ?", (SUPER_ADMIN_EMAIL,)).fetchone()
             salt, password_hash = hash_password(SUPER_ADMIN_PASSWORD)
@@ -617,19 +1282,19 @@ def init_db() -> None:
                     """
                     UPDATE users
                     SET password_hash = ?, salt = ?, role = 'super_admin', plan = 'paid',
-                        is_active = 1, updated_at = ?
+                        is_active = 1, updated_at = ?, password_changed_at = COALESCE(password_changed_at, ?)
                     WHERE email = ?
                     """,
-                    (password_hash, salt, timestamp, SUPER_ADMIN_EMAIL),
+                    (password_hash, salt, timestamp, timestamp, SUPER_ADMIN_EMAIL),
                 )
             else:
                 conn.execute(
                     """
                     INSERT INTO users
-                    (email, password_hash, salt, role, plan, subscription_expires_at, is_active, created_at, updated_at)
-                    VALUES (?, ?, ?, 'super_admin', 'paid', NULL, 1, ?, ?)
+                    (email, password_hash, salt, role, plan, subscription_expires_at, is_active, created_at, updated_at, password_changed_at)
+                    VALUES (?, ?, ?, 'super_admin', 'paid', NULL, 1, ?, ?, ?)
                     """,
-                    (SUPER_ADMIN_EMAIL, password_hash, salt, timestamp, timestamp),
+                    (SUPER_ADMIN_EMAIL, password_hash, salt, timestamp, timestamp, timestamp),
                 )
 
 
@@ -652,28 +1317,41 @@ def current_paid_plan(row: sqlite3.Row) -> bool:
     return is_paid_plan(row["plan"]) and subscription_is_active(row["subscription_expires_at"])
 
 
+def public_uid(row: sqlite3.Row) -> str:
+    digest = hashlib.sha256(f"dongbimao:{row['email']}".encode("utf-8")).hexdigest()[:10].upper()
+    return f"DBM-{digest}"
+
+
 def user_to_public(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "id": row["id"],
+        "uid": public_uid(row),
         "email": row["email"],
         "role": row["role"],
-        "plan": "paid" if current_paid_plan(row) else "free",
+        "plan": public_plan(row),
         "subscriptionExpiresAt": row["subscription_expires_at"],
+        "onboardingSeenAt": row["onboarding_seen_at"] if "onboarding_seen_at" in row.keys() else None,
         "isSuperAdmin": row["role"] == "super_admin",
     }
 
 
 def entitlements(row: sqlite3.Row | None) -> dict[str, bool]:
     if not row:
-        return {"paid": False, "pro": False, "proPlus": False, "admin": False}
+        return {"paid": False, "pro": False, "proPlus": False, "admin": False, "yearly": False}
     is_admin = row["role"] in {"admin", "super_admin"}
     paid = is_admin or current_paid_plan(row)
+    yearly = is_admin or (current_paid_plan(row) and normalize_plan(row["plan"]) in {"paid", "yearly"})
     return {
         "paid": paid,
         "pro": paid,
         "proPlus": paid,
         "admin": is_admin,
+        "yearly": yearly,
     }
+
+
+def has_yearly_access(row: sqlite3.Row | None) -> bool:
+    return bool(row and entitlements(row)["yearly"])
 
 
 def find_user_by_id(user_id: int) -> sqlite3.Row | None:
@@ -684,6 +1362,122 @@ def find_user_by_id(user_id: int) -> sqlite3.Row | None:
 def find_user_by_email(email: str) -> sqlite3.Row | None:
     with db() as conn:
         return conn.execute("SELECT * FROM users WHERE email = ? AND is_active = 1", (email,)).fetchone()
+
+
+def register_public_user(email: str, password: str) -> sqlite3.Row:
+    email = normalize_email(email)
+    validate_email(email)
+    validate_password(password)
+    salt, password_hash = hash_password(password)
+    timestamp = now_iso()
+    try:
+        with db() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO users
+                (email, password_hash, salt, role, plan, subscription_expires_at, created_by_user_id, is_active, created_at, updated_at, password_changed_at, last_login_at)
+                VALUES (?, ?, ?, 'user', 'free', NULL, NULL, 1, ?, ?, ?, ?)
+                """,
+                (email, password_hash, salt, timestamp, timestamp, timestamp, timestamp),
+            )
+            user = conn.execute("SELECT * FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone()
+            write_user_event(conn, action="self_register", actor=None, target_before=None, target_after=user)
+    except sqlite3.IntegrityError as exc:
+        raise ValueError("该邮箱已注册") from exc
+    return user
+
+
+def reset_token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_password_reset_token(conn: sqlite3.Connection, user: sqlite3.Row, request_ip: str) -> str:
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(seconds=PASSWORD_RESET_TTL_SECONDS)).isoformat()
+    conn.execute("UPDATE password_reset_tokens SET used_at = ? WHERE user_id = ? AND used_at IS NULL", (now.isoformat(), user["id"]))
+    conn.execute(
+        """
+        INSERT INTO password_reset_tokens
+        (user_id, token_hash, expires_at, request_ip, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (user["id"], reset_token_hash(token), expires_at, request_ip, now.isoformat()),
+    )
+    return token
+
+
+def password_reset_url(token: str) -> str:
+    base = PUBLIC_SITE_URL.strip().rstrip("/") or "http://43.165.133.237"
+    return f"{base}/?resetToken={quote(token)}"
+
+
+def send_resend_email(to: str | list[str], subject: str, html: str) -> None:
+    if not RESEND_API_KEY or not MAIL_FROM:
+        print(f"email disabled: {subject}", flush=True)
+        return
+    payload = json_dumps({
+        "from": MAIL_FROM,
+        "to": to if isinstance(to, list) else [to],
+        "subject": subject,
+        "html": html,
+    })
+    request = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "dongbimao-mailer/1.0",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=10) as response:
+        if response.status >= 300:
+            raise RuntimeError("邮件发送失败")
+
+
+def send_password_reset_email(email: str, url: str) -> None:
+    if not RESEND_API_KEY or not MAIL_FROM:
+        print(f"password reset link for {email}: {url}", flush=True)
+        return
+    send_resend_email(
+        email,
+        "重置懂币猫账号密码",
+        f"<p>点击下面链接重置密码，30 分钟内有效：</p><p><a href=\"{url}\">{url}</a></p>",
+    )
+
+
+def reset_password_with_token(token: str, password: str) -> None:
+    validate_password(password)
+    token_hash = reset_token_hash(str(token or "").strip())
+    now = datetime.now(timezone.utc)
+    with db() as conn:
+        row = conn.execute(
+            """
+            SELECT t.*, u.email
+            FROM password_reset_tokens t
+            JOIN users u ON u.id = t.user_id
+            WHERE t.token_hash = ? AND t.used_at IS NULL AND u.is_active = 1
+            """,
+            (token_hash,),
+        ).fetchone()
+        if not row or timestamp_epoch(row["expires_at"]) < int(now.timestamp()):
+            raise ValueError("重置链接已失效")
+        user = conn.execute("SELECT * FROM users WHERE id = ?", (row["user_id"],)).fetchone()
+        salt, password_hash = hash_password(password)
+        conn.execute(
+            """
+            UPDATE users
+            SET password_hash = ?, salt = ?, password_changed_at = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (password_hash, salt, now.isoformat(), now.isoformat(), row["user_id"]),
+        )
+        conn.execute("UPDATE password_reset_tokens SET used_at = ? WHERE id = ?", (now.isoformat(), row["id"]))
+        fresh = conn.execute("SELECT * FROM users WHERE id = ?", (row["user_id"],)).fetchone()
+        write_user_event(conn, action="reset_password", actor=None, target_before=user, target_after=fresh)
 
 
 def normalize_expires(value: Any) -> str | None:
@@ -706,6 +1500,13 @@ def normalize_plan(value: Any) -> str:
 
 def is_paid_plan(value: Any) -> bool:
     return str(value or "free").strip().lower() in LEGACY_PAID_PLANS
+
+
+def public_plan(row: sqlite3.Row) -> str:
+    if not current_paid_plan(row):
+        return "free"
+    plan = normalize_plan(row["plan"])
+    return plan if plan in {"paid", "monthly", "yearly"} else "paid"
 
 
 def parse_percent(value: Any) -> float | None:
@@ -731,27 +1532,27 @@ def signal_value_missing(value: Any) -> bool:
 
 
 def ensure_can_write_role(admin: sqlite3.Row, role: str, target: sqlite3.Row | None = None) -> tuple[bool, str | None]:
-    if role == "super_admin":
-        return False, "超级管理员账号保留为系统唯一入口，不能在后台新增或调整"
     if target and target["role"] == "super_admin":
         return False, "超级管理员不能被修改或停用"
-    if admin["role"] == "admin" and target and target["created_by_user_id"] != admin["id"]:
-        return False, "普通管理员只能管理自己创建的用户"
-    if role == "admin" and admin["role"] != "super_admin":
+    if admin["role"] == "admin" and target and target["role"] != "user":
+        return False, "普通管理员不能管理管理员账号"
+    if role in {"admin", "super_admin"} and admin["role"] != "super_admin":
         return False, "只有超级管理员可以设置管理员"
     return True, None
 
 
 def admin_user_payload(row: sqlite3.Row) -> dict[str, Any]:
-    has_paid_access = current_paid_plan(row)
+    is_regular_user = row["role"] == "user"
+    has_paid_access = is_regular_user and current_paid_plan(row)
+    plan = normalize_plan(row["plan"]) if is_regular_user else "free"
     return {
         "id": row["id"],
         "email": row["email"],
         "role": row["role"],
-        "plan": "paid" if is_paid_plan(row["plan"]) else "free",
+        "plan": plan if plan in PLANS else "free",
         "hasPaidAccess": has_paid_access,
-        "subscriptionExpiresAt": row["subscription_expires_at"],
-        "subscriptionStatus": "active" if has_paid_access else "expired" if is_paid_plan(row["plan"]) else "free",
+        "subscriptionExpiresAt": row["subscription_expires_at"] if is_regular_user else None,
+        "subscriptionStatus": "active" if has_paid_access else "expired" if is_regular_user and is_paid_plan(row["plan"]) else "free",
         "isActive": bool(row["is_active"]),
         "createdAt": row["created_at"],
         "lastLoginAt": row["last_login_at"],
@@ -761,6 +1562,623 @@ def admin_user_payload(row: sqlite3.Row) -> dict[str, Any]:
             "email": row["created_by_email"] if "created_by_email" in row.keys() else None,
         },
     }
+
+
+def user_audit_snapshot(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "email": row["email"],
+        "role": row["role"],
+        "plan": normalize_plan(row["plan"]),
+        "subscriptionExpiresAt": row["subscription_expires_at"],
+        "isActive": bool(row["is_active"]),
+        "createdByUserId": row["created_by_user_id"] if "created_by_user_id" in row.keys() else None,
+    }
+
+
+def user_event_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "actor": {
+            "id": row["actor_user_id"],
+            "email": row["actor_email"],
+        },
+        "target": {
+            "id": row["target_user_id"],
+            "email": row["target_email"],
+        },
+        "action": row["action"],
+        "before": parse_json_field(row["before_json"], None),
+        "after": parse_json_field(row["after_json"], None),
+        "createdAt": row["created_at"],
+    }
+
+
+def analytics_text(value: Any, max_length: int) -> str:
+    return re.sub(r"[^a-zA-Z0-9_./#:-]+", "", str(value or ""))[:max_length]
+
+
+def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
+    event_type = analytics_text(payload.get("eventType"), 40)
+    event_key = analytics_text(payload.get("eventKey"), 80)
+    if event_type != "nav_click" or not event_key:
+        raise ValueError("埋点参数不正确")
+    if not user:
+        return
+    timestamp = now_iso()
+    conn.execute(
+        """
+        INSERT INTO analytics_events (user_id, event_type, event_key, path, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (user["id"], event_type, event_key, analytics_text(payload.get("path"), 200), timestamp),
+    )
+    today = timestamp[:10]
+    last_login = str(user["last_login_at"] or "")[:10]
+    if last_login != today:
+        conn.execute("UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?", (timestamp, timestamp, user["id"]))
+
+
+def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
+    users = conn.execute(
+        """
+        SELECT
+          COUNT(*) AS total,
+          SUM(CASE WHEN role = 'user' AND is_active = 1 THEN 1 ELSE 0 END) AS active_users,
+          SUM(CASE WHEN role = 'user' AND is_active = 1 AND plan IN ('monthly', 'paid') THEN 1 ELSE 0 END) AS monthly_paid,
+          SUM(CASE WHEN role = 'user' AND is_active = 1 AND plan = 'yearly' THEN 1 ELSE 0 END) AS yearly_paid
+        FROM users
+        WHERE role = 'user'
+        """
+    ).fetchone()
+    active = conn.execute(
+        """
+        SELECT
+          COUNT(DISTINCT CASE WHEN datetime(created_at) >= datetime('now', '-3 days') THEN user_id END) AS d3,
+          COUNT(DISTINCT CASE WHEN datetime(created_at) >= datetime('now', '-7 days') THEN user_id END) AS d7,
+          COUNT(DISTINCT CASE WHEN datetime(created_at) >= datetime('now', '-30 days') THEN user_id END) AS d30
+        FROM analytics_events
+        WHERE event_type = 'nav_click' AND user_id IS NOT NULL
+        """
+    ).fetchone()
+    nav_rows = conn.execute(
+        """
+        SELECT event_key, COUNT(*) AS clicks, COUNT(DISTINCT user_id) AS users
+        FROM analytics_events
+        WHERE event_type = 'nav_click' AND user_id IS NOT NULL AND datetime(created_at) >= datetime('now', '-30 days')
+        GROUP BY event_key
+        ORDER BY clicks DESC
+        LIMIT 30
+        """
+    ).fetchall()
+    retention_rows = conn.execute(
+        """
+        SELECT
+          date(u.created_at) AS cohortDay,
+          COUNT(*) AS registered,
+          COUNT(DISTINCT CASE WHEN datetime(a.created_at) < datetime(u.created_at, '+3 days') THEN u.id END) AS retained3d,
+          COUNT(DISTINCT CASE WHEN datetime(a.created_at) < datetime(u.created_at, '+7 days') THEN u.id END) AS retained7d,
+          COUNT(DISTINCT CASE WHEN datetime(a.created_at) < datetime(u.created_at, '+30 days') THEN u.id END) AS retained30d
+        FROM users u
+        LEFT JOIN analytics_events a ON a.user_id = u.id AND a.event_type = 'nav_click' AND datetime(a.created_at) > datetime(u.created_at)
+        WHERE u.role = 'user' AND u.is_active = 1
+        GROUP BY date(u.created_at)
+        ORDER BY cohortDay DESC
+        LIMIT 30
+        """
+    ).fetchall()
+    return {
+        "users": {
+            "total": users["total"] or 0,
+            "active": users["active_users"] or 0,
+            "monthlyPaid": users["monthly_paid"] or 0,
+            "yearlyPaid": users["yearly_paid"] or 0,
+        },
+        "active": {"d3": active["d3"] or 0, "d7": active["d7"] or 0, "d30": active["d30"] or 0},
+        "navClicks": [{"page": row["event_key"], "clicks": row["clicks"], "users": row["users"] or 0} for row in nav_rows],
+        "retention": [
+            {
+                "cohortDay": row["cohortDay"],
+                "registered": row["registered"],
+                "retained3d": row["retained3d"],
+                "retained7d": row["retained7d"],
+                "retained30d": row["retained30d"],
+            }
+            for row in retention_rows
+        ],
+    }
+
+
+def write_user_event(
+    conn: sqlite3.Connection,
+    *,
+    action: str,
+    actor: sqlite3.Row | None,
+    target_before: sqlite3.Row | None,
+    target_after: sqlite3.Row | None,
+) -> None:
+    target = target_after or target_before
+    conn.execute(
+        """
+        INSERT INTO user_events
+        (actor_user_id, actor_email, target_user_id, target_email, action, before_json, after_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            actor["id"] if actor else None,
+            actor["email"] if actor else None,
+            target["id"] if target else None,
+            target["email"] if target else None,
+            action,
+            db_json(user_audit_snapshot(target_before)) if target_before else None,
+            db_json(user_audit_snapshot(target_after)) if target_after else None,
+            now_iso(),
+        ),
+    )
+
+
+def course_slug(title: Any) -> str:
+    base = re.sub(r"[^a-z0-9]+", "-", str(title or "").strip().lower()).strip("-")
+    if base:
+        return base[:80]
+    digest = hashlib.sha1(str(title or now_iso()).encode("utf-8")).hexdigest()[:10]
+    return f"course-{digest}"
+
+
+def unique_course_slug(conn: sqlite3.Connection, title: str) -> str:
+    base = course_slug(title)
+    slug = base
+    index = 2
+    while conn.execute("SELECT 1 FROM course_series WHERE slug = ?", (slug,)).fetchone():
+        slug = f"{base}-{index}"
+        index += 1
+    return slug
+
+
+def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None = None, grant_count: int = 0) -> dict[str, Any]:
+    payload = {
+        "id": row["id"],
+        "slug": row["slug"],
+        "title": row["title"],
+        "summary": row["summary"] or "",
+        "coverUrl": row["cover_url"] or "",
+        "sortOrder": row["sort_order"],
+        "status": row["status"],
+        "lessonCount": row["lesson_count"] if "lesson_count" in row.keys() else len(lessons or []),
+        "grantCount": row["grant_count"] if "grant_count" in row.keys() else grant_count,
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+        "lessons": lessons or [],
+    }
+    if "unlocked" in row.keys():
+        payload["unlocked"] = bool(row["unlocked"])
+    return payload
+
+
+def course_lesson_payload(row: sqlite3.Row, include_key: bool = False) -> dict[str, Any]:
+    payload = {
+        "id": row["id"],
+        "seriesId": row["series_id"],
+        "title": row["title"],
+        "sortOrder": row["sort_order"],
+        "durationLabel": row["duration_label"] or "",
+        "status": row["status"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
+    if include_key:
+        payload["videoKey"] = row["video_key"]
+    return payload
+
+
+def course_grant_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "seriesId": row["series_id"],
+        "user": {
+            "id": row["user_id"],
+            "uid": public_uid(row),
+            "email": row["email"],
+            "plan": public_plan(row),
+        },
+        "createdAt": row["created_at"],
+    }
+
+
+def course_has_access(conn: sqlite3.Connection, user: sqlite3.Row, series_id: int) -> bool:
+    if user["role"] in {"admin", "super_admin"}:
+        return True
+    return bool(conn.execute(
+        "SELECT 1 FROM course_grants WHERE series_id = ? AND user_id = ?",
+        (series_id, user["id"]),
+    ).fetchone())
+
+
+def cos_object_url(video_key: str) -> tuple[str, str, str]:
+    key = str(video_key or "").strip().lstrip("/")
+    if not key:
+        raise ValueError("视频 COS Key 不能为空")
+    if COURSE_COS_DOMAIN:
+        base = COURSE_COS_DOMAIN
+    elif COURSE_COS_BUCKET and COURSE_COS_REGION:
+        base = f"https://{COURSE_COS_BUCKET}.cos.{COURSE_COS_REGION}.myqcloud.com"
+    else:
+        raise RuntimeError("COS 未配置")
+    path = "/" + quote(key, safe="/-_.~")
+    return f"{base}{path}", urlparse(base).netloc, path
+
+
+def course_video_key(value: str) -> str:
+    raw = str(value or "").strip()
+    parsed = urlparse(raw)
+    if parsed.scheme not in {"http", "https"}:
+        return raw
+    if COURSE_COS_DOMAIN:
+        expected_host = urlparse(COURSE_COS_DOMAIN).netloc
+    elif COURSE_COS_BUCKET and COURSE_COS_REGION:
+        expected_host = f"{COURSE_COS_BUCKET}.cos.{COURSE_COS_REGION}.myqcloud.com"
+    else:
+        expected_host = ""
+    if parsed.netloc == expected_host:
+        return unquote(parsed.path.lstrip("/"))
+    return raw
+
+
+def signed_course_cos_url(key: str, *, method: str = "get", now: int | None = None, ttl: int | None = None) -> str:
+    if not COURSE_COS_SECRET_ID or not COURSE_COS_SECRET_KEY:
+        raise RuntimeError("COS 未配置")
+    object_url, host, path = cos_object_url(key)
+    start = int(now or time.time())
+    end = start + max(60, ttl or COURSE_COS_SIGN_TTL)
+    key_time = f"{start};{end}"
+    header_list = "host"
+    http_headers = f"host={quote(host, safe='-_.~')}"
+    http_string = f"{method.lower()}\n{path}\n\n{http_headers}\n"
+    string_to_sign = f"sha1\n{key_time}\n{hashlib.sha1(http_string.encode('utf-8')).hexdigest()}\n"
+    sign_key = hmac.new(COURSE_COS_SECRET_KEY.encode("utf-8"), key_time.encode("utf-8"), hashlib.sha1).hexdigest()
+    signature = hmac.new(sign_key.encode("utf-8"), string_to_sign.encode("utf-8"), hashlib.sha1).hexdigest()
+    params = {
+        "q-sign-algorithm": "sha1",
+        "q-ak": COURSE_COS_SECRET_ID,
+        "q-sign-time": key_time,
+        "q-key-time": key_time,
+        "q-header-list": header_list,
+        "q-url-param-list": "",
+        "q-signature": signature,
+    }
+    return f"{object_url}?{urlencode(params)}"
+
+
+def signed_course_video_url(video_key: str, now: int | None = None) -> str:
+    raw = course_video_key(str(video_key or "").strip())
+    if raw.startswith("http://") or raw.startswith("https://"):
+        return raw
+    return signed_course_cos_url(raw, method="get", now=now)
+
+
+def safe_course_video_filename(value: str) -> str:
+    name = safe_upload_filename(value, fallback="lesson-video")
+    return name or "lesson-video"
+
+
+def course_video_object_key(name: str, content_type: str = "") -> str:
+    mime = (content_type or "application/octet-stream").split(";", 1)[0].strip().lower() or "application/octet-stream"
+    suffix = Path(name or "").suffix.lower()
+    if not suffix:
+        suffix = mimetypes.guess_extension(mime) or ".mp4"
+    if not re.fullmatch(r"\.[a-z0-9]{1,8}", suffix):
+        suffix = ".mp4"
+    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return f"lesson/{day}/{int(time.time())}-{secrets.token_hex(6)}-{safe_course_video_filename(name)}{suffix}"
+
+
+def create_course_video_upload_ticket(payload: dict[str, Any]) -> dict[str, str | int]:
+    name = str(payload.get("name") or "lesson-video.mp4").strip()
+    mime = str(payload.get("type") or "application/octet-stream").strip()
+    size = int(payload.get("size") or 0)
+    if size <= 0:
+        raise ValueError("视频文件为空")
+    if size > COURSE_VIDEO_UPLOAD_MAX_BYTES:
+        raise ValueError("视频文件过大")
+    if mime != "application/octet-stream" and not mime.startswith("video/"):
+        raise ValueError("请选择视频文件")
+    key = course_video_object_key(name, mime)
+    return {
+        "key": key,
+        "url": cos_object_url(key)[0],
+        "uploadUrl": signed_course_cos_url(key, method="put", ttl=3600),
+        "expiresIn": 3600,
+    }
+
+
+def upload_course_video(name: str, content_type: str, raw: bytes) -> dict[str, str]:
+    if not raw:
+        raise ValueError("视频文件为空")
+    if len(raw) > COURSE_VIDEO_UPLOAD_MAX_BYTES:
+        raise ValueError("视频文件过大")
+    mime = (content_type or "application/octet-stream").split(";", 1)[0].strip().lower() or "application/octet-stream"
+    if mime != "application/octet-stream" and not mime.startswith("video/"):
+        raise ValueError("请选择视频文件")
+    key = course_video_object_key(name, mime)
+    upload_url = signed_course_cos_url(key, method="put", ttl=600)
+    request = urllib.request.Request(
+        upload_url,
+        data=raw,
+        method="PUT",
+        headers={
+            "Content-Type": mime,
+            "Content-Length": str(len(raw)),
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            if response.status < 200 or response.status >= 300:
+                raise RuntimeError(f"COS 上传失败：HTTP {response.status}")
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"COS 上传失败：HTTP {exc.code}") from exc
+    return {"key": key, "url": cos_object_url(key)[0], "name": Path(name or key).name}
+
+
+def list_admin_courses() -> dict[str, Any]:
+    with db() as conn:
+        series_rows = conn.execute(
+            """
+            SELECT s.*,
+                   COUNT(DISTINCT l.id) AS lesson_count,
+                   COUNT(DISTINCT g.id) AS grant_count
+            FROM course_series s
+            LEFT JOIN course_lessons l ON l.series_id = s.id
+            LEFT JOIN course_grants g ON g.series_id = s.id
+            GROUP BY s.id
+            ORDER BY s.sort_order DESC, s.id DESC
+            """
+        ).fetchall()
+        lessons = conn.execute("SELECT * FROM course_lessons ORDER BY series_id, sort_order DESC, id DESC").fetchall()
+        grants = conn.execute(
+            """
+            SELECT g.*, u.email, u.role, u.plan, u.subscription_expires_at
+            FROM course_grants g
+            JOIN users u ON u.id = g.user_id
+            ORDER BY g.id DESC
+            """
+        ).fetchall()
+    lesson_map: dict[int, list[dict[str, Any]]] = {}
+    for row in lessons:
+        lesson_map.setdefault(row["series_id"], []).append(course_lesson_payload(row, include_key=True))
+    return {
+        "series": [course_series_payload(row, lesson_map.get(row["id"], [])) for row in series_rows],
+        "grants": [course_grant_payload(row) for row in grants],
+    }
+
+
+def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
+    series_id = int(payload.get("id") or 0)
+    title = str(payload.get("title", "")).strip()
+    if not title:
+        raise ValueError("课程名称不能为空")
+    status = str(payload.get("status") or "draft").strip()
+    if status not in COURSE_STATUSES:
+        raise ValueError("课程状态不正确")
+    summary = str(payload.get("summary") or "").strip()
+    cover_url = str(payload.get("coverUrl") or "").strip()
+    timestamp = now_iso()
+    with db() as conn:
+        if series_id > 0:
+            existing = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
+            if not existing:
+                raise ValueError("课程不存在")
+            if payload.get("sortOrder") not in {None, ""}:
+                try:
+                    sort_order = max(1, int(payload.get("sortOrder") or 1))
+                except (TypeError, ValueError):
+                    sort_order = 1
+            else:
+                sort_order = int(existing["sort_order"] or 1)
+            conn.execute(
+                """
+                UPDATE course_series
+                SET title = ?, summary = ?, cover_url = ?, sort_order = ?, status = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (title, summary, cover_url, sort_order, status, timestamp, series_id),
+            )
+            row = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
+            return course_series_payload(row)
+
+        slug = unique_course_slug(conn, title)
+        if payload.get("sortOrder") not in {None, ""}:
+            try:
+                sort_order = max(1, int(payload.get("sortOrder") or 1))
+            except (TypeError, ValueError):
+                sort_order = 1
+        else:
+            row = conn.execute("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM course_series").fetchone()
+            sort_order = int(row["max_sort"] or 0) + 1
+        cursor = conn.execute(
+            """
+            INSERT INTO course_series
+            (slug, title, summary, cover_url, sort_order, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (slug, title, summary, cover_url, sort_order, status, timestamp, timestamp),
+        )
+        row = conn.execute("SELECT * FROM course_series WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return course_series_payload(row)
+
+
+def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
+    lesson_id = int(payload.get("id") or 0)
+    title = str(payload.get("title") or "").strip()
+    video_key = str(payload.get("videoKey") or "").strip()
+    if not title or not video_key:
+        raise ValueError("视频标题和 COS Key 必填")
+    status = str(payload.get("status") or "published").strip()
+    if status not in COURSE_STATUSES:
+        raise ValueError("视频状态不正确")
+    duration_label = str(payload.get("durationLabel") or "").strip()
+    timestamp = now_iso()
+    with db() as conn:
+        existing = None
+        if lesson_id > 0:
+            existing = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
+            if not existing:
+                raise ValueError("视频不存在")
+        series_id = int(payload.get("seriesId") or (existing["series_id"] if existing else 0))
+        if series_id <= 0:
+            raise ValueError("课程必填")
+        if not conn.execute("SELECT 1 FROM course_series WHERE id = ?", (series_id,)).fetchone():
+            raise ValueError("课程不存在")
+        if payload.get("sortOrder") not in {None, ""}:
+            try:
+                sort_order = max(1, int(payload.get("sortOrder") or 1))
+            except (TypeError, ValueError):
+                sort_order = 1
+        else:
+            if existing:
+                sort_order = int(existing["sort_order"] or 1)
+            else:
+                row = conn.execute("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM course_lessons WHERE series_id = ?", (series_id,)).fetchone()
+                sort_order = int(row["max_sort"] or 0) + 1
+        if existing:
+            conn.execute(
+                """
+                UPDATE course_lessons
+                SET series_id = ?, title = ?, sort_order = ?, duration_label = ?, video_key = ?, status = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (series_id, title, sort_order, duration_label, video_key, status, timestamp, lesson_id),
+            )
+            row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
+            return course_lesson_payload(row, include_key=True)
+
+        cursor = conn.execute(
+            """
+            INSERT INTO course_lessons
+            (series_id, title, sort_order, duration_label, video_key, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (series_id, title, sort_order, duration_label, video_key, status, timestamp, timestamp),
+        )
+        row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return course_lesson_payload(row, include_key=True)
+
+
+def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
+    series_id = int(payload.get("seriesId") or 0)
+    user_query = str(payload.get("email") or payload.get("user") or "").strip()
+    if series_id <= 0 or not user_query:
+        raise ValueError("课程和用户必填")
+    with db() as conn:
+        series = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
+        target = conn.execute("SELECT * FROM users WHERE email = ? AND role = 'user'", (normalize_email(user_query),)).fetchone()
+        if not target and user_query.upper().startswith("DBM-"):
+            target = next(
+                (
+                    row for row in conn.execute("SELECT * FROM users WHERE role = 'user'").fetchall()
+                    if public_uid(row) == user_query.upper()
+                ),
+                None,
+            )
+        if not series:
+            raise ValueError("课程不存在")
+        if not target:
+            raise ValueError("用户不存在")
+        timestamp = now_iso()
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO course_grants
+            (series_id, user_id, granted_by_user_id, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (series_id, target["id"], admin["id"], timestamp),
+        )
+        row = conn.execute(
+            """
+            SELECT g.*, u.email, u.role, u.plan, u.subscription_expires_at
+            FROM course_grants g
+            JOIN users u ON u.id = g.user_id
+            WHERE g.series_id = ? AND g.user_id = ?
+            """,
+            (series_id, target["id"]),
+        ).fetchone()
+    return course_grant_payload(row)
+
+
+def delete_course_lesson(lesson_id: int) -> bool:
+    if lesson_id <= 0:
+        return False
+    with db() as conn:
+        cursor = conn.execute("DELETE FROM course_lessons WHERE id = ?", (lesson_id,))
+    return cursor.rowcount > 0
+
+
+def delete_course_series(series_id: int) -> bool:
+    if series_id <= 0:
+        return False
+    with db() as conn:
+        existing = conn.execute("SELECT 1 FROM course_series WHERE id = ?", (series_id,)).fetchone()
+        if not existing:
+            return False
+        conn.execute("DELETE FROM course_grants WHERE series_id = ?", (series_id,))
+        conn.execute("DELETE FROM course_lessons WHERE series_id = ?", (series_id,))
+        conn.execute("DELETE FROM course_series WHERE id = ?", (series_id,))
+    return True
+
+
+def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
+    with db() as conn:
+        if user["role"] in {"admin", "super_admin"}:
+            series_rows = conn.execute(
+                """
+                SELECT s.*, COUNT(l.id) AS lesson_count, 0 AS grant_count, 1 AS unlocked
+                FROM course_series s
+                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
+                WHERE s.status = 'published'
+                GROUP BY s.id
+                ORDER BY s.sort_order DESC, s.id DESC
+                """
+            ).fetchall()
+        else:
+            grant_rows = conn.execute("SELECT series_id FROM course_grants WHERE user_id = ?", (user["id"],)).fetchall()
+            granted_ids = {int(row["series_id"]) for row in grant_rows}
+            series_rows = conn.execute(
+                """
+                SELECT s.*,
+                       COUNT(l.id) AS lesson_count,
+                       COUNT(g.id) AS grant_count,
+                       CASE WHEN COUNT(g.id) > 0 THEN 1 ELSE 0 END AS unlocked
+                FROM course_series s
+                LEFT JOIN course_grants g ON g.series_id = s.id AND g.user_id = ?
+                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
+                WHERE s.status = 'published'
+                GROUP BY s.id
+                ORDER BY s.sort_order DESC, s.id DESC
+                """,
+                (user["id"],),
+            ).fetchall()
+        series_ids = [row["id"] for row in series_rows]
+        lesson_map: dict[int, list[dict[str, Any]]] = {}
+        unlocked_ids = set(series_ids) if user["role"] in {"admin", "super_admin"} else granted_ids
+        if series_ids:
+            lesson_series_ids = [series_id for series_id in series_ids if series_id in unlocked_ids]
+        else:
+            lesson_series_ids = []
+        if lesson_series_ids:
+            placeholders = ",".join("?" for _ in lesson_series_ids)
+            rows = conn.execute(
+                f"""
+                SELECT *
+                FROM course_lessons
+                WHERE status = 'published' AND series_id IN ({placeholders})
+                ORDER BY series_id, sort_order DESC, id DESC
+                """,
+                lesson_series_ids,
+            ).fetchall()
+            for row in rows:
+                lesson_map.setdefault(row["series_id"], []).append(course_lesson_payload(row))
+    return {"series": [course_series_payload(row, lesson_map.get(row["id"], [])) for row in series_rows]}
 
 
 SIGNAL_FIELDS = [
@@ -1041,6 +2459,19 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
+    def read_body(self, max_bytes: int) -> bytes:
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0:
+            return b""
+        if length > max_bytes:
+            raise ValueError("文件过大")
+        return self.rfile.read(length)
+
+    def client_ip(self) -> str:
+        forwarded = str(self.headers.get("X-Forwarded-For", "")).split(",", 1)[0].strip()
+        real_ip = str(self.headers.get("X-Real-IP", "")).strip()
+        return forwarded or real_ip or str(self.client_address[0] if self.client_address else "")
+
     def send_json(self, payload: Any, status: int = 200, cookies: list[str] | None = None) -> None:
         body = json_dumps(payload)
         self.send_response(status)
@@ -1058,6 +2489,27 @@ class Handler(BaseHTTPRequestHandler):
         if raw_path.startswith("/data/") and raw_path.endswith(".json"):
             self.send_error(HTTPStatus.NOT_FOUND, "Static JSON datasets are not public")
             return
+        if raw_path == "/admin" or raw_path.startswith("/admin/"):
+            relative = raw_path.lstrip("/")
+            candidate = (STATIC_ROOT / relative).resolve()
+            if not str(candidate).startswith(str(STATIC_ROOT)):
+                self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+                return
+            if candidate.is_dir() or not candidate.is_file():
+                candidate = (STATIC_ROOT / "admin" / "index.html").resolve()
+            if not candidate.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND, "Admin app not found")
+                return
+            content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
+            body = candidate.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", f"{content_type}; charset=utf-8" if content_type.startswith("text/") or content_type == "application/javascript" else content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-cache" if candidate.name == "index.html" else "public, max-age=60")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         relative = raw_path.lstrip("/") or "index.html"
         candidate = (STATIC_ROOT / relative).resolve()
 
@@ -1077,23 +2529,58 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_upload(self, request_path: str) -> None:
+        parsed = urlparse(request_path)
+        raw_path = unquote(parsed.path)
+        if raw_path in {"/api/upload", "/upload"}:
+            relative = unquote(parse_qs(parsed.query).get("path", [""])[0]).lstrip("/")
+        elif raw_path.startswith("/api/uploads/"):
+            relative = raw_path.removeprefix("/api/uploads/").lstrip("/")
+        elif raw_path.startswith("/uploads/"):
+            relative = raw_path.removeprefix("/uploads/").lstrip("/")
+        else:
+            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+            return
+        try:
+            candidate = ensure_upload_child(upload_root() / relative)
+        except ValueError:
+            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+            return
+        if not candidate.is_file():
+            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+            return
+        content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
+        if content_type not in ALLOWED_UPLOAD_MIMES:
+            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+            return
+        body = candidate.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+        self.end_headers()
+        self.wfile.write(body)
+
     def send_api_data(self, request_path: str) -> None:
         parsed = urlparse(request_path)
         parts = [part for part in unquote(parsed.path).split("/") if part]
         name = "manifest" if len(parts) <= 2 else parts[2]
-        aliases = {"data": "manifest", "status": "health"}
+        aliases = {"data": "site-data-index", "manifest": "site-data-index", "status": "health"}
         name = aliases.get(name, name)
         if not name.replace("-", "").replace("_", "").isalnum():
             self.send_json({"error": "数据集名称不正确"}, HTTPStatus.BAD_REQUEST)
             return
-        candidate = (API_DATA_ROOT / f"{name}.json").resolve()
-        if not str(candidate).startswith(str(API_DATA_ROOT)) or not candidate.is_file():
-            self.send_json({"error": "数据集不存在", "dataset": name}, HTTPStatus.NOT_FOUND)
-            return
         try:
-            payload = json.loads(candidate.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            self.send_json({"error": "数据集 JSON 格式错误", "dataset": name}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            with product_db() as conn:
+                if name == "health":
+                    self.send_json({"ok": True, **product_dataset_meta(conn)})
+                    return
+                payload = product_raw_payload(conn, name)
+        except Exception as exc:
+            self.send_json({"error": f"product.db 不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if payload is None:
+            self.send_json({"error": "数据集不存在", "dataset": name}, HTTPStatus.NOT_FOUND)
             return
         self.send_json(payload)
 
@@ -1114,7 +2601,8 @@ class Handler(BaseHTTPRequestHandler):
 
                 if len(parts) >= 3 and parts[2] == "bootstrap":
                     board_limit = int_param(params, "limit", 500, maximum=500)
-                    self.send_json(product_bootstrap_payload(conn, board_limit))
+                    symbols = market_opinion_list(params.get("symbols", [""])[0], upper=True)
+                    self.send_json(product_bootstrap_payload(conn, board_limit, symbols))
                     return
 
                 if len(parts) >= 4 and parts[2] == "raw":
@@ -1130,6 +2618,9 @@ class Handler(BaseHTTPRequestHandler):
                     return
 
                 if len(parts) >= 3 and parts[2] == "symbols":
+                    if len(parts) >= 4 and parts[3] == "meta":
+                        self.send_product_symbol_meta(conn)
+                        return
                     if len(parts) >= 4:
                         self.send_product_symbol_detail(conn, parts[3])
                         return
@@ -1152,6 +2643,10 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_product_events(conn, params)
                     return
 
+                if len(parts) >= 3 and parts[2] == "opinions":
+                    self.send_product_opinions(conn, params)
+                    return
+
                 self.send_json({"error": "产品数据接口不存在"}, HTTPStatus.NOT_FOUND)
         except FileNotFoundError:
             self.send_json({"error": "产品数据库不存在，请先运行 scripts/build_product_db.py", "code": "product_db_missing"}, HTTPStatus.SERVICE_UNAVAILABLE)
@@ -1166,6 +2661,9 @@ class Handler(BaseHTTPRequestHandler):
         cap = str(params.get("cap", [""])[0]).strip().lower()
         preset = str(params.get("preset", [""])[0]).strip().lower()
         sort_key = str(params.get("sort", ["dollarVolume"])[0] or "dollarVolume").strip()
+        sort_dir = str(params.get("dir", ["desc"])[0] or "desc").strip().lower()
+        if sort_dir not in {"asc", "desc"}:
+            sort_dir = "desc"
         where = []
         values: list[Any] = []
         if query:
@@ -1191,6 +2689,11 @@ class Handler(BaseHTTPRequestHandler):
             values.append(5_000_000)
         elif preset == "event":
             where.append("EXISTS (SELECT 1 FROM stock_event_rows ev WHERE ev.symbol = s.symbol)")
+        elif preset == "strength":
+            where.append("EXISTS (SELECT 1 FROM strength_rows st WHERE st.symbol = s.symbol)")
+        elif preset == "etf":
+            where.append("UPPER(COALESCE(s.sector, '')) LIKE ?")
+            values.append("%ETF%")
         elif preset == "watchlist":
             symbols = [
                 str(item).strip().upper()
@@ -1204,7 +2707,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 where.append("0")
         where_sql = "WHERE " + " AND ".join(where) if where else ""
-        order_sql = product_stock_library_order(sort_key)
+        order_sql = product_stock_library_order(sort_key, sort_dir)
         total = conn.execute(
             f"SELECT COUNT(*) AS count FROM symbols s {where_sql}",
             values,
@@ -1272,6 +2775,25 @@ class Handler(BaseHTTPRequestHandler):
                 "limit": limit,
                 "offset": offset,
                 "sort": sort_key,
+                "dir": sort_dir,
+            }
+        )
+
+    def send_product_symbol_meta(self, conn: sqlite3.Connection) -> None:
+        sectors = conn.execute(
+            """
+            SELECT sector, COUNT(*) AS count
+            FROM symbols
+            WHERE COALESCE(sector, '') NOT IN ('', '--', '未分类', '板块待补')
+            GROUP BY sector
+            ORDER BY count DESC, sector ASC
+            """
+        ).fetchall()
+        total = conn.execute("SELECT COUNT(*) AS count FROM symbols").fetchone()["count"]
+        self.send_json(
+            {
+                "total": total,
+                "sectors": [{"sector": row["sector"], "count": row["count"]} for row in sectors],
             }
         )
 
@@ -1345,60 +2867,119 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": "榜单不存在", "board": board}, HTTPStatus.BAD_REQUEST)
             return
         limit = int_param(params, "limit", 100, maximum=500)
+        offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
         sector = str(params.get("sector", [""])[0]).strip()
         where = ["board = ?"]
         values: list[Any] = [board]
         if sector:
             where.append("sector = ?")
             values.append(sector)
+        total = conn.execute(
+            f"""
+            SELECT COUNT(*) AS count
+            FROM market_board_rows
+            WHERE {" AND ".join(where)}
+            """,
+            values,
+        ).fetchone()["count"]
         rows = conn.execute(
             f"""
             SELECT *
             FROM market_board_rows
             WHERE {" AND ".join(where)}
             ORDER BY rank ASC
-            LIMIT ?
+            LIMIT ? OFFSET ?
             """,
-            (*values, limit),
+            (*values, limit, offset),
         ).fetchall()
-        self.send_json({"board": board, "rows": [product_market_row_payload(row) for row in rows]})
+        self.send_json({"board": board, "rows": [product_market_row_payload(row) for row in rows], "total": total, "limit": limit, "offset": offset})
 
     def send_product_sectors(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
         limit = int_param(params, "limit", 20, maximum=100)
+        offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
         include_unknown = str(params.get("includeUnknown", ["false"])[0]).lower() in {"1", "true", "yes"}
+        board = str(params.get("board", [""])[0] or "").strip()
+        if board:
+            if board not in {"day", "week", "month", "ytd"}:
+                self.send_json({"error": "榜单不存在", "board": board}, HTTPStatus.BAD_REQUEST)
+                return
+            self.send_json(product_sector_board_payload(conn, board, include_unknown, limit, offset))
+            return
         where_sql = "" if include_unknown else "WHERE sector NOT IN ('未分类', '板块待补', '--')"
+        total = conn.execute(
+            f"""
+            SELECT COUNT(*) AS count
+            FROM sector_flow_rows
+            {where_sql}
+            """
+        ).fetchone()["count"]
         rows = conn.execute(
             f"""
             SELECT *
             FROM sector_flow_rows
             {where_sql}
             ORDER BY COALESCE(net_flow_proxy, 0) DESC, rank ASC
-            LIMIT ?
+            LIMIT ? OFFSET ?
             """,
-            (limit,),
+            (limit, offset),
         ).fetchall()
-        self.send_json({"rows": [product_sector_payload(row) for row in rows]})
+        self.send_json({"rows": [product_sector_payload(row) for row in rows], "total": total, "limit": limit, "offset": offset})
 
     def send_product_calendar(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
         limit = int_param(params, "limit", 50, maximum=200)
+        offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
         impact = str(params.get("impact", [""])[0]).strip()
+        event_type = str(params.get("type", [""])[0]).strip()
+        query = str(params.get("q", [""])[0]).strip().lower()
+        window_days = int_param(params, "windowDays", 0, minimum=0, maximum=3650)
+        results_only = str(params.get("resultsOnly", ["false"])[0]).lower() in {"1", "true", "yes"}
         where = []
         values: list[Any] = []
         if impact:
             where.append("impact = ?")
             values.append(impact)
+        if event_type:
+            where.append("event_type = ?")
+            values.append(event_type)
+        if window_days:
+            today = datetime.now().strftime("%Y-%m-%d")
+            end = (datetime.now() + timedelta(days=window_days)).strftime("%Y-%m-%d")
+            where.append("event_date >= ?")
+            where.append("event_date <= ?")
+            values.extend([today, end])
+        if results_only:
+            where.append("(actual_label IS NOT NULL AND actual_label != '' OR actual_value IS NOT NULL)")
+        if query:
+            like = f"%{query}%"
+            where.append(
+                """
+                (lower(title) LIKE ?
+                 OR lower(summary) LIKE ?
+                 OR lower(related_assets_json) LIKE ?
+                 OR lower(source_name) LIKE ?)
+                """
+            )
+            values.extend([like, like, like, like])
         where_sql = "WHERE " + " AND ".join(where) if where else ""
+        total = conn.execute(
+            f"""
+            SELECT COUNT(*) AS count
+            FROM calendar_events
+            {where_sql}
+            """,
+            values,
+        ).fetchone()["count"]
         rows = conn.execute(
             f"""
             SELECT *
             FROM calendar_events
             {where_sql}
-            ORDER BY event_date ASC, event_time ASC, title ASC
-            LIMIT ?
+            ORDER BY {"event_date DESC, event_time DESC, title ASC" if results_only else "event_date ASC, CASE WHEN event_time IS NULL OR event_time = '' THEN 1 ELSE 0 END, event_time ASC, CASE WHEN event_type = 'macro' THEN 0 ELSE 1 END, title ASC"}
+            LIMIT ? OFFSET ?
             """,
-            (*values, limit),
+            (*values, limit, offset),
         ).fetchall()
-        self.send_json({"rows": [product_calendar_payload(row) for row in rows]})
+        self.send_json({"rows": [product_calendar_payload(row) for row in rows], "total": total, "limit": limit, "offset": offset})
 
     def send_product_events(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
         limit = int_param(params, "limit", 100, maximum=500)
@@ -1421,15 +3002,24 @@ class Handler(BaseHTTPRequestHandler):
         ).fetchall()
         self.send_json({"rows": [product_event_payload(row) for row in rows]})
 
+    def send_product_opinions(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
+        limit = int_param(params, "limit", 50, maximum=200)
+        offset = int_param(params, "offset", 0, minimum=0, maximum=10000)
+        section = str(params.get("section", [""])[0]).strip()
+        self.send_json(query_market_opinions(include_drafts=False, section=section, limit=limit, offset=offset))
+
     def current_user(self) -> sqlite3.Row | None:
         cookie = SimpleCookie(self.headers.get("Cookie"))
         morsel = cookie.get("mg_session")
         if not morsel:
             return None
-        user_id = verify_session(morsel.value)
-        if not user_id:
+        payload = verify_session(morsel.value)
+        if not payload:
             return None
-        return find_user_by_id(user_id)
+        user = find_user_by_id(int(payload["uid"]))
+        if user and timestamp_epoch(user["password_changed_at"]) > int(payload.get("iat", 0)):
+            return None
+        return user
 
     def require_user(self) -> sqlite3.Row | None:
         user = self.current_user()
@@ -1452,6 +3042,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": True, "time": now_iso()})
             return
 
+        if self.path.startswith("/api/upload") or self.path.startswith("/upload") or self.path.startswith("/api/uploads/") or self.path.startswith("/uploads/"):
+            self.send_upload(self.path)
+            return
+
         if self.path == "/api/auth/status":
             user = self.current_user()
             self.send_json(
@@ -1467,11 +3061,62 @@ class Handler(BaseHTTPRequestHandler):
             user = self.require_user()
             if not user:
                 return
-            rights = entitlements(user)
-            if not rights["paid"]:
-                self.send_json({"error": "需要付费会员权限", "code": "upgrade_required"}, HTTPStatus.FORBIDDEN)
+            if not has_yearly_access(user):
+                self.send_json({"error": "持仓参考需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
                 return
             self.send_json({"records": TRADE_RECORDS})
+            return
+
+        if self.path == "/api/courses":
+            user = self.require_user()
+            if not user:
+                return
+            self.send_json(user_courses_payload(user))
+            return
+
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/play"):
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                lesson_id = int(parsed.path.removesuffix("/play").removeprefix("/api/courses/lessons/"))
+            except ValueError:
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            with db() as conn:
+                lesson = conn.execute(
+                    """
+                    SELECT l.*, s.status AS series_status
+                    FROM course_lessons l
+                    JOIN course_series s ON s.id = l.series_id
+                    WHERE l.id = ?
+                    """,
+                    (lesson_id,),
+                ).fetchone()
+                if not lesson or lesson["status"] != "published" or lesson["series_status"] != "published":
+                    self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                    return
+                if not course_has_access(conn, user, int(lesson["series_id"])):
+                    self.send_json({"error": "没有课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
+                    return
+            try:
+                self.send_json({"url": signed_course_video_url(lesson["video_key"]), "expiresIn": max(60, COURSE_COS_SIGN_TTL)})
+            except Exception as exc:
+                self.send_json({"error": f"播放地址不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if parsed.path == "/api/tools/funding-arbitrage":
+            user = self.require_admin()
+            if not user:
+                return
+            try:
+                raw_params = {key: values[0] for key, values in parse_qs(parsed.query).items()}
+                self.send_json(funding_scanner.scan(raw_params))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:
+                self.send_json({"error": f"扫描失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
         if self.path == "/api/data" or self.path.startswith("/api/data/"):
@@ -1493,9 +3138,6 @@ class Handler(BaseHTTPRequestHandler):
             with db() as conn:
                 where_sql = ""
                 params: tuple[Any, ...] = ()
-                if user["role"] != "super_admin":
-                    where_sql = "WHERE u.created_by_user_id = ? OR u.id = ?"
-                    params = (user["id"], user["id"])
                 rows = conn.execute(
                     """
                     SELECT u.id, u.email, u.role, u.plan, u.subscription_expires_at, u.created_by_user_id,
@@ -1509,8 +3151,9 @@ class Handler(BaseHTTPRequestHandler):
                     params,
                 ).fetchall()
             users = [admin_user_payload(row) for row in rows]
+            regular_users = [item for item in users if item["role"] == "user"]
             performance_map: dict[str, dict[str, Any]] = {}
-            for item in users:
+            for item in regular_users:
                 creator_email = item["createdBy"]["email"] or "系统 / 超级管理员"
                 creator_id = item["createdBy"]["id"] or 0
                 key = f"{creator_id}:{creator_email}"
@@ -1529,9 +3172,9 @@ class Handler(BaseHTTPRequestHandler):
                 {
                     "users": users,
                     "summary": {
-                        "total": len(users),
-                        "active": sum(1 for item in users if item["isActive"]),
-                        "paid": sum(1 for item in users if item["hasPaidAccess"]),
+                        "total": len(regular_users),
+                        "active": sum(1 for item in regular_users if item["isActive"]),
+                        "paid": sum(1 for item in regular_users if item["hasPaidAccess"]),
                         "admin": sum(1 for item in users if item["role"] in {"admin", "super_admin"}),
                     },
                     "performance": sorted(
@@ -1543,6 +3186,80 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
 
+        if parsed.path == "/api/admin/metrics":
+            user = self.require_admin()
+            if not user:
+                return
+            with db() as conn:
+                self.send_json(admin_metrics_payload(conn))
+            return
+
+        if parsed.path == "/api/admin/user-events":
+            user = self.require_admin()
+            if not user:
+                return
+            params = parse_qs(parsed.query)
+            target_id = int_param(params, "userId", 0, minimum=0, maximum=10_000_000)
+            limit = int_param(params, "limit", 80, maximum=300)
+            values: list[Any] = []
+            where = []
+            with db() as conn:
+                if target_id:
+                    where.append("e.target_user_id = ?")
+                    values.append(target_id)
+                where_sql = "WHERE " + " AND ".join(where) if where else ""
+                rows = conn.execute(
+                    f"""
+                    SELECT e.*
+                    FROM user_events e
+                    LEFT JOIN users target ON target.id = e.target_user_id
+                    {where_sql}
+                    ORDER BY e.id DESC
+                    LIMIT ?
+                    """,
+                    (*values, limit),
+                ).fetchall()
+            self.send_json({"rows": [user_event_payload(row) for row in rows]})
+            return
+
+        if parsed.path == "/api/admin/opinions":
+            admin = self.require_admin()
+            if not admin:
+                return
+            params = parse_qs(parsed.query)
+            section = str(params.get("section", [""])[0]).strip()
+            status = str(params.get("status", [""])[0]).strip()
+            date_from = str(params.get("dateFrom", [""])[0]).strip()
+            date_to = str(params.get("dateTo", [""])[0]).strip()
+            query = str(params.get("q", [""])[0]).strip()
+            sort = str(params.get("sort", ["latest"])[0]).strip()
+            limit = int_param(params, "limit", 50, maximum=200)
+            offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
+            try:
+                payload = query_market_opinions(
+                    include_drafts=True,
+                    section=section,
+                    limit=limit,
+                    offset=offset,
+                    status=status,
+                    date_from=date_from,
+                    date_to=date_to,
+                    query=query,
+                    sort=sort,
+                )
+            except Exception as exc:
+                self.send_json({"error": f"读取失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json(payload)
+            return
+
+        if parsed.path == "/api/admin/courses":
+            admin = self.require_admin()
+            if not admin:
+                return
+            self.send_json(list_admin_courses())
+            return
+
         if self.path.startswith("/api/"):
             self.send_json({"error": "接口不存在"}, HTTPStatus.NOT_FOUND)
             return
@@ -1550,17 +3267,33 @@ class Handler(BaseHTTPRequestHandler):
         self.send_static(self.path)
 
     def do_POST(self) -> None:
+        parsed = urlparse(self.path)
         if self.path == "/api/auth/login":
             try:
                 payload = self.read_json()
             except Exception:
                 self.send_json({"error": "请求格式错误"}, HTTPStatus.BAD_REQUEST)
                 return
-            email = str(payload.get("email", "")).strip().lower()
+            email = normalize_email(payload.get("email", ""))
             password = str(payload.get("password", ""))
+            admin_only = bool(payload.get("adminOnly"))
+            if email and not EMAIL_PATTERN.fullmatch(email) and email != SUPER_ADMIN_EMAIL:
+                self.send_json({"error": "账号或密码不正确"}, HTTPStatus.UNAUTHORIZED)
+                return
+            retry_after = login_failure_retry_after(self.client_ip(), email)
+            if retry_after:
+                self.send_json(
+                    {"error": "登录过于频繁，请稍后再试", "code": "rate_limited", "retryAfter": retry_after},
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                )
+                return
             user = find_user_by_email(email) if email else None
             if not user or not verify_password(password, user["salt"], user["password_hash"]):
+                record_login_failure(self.client_ip(), email)
                 self.send_json({"error": "账号或密码不正确"}, HTTPStatus.UNAUTHORIZED)
+                return
+            if admin_only and user["role"] not in {"admin", "super_admin"}:
+                self.send_json({"error": "只有管理员可以登录后台", "code": "admin_required"}, HTTPStatus.FORBIDDEN)
                 return
             with db() as conn:
                 conn.execute("UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?", (now_iso(), now_iso(), user["id"]))
@@ -1577,11 +3310,122 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
 
+        if self.path == "/api/auth/register":
+            try:
+                payload = self.read_json()
+            except Exception:
+                self.send_json({"error": "请求格式错误"}, HTTPStatus.BAD_REQUEST)
+                return
+            email = normalize_email(payload.get("email", ""))
+            allowed, retry_after = register_rate_check(self.client_ip(), email)
+            if not allowed:
+                self.send_json(
+                    {"error": "注册过于频繁，请稍后再试", "code": "rate_limited", "retryAfter": retry_after},
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                )
+                return
+            try:
+                user = register_public_user(email, str(payload.get("password", "")))
+            except ValueError as exc:
+                status = HTTPStatus.CONFLICT if "已注册" in str(exc) else HTTPStatus.BAD_REQUEST
+                self.send_json({"error": str(exc)}, status)
+                return
+            token = sign_session(int(user["id"]))
+            cookie = f"mg_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL}"
+            self.send_json(
+                {
+                    "authenticated": True,
+                    "user": user_to_public(user),
+                    "entitlements": entitlements(user),
+                },
+                cookies=[cookie],
+                status=HTTPStatus.CREATED,
+            )
+            return
+
+        if self.path == "/api/auth/forgot-password":
+            try:
+                payload = self.read_json()
+            except Exception:
+                self.send_json({"error": "请求格式错误"}, HTTPStatus.BAD_REQUEST)
+                return
+            email = normalize_email(payload.get("email", ""))
+            try:
+                validate_email(email)
+            except ValueError:
+                self.send_json({"error": "邮箱格式不正确"}, HTTPStatus.BAD_REQUEST)
+                return
+            allowed, retry_after = password_reset_rate_check(self.client_ip(), email)
+            if not allowed:
+                self.send_json(
+                    {"error": "操作过于频繁，请稍后再试", "code": "rate_limited", "retryAfter": retry_after},
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                )
+                return
+            user = find_user_by_email(email)
+            if user:
+                try:
+                    with db() as conn:
+                        token = create_password_reset_token(conn, user, self.client_ip())
+                    send_password_reset_email(email, password_reset_url(token))
+                except Exception as exc:
+                    print(f"password reset mail failed for {email}: {exc}", flush=True)
+            self.send_json({"ok": True, "message": "如果邮箱存在，我们会发送重置链接。"})
+            return
+
+        if self.path == "/api/auth/reset-password":
+            try:
+                payload = self.read_json()
+            except Exception:
+                self.send_json({"error": "请求格式错误"}, HTTPStatus.BAD_REQUEST)
+                return
+            try:
+                reset_password_with_token(str(payload.get("token", "")), str(payload.get("password", "")))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            self.send_json({"ok": True})
+            return
+
+        if self.path == "/api/auth/onboarding-seen":
+            user = self.require_user()
+            if not user:
+                return
+            timestamp = now_iso()
+            with db() as conn:
+                conn.execute(
+                    "UPDATE users SET onboarding_seen_at = ?, updated_at = ? WHERE id = ?",
+                    (timestamp, timestamp, user["id"]),
+                )
+            fresh_user = find_user_by_id(int(user["id"]))
+            self.send_json(
+                {
+                    "authenticated": True,
+                    "user": user_to_public(fresh_user),
+                    "entitlements": entitlements(fresh_user),
+                }
+            )
+            return
+
         if self.path == "/api/auth/logout":
             self.send_json(
                 {"ok": True},
                 cookies=["mg_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"],
             )
+            return
+
+        if self.path == "/api/analytics/event":
+            try:
+                payload = self.read_json()
+                with db() as conn:
+                    write_analytics_event(conn, self.current_user(), payload)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception:
+                self.send_json({"error": "埋点失败"}, HTTPStatus.BAD_REQUEST)
+                return
+            self.send_json({"ok": True}, HTTPStatus.CREATED)
             return
 
         if self.path == "/api/signals":
@@ -1613,6 +3457,9 @@ class Handler(BaseHTTPRequestHandler):
             if plan not in PLANS or role not in ROLES:
                 self.send_json({"error": "权限参数不正确"}, HTTPStatus.BAD_REQUEST)
                 return
+            if role != "user":
+                plan = "free"
+                subscription_expires_at = None
             with db() as conn:
                 target = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
                 if not target:
@@ -1631,78 +3478,188 @@ class Handler(BaseHTTPRequestHandler):
                     (plan, role, subscription_expires_at, is_active, now_iso(), user_id),
                 )
                 fresh = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+                write_user_event(conn, action="update_user", actor=admin, target_before=target, target_after=fresh)
             self.send_json({"ok": True, "user": admin_user_payload(fresh)})
             return
 
         if self.path == "/api/admin/users/create":
-            admin = self.require_admin()
-            if not admin:
-                return
-            payload = self.read_json()
-            email = str(payload.get("email", "")).strip().lower()
-            password = str(payload.get("password", ""))
-            role = str(payload.get("role", "user"))
-            plan = normalize_plan(payload.get("plan", "free"))
-            subscription_expires_at = normalize_expires(payload.get("subscriptionExpiresAt"))
-            is_active = 1 if payload.get("isActive", True) else 0
-            if not email or "@" not in email:
-                self.send_json({"error": "邮箱格式不正确"}, HTTPStatus.BAD_REQUEST)
-                return
-            if len(password) < 8:
-                self.send_json({"error": "密码至少 8 位"}, HTTPStatus.BAD_REQUEST)
-                return
-            if plan not in PLANS or role not in ROLES:
-                self.send_json({"error": "权限参数不正确"}, HTTPStatus.BAD_REQUEST)
-                return
-            allowed, message = ensure_can_write_role(admin, role)
-            if not allowed:
-                self.send_json({"error": message}, HTTPStatus.FORBIDDEN)
-                return
-            salt, password_hash = hash_password(password)
-            timestamp = now_iso()
-            try:
-                with db() as conn:
-                    cursor = conn.execute(
-                        """
-                        INSERT INTO users
-                        (email, password_hash, salt, role, plan, subscription_expires_at, created_by_user_id, is_active, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (email, password_hash, salt, role, plan, subscription_expires_at, admin["id"], is_active, timestamp, timestamp),
-                    )
-                    fresh = conn.execute("SELECT * FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone()
-            except sqlite3.IntegrityError:
-                self.send_json({"error": "该邮箱已存在"}, HTTPStatus.CONFLICT)
-                return
-            self.send_json({"ok": True, "user": admin_user_payload(fresh)}, HTTPStatus.CREATED)
+            self.send_json({"error": "后台不创建用户，请用户自行注册"}, HTTPStatus.NOT_FOUND)
             return
 
         if self.path == "/api/admin/users/reset-password":
+            self.send_json({"error": "接口不存在"}, HTTPStatus.NOT_FOUND)
+            return
+
+        if self.path == "/api/admin/opinions":
             admin = self.require_admin()
             if not admin:
                 return
-            payload = self.read_json()
-            user_id = int(payload.get("userId", 0))
-            password = str(payload.get("password", ""))
-            if len(password) < 8:
-                self.send_json({"error": "密码至少 8 位"}, HTTPStatus.BAD_REQUEST)
+            try:
+                item = save_market_opinion(self.read_json())
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"保存失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "item": item}, HTTPStatus.CREATED)
+            return
+
+        if self.path == "/api/admin/uploads":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                image = save_upload_image(self.read_json())
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"上传失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "image": image}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/admin/courses/video-upload":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                name = parse_qs(parsed.query).get("name", ["lesson-video"])[0]
+                video = upload_course_video(name, str(self.headers.get("Content-Type", "")), self.read_body(COURSE_VIDEO_UPLOAD_MAX_BYTES))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"上传失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "video": video}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/admin/courses/video-upload-url":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                video = create_course_video_upload_ticket(self.read_json())
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"上传准备失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "video": video}, HTTPStatus.CREATED)
+            return
+
+        if self.path == "/api/admin/courses":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                item = create_course_series(self.read_json())
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"保存失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "series": item}, HTTPStatus.CREATED)
+            return
+
+        if self.path == "/api/admin/courses/lessons":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                item = create_course_lesson(self.read_json())
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"保存失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "lesson": item}, HTTPStatus.CREATED)
+            return
+
+        if self.path == "/api/admin/courses/grants":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                item = grant_course(self.read_json(), admin)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"授权失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "grant": item}, HTTPStatus.CREATED)
+            return
+
+        self.send_json({"error": "接口不存在"}, HTTPStatus.NOT_FOUND)
+
+    def do_DELETE(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/admin/opinions/"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            item_id = unquote(parsed.path.removeprefix("/api/admin/opinions/"))
+            try:
+                deleted = delete_market_opinion(item_id)
+            except Exception as exc:
+                self.send_json({"error": f"删除失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            if not deleted:
+                self.send_json({"error": "内容不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
+        if parsed.path.startswith("/api/admin/courses/grants/"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                grant_id = int(unquote(parsed.path.removeprefix("/api/admin/courses/grants/")))
+            except ValueError:
+                self.send_json({"error": "授权不存在"}, HTTPStatus.NOT_FOUND)
                 return
             with db() as conn:
-                target = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-                if not target:
-                    self.send_json({"error": "用户不存在"}, HTTPStatus.NOT_FOUND)
-                    return
-                if target["role"] == "super_admin" and admin["id"] != target["id"]:
-                    self.send_json({"error": "不能重置超级管理员密码"}, HTTPStatus.FORBIDDEN)
-                    return
-                if admin["role"] == "admin" and target["created_by_user_id"] != admin["id"]:
-                    self.send_json({"error": "普通管理员只能管理自己创建的用户"}, HTTPStatus.FORBIDDEN)
-                    return
-                salt, password_hash = hash_password(password)
-                conn.execute(
-                    "UPDATE users SET password_hash = ?, salt = ?, updated_at = ? WHERE id = ?",
-                    (password_hash, salt, now_iso(), user_id),
-                )
+                cursor = conn.execute("DELETE FROM course_grants WHERE id = ?", (grant_id,))
+            if cursor.rowcount <= 0:
+                self.send_json({"error": "授权不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
+        if parsed.path.startswith("/api/admin/courses/lessons/"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                lesson_id = int(unquote(parsed.path.removeprefix("/api/admin/courses/lessons/")))
+            except ValueError:
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            if not delete_course_lesson(lesson_id):
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
+        if parsed.path.startswith("/api/admin/courses/"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                series_id = int(unquote(parsed.path.removeprefix("/api/admin/courses/")))
+            except ValueError:
+                self.send_json({"error": "课程不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            if not delete_course_series(series_id):
+                self.send_json({"error": "课程不存在"}, HTTPStatus.NOT_FOUND)
+                return
             self.send_json({"ok": True})
             return
 

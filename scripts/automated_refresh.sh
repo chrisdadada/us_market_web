@@ -42,18 +42,27 @@ if [[ ! -x "${PY}" ]]; then
 fi
 
 SKIP_IF_SUCCESSFUL_TODAY="${SKIP_IF_SUCCESSFUL_TODAY:-1}"
+END_DATE_OVERRIDE="${END_DATE:-}"
 DAYS_BACK="${DAYS_BACK:-10}"
 DOWNLOAD_WORKERS="${DOWNLOAD_WORKERS:-4}"
 PROCESS_WORKERS="${PROCESS_WORKERS:-4}"
 RUN_REFERENCE="${RUN_REFERENCE:-1}"
 RUN_RESTRICTED_EVENTS="${RUN_RESTRICTED_EVENTS:-1}"
 EVENTS_FUTURE_DAYS="${EVENTS_FUTURE_DAYS:-90}"
+RUN_MINUTE_BARS="${RUN_MINUTE_BARS:-0}"
 RUN_OPTIONS_FLOW="${RUN_OPTIONS_FLOW:-1}"
 OPTIONS_PHASE="${OPTIONS_PHASE:-core_etf}"
 OPTIONS_MAX_DAYS="${OPTIONS_MAX_DAYS:-1}"
 OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"
 DEPLOY_AFTER_REFRESH="${DEPLOY_AFTER_REFRESH:-1}"
-PROMOTE_PROD_AFTER_DEPLOY="${PROMOTE_PROD_AFTER_DEPLOY:-1}"
+PROMOTE_PROD_AFTER_DEPLOY="${PROMOTE_PROD_AFTER_DEPLOY:-0}"
+if [[ -z "${REQUIRE_FRESH_ASOF:-}" ]]; then
+  if [[ -n "${END_DATE_OVERRIDE}" ]]; then
+    REQUIRE_FRESH_ASOF=0
+  else
+    REQUIRE_FRESH_ASOF=1
+  fi
+fi
 
 has_successful_log_today() {
   local today current_log candidate
@@ -65,8 +74,8 @@ has_successful_log_today() {
     candidate="$(cd "$(dirname "${candidate}")" && pwd)/$(basename "${candidate}")"
     [[ "${candidate}" == "${current_log}" ]] && continue
 
-    if grep -q -- "Data update complete" "${candidate}" \
-      && grep -q -- "--- validate JSON files ---" "${candidate}" \
+    if grep -q -- "Product DB update complete" "${candidate}" \
+      && grep -q -- "--- build product DB ---" "${candidate}" \
       && grep -q -- "--- release gate ---" "${candidate}" \
       && grep -q -- "OK" "${candidate}" \
       && grep -q -- "--- build deploy package ---" "${candidate}" \
@@ -112,7 +121,9 @@ echo "YEAR_START=${YEAR_START}"
 echo "DEPLOY_AFTER_REFRESH=${DEPLOY_AFTER_REFRESH}"
 echo "PROMOTE_PROD_AFTER_DEPLOY=${PROMOTE_PROD_AFTER_DEPLOY}"
 echo "SKIP_IF_SUCCESSFUL_TODAY=${SKIP_IF_SUCCESSFUL_TODAY}"
+echo "REQUIRE_FRESH_ASOF=${REQUIRE_FRESH_ASOF}"
 echo "RUN_OPTIONS_FLOW=${RUN_OPTIONS_FLOW}"
+echo "RUN_MINUTE_BARS=${RUN_MINUTE_BARS}"
 echo "EVENTS_FUTURE_DAYS=${EVENTS_FUTURE_DAYS}"
 echo "OPTIONS_PHASE=${OPTIONS_PHASE}"
 echo "OPTIONS_MAX_DAYS=${OPTIONS_MAX_DAYS}"
@@ -144,12 +155,6 @@ run_root() {
   (cd "${ROOT}" && "$@")
 }
 
-run_lab "download stock minute flatfiles" \
-  "${PY}" scripts/download_polygon_flatfiles.py download \
-  --start "${START_DATE}" --end "${END_DATE}" \
-  --prefix us_stocks_sip/minute_aggs_v1 \
-  --workers "${DOWNLOAD_WORKERS}"
-
 run_lab "download stock daily flatfiles" \
   "${PY}" scripts/download_polygon_flatfiles.py download \
   --start "${START_DATE}" --end "${END_DATE}" \
@@ -161,21 +166,29 @@ run_lab "convert daily bars" \
   --start "${START_DATE}" --end "${END_DATE}" \
   --workers "${PROCESS_WORKERS}"
 
-run_lab "convert minute bars" \
-  "${PY}" scripts/process_polygon_bars.py convert-1m \
-  --start "${START_DATE}" --end "${END_DATE}" \
-  --workers "${PROCESS_WORKERS}"
+if [[ "${RUN_MINUTE_BARS}" == "1" ]]; then
+  run_lab "download stock minute flatfiles" \
+    "${PY}" scripts/download_polygon_flatfiles.py download \
+    --start "${START_DATE}" --end "${END_DATE}" \
+    --prefix us_stocks_sip/minute_aggs_v1 \
+    --workers "${DOWNLOAD_WORKERS}"
 
-run_lab "build RTH minute bars" \
-  "${PY}" scripts/process_polygon_bars.py build-rth \
-  --start "${START_DATE}" --end "${END_DATE}" \
-  --workers "${PROCESS_WORKERS}"
+  run_lab "convert minute bars" \
+    "${PY}" scripts/process_polygon_bars.py convert-1m \
+    --start "${START_DATE}" --end "${END_DATE}" \
+    --workers "${PROCESS_WORKERS}"
 
-run_lab "aggregate RTH bars" \
-  "${PY}" scripts/process_polygon_bars.py aggregate \
-  --start "${START_DATE}" --end "${END_DATE}" \
-  --timeframes 5m 15m 30m 60m 240m \
-  --workers "${PROCESS_WORKERS}"
+  run_lab "build RTH minute bars" \
+    "${PY}" scripts/process_polygon_bars.py build-rth \
+    --start "${START_DATE}" --end "${END_DATE}" \
+    --workers "${PROCESS_WORKERS}"
+
+  run_lab "aggregate RTH bars" \
+    "${PY}" scripts/process_polygon_bars.py aggregate \
+    --start "${START_DATE}" --end "${END_DATE}" \
+    --timeframes 5m 15m 30m 60m 240m \
+    --workers "${PROCESS_WORKERS}"
+fi
 
 if [[ "${RUN_REFERENCE}" == "1" ]]; then
   run_lab "refresh Polygon reference data" \
@@ -219,15 +232,11 @@ base = datetime.fromisoformat(sys.argv[1]).date()
 print((base + timedelta(days=int(sys.argv[2]))).isoformat())
 PY
 )}"
-if [[ -n "${FMP_API_KEY:-}" ]]; then
-  run_root "download FMP earnings calendar" \
-    "${PY}" scripts/download_fmp_earnings_calendar.py \
-    --start "${END_DATE}" \
-    --end "${EVENTS_END_DATE}" \
-    --output "${ROOT}/data/manual/earnings-calendar.json"
-else
-  echo "FMP_API_KEY not configured; skipping FMP earnings calendar download"
-fi
+run_root "download multi-source earnings calendar" \
+  "${PY}" scripts/download_earnings_calendar.py \
+  --start "${END_DATE}" \
+  --end "${EVENTS_END_DATE}" \
+  --output "${ROOT}/data/manual/earnings-calendar.json"
 
 run_lab "build current-year tradable universe" \
   "${PY}" scripts/build_polygon_universe.py \
@@ -247,6 +256,31 @@ print(str(df["trade_date"].max()))
 PY
 )"
 echo "Resolved product ASOF=${ASOF}"
+
+if [[ "${REQUIRE_FRESH_ASOF}" == "1" ]]; then
+  EXPECTED_ASOF="${EXPECTED_ASOF:-$("${PY}" <<'PY'
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+import pandas_market_calendars as mcal
+
+now = datetime.now(ZoneInfo("America/New_York"))
+cutoff = now.replace(hour=17, minute=30, second=0, microsecond=0)
+end = now.date() if now >= cutoff else (now - timedelta(days=1)).date()
+start = end - timedelta(days=14)
+schedule = mcal.get_calendar("NYSE").schedule(start_date=start, end_date=end)
+if schedule.empty:
+    raise SystemExit("no NYSE trading day in expected ASOF window")
+print(schedule.index[-1].date().isoformat())
+PY
+)}"
+  echo "Expected product ASOF=${EXPECTED_ASOF}"
+  if [[ "${ASOF}" < "${EXPECTED_ASOF}" ]]; then
+    echo "ERROR: product ASOF ${ASOF} is older than expected ${EXPECTED_ASOF}; refusing to deploy stale data."
+    echo "This usually means the latest Polygon flatfiles are not available yet. The later scheduled run will retry."
+    exit 3
+  fi
+fi
 
 run_lab "build analyst product report" \
   "${PY}" scripts/build_analyst_product.py \
@@ -284,7 +318,7 @@ if [[ "${RUN_OPTIONS_FLOW}" == "1" ]]; then
     --rate-limit-sleep 70 \
     --max-retries 8
 
-  run_lab "build options flow product JSON" \
+  run_lab "build options flow product snapshot" \
     "${PY}" scripts/build_options_flow_product.py \
     --start "${OPTIONS_START_DATE}" \
     --end "${OPTIONS_END_DATE}" \
@@ -293,17 +327,20 @@ fi
 
 CACHE_VERSION="$(date +%Y%m%d)-product1"
 run_root "refresh app data cache version" \
-  sed -i '' -E "s/v=[0-9]{8}-(product|options)[0-9]+/v=${CACHE_VERSION}/g" app.js index.html
+  sed -i '' -E "s/v=[0-9]{8}-[A-Za-z0-9_-]+/v=${CACHE_VERSION}/g" app.js index.html
 
-run_root "validate JSON files" \
-  bash -lc 'find data -type f -name "*.json" -print0 | xargs -0 -n1 jq empty'
+run_root "build product DB" \
+  env TRACKING_ASOF="${ASOF}" MARKET_DATA_ROOT="${DATA_ROOT}" "${PY}" scripts/build_product_db.py
+
+run_root "update macro calendar results" \
+  "${PY}" scripts/update_macro_calendar_results.py
 
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v
 
 run_root "build deploy package" \
   tar -czf ytd-gainers-site.tar.gz \
-  index.html styles.css app.js data server scripts mockups TESTING.md
+  index.html admin.html styles.css app.js assets data/product.db server scripts admin-web/dist main-web/dist TESTING.md
 
 if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   run_root "deploy latest build to dev" \

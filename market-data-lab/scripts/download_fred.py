@@ -14,7 +14,7 @@ from common import ROOT, data_path, env, load_env, parse_date, read_series, writ
 URL = "https://api.stlouisfed.org/fred/series/observations"
 
 
-def download_series(series_id: str, api_key: str, start: date, end: date) -> pd.DataFrame:
+def download_series(series_id: str, api_key: str, start: date, end: date, fallback: Path) -> pd.DataFrame | None:
     params = {
         "series_id": series_id,
         "api_key": api_key,
@@ -22,7 +22,22 @@ def download_series(series_id: str, api_key: str, start: date, end: date) -> pd.
         "observation_start": start.isoformat(),
         "observation_end": end.isoformat(),
     }
-    response = requests.get(URL, params=params, timeout=30)
+    last_error: Exception | None = None
+    for attempt in range(1, 6):
+        try:
+            response = requests.get(URL, params=params, timeout=30)
+            break
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt == 5:
+                if fallback.exists():
+                    print(f"WARN: keeping existing FRED {series_id} after {exc.__class__.__name__}")
+                    return None
+                raise
+            print(f"WARN: retrying FRED {series_id} after {exc.__class__.__name__}: attempt={attempt}/5")
+            sleep(attempt * 2)
+    else:
+        raise RuntimeError(f"{series_id}: request failed") from last_error
     if response.status_code != 200:
         raise RuntimeError(f"{series_id}: {response.status_code} {response.text[:300]}")
     rows = response.json().get("observations", [])
@@ -49,9 +64,13 @@ def main() -> None:
 
     for series_id in read_series(args.series):
         print(f"fred {series_id} {start}..{end}")
-        df = download_series(series_id, api_key, start, end)
+        output = out_dir / f"{series_id}.parquet"
+        df = download_series(series_id, api_key, start, end, output)
+        if df is None:
+            sleep(0.2)
+            continue
         if not df.empty:
-            write_parquet(df, out_dir / f"{series_id}.parquet")
+            write_parquet(df, output)
         sleep(0.2)
 
 

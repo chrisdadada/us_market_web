@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260613-calendar1" />
+    <link rel="stylesheet" href="./styles.css?v=20260704-product1" />
   </head>
   <body>
     <div class="app-shell">
@@ -14,7 +14,7 @@
           <span class="brand-mark"><img src="./assets/dongbimao-logo.png" alt="" /></span>
           <span>
             <strong>懂币猫</strong>
-            <small>美股研究终端</small>
+            <small>美股投研</small>
           </span>
         </a>
         <button class="sidebar-toggle sidebar-toggle-inside" id="sidebarToggleInside" type="button" aria-label="收起一级导航" aria-expanded="true">
@@ -23,31 +23,49 @@
 
         <nav class="side-nav" aria-label="产品导航">
           <section class="nav-section">
-            <button class="nav-item is-active" type="button" data-page="dashboard">
-              <span>总览</span>
-              <strong>策略驾驶舱</strong>
-            </button>
+            <a href="#" data-page-link="dashboard">首页</a>
           </section>
 
           <section class="nav-section">
-            <p>市场</p>
-            <a href="#" data-page-link="risk">市场温度计</a>
+            <a href="#" data-page-link="market-opinion">市场观点</a>
+          </section>
+
+          <section class="nav-section">
+            <a href="#" data-page-link="tracking">强势股票跟踪榜单</a>
+          </section>
+
+          <section class="nav-section">
+            <a href="#" data-page-link="stocks">股票库</a>
+          </section>
+
+          <section class="nav-section">
+            <a href="#" data-page-link="events">财经日历</a>
+          </section>
+
+          <section class="nav-section">
             <a href="#" data-page-link="market">市场与资金</a>
+          </section>
+
+          <section class="nav-section">
+            <a href="#" data-page-link="live">Open 持仓参考</a>
+          </section>
+
+          <section class="nav-section">
+            <a href="#" data-disabled="true" aria-disabled="true">论坛讨论区</a>
+          </section>
+
+          <section class="nav-section">
+            <a href="#" data-page-link="courses">课程</a>
+          </section>
+
+          <section class="nav-section nav-section-legacy is-hidden" data-super-admin-only>
+            <p>工具 / 数据</p>
+            <a href="#" data-page-link="risk">市场温度计</a>
             <a href="#" data-page-link="strength">全市场强弱</a>
             <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
-          </section>
-
-          <section class="nav-section">
-            <p>个股</p>
-            <a href="#" data-page-link="stocks">股票库</a>
             <a href="#" data-page-link="mag7">七姐妹雷达</a>
             <a href="#" data-page-link="options">期权流向</a>
             <a href="#" data-page-link="signals">趋势信号</a>
-          </section>
-
-          <section class="nav-section">
-            <p>研究</p>
-            <a href="#" data-page-link="events">财经日历</a>
             <a href="#" data-page-link="stock-events">股票事件</a>
             <a href="#" data-page-link="earnings">财报观察</a>
             <a href="#" data-page-link="watchlist">自选</a>
@@ -61,8 +79,8 @@
             <span></span>
           </button>
           <div class="workspace-title-block">
-            <span id="workspaceKicker">策略总览</span>
-            <strong id="workspaceTitle">策略驾驶舱</strong>
+            <span id="workspaceKicker"></span>
+            <strong id="workspaceTitle">首页</strong>
           </div>
           <div class="global-search" role="search">
             <input
@@ -82,198 +100,94 @@
           </div>
         </header>
 
-        <section class="page-view workspace-page dashboard-terminal is-active" data-view="dashboard">
-          <div class="cockpit-hero workspace-header">
-            <div>
-              <p class="eyebrow">市场总览</p>
-              <h1>今日市场工作台</h1>
-              <p class="subtitle">把市场环境、板块排行、资金方向、财经日历和个股异动放到同一个首屏里。</p>
-            </div>
-            <div class="market-regime-card market-radar-card desk-panel">
-              <span>当前结构</span>
-              <strong id="marketRegimeLabel">偏强但谨慎</strong>
-              <p id="marketRegimeSummary">QQQ 强于 SPY，科技主线仍在趋势区；小盘异动升温，高热度线索需要风控。</p>
-              <div class="dashboard-radar-bars" id="dashboardRegimeRadar" aria-label="市场结构雷达">
-                <div><b>趋势</b><i style="--level:68%"></i><em>68</em></div>
-                <div><b>广度</b><i style="--level:52%"></i><em>52</em></div>
-                <div><b>波动</b><i style="--level:44%"></i><em>44</em></div>
-                <div><b>热度</b><i style="--level:58%"></i><em>58</em></div>
+        <section class="page-view workspace-page dashboard-terminal today-workbench is-active" data-view="dashboard">
+          <section class="today-hero">
+            <article class="today-opinion-card desk-panel">
+              <span>最新</span>
+              <h1 id="todayOpinionTitle">最新观点</h1>
+              <p id="todayOpinionSummary">最新观点、强势股和关键事件放在这里。</p>
+              <div class="today-tags" id="todayOpinionTags"></div>
+              <div class="today-card-actions">
+                <button type="button" id="todayOpinionAction">阅读全文</button>
+                <small id="todayOpinionMeta"></small>
               </div>
-            </div>
-          </div>
-
-          <section class="dashboard-snapshot-board workspace-summary-row" id="dashboardSnapshotBoard" aria-label="市场摘要快照">
-            <article class="dashboard-snapshot-card metric-cell">
-              <span>市场快照</span>
-              <strong>等待数据</strong>
             </article>
+
+            <aside class="today-focus-card desk-panel">
+              <span>今日看点</span>
+              <div id="todayFocusList">
+                <div><strong>市场观点</strong><p>交易主线</p></div>
+                <div><strong>强势股榜单</strong><p>跟踪名单</p></div>
+                <div><strong>财经日历</strong><p>事件时间</p></div>
+              </div>
+            </aside>
           </section>
 
-          <section class="dashboard-intelligence-grid" aria-label="今日重要摘要">
-            <article class="dashboard-intel-panel desk-panel">
-              <div class="desk-panel-header">
-                <div>
-                  <span>板块排行</span>
-                  <strong id="dashboardSectorLead">等待板块数据</strong>
-                </div>
-                <button class="ghost-action" type="button" data-market-section="sectors">更多</button>
-              </div>
-              <div class="dashboard-sector-rank" id="dashboardSectorRank">
-                <p>等待行情板块排行。</p>
-              </div>
-            </article>
-
-            <article class="dashboard-intel-panel desk-panel">
-              <div class="desk-panel-header">
-                <div>
-                  <span>资金流向</span>
-                  <strong id="dashboardFlowLead">等待资金数据</strong>
-                </div>
-                <button class="ghost-action" type="button" data-market-section="flows">更多</button>
-              </div>
-              <div class="dashboard-flow-pulse" id="dashboardFlowPulse">
-                <p>等待板块资金方向数据。</p>
-              </div>
-            </article>
-
-            <article class="dashboard-intel-panel desk-panel">
-              <div class="desk-panel-header">
-                <div>
-                  <span>成交热力图</span>
-                  <strong id="dashboardHeatmapLead">等待热区数据</strong>
-                </div>
-                <button class="ghost-action" type="button" data-market-section="heatmap">更多</button>
-              </div>
-              <div class="dashboard-heatmap-pulse" id="dashboardHeatmapPulse">
-                <p>等待成交热区数据。</p>
-              </div>
-            </article>
-
-            <article class="dashboard-intel-panel desk-panel">
-              <div class="desk-panel-header">
-                <div>
-                  <span>财经日历</span>
-                  <strong id="dashboardCalendarLead">等待财经日历</strong>
-                </div>
-                <button class="ghost-action" type="button" data-page-link="events">更多</button>
-              </div>
-              <div class="dashboard-calendar-log" id="dashboardCalendarLog">
-                <p>等待宏观和财报日程。</p>
-              </div>
-            </article>
-          </section>
-
-          <section class="dashboard-focus-grid workspace-summary-row" aria-label="当前先看">
-            <article class="metric-cell">
-              <span>01 · 市场环境</span>
-              <strong id="dashboardFocusTemperature">市场温度加载中</strong>
-              <p id="dashboardFocusTemperatureNote">先看当前环境偏强、偏中性还是偏防守。</p>
-              <button type="button" data-page-link="risk">看温度</button>
-            </article>
-            <article class="metric-cell">
-              <span>02 · 个股异动</span>
-              <strong id="dashboardFocusMover">涨跌异动加载中</strong>
-              <p id="dashboardFocusMoverNote">看当前最明显的涨跌、成交额和风险标签。</p>
-              <button type="button" data-page-link="market">看市场与资金</button>
-            </article>
-            <article class="metric-cell">
-              <span>03 · 强弱线索</span>
-              <strong id="dashboardFocusStrength">强弱扫描加载中</strong>
-              <p id="dashboardFocusStrengthNote">优先从强于大盘和行业的股票里找线索。</p>
-              <button type="button" data-page-link="strength">看强弱榜</button>
-            </article>
-            <article class="metric-cell">
-              <span>04 · 事件催化</span>
-              <strong id="dashboardFocusEvent">股票事件加载中</strong>
-              <p id="dashboardFocusEventNote">看财报、业绩预期、机构观点和空头压力背后的个股理由。</p>
-              <button type="button" data-page-link="stock-events">看股票事件</button>
-            </article>
-          </section>
-
-          <section class="data-status-section dashboard-secondary-block">
-            <div class="section-title">
+          <section class="today-section desk-panel">
+            <div class="today-section-head">
               <div>
-                <span>模块状态</span>
-                <h2>数据可用状态</h2>
+                  <span>强势股</span>
+                <h2>强势股榜单</h2>
               </div>
-              <button type="button" data-page-link="valuation">查看待接入模块</button>
+              <button type="button" data-page-link="tracking">查看榜单</button>
             </div>
-            <div class="data-status-grid" id="dashboardDataStatusGrid">
-              <article><span>等待数据</span><strong>--</strong><p>加载后显示各模块数据日期。</p></article>
+            <div class="today-strength-table" id="todayStrengthRows">
+              <p>暂无可展示记录</p>
             </div>
           </section>
 
-          <section class="radar-section dashboard-secondary-block">
-            <div class="section-title">
-              <div>
-                <span>科技七姐妹</span>
-                <h2>科技七姐妹趋势雷达</h2>
+          <section class="today-lower-grid">
+            <article class="today-section desk-panel">
+              <div class="today-section-head">
+                <div>
+                  <h2>财经日历</h2>
+                </div>
+                <button type="button" data-page-link="events">查看日历</button>
               </div>
-              <button type="button" data-page-link="mag7">打开雷达</button>
-            </div>
-            <div class="mega-grid" id="dashboardMag7Grid">
-              <article><strong>NVDA</strong><span>趋势状态</span><b>领跑</b><i style="width:96%"></i></article>
-              <article><strong>MSFT</strong><span>趋势状态</span><b>强势</b><i style="width:88%"></i></article>
-              <article><strong>META</strong><span>趋势状态</span><b>强势</b><i style="width:84%"></i></article>
-              <article><strong>AMZN</strong><span>趋势状态</span><b>延续</b><i style="width:78%"></i></article>
-              <article><strong>GOOGL</strong><span>趋势状态</span><b>修复</b><i style="width:74%"></i></article>
-              <article><strong>AAPL</strong><span>趋势状态</span><b>观察</b><i style="width:63%"></i></article>
-              <article><strong>TSLA</strong><span>趋势状态</span><b>波动</b><i style="width:51%"></i></article>
-            </div>
+              <div class="today-calendar-board">
+                <div class="today-calendar-main">
+                  <div class="today-calendar-toolbar">
+                    <div class="today-calendar-tabs" aria-label="首页财经日历时间窗">
+                      <button class="is-active" type="button" data-home-calendar-window="tomorrow">明天</button>
+                      <button type="button" data-home-calendar-window="7">未来7天</button>
+                      <button type="button" data-home-calendar-window="45">未来45天</button>
+                    </div>
+                    <span id="todayCalendarCount">等待事件</span>
+                  </div>
+                  <div class="today-calendar-list" id="todayCalendarRows">
+                    <p>暂无近期事件</p>
+                  </div>
+                </div>
+                <aside class="today-macro-list" id="todayMacroRows">
+                  <p>暂无宏观事件</p>
+                </aside>
+              </div>
+            </article>
+
+            <article class="today-section desk-panel">
+              <div class="today-section-head">
+                <div>
+                  <span>市场观点</span>
+                  <h2>最新更新</h2>
+                </div>
+                <button type="button" data-page-link="market-opinion">进入市场观点</button>
+              </div>
+              <div class="today-updates-list" id="todayUpdatesRows">
+                <p>暂无内容更新</p>
+              </div>
+            </article>
           </section>
 
-          <section class="operator-plan dashboard-secondary-block">
-            <div class="section-title">
+          <section class="today-section desk-panel">
+            <div class="today-section-head">
               <div>
-                <span>每日流程</span>
-                <h2>每日看盘顺序</h2>
+                <span>板块数据</span>
+                <h2>今日板块方向</h2>
               </div>
+              <button type="button" data-page-link="market">查看板块</button>
             </div>
-            <div class="plan-grid">
-              <article>
-                <span>01</span>
-                <h3>先看市场风控</h3>
-                <p>判断市场偏积极、中性，还是偏防守观察。</p>
-              </article>
-              <article>
-                <span>02</span>
-                <h3>再看七姐妹强弱</h3>
-                <p>只跟踪趋势更强、相对 QQQ 更稳的股票。</p>
-              </article>
-              <article>
-                <span>03</span>
-                <h3>最后看交易记录</h3>
-                <p>用实盘记录和回测结果校验策略是否仍然有效。</p>
-              </article>
-            </div>
-          </section>
-
-          <section class="module-section dashboard-tools-strip">
-            <div class="section-title">
-              <div>
-                <span>全部入口</span>
-                <h2>更多工具</h2>
-              </div>
-            </div>
-            <div class="module-grid" id="dashboardModuleGrid">
-              <button class="module-card" type="button" data-page-link="risk">
-                <span>免费</span>
-                <strong>市场温度计</strong>
-                <p>用几项公开指标看当前市场偏强、偏中性还是偏防守。</p>
-                <em>已上线</em>
-              </button>
-              <button class="module-card" type="button" data-page-link="strength">
-                <span>强弱</span>
-                <strong>全市场强弱</strong>
-                <p>把候选股票压缩成重点观察、风险回避和等回踩。</p>
-                <em>已上线</em>
-              </button>
-              <button class="module-card" type="button" data-page-link="watchlist">
-                <span>个股</span>
-                <strong>自选</strong>
-                <p>集中跟踪从各模块加入的股票。</p>
-                <em>已上线</em>
-              </button>
+            <div class="today-sector-list" id="todaySectorRows">
+              <p>暂无板块数据</p>
             </div>
           </section>
         </section>
@@ -926,10 +840,10 @@
                 </div>
                 <div class="signal-feed" id="signalFeed">
                   <article>
-                    <span>等待记录</span>
-                    <strong>接入后显示信号动态</strong>
-                    <p>收到信号、复盘或方向切换后，会按时间顺序显示。</p>
-                    <em>等待接入</em>
+                    <span>信号记录</span>
+                    <strong>暂无记录</strong>
+                    <p></p>
+                    <em></em>
                   </article>
                 </div>
               </section>
@@ -994,12 +908,67 @@
           </section>
         </section>
 
+        <section class="page-view workspace-page evidence-workspace tracking-page" data-view="tracking">
+          <span class="visually-hidden">本次新增</span>
+          <div class="page-heading workspace-header tracking-heading">
+            <div>
+              <p class="eyebrow">重点跟踪</p>
+              <h1>强势股榜单</h1>
+            </div>
+          </div>
+          <section class="tracking-workspace">
+            <section class="strength-panel desk-panel" data-module="tracking-list">
+              <div class="tracking-utility-strip">
+                <div class="tracking-change-strip">
+                  <span>本次新增</span>
+                  <div id="trackingNewSymbols"></div>
+                </div>
+                <div class="tracking-date-cell">
+                  <span>数据日期</span>
+                  <strong id="trackingDataDate">--</strong>
+                </div>
+              </div>
+              <div class="table-wrap desk-panel-body">
+                <table class="strength-table tracking-table data-table">
+                  <colgroup>
+                    <col class="tracking-col-rank" />
+                    <col class="tracking-col-stock" />
+                    <col class="tracking-col-1d" />
+                    <col class="tracking-col-7d" />
+                    <col class="tracking-col-1m" />
+                    <col class="tracking-col-volume" />
+                    <col class="tracking-col-cap" />
+                    <col class="tracking-col-signal" />
+                    <col class="tracking-col-since" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>股票</th>
+                      <th>1D</th>
+                      <th>7D</th>
+                      <th>1M</th>
+                      <th>成交倍数</th>
+                      <th>市值</th>
+                      <th>趋势策略方向</th>
+                      <th>信号首发</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trackingBody"></tbody>
+                </table>
+              </div>
+            </section>
+            <aside class="tracking-side-panel" id="trackingSidePanel" aria-label="选中标的"></aside>
+          </section>
+        </section>
+
         <section class="page-view workspace-page evidence-workspace" data-view="strength">
+          <span class="visually-hidden">强势股票跟踪榜单</span>
           <div class="page-heading workspace-header">
             <div>
-              <p class="eyebrow">全市场扫描</p>
-              <h1>今日强弱榜</h1>
-              <p class="subtitle">每天把几千只美股压缩成三张清单：重点观察、风险回避、等回踩。你先看结论，再看理由。</p>
+              <p class="eyebrow">强势股票跟踪榜单</p>
+              <h1>强势股票跟踪榜单</h1>
+              <p class="subtitle">先按懂币猫重点标的池跟踪趋势、成交额和回踩承接，减少新手在几千只股票里乱翻。</p>
             </div>
             <div class="source source-chip">
               <span>扫描日期</span>
@@ -1009,14 +978,12 @@
 
           <section class="strength-overview metric-row" aria-label="强弱扫描摘要">
             <article class="metric-cell">
-              <span>已替你扫描</span>
+              <span>跟踪池</span>
               <strong id="strengthUniverse">--</strong>
-              <p id="strengthUniverseNote">先过滤成交额不足、价格过低和历史太短的股票。</p>
             </article>
             <article class="metric-cell">
               <span>重点观察</span>
               <strong id="strengthLeader">--</strong>
-              <p id="strengthLeaderNote">当前先从这批股票里找可复盘标的。</p>
             </article>
             <article class="metric-cell">
               <span>风险回避</span>
@@ -1092,9 +1059,9 @@
             <section class="strength-panel desk-panel" data-module="strength-lists">
               <div class="panel-head desk-panel-header">
                 <div class="board-tabs segmented-tabs" aria-label="强弱榜单切换">
-                  <button class="board-tab strength-tab is-active" type="button" data-strength-bucket="strongest">重点观察</button>
-                  <button class="board-tab strength-tab" type="button" data-strength-bucket="weakest">风险回避</button>
+                  <button class="board-tab strength-tab is-active" type="button" data-strength-bucket="strongest">全部跟踪</button>
                   <button class="board-tab strength-tab" type="button" data-strength-bucket="watchlist">等回踩</button>
+                  <button class="board-tab strength-tab" type="button" data-strength-bucket="weakest">风险回避</button>
                 </div>
                 <div class="summary" id="strengthResultSummary">--</div>
               </div>
@@ -1278,11 +1245,11 @@
         </section>
 
         <section class="page-view workspace-page evidence-workspace" data-view="events">
+          <span class="visually-hidden">财经日历</span>
           <div class="page-heading workspace-header">
             <div>
               <p class="eyebrow" id="eventsEyebrow">财经日历</p>
               <h1 id="eventsPageTitle">财经日历</h1>
-              <p class="subtitle" id="eventsPageSubtitle">宏观日历、公司财报日期和人工财经日志分开看；这里只展示时间、影响范围和需要复核的事实。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
@@ -1290,36 +1257,35 @@
             </div>
           </div>
 
-          <section class="calendar-hero desk-panel" aria-label="财经日历摘要">
-            <div class="calendar-hero-copy">
-              <span>未来事件</span>
-              <strong id="calendarHeroTitle">未来事件总览</strong>
-              <p id="calendarHeroLead">宏观日历和财报日期分开展示，先看时间、影响范围和相关资产。</p>
-            </div>
-            <div class="calendar-source-board">
-              <div><span>宏观事件</span><strong id="calendarMacroStatus">--</strong></div>
-              <div><span>财报日期</span><strong id="calendarEarningsStatus">--</strong></div>
-              <div><span>高影响</span><strong id="calendarHighImpactStatus">--</strong></div>
-              <div><span>人工日志</span><strong id="calendarManualStatus">--</strong></div>
-            </div>
+          <section class="calendar-macro-focus" aria-label="财经日历重点">
+            <article class="calendar-focus-card desk-panel">
+              <span>下一宏观事件</span>
+              <strong id="calendarNextMacroTitle">--</strong>
+              <p id="calendarNextMacroMeta">--</p>
+            </article>
+            <article class="calendar-focus-card desk-panel">
+              <span>近期高影响事件</span>
+              <strong id="calendarHighImpactStatus">--</strong>
+              <p id="calendarHighImpactLead">--</p>
+            </article>
+            <article class="calendar-focus-card desk-panel">
+              <span>公司财报</span>
+              <strong id="calendarEarningsStatus">--</strong>
+              <p id="calendarEarningsTopLead">--</p>
+            </article>
           </section>
-          <section class="calendar-section-nav" aria-label="财经日历二级导航">
-            <button type="button" data-calendar-section-target="calendarMacroSection"><strong>宏观日历</strong><span>CPI / FOMC / 非农</span></button>
-            <button type="button" data-calendar-section-target="calendarEarningsSection"><strong>财报日期</strong><span>公司财报时间</span></button>
-            <button type="button" data-calendar-section-target="calendarManualSection"><strong>人工日志</strong><span>只放你提供的内容</span></button>
-          </section>
-          <section class="calendar-timeline-panel desk-panel" aria-label="近期财经日历时间轴">
+          <section class="calendar-timeline-panel desk-panel" aria-label="宏观事件轴">
             <div class="calendar-panel-head desk-panel-header">
               <div>
-                <span>近期时间轴</span>
-                <strong>先按时间看，再进入对应表格</strong>
+                <span>宏观事件</span>
+                <strong>宏观事件轴</strong>
               </div>
             </div>
             <div class="calendar-timeline" id="calendarTimeline">
               <article>
                 <time>--</time>
-                <strong>等待财经日历</strong>
-                <span>宏观 / 财报 / 人工日志分开展示</span>
+                <strong>宏观事件</strong>
+                <span>CPI / FOMC / 非农</span>
               </article>
             </div>
           </section>
@@ -1328,8 +1294,8 @@
             <section class="calendar-main-panel desk-panel" id="calendarMacroSection">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
-                  <span>宏观事件</span>
-                  <strong>利率、通胀、就业和政策时间点</strong>
+                <span>宏观事件</span>
+                  <strong>宏观日历</strong>
                 </div>
               </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
@@ -1344,7 +1310,7 @@
                     </tr>
                   </thead>
                   <tbody id="calendarEventBody">
-                    <tr><td colspan="5">正在加载财经日历。</td></tr>
+                    <tr><td colspan="5">加载中</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1353,8 +1319,8 @@
             <section class="calendar-earnings-panel desk-panel" id="calendarEarningsSection">
               <div class="calendar-panel-head desk-panel-header">
                 <div>
-                  <span>财报日期</span>
-                  <strong>接下来需要确认的公司财报</strong>
+                  <span>公司财报</span>
+                  <strong>公司财报明细</strong>
                 </div>
               </div>
               <div class="calendar-earnings-tools" aria-label="财报日期筛选">
@@ -1383,8 +1349,7 @@
                 </label>
                 <div class="calendar-earnings-summary">
                   <span id="calendarEarningsMeta">--</span>
-                  <strong id="calendarEarningsLead">等待财报日期数据。</strong>
-                  <p>影响等级：宏观沿用事件源等级；财报按数据源 importance 映射，4+ 高、2-3 中、低于 2 低。</p>
+                  <strong id="calendarEarningsLead">财报日期</strong>
                 </div>
               </div>
               <div class="table-wrap calendar-table-wrap desk-panel-body">
@@ -1399,33 +1364,11 @@
                     </tr>
                   </thead>
                   <tbody id="calendarEarningsBody">
-                    <tr><td colspan="5">暂无已接入财报日期。</td></tr>
+                    <tr><td colspan="5">暂无财报日期</td></tr>
                   </tbody>
                 </table>
               </div>
             </section>
-
-            <section class="calendar-manual-panel desk-panel" id="calendarManualSection">
-              <div class="calendar-panel-head desk-panel-header">
-                <div>
-                  <span>人工财经日志</span>
-                  <strong>只展示你后续提供的真实周度大事和复盘备注</strong>
-                </div>
-              </div>
-              <div class="calendar-manual-state desk-panel-body" id="calendarManualBody">
-                <strong>暂无人工财经日志</strong>
-                <p>这块不会放系统生成的占位内容；等你提供真实内容后，再单独进入这里。</p>
-              </div>
-            </section>
-
-            <aside class="calendar-impact-panel workspace-side">
-              <section>
-                <h2>怎么看这些日期</h2>
-                <div id="calendarImpactList" class="calendar-impact-list">
-                  <p>加载后显示宏观、财报和人工日志各自应该检查什么。</p>
-                </div>
-              </section>
-            </aside>
           </div>
         </section>
 
@@ -1699,11 +1642,12 @@
         </section>
 
         <section class="page-view market-workspace workspace-page" data-view="market">
+          <span class="visually-hidden">行情异动 板块资金方向 板块排行 成交额热力图</span>
           <div class="page-heading workspace-header">
             <div>
               <p class="eyebrow">市场与资金</p>
-              <h1 id="pageTitle">美股市场工作区</h1>
-              <p class="subtitle" id="pageSubtitle">先看市场主线，再看资金方向、热力分布和个股异动。</p>
+              <h1 id="pageTitle">板块资金方向</h1>
+              <p class="subtitle" id="pageSubtitle">先看资金往哪里走，再看上涨广度、成交热力和代表标的。</p>
             </div>
             <div class="source">
               <span>数据日期</span>
@@ -1712,10 +1656,10 @@
           </div>
 
           <div class="market-workspace-tabs segmented-tabs" aria-label="市场与资金二级导航">
-            <button class="is-active" type="button" data-market-section="movers"><span>涨跌幅榜</span></button>
+            <button class="is-active" type="button" data-market-section="flows"><span>板块资金</span></button>
+            <button type="button" data-market-section="heatmap"><span>成交热力</span></button>
+            <button type="button" data-market-section="movers"><span>行情异动</span></button>
             <button type="button" data-market-section="sectors"><span>板块排行</span></button>
-            <button type="button" data-market-section="flows"><span>板块资金</span></button>
-            <button type="button" data-market-section="heatmap"><span>成交热力图</span></button>
           </div>
 
           <section class="market-section-context" id="marketSectionContext" aria-label="当前模块">
@@ -2024,45 +1968,17 @@
         </section>
 
         <section class="page-view stocks-view workspace-page" data-view="stocks">
+          <span class="visually-hidden">股票库</span>
           <div class="page-heading stocks-heading workspace-header">
             <div>
               <p class="eyebrow">股票库</p>
               <h1>股票库</h1>
-              <p class="subtitle">按代码、公司名、板块、流动性、事件和财报线索筛选；点击代码进入个股工作台。</p>
             </div>
             <div class="source source-chip">
               <span>数据日期</span>
               <strong id="stocksAsOf">--</strong>
             </div>
           </div>
-
-          <section class="stocks-overview" aria-label="股票库摘要">
-            <article>
-              <span>当前视图</span>
-              <strong id="stocksCurrentCount">--</strong>
-              <p id="stocksCurrentNote">按筛选条件显示</p>
-            </article>
-            <article>
-              <span>流动性口径</span>
-              <strong id="stocksCoverageStatus">--</strong>
-              <p id="stocksCoverageNote">低成交额标的不进入默认工作台。</p>
-            </article>
-            <article>
-              <span>板块分类</span>
-              <strong id="stocksSectorGap">--</strong>
-              <p id="stocksSectorGapNote">低流动性和资料缺口会继续补。</p>
-            </article>
-            <article>
-              <span>日程联动</span>
-              <strong id="stocksCalendarStatus">--</strong>
-              <p id="stocksCalendarNote">宏观日历与财报日期分开接入。</p>
-            </article>
-            <article>
-              <span>排序口径</span>
-              <strong id="stocksSortMetric">成交额</strong>
-              <p id="stocksSortNote">按成交额降序</p>
-            </article>
-          </section>
 
           <section class="stocks-toolbar filter-bar" aria-label="股票库筛选">
             <label>
@@ -2091,7 +2007,7 @@
                 <option value="large">大盘</option>
                 <option value="mid">中盘</option>
                 <option value="small">小盘</option>
-                <option value="unknown">待补充</option>
+                <option value="unknown">未分类</option>
               </select>
             </label>
             <label>
@@ -2115,15 +2031,8 @@
             <button type="button" data-stocks-preset="watchlist">自选</button>
           </section>
 
-          <section class="stocks-context-strip" id="stocksContextStrip" aria-label="当前筛选结构">
-            <article><span>涨跌结构</span><strong>--</strong><p>等待股票库数据。</p></article>
-            <article><span>成交焦点</span><strong>--</strong><p>等待成交额数据。</p></article>
-            <article><span>板块集中</span><strong>--</strong><p>等待板块分类。</p></article>
-            <article><span>日程线索</span><strong>--</strong><p>等待财经日历和事件数据。</p></article>
-          </section>
-
           <section class="stocks-rank-strip" id="stocksRankStrip" aria-label="当前筛选榜单速览">
-            <div class="stocks-rank-empty">正在生成当前筛选速览。</div>
+            <div class="stocks-rank-empty">暂无榜单速览</div>
           </section>
 
           <div class="stocks-layout workspace-main">
@@ -2171,7 +2080,7 @@
               <h1 id="stockHubSymbol">--</h1>
               <p class="subtitle" id="stockHubSubtitle">集中查看研究结论、触发来源、价格位置、历史依据、风险和下一步复盘。</p>
             </div>
-            <button class="ghost-action" type="button" data-stock-back>返回</button>
+            <button class="ghost-action" type="button" data-stock-back>返回上一页</button>
           </div>
 
           <section class="stock-hub-content" id="stockHubContent" aria-label="股票详情">
@@ -2183,6 +2092,7 @@
         </section>
 
         <section class="page-view watchlist-view" data-view="watchlist">
+          <span class="visually-hidden">我的自选</span>
           <div class="page-heading">
             <div>
               <p class="eyebrow">自选</p>
@@ -2274,12 +2184,234 @@
           </section>
         </section>
 
+        <section class="page-view market-opinion-page" data-view="market-opinion">
+          <span class="visually-hidden">市场观点</span>
+          <div class="page-heading page-heading-simple">
+            <div>
+              <p class="eyebrow">市场观点</p>
+              <h1>市场观点</h1>
+            </div>
+          </div>
+          <nav class="market-opinion-column-nav" aria-label="市场观点栏目">
+            <a href="#market-opinion" data-market-opinion-home>首页</a>
+            <a href="#market-opinion/weekly">每周交易主线</a>
+            <a href="#market-opinion/premarket">盘前前瞻</a>
+            <a href="#market-opinion/daily">每日个股行情观点</a>
+            <a href="#market-opinion/research">研报解析</a>
+            <a href="#market-opinion/postmarket">盘后复盘延展</a>
+            <a href="#market-opinion/journal">交易日记</a>
+          </nav>
+
+          <div data-market-opinion-section="overview">
+            <section class="market-opinion-hero">
+              <article class="market-opinion-lead">
+                <span>最新观点 · 2026-06-18</span>
+                <h2>FOMC 后指数普跌，半导体逆势修复</h2>
+                <p>指数补缺口，利率预期重新定价压制高估值方向；半导体和存储仍然是当前更强的主线。</p>
+                <div class="market-opinion-tags">
+                  <b>SPY</b>
+                  <b>QQQ</b>
+                  <b>SMH</b>
+                  <b>SOXX</b>
+                  <b>FOMC</b>
+                </div>
+              </article>
+              <aside class="market-opinion-focus">
+                <span>最新观点</span>
+                <strong>指数补缺口，半导体逆势修复。</strong>
+                <a href="#market-opinion/journal/journal-2026-06-18-fomc">阅读全文</a>
+              </aside>
+            </section>
+
+            <section class="market-opinion-columns">
+              <article>
+                <span>每周交易主线</span>
+                <h3><a href="#market-opinion/weekly">6月行情可能反复，但7月之后仍偏乐观</a></h3>
+                <p>关键事件可能带来洗盘，回调反而可能给出更好的再次入场位置。</p>
+                <em>CPI / FOMC / BTC</em>
+              </article>
+              <article>
+                <span>盘前前瞻</span>
+                <h3><a href="#market-opinion/premarket">SPY 740-750 区间，半导体承接强于指数</a></h3>
+                <p>指数消化 FOMC 后回补缺口，半导体逆势修复，主线资金仍有承接。</p>
+                <em>SPY / QQQ / SMH</em>
+              </article>
+              <article>
+                <span>每日个股行情观点</span>
+                <h3><a href="#market-opinion/daily">WDC / MU / ARM 逆势走强，继续看存储和 Intel 链</a></h3>
+                <p>存储仍在创新高，重点观察强势股能否在指数震荡里继续承接。</p>
+                <em>WDC / MU / ARM / INTC</em>
+              </article>
+              <article>
+                <span>研报解析</span>
+                <h3><a href="#market-opinion/research">Intel 扩产预期链：订单、制程和设备链</a></h3>
+                <p>如果订单和制程评估最终落地，LRCX、AMAT、ASML 等设备链可能受益。</p>
+                <em>INTC / AMAT / ASML</em>
+              </article>
+              <article>
+                <span>盘后复盘延展</span>
+                <h3><a href="#market-opinion/postmarket">指数补缺口后，成长股能不能扩散是关键</a></h3>
+                <p>软件继续弱，半导体独强不是完整修复，后续要看资金是否扩散到更多成长方向。</p>
+                <em>SPY / QQQ / IGV</em>
+              </article>
+              <article>
+                <span>交易日记</span>
+                <h3><a href="#market-opinion/journal">交易一波一波做，不把波段做成死磕</a></h3>
+                <p>按策略处理利润，跟住宏观趋势和技术分析，不强行把波段交易做成价值投资。</p>
+                <em>ARM / MRVL / 仓位</em>
+              </article>
+            </section>
+
+            <section class="market-opinion-archive">
+              <div class="section-title">
+                <div>
+                  <span>最近更新</span>
+                  <h2>最近更新</h2>
+                </div>
+              </div>
+              <div class="market-opinion-table">
+                <div><span>2026-06-18</span><strong><a href="#market-opinion/journal/journal-2026-06-18-fomc">FOMC 后指数普跌，半导体逆势修复</a></strong><p>FOMC 后指数补缺口，利率预期重新定价压制高估值方向。</p><em>交易日记</em></div>
+                <div><span>2026-06-17</span><strong><a href="#market-opinion/journal/journal-2026-06-17-rebalance">FOMC 前资金从科技、半导体和高 Beta 资产撤出</a></strong><p>资金转向金融、工业、公用事业等防御方向。</p><em>交易日记</em></div>
+                <div><span>2026-06-16</span><strong><a href="#market-opinion/research/research-2026-06-memory-cycle">存储周期修复：价格和利润兑现</a></strong><p>存储股上涨背后是周期修复预期，后续重点看价格上行能否传导到利润。</p><em>研报解析</em></div>
+              </div>
+            </section>
+
+            <section class="market-opinion-quote">
+              <span>交易日记摘录</span>
+              <p>我们就跟住宏观趋势 + 技术分析就好了，既可以赚市场波动、板块轮动的钱，也可以挣货币贬值的钱。</p>
+            </section>
+          </div>
+
+          <section class="market-opinion-detail" data-market-opinion-section="weekly" hidden>
+            <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
+            <article class="market-opinion-detail-head">
+              <span>每周交易主线 · 06-17</span>
+              <h2>6月行情可能反复，但7月之后仍偏乐观。</h2>
+              <p>这段时间行情过于 FOMO，涨幅巨大。6月有 CPI、SpaceX 上市和 FOMC 几个关键事件，若再次回调洗盘，反而可能给出更好的上车机会。</p>
+            </article>
+            <div class="market-opinion-detail-grid">
+              <article>
+                <span>事件一</span>
+                <h3>10号 CPI 数据</h3>
+                <p>CPI 会影响市场对降息和估值的预期，数据前后容易出现高位震荡。</p>
+              </article>
+              <article>
+                <span>事件二</span>
+                <h3>12号 SpaceX 上市</h3>
+                <p>市场关注度高，可能继续刺激风险偏好，也可能带来短线情绪过热。</p>
+              </article>
+              <article>
+                <span>事件三</span>
+                <h3>18号 FOMC</h3>
+                <p>FOMC 前后要小心再次回调洗盘；若回调不破关键位，后续修复仍值得看。</p>
+              </article>
+              <article>
+                <span>补充观察</span>
+                <h3>BTC 定投计划</h3>
+                <p>底部通常是区间，不是一个点。比特币大幅回调后，可以开始规划分批定投，为下一轮行情做准备。</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="market-opinion-detail" data-market-opinion-section="daily" hidden>
+            <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
+            <article class="market-opinion-detail-head">
+              <span>每日行情观点 · 06-17</span>
+              <h2>今天重点看 INTC、ARM、MRVL：趋势走出来后，按策略处理利润。</h2>
+              <p>INTC 看订单和前高压力；ARM、MRVL 已经给出较大收益，交易上按策略止盈或继续持有，不要把波段交易做成死磕价值投资。</p>
+            </article>
+            <div class="market-opinion-daily-table">
+              <div><span>代码</span><span>看点</span><span>重点</span><span>不追条件</span></div>
+              <div><strong>INTC</strong><p>AI 芯片订单预期</p><p>已经来到前高压力区，重点看突破后是否走出第二段涨势。</p><em>压力区缩量不追</em></div>
+              <div><strong>ARM</strong><p>收益 60%+</p><p>按策略止盈即可；想拿更久，就看日线级别以上趋势。</p><em>不要死磕价值投资</em></div>
+              <div><strong>MRVL</strong><p>暴涨 30%+</p><p>趋势已经兑现，继续持有享受利润，按策略管理仓位。</p><em>追高谨慎</em></div>
+              <div><strong>LRCX</strong><p>半导体设备受益</p><p>如果 INTC 订单落地并扩产，设备商可能直接受益。</p><em>只看预期不看订单</em></div>
+              <div><strong>AMAT / ASML</strong><p>先进制程扩产链</p><p>市场可能已经在抢跑 Intel 扩产预期。</p><em>跟随 INTC 确认</em></div>
+            </div>
+          </section>
+
+          <section class="market-opinion-detail" data-market-opinion-section="research" hidden>
+            <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
+            <article class="market-opinion-detail-head">
+              <span>研报解析 · 06-16</span>
+              <h2>AI 基建链条的新变化：先看订单，再看估值能不能消化。</h2>
+              <p>研报解析不搬运长篇报告，只把机构观点翻译成三件事：它看多什么、风险在哪里、我们后续盯什么。</p>
+            </article>
+            <div class="market-opinion-daily-table">
+              <div><span>标的</span><span>机构看点</span><span>我们看什么</span><span>风险</span></div>
+              <div><strong>NVDA</strong><p>AI 算力需求</p><p>订单延续和毛利率变化。</p><em>估值预期过满</em></div>
+              <div><strong>AVGO</strong><p>定制芯片增长</p><p>大客户需求是否继续上修。</p><em>财报后兑现</em></div>
+              <div><strong>MU</strong><p>存储周期修复</p><p>价格上行能否传导到利润。</p><em>短线涨幅偏大</em></div>
+            </div>
+          </section>
+
+          <section class="market-opinion-detail" data-market-opinion-section="premarket" hidden>
+            <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
+            <article class="market-opinion-detail-head">
+              <span>盘前前瞻 · 06-18</span>
+              <h2>FOMC 后先看指数缺口和半导体承接。</h2>
+              <p>指数仍在消化利率预期，盘前重点看 SPY 740-750 区间、QQQ 是否继续补缺口，以及 SMH / SOXX 能否延续逆势强度。</p>
+            </article>
+            <div class="market-opinion-daily-table">
+              <div><span>方向</span><span>观察对象</span><span>关键位 / 条件</span><span>动作</span></div>
+              <div><strong>指数</strong><p>SPY / QQQ</p><p>SPY 740-750，QQQ 看是否继续补缺口。</p><em>先看承接</em></div>
+              <div><strong>主线</strong><p>SMH / SOXX</p><p>半导体若继续逆势，说明资金仍在做修复。</p><em>跟踪强弱</em></div>
+              <div><strong>个股</strong><p>INTC / ARM / WDC / MU</p><p>存储和 Intel 链仍是盘面重点。</p><em>不追高</em></div>
+            </div>
+          </section>
+
+          <section class="market-opinion-detail" data-market-opinion-section="postmarket" hidden>
+            <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
+            <article class="market-opinion-detail-head">
+              <span>盘后复盘延展 · 06-18</span>
+              <h2>盘后重点复盘：指数补缺口、半导体逆势、软件继续弱。</h2>
+              <p>把收盘后的板块结构拆开看：半导体能不能独立走强，软件是否止跌，M7 成交量有没有继续放大。</p>
+            </article>
+            <div class="market-opinion-journal-grid">
+              <article><span>指数</span><strong>SPY / QQQ</strong><p>确认缺口是否补完，以及收盘是否重新站回关键位置。</p></article>
+              <article><span>主线</span><strong>半导体 / 存储</strong><p>SMH、SOXX、WDC、MU、ARM 是否继续强于指数。</p></article>
+              <article><span>风险</span><strong>软件 / 大型科技</strong><p>IGV 和 M7 成交量决定成长股能否重新扩散。</p></article>
+            </div>
+          </section>
+
+          <section class="market-opinion-detail" data-market-opinion-section="journal" hidden>
+            <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
+            <article class="market-opinion-detail-head">
+              <span>交易日记 · 2026/06/17</span>
+              <h2>FOMC 前资金从科技、半导体和高 Beta 资产撤出。</h2>
+              <p>昨晚不是典型风险偏好回归，更像是事件前的仓位再平衡：卖掉前一天涨太多的科技和半导体，买入金融、工业、公用事业这些更稳的方向。</p>
+            </article>
+            <div class="market-opinion-journal-grid">
+              <article>
+                <span>指数与板块</span>
+                <strong>QQQ -1.90% · SOX -5.71% · XLK -2.79%</strong>
+                <p>金融 XLF、工业 XLI、公用事业 XLU 走强，资金明显从高波动成长方向切到更防御的方向。</p>
+              </article>
+              <article>
+                <span>关键位</span>
+                <strong>SPY 750</strong>
+                <p>750 是前一天跳空缺口上沿。FOMC 后若跌破且不能快速收回，可能向下补缺口；站回 755-756，修复逻辑延续。</p>
+              </article>
+              <article>
+                <span>主线判断</span>
+                <strong>存储仍是当前最强主线</strong>
+                <p>半导体整体很弱，但 WDC 延续强势。存储主线的看法暂时不变，继续看承接和成交额。</p>
+              </article>
+            </div>
+            <div class="market-opinion-journal-body">
+              <p>半导体由于资金撤出表现很差，NVDA、AVGO、MRVL、MU、SNDK 都明显回调，SMH 和 SOX 几乎贴着日内低点收盘。</p>
+              <p>软件股继续偏弱，IGV 和 CRM 下跌，说明成长股内部没有接力。健康修复不能只靠半导体，必须扩散到软件、大型科技和通讯。</p>
+              <p>M7 出现分化，GOOG 和 META 上涨，说明市场不是无差别抛售，卖的是半导体、AI 硬件、软件这些高估值高波动方向。</p>
+              <p>虽然科技跌得明显，但 NVDA、DELL、NOW、ZS、CRWD 等成交量低于 20 日均量，更像主动降仓和利润兑现，不是恐慌性砸盘。</p>
+            </div>
+          </section>
+        </section>
+
         <section class="page-view" data-view="courses">
           <div class="page-heading page-heading-simple">
             <div>
               <p class="eyebrow">课程</p>
               <h1>课程</h1>
-              <p class="subtitle">从开户、财报、估值到策略回测，给普通投资者一条可执行的学习路径。</p>
             </div>
           </div>
 
@@ -2287,37 +2419,29 @@
             <article class="course-card is-featured">
               <span>入门必修</span>
               <h2>美股新手体系课</h2>
-              <p>市场规则、订单类型、财报季节奏、ETF 与个股选择。</p>
               <div class="card-meta">
-                <strong>12 讲</strong>
-                <strong>适合新手</strong>
+                <strong>待上线</strong>
               </div>
             </article>
             <article class="course-card">
               <span>财报进阶</span>
               <h2>读懂美股财报</h2>
-              <p>收入、毛利率、现金流、指引和估值倍数的实战解读。</p>
               <div class="card-meta">
-                <strong>8 讲</strong>
-                <strong>案例课</strong>
+                <strong>待上线</strong>
               </div>
             </article>
             <article class="course-card">
               <span>交易纪律</span>
               <h2>趋势与风控</h2>
-              <p>强势股跟踪、回撤控制、风险管理和退出规则。</p>
               <div class="card-meta">
-                <strong>10 讲</strong>
-                <strong>策略基础</strong>
+                <strong>待上线</strong>
               </div>
             </article>
             <article class="course-card">
               <span>工具训练</span>
               <h2>用工具做选股</h2>
-              <p>从涨跌幅榜、财报观察、行业热度到回测验证。</p>
               <div class="card-meta">
-                <strong>6 讲</strong>
-                <strong>付费用户</strong>
+                <strong>待上线</strong>
               </div>
             </article>
           </div>
@@ -2380,12 +2504,12 @@
           <div class="subscription-layout">
             <section class="subscription-offer">
               <div>
-                  <span>付费方案</span>
+                <span>付费方案</span>
                 <h2>付费版</h2>
                 <strong>$199/年</strong>
-                <p>适合想持续跟踪趋势信号、主题强弱和复盘表现的用户。</p>
+                <p id="subscriptionAccountState">当前：未登录</p>
               </div>
-              <button type="button">升级付费</button>
+              <button id="subscriptionAction" type="button">登录 / 注册</button>
             </section>
 
             <section class="value-grid">
@@ -2660,120 +2784,6 @@
           </section>
         </section>
 
-        <section class="page-view" data-view="admin">
-          <div class="page-heading page-heading-simple">
-            <div>
-              <p class="eyebrow">管理</p>
-              <h1>会员管理</h1>
-              <p class="subtitle">管理会员账号、套餐权限和到期时间，并统计每个管理员创建用户的业绩归属。</p>
-            </div>
-          </div>
-
-          <div class="admin-summary-grid">
-            <article>
-              <span>总用户</span>
-              <strong id="adminTotalUsers">--</strong>
-            </article>
-            <article>
-              <span>有效用户</span>
-              <strong id="adminActiveUsers">--</strong>
-            </article>
-            <article>
-              <span>付费用户</span>
-              <strong id="adminPaidUsers">--</strong>
-            </article>
-            <article>
-              <span>管理员</span>
-              <strong id="adminManagerUsers">--</strong>
-            </article>
-          </div>
-
-          <section class="admin-panel">
-            <div class="section-title">
-              <div>
-                <span>业绩统计</span>
-                <h2>管理员业绩归属</h2>
-              </div>
-            </div>
-            <div class="admin-performance-list" id="adminPerformanceList">
-              <p>登录管理员后显示业绩统计。</p>
-            </div>
-          </section>
-
-          <section class="admin-panel">
-            <div class="section-title">
-              <div>
-                <span>创建用户</span>
-                <h2>新增会员</h2>
-              </div>
-            </div>
-            <form class="admin-create-form" id="adminCreateForm">
-              <label>
-                <span>邮箱</span>
-                <input name="email" type="email" placeholder="user@example.com" required />
-              </label>
-              <label>
-                <span>初始密码</span>
-                <input name="password" type="text" minlength="8" placeholder="至少 8 位" required />
-              </label>
-              <label>
-                <span>角色</span>
-                <select name="role">
-                  <option value="user">普通用户</option>
-                  <option value="admin">普通管理员</option>
-                </select>
-              </label>
-              <label>
-                <span>套餐</span>
-                <select name="plan">
-                  <option value="free">免费</option>
-                  <option value="paid">付费</option>
-                </select>
-              </label>
-              <label>
-                <span>到期日</span>
-                <input name="subscriptionExpiresAt" type="date" />
-              </label>
-              <label class="admin-check">
-                <input name="isActive" type="checkbox" checked />
-                <span>启用账号</span>
-              </label>
-              <button type="submit">创建用户</button>
-            </form>
-            <p class="admin-message" id="adminCreateMsg"></p>
-          </section>
-
-          <section class="admin-panel">
-            <div class="section-title">
-              <div>
-                <span>用户列表</span>
-                <h2>用户列表</h2>
-              </div>
-              <button type="button" id="adminRefreshUsers">刷新</button>
-            </div>
-            <div class="admin-table-wrap">
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>账号</th>
-                    <th>创建人</th>
-                    <th>角色</th>
-                    <th>套餐</th>
-                    <th>到期日</th>
-                    <th>状态</th>
-                    <th>最近登录</th>
-                    <th>管理</th>
-                  </tr>
-                </thead>
-                <tbody id="adminUsersBody">
-                  <tr>
-                    <td colspan="8">登录管理员后显示用户列表。</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </section>
       </main>
     </div>
 
@@ -2781,24 +2791,32 @@
       <div class="auth-backdrop" data-auth-close></div>
       <section class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <button class="auth-close" type="button" data-auth-close aria-label="关闭">×</button>
-        <span>会员权限</span>
+        <span>账号</span>
         <h2 id="authTitle">登录会员账号</h2>
-        <p id="authPrompt">登录后可查看订阅状态。付费用户可解锁交割记录和完整复盘。</p>
+        <p id="authPrompt">登录后查看账号状态，会员内容由管理员开通。</p>
         <form id="authForm" class="auth-form">
           <label>
             <span>邮箱</span>
-            <input id="authEmail" type="email" autocomplete="username" placeholder="admin@example.com" required />
+            <input id="authEmail" type="email" autocomplete="username" placeholder="name@example.com" maxlength="254" required />
+            <small>用于登录和接收开通通知</small>
           </label>
           <label>
             <span>密码</span>
-            <input id="authPassword" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="请输入密码" minlength="8" maxlength="128" required />
+            <small>8-128 位</small>
           </label>
-          <button type="submit">登录</button>
+          <label id="authPasswordConfirmField" hidden>
+            <span>确认密码</span>
+            <input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="再次输入密码" minlength="8" maxlength="128" />
+            <small>两次密码需要一致</small>
+          </label>
+          <button id="authSubmit" type="submit">登录</button>
         </form>
+        <button id="authModeToggle" class="auth-mode-toggle" type="button">没有账号？邮箱注册</button>
         <p class="auth-error" id="authError"></p>
       </section>
     </div>
 
-    <script src="./app.js?v=20260613-calendar1"></script>
+          <script src="./app.js?v=20260704-product1"></script>
   </body>
 </html>

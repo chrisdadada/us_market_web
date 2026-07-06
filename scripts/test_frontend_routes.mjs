@@ -19,17 +19,25 @@ const mimeTypes = new Map([
 ]);
 
 const routeCases = [
-  { hash: "", view: "dashboard", text: "市场快照", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#market", view: "market", text: "行情异动", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "", view: "dashboard", text: "最新", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "#market-opinion", view: "market-opinion", text: "市场观点" },
+  { hash: "#market-opinion/weekly", view: "market-opinion", text: "6月行情可能" },
+  { hash: "#market-opinion/daily", view: "market-opinion", text: "MRVL" },
+  { hash: "#market-opinion/research", view: "market-opinion", text: "Intel 扩产预期链" },
+  { hash: "#market-opinion/premarket", view: "market-opinion", text: "盘前前瞻" },
+  { hash: "#market-opinion/postmarket", view: "market-opinion", text: "盘后复盘延展" },
+  { hash: "#market-opinion/journal", view: "market-opinion", text: "FOMC 后指数普跌" },
+  { hash: "#market", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#market/flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#events", view: "events", text: "财经日历", absentText: "股票事件" },
-  { hash: "#stock-events", view: "stock-events", text: "股票事件" },
-  { hash: "#stock-events/guidance_up", view: "stock-events", text: "业绩预期变好" },
-  { hash: "#events/guidance_up", view: "stock-events", text: "业绩预期变好" },
   { hash: "#stocks", view: "stocks", text: "股票库" },
-  { hash: "#strength", view: "strength", text: "今日强弱榜" },
-  { hash: "#watchlist", view: "watchlist", text: "我的自选", absentText: "观察池" },
+  { hash: "#tracking", view: "tracking", text: "本次新增" },
+  { hash: "#stock-events", view: "dashboard", text: "最新" },
+  { hash: "#stock-events/guidance_up", view: "dashboard", text: "最新" },
+  { hash: "#events/guidance_up", view: "dashboard", text: "最新" },
+  { hash: "#strength", view: "dashboard", text: "最新" },
+  { hash: "#watchlist", view: "dashboard", text: "最新", absentText: "观察池" },
 ];
 
 const marketSectionCases = [
@@ -96,6 +104,7 @@ async function productApiPayload(url) {
   const core = await readJson("data/core-signals.json");
   const strengthReview = await readJson("data/strength-review.json");
   const marketTemperature = await readJson("data/market-temperature.json");
+  const marketOpinion = await readJson("data/market-opinion-content.json");
   const allMarketRows = [
     ...(ytd.rows || []).map((row) => marketRow(row, "ytd")),
     ...Object.entries(movers.boards || {}).flatMap(([board, payload]) => (payload.rows || []).map((row) => marketRow(row, board))),
@@ -158,6 +167,7 @@ async function productApiPayload(url) {
 
   if (url.pathname === "/api/product/sectors") return { rows: sectorFlow.rows || [] };
   if (url.pathname === "/api/product/calendar") return { rows: calendar.events || [] };
+  if (url.pathname === "/api/product/opinions") return { rows: marketOpinion.items || [] };
   if (url.pathname === "/api/product/market") {
     const board = url.searchParams.get("board") || "ytd";
     const rows = allMarketRows.filter((row) => row.board === board).slice(0, Number(url.searchParams.get("limit") || 100));
@@ -253,6 +263,14 @@ function assert(condition, message) {
 }
 
 async function assertRoute(page, expected) {
+  await page.waitForFunction(
+    ({ view, text }) => {
+      const active = document.querySelector(`.page-view.is-active[data-view="${view}"]`);
+      return Boolean(active && active.innerText.includes(text));
+    },
+    { view: expected.view, text: expected.text },
+    { timeout: 1500 },
+  ).catch(() => {});
   const state = await collectRouteState(page);
   assert(state.activeView === expected.view, `${expected.hash || "/"} active view is ${state.activeView}, expected ${expected.view}`);
   assert(state.visibleViews.length === 1, `${expected.hash || "/"} has visible views ${state.visibleViews.join(", ")}`);

@@ -8,9 +8,17 @@
     "test": "tests"
   },
   "scripts": {
+    "build": "npm --prefix main-web run build && npm --prefix admin-web run build",
+    "check": "npm run build && python3 -m py_compile server/auth_api.py",
     "test": "bash scripts/run_release_gate.sh",
     "test:routes": "node scripts/test_frontend_routes.mjs",
-    "data:coverage": "python3 scripts/check_product_coverage.py"
+    "test:next": "node scripts/test_next_routes.mjs",
+    "test:next:permissions": "node scripts/test_next_permissions.mjs",
+    "main:build": "npm --prefix main-web run build",
+    "admin:build": "npm --prefix admin-web run build",
+    "data:coverage": "python3 scripts/check_product_coverage.py",
+    "mock:list": "node scripts/mock_shot.mjs list",
+    "mock:shot": "node scripts/mock_shot.mjs"
   },
   "keywords": [],
   "author": "",

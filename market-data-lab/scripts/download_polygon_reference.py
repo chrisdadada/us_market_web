@@ -22,9 +22,30 @@ def with_api_key(url: str, api_key: str) -> str:
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
-def get_json(session: requests.Session, url: str, params: dict, api_key: str) -> dict:
+def get_json(
+    session: requests.Session,
+    url: str,
+    params: dict,
+    api_key: str,
+    *,
+    max_retries: int = 5,
+    retry_sleep: float = 5.0,
+) -> dict:
     request_url = with_api_key(url, api_key)
-    response = session.get(request_url, params=params, timeout=60)
+    last_error: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            response = session.get(request_url, params=params, timeout=60)
+            break
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt >= max_retries:
+                raise
+            wait = retry_sleep * (attempt + 1)
+            print(f"WARN: retrying {url} after {type(exc).__name__}: attempt={attempt + 1}/{max_retries} sleep={wait:.1f}s", flush=True)
+            sleep(wait)
+    else:
+        raise RuntimeError(f"{url}: request failed") from last_error
     if response.status_code != 200:
         raise RuntimeError(f"{url}: {response.status_code} {response.text[:500]}")
     data = response.json()

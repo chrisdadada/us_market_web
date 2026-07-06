@@ -7,6 +7,7 @@ import json
 import math
 import os
 import sqlite3
+import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -62,6 +63,18 @@ def text_value(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text if text else None
+
+
+def normalize_datetime_text(value: Any) -> str | None:
+    text = text_value(value)
+    if not text:
+        return None
+    text = text.replace("T", " ")
+    if len(text) == 10 and text[4] == "-" and text[7] == "-":
+        return f"{text} 00:00:00"
+    if len(text) == 16 and text[4] == "-" and text[7] == "-" and text[10] == " ":
+        return f"{text}:00"
+    return text[:19]
 
 
 def symbol_value(value: Any) -> str | None:
@@ -241,6 +254,13 @@ def create_schema(conn: sqlite3.Connection) -> None:
           event_type TEXT,
           impact TEXT,
           source_name TEXT,
+          actual_value REAL,
+          actual_label TEXT,
+          forecast_value REAL,
+          forecast_label TEXT,
+          previous_value REAL,
+          previous_label TEXT,
+          result_updated_at TEXT,
           related_modules_json TEXT NOT NULL,
           related_assets_json TEXT NOT NULL,
           summary TEXT,
@@ -310,6 +330,20 @@ def create_schema(conn: sqlite3.Connection) -> None:
           PRIMARY KEY (board, rank, ticker)
         );
 
+        CREATE TABLE market_opinion_items (
+          item_id TEXT PRIMARY KEY,
+          section TEXT NOT NULL,
+          section_label TEXT,
+          title TEXT NOT NULL,
+          trade_date TEXT,
+          summary TEXT,
+          symbols_json TEXT NOT NULL,
+          topics_json TEXT NOT NULL,
+          highlights_json TEXT NOT NULL,
+          body TEXT NOT NULL,
+          payload_json TEXT NOT NULL
+        );
+
         CREATE TABLE raw_payloads (
           name TEXT PRIMARY KEY,
           source_path TEXT NOT NULL,
@@ -324,6 +358,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_calendar_events_date ON calendar_events(event_date);
         CREATE INDEX idx_earnings_quality_symbol ON earnings_quality_rows(symbol);
         CREATE INDEX idx_strength_sector ON strength_rows(sector);
+        CREATE INDEX idx_market_opinion_section ON market_opinion_items(section, trade_date);
         """
     )
 
@@ -449,6 +484,74 @@ def import_market_boards(conn: sqlite3.Connection) -> int:
             board_count += 1
     record_dataset(conn, "market-movers", movers_path, movers, board_count)
     return count + board_count
+
+
+def import_tracking_pool(conn: sqlite3.Connection) -> int:
+    source_path = Path("direct:tracking-pool")
+    payload: dict[str, Any] = {}
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from build_tracking_pool import DEFAULT_DATA_ROOT, DEFAULT_SYMBOLS, build_rows, latest_trade_date, now_iso
+
+        data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
+        if data_root.exists():
+            as_of = os.environ.get("TRACKING_ASOF") or latest_trade_date(data_root)
+            rows, missing = build_rows(data_root, as_of, DEFAULT_SYMBOLS)
+            payload = {
+                "generatedAt": now_iso(),
+                "asOf": as_of,
+                "source": "local Polygon split-adjusted daily bars for the curated tracking pool",
+                "symbols": DEFAULT_SYMBOLS,
+                "rows": rows,
+                "missing": missing,
+            }
+    except Exception as exc:
+        print(f"WARN: tracking pool direct import skipped: {exc}")
+    rows = payload.get("rows") or []
+    missing = payload.get("missing") or []
+    as_of = payload.get("asOf")
+    count = 0
+    for row in rows:
+        base = {
+            **row,
+            "marketCap": row.get("marketCap") or "--",
+            "dollarVolume": row.get("dollarVolume"),
+            "volumeRatio": row.get("volumeRatio"),
+        }
+        upsert_symbol(conn, base, "tracking-pool")
+        board_map = {
+            "day": row.get("change1d"),
+            "week": row.get("change5d"),
+            "month": row.get("change20d"),
+            "ytd": row.get("changeYtd"),
+            "volume": row.get("change1d"),
+        }
+        for board, change in board_map.items():
+            board_row = {
+                **base,
+                "rank": 9000 + int(row.get("rank") or 0),
+                "change": change,
+                "changeYtd": change,
+                "actionNote": "跟踪池标的，按趋势、成交额和事件节奏复盘。",
+            }
+            import_market_row(conn, board, as_of, board_row, "tracking-pool")
+            count += 1
+    for row in missing:
+        symbol = symbol_value(row.get("symbol"))
+        if symbol:
+            upsert_symbol(
+                conn,
+                {
+                    "symbol": symbol,
+                    "company": row.get("company") or symbol,
+                    "chineseName": symbol,
+                    "sector": "跟踪池",
+                    "trackingStatus": "missing",
+                },
+                "tracking-pool",
+            )
+    record_dataset(conn, "tracking-pool", source_path, payload, len(rows))
+    return count
 
 
 def import_market_row(conn: sqlite3.Connection, board: str, trade_date: Any, row: dict[str, Any], source: str) -> None:
@@ -581,8 +684,10 @@ def import_calendar(conn: sqlite3.Connection) -> int:
             """
             INSERT OR REPLACE INTO calendar_events
             (event_id, event_date, event_time, title, event_type, impact, source_name,
-             related_modules_json, related_assets_json, summary, payload_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             actual_value, actual_label, forecast_value, forecast_label, previous_value,
+             previous_label, result_updated_at, related_modules_json, related_assets_json,
+             summary, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 event_id,
@@ -592,6 +697,13 @@ def import_calendar(conn: sqlite3.Connection) -> int:
                 text_value(row.get("type")),
                 text_value(row.get("impact")),
                 text_value(row.get("sourceName")),
+                float_value(row.get("actualValue")),
+                text_value(row.get("actualLabel")),
+                float_value(row.get("forecastValue")),
+                text_value(row.get("forecastLabel")),
+                float_value(row.get("previousValue")),
+                text_value(row.get("previousLabel")),
+                normalize_datetime_text(row.get("resultUpdatedAt")),
                 json_text(row.get("relatedModules") or []),
                 json_text(row.get("relatedAssets") or []),
                 text_value(row.get("summary")),
@@ -743,6 +855,45 @@ def import_options_flow(conn: sqlite3.Connection) -> int:
     return count
 
 
+def import_market_opinion(conn: sqlite3.Connection) -> int:
+    path = DATA_DIR / "market-opinion-content.json"
+    payload = read_json(path)
+    rows = payload.get("items") or []
+    count = 0
+    for row in rows:
+        item_id = text_value(row.get("id"))
+        section = text_value(row.get("section"))
+        title = text_value(row.get("title"))
+        if not item_id or not section or not title:
+            continue
+        trade_date = normalize_datetime_text(row.get("tradeDate"))
+        normalized_row = {**row, "tradeDate": trade_date, "featured": bool(row.get("featured"))}
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO market_opinion_items
+            (item_id, section, section_label, title, trade_date, summary,
+             symbols_json, topics_json, highlights_json, body, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                item_id,
+                section,
+                text_value(row.get("sectionLabel")),
+                title,
+                trade_date,
+                text_value(row.get("summary")),
+                json_text(row.get("symbols") or []),
+                json_text(row.get("topics") or []),
+                json_text(row.get("highlights") or []),
+                text_value(row.get("body")) or "",
+                json_text(normalized_row),
+            ),
+        )
+        count += 1
+    record_dataset(conn, "market-opinion-content", path, payload, count)
+    return count
+
+
 def import_raw_only(conn: sqlite3.Connection, names: Iterable[str]) -> None:
     for name in names:
         path = DATA_DIR / f"{name}.json"
@@ -764,6 +915,7 @@ def build_database(output: Path) -> dict[str, int]:
             create_schema(conn)
             import_counts = {
                 "market_board_rows": import_market_boards(conn),
+                "tracking_pool_rows": import_tracking_pool(conn),
                 "sector_flow_rows": import_sector_flow(conn),
                 "stock_event_rows": import_stock_events(conn),
                 "calendar_events": import_calendar(conn),
@@ -771,6 +923,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "strength_rows": import_strength(conn),
                 "market_temperature_indicators": import_market_temperature(conn),
                 "options_flow_rows": import_options_flow(conn),
+                "market_opinion_items": import_market_opinion(conn),
             }
             import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review"])
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
@@ -788,6 +941,7 @@ def build_database(output: Path) -> dict[str, int]:
                     "strength_rows",
                     "market_temperature_indicators",
                     "options_flow_rows",
+                    "market_opinion_items",
                 ]
             }
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('table_counts', ?)", (json_text(table_counts),))
@@ -808,6 +962,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "strength_rows",
                 "market_temperature_indicators",
                 "options_flow_rows",
+                "market_opinion_items",
             ]}
         return verify_counts
     finally:

@@ -121,7 +121,7 @@ def normalize_manual_earnings_event(row: dict[str, Any], source_name: str) -> di
     }
 
 
-def build_manual_earnings_calendar_events(start: date, end: date, limit: int = 240) -> list[dict[str, Any]]:
+def build_manual_earnings_calendar_events(start: date, end: date, limit: int = 5000) -> list[dict[str, Any]]:
     payload = read_json(MANUAL_EARNINGS_CALENDAR)
     events = payload.get("events")
     if not isinstance(events, list):

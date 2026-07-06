@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>后台管理</title>
+    <style>
+      :root { color-scheme: dark; --bg:#070b12; --panel:#0d1420; --line:#263244; --text:#eef4ff; --muted:#91a0b6; --blue:#27a8ff; --green:#20e0a5; --red:#ff5570; }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      main { width:min(1120px, calc(100vw - 40px)); margin:40px auto; }
+      header { display:flex; justify-content:space-between; gap:20px; align-items:end; margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:20px; }
+      h1 { margin:0; font-size:30px; letter-spacing:0; }
+      a { color:var(--blue); text-decoration:none; }
+      .admin-tabs { display:flex; gap:10px; margin:0 0 20px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+      .tab-button { background:transparent; border-color:var(--line); color:var(--muted); }
+      .tab-button.is-active { background:#10243a; border-color:rgba(39,168,255,.6); color:#dff3ff; }
+      .admin-section.is-hidden { display:none; }
+      .workspace { display:grid; grid-template-columns:340px 1fr; gap:22px; align-items:start; }
+      form { display:grid; grid-template-columns:260px 1fr; gap:18px 22px; }
+      label { color:var(--muted); font-weight:700; }
+      input, select, textarea { width:100%; border:1px solid var(--line); border-radius:8px; background:#080d16; color:var(--text); padding:12px 14px; font:inherit; outline:none; }
+      input:focus, select:focus, textarea:focus { border-color:var(--blue); box-shadow:0 0 0 2px rgba(39,168,255,.16); }
+      textarea { min-height:360px; resize:vertical; }
+      .markdown-editor { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height:1.75; }
+      .field-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:8px; }
+      .field-head span { color:var(--muted); font-size:13px; }
+      .panel { border:1px solid var(--line); background:var(--panel); padding:18px; }
+      .wide { grid-column:1 / -1; }
+      .actions { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+      .action-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+      button { border:1px solid rgba(39,168,255,.55); border-radius:8px; background:#0d2c45; color:#dff3ff; padding:12px 20px; font:inherit; font-weight:800; cursor:pointer; }
+      button.secondary { background:#101927; color:#b8c4d8; border-color:var(--line); }
+      button.danger { background:#2a1118; color:#ffd8df; border-color:rgba(255,85,112,.5); }
+      button:disabled { cursor:not-allowed; opacity:.55; }
+      .status { color:var(--muted); }
+      .ok { color:var(--green); }
+      .err { color:var(--red); }
+      .list-panel { border:1px solid var(--line); background:var(--panel); min-height:420px; }
+      .list-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px; border-bottom:1px solid var(--line); }
+      .list-head strong { font-size:18px; }
+      .opinion-list { display:flex; flex-direction:column; max-height:720px; overflow:auto; }
+      .opinion-row { display:grid; gap:8px; padding:14px 16px; border-bottom:1px solid var(--line); background:transparent; text-align:left; }
+      .opinion-row:hover { background:#101827; }
+      .opinion-title { color:var(--text); font-weight:800; }
+      .opinion-meta { display:flex; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:13px; }
+      .badge { width:max-content; border:1px solid var(--line); border-radius:999px; padding:2px 8px; color:#b8c4d8; font-size:12px; }
+      .badge.draft { color:#ffd166; border-color:rgba(255,209,102,.45); }
+      .row-actions { display:flex; gap:8px; }
+      .row-actions button { padding:7px 10px; font-size:13px; }
+      .summary-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:18px; }
+      .summary-grid article { border:1px solid var(--line); background:var(--panel); padding:16px; }
+      .summary-grid span, .table-wrap td span { display:block; color:var(--muted); font-size:13px; }
+      .summary-grid strong { display:block; font-size:24px; margin-top:6px; }
+      .users-layout { display:grid; gap:18px; }
+      .user-panel { border:1px solid var(--line); background:var(--panel); padding:18px; }
+      .panel-head { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
+      .panel-head h2 { margin:0; font-size:20px; }
+      .admin-create-form { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; }
+      .admin-check { display:flex; align-items:center; gap:10px; }
+      .admin-check input { width:auto; }
+      .table-wrap { overflow:auto; border:1px solid var(--line); }
+      table { width:100%; border-collapse:collapse; min-width:980px; }
+      th, td { border-bottom:1px solid var(--line); padding:12px; text-align:left; vertical-align:middle; }
+      th { color:var(--muted); font-size:13px; background:#101827; }
+      td select, td input { padding:8px 10px; }
+      .inline-check { display:flex; align-items:center; gap:8px; color:var(--muted); }
+      .inline-check input { width:auto; }
+      .event-list { display:grid; gap:10px; max-height:360px; overflow:auto; }
+      .event-item { border:1px solid var(--line); padding:12px; background:#09101b; }
+      .event-item strong { display:block; }
+      .event-item span { color:var(--muted); font-size:13px; }
+      @media (max-width: 980px) { .workspace { grid-template-columns:1fr; } }
+      @media (max-width: 760px) { main { width:calc(100vw - 24px); margin:24px auto; } form, .admin-create-form, .summary-grid { grid-template-columns:1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>后台管理</h1>
+          <div class="status" id="userState">检查登录状态...</div>
+        </div>
+        <a href="/">返回前台</a>
+      </header>
+
+      <nav class="admin-tabs" aria-label="后台模块">
+        <button class="tab-button is-active" type="button" data-tab-target="contentSection">市场观点</button>
+        <button class="tab-button" type="button" data-tab-target="usersSection">用户会员</button>
+      </nav>
+
+      <section class="admin-section" id="contentSection">
+      <div class="workspace">
+        <aside class="list-panel">
+          <div class="list-head">
+            <strong>内容列表</strong>
+            <button class="secondary" id="newButton" type="button">新建</button>
+          </div>
+          <div class="opinion-list" id="opinionList">
+            <div class="opinion-row">
+              <span class="status">读取中...</span>
+            </div>
+          </div>
+        </aside>
+
+        <form id="opinionForm">
+          <input id="itemId" name="id" type="hidden" />
+          <div class="panel">
+            <label for="section">栏目</label>
+            <select id="section" name="section">
+              <option value="weekly">每周交易主线</option>
+              <option value="premarket">盘前前瞻</option>
+              <option value="daily">每日个股行情观点</option>
+              <option value="research">研报解析</option>
+              <option value="postmarket">盘后复盘延展</option>
+              <option value="journal">交易日记</option>
+            </select>
+          </div>
+
+          <div class="panel">
+            <label for="title">标题</label>
+            <input id="title" name="title" required />
+          </div>
+
+          <div class="panel">
+            <label for="tradeDate">日期</label>
+            <input id="tradeDate" name="tradeDate" type="date" required />
+          </div>
+
+          <div class="panel">
+            <label for="summary">摘要</label>
+            <input id="summary" name="summary" />
+          </div>
+
+          <div class="panel">
+            <label for="symbols">标的</label>
+            <input id="symbols" name="symbols" placeholder="SPY, QQQ, INTC" />
+          </div>
+
+          <div class="panel">
+            <label for="topics">主题</label>
+            <input id="topics" name="topics" placeholder="FOMC, 半导体, 存储" />
+          </div>
+
+          <div class="panel wide">
+            <label for="highlights">要点</label>
+            <textarea id="highlights" name="highlights" style="min-height:120px" placeholder="一行一个要点"></textarea>
+          </div>
+
+          <div class="panel wide">
+            <div class="field-head">
+              <label for="body">正文（Markdown）</label>
+              <span>支持标题、列表、引用、链接、图片</span>
+            </div>
+            <input id="fileInput" type="file" accept=".txt,.md,image/*" />
+            <textarea id="body" name="body" class="markdown-editor" spellcheck="false" placeholder="# 小标题&#10;&#10;正文段落&#10;&#10;- 要点&#10;- 要点&#10;&#10;![图片说明](/api/upload?path=opinions/202606/example.png)"></textarea>
+          </div>
+
+          <div class="actions wide">
+            <span id="saveState" class="status"></span>
+            <div class="action-buttons">
+              <button class="secondary" id="draftButton" type="submit" data-save-status="draft">保存草稿</button>
+              <button id="submitButton" type="submit" data-save-status="published">发布</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      </section>
+
+      <section class="admin-section is-hidden" id="usersSection">
+        <div class="summary-grid">
+          <article><span>总用户</span><strong id="adminTotalUsers">--</strong></article>
+          <article><span>有效用户</span><strong id="adminActiveUsers">--</strong></article>
+          <article><span>付费用户</span><strong id="adminPaidUsers">--</strong></article>
+          <article><span>管理员</span><strong id="adminManagerUsers">--</strong></article>
+        </div>
+        <div class="summary-grid">
+          <article><span>月度付费</span><strong id="adminMetricMonthly">--</strong></article>
+          <article><span>年度付费</span><strong id="adminMetricYearly">--</strong></article>
+          <article><span>3日活跃</span><strong id="adminMetricActive3">--</strong></article>
+          <article><span>30日活跃</span><strong id="adminMetricActive30">--</strong></article>
+        </div>
+
+        <div class="users-layout">
+          <section class="user-panel">
+            <div class="panel-head">
+              <h2>新增用户</h2>
+            </div>
+            <form class="admin-create-form" id="adminCreateForm">
+              <label>
+                <span>邮箱</span>
+                <input name="email" type="email" placeholder="user@example.com" required />
+              </label>
+              <label>
+                <span>初始密码</span>
+                <input name="password" type="text" minlength="8" placeholder="至少 8 位" required />
+              </label>
+              <label>
+                <span>角色</span>
+                <select name="role">
+                  <option value="user">普通用户</option>
+                  <option value="admin">普通管理员</option>
+                </select>
+              </label>
+              <label>
+                <span>套餐</span>
+                <select name="plan">
+                  <option value="free">免费</option>
+                  <option value="monthly">月度</option>
+                  <option value="yearly">年度</option>
+                </select>
+              </label>
+              <label>
+                <span>到期日</span>
+                <input name="subscriptionExpiresAt" type="date" />
+              </label>
+              <label class="admin-check">
+                <input name="isActive" type="checkbox" checked />
+                <span>启用</span>
+              </label>
+              <button type="submit">创建用户</button>
+            </form>
+            <p class="status" id="adminCreateMsg"></p>
+          </section>
+
+          <section class="user-panel">
+            <div class="panel-head">
+              <h2>用户列表</h2>
+              <button class="secondary" type="button" id="adminRefreshUsers">刷新</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>账号</th>
+                    <th>来源</th>
+                    <th>角色</th>
+                    <th>套餐</th>
+                    <th>到期日</th>
+                    <th>状态</th>
+                    <th>最近登录</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adminUsersBody">
+                  <tr><td colspan="8">登录管理员后显示用户列表。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="user-panel">
+            <div class="panel-head">
+              <h2>操作记录</h2>
+            </div>
+            <div class="event-list" id="adminEventList">
+              <div class="event-item"><span>选择用户查看记录。</span></div>
+            </div>
+          </section>
+
+          <section class="user-panel">
+            <div class="panel-head">
+              <h2>导航点击率</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>页面</th>
+                    <th>点击次数</th>
+                    <th>点击用户</th>
+                    <th>占比</th>
+                  </tr>
+                </thead>
+                <tbody id="adminNavClicksBody">
+                  <tr><td colspan="4">暂无数据。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="user-panel">
+            <div class="panel-head">
+              <h2>用户留存</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>注册日期</th>
+                    <th>注册用户</th>
+                    <th>3日</th>
+                    <th>7日</th>
+                    <th>30日</th>
+                  </tr>
+                </thead>
+                <tbody id="adminRetentionBody">
+                  <tr><td colspan="5">暂无数据。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let opinionItems = [];
+      let adminUsers = [];
+      let adminMetrics = null;
+      let currentAdmin = null;
+      $("tradeDate").value = new Date().toISOString().slice(0, 10);
+
+      const escapeHtml = (value) =>
+        String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char]);
+
+      const roleLabel = (role) => {
+        if (role === "super_admin") return "超级管理员";
+        if (role === "admin") return "普通管理员";
+        return "普通用户";
+      };
+
+      const planLabel = (plan) => {
+        if (plan === "monthly") return "月度";
+        if (plan === "yearly") return "年度";
+        if (plan === "paid") return "付费";
+        return "免费";
+      };
+
+      const actionLabel = (action) => ({
+        self_register: "用户注册",
+        create_user: "后台创建",
+        update_user: "资料变更",
+        reset_password: "重置密码",
+      })[action] || action;
+
+      const frontPageLabel = (page) => ({
+        dashboard: "首页",
+        "market-opinion": "市场观点",
+        tracking: "强势股票跟踪榜单",
+        stocks: "股票库",
+        events: "财经日历",
+        market: "市场与资金",
+        options: "期权数据",
+        stock: "个股详情",
+        subscription: "会员权限",
+        watchlist: "关注列表",
+      })[page] || page;
+
+      const formatDateTime = (value) => {
+        if (!value) return "--";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+        return date.toLocaleString("zh-CN", { hour12: false });
+      };
+
+      const imageAlt = (file) => (file?.name || "图片").replace(/\.[^.]+$/, "") || "图片";
+
+      const insertAtCursor = (textarea, text) => {
+        const start = textarea.selectionStart || 0;
+        const end = textarea.selectionEnd || start;
+        const before = textarea.value.slice(0, start);
+        const after = textarea.value.slice(end);
+        const prefix = before && !before.endsWith("\n") ? "\n\n" : "";
+        const suffix = after && !after.startsWith("\n") ? "\n\n" : "";
+        textarea.value = `${before}${prefix}${text}${suffix}${after}`;
+        const cursor = before.length + prefix.length + text.length;
+        textarea.focus();
+        textarea.setSelectionRange(cursor, cursor);
+      };
+
+      const fileToDataUrl = (file) =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(new Error("读取图片失败"));
+          reader.readAsDataURL(file);
+        });
+
+      const uploadImageFile = async (file) => {
+        if (!file || !file.type.startsWith("image/")) throw new Error("请选择图片文件");
+        $("saveState").className = "status";
+        $("saveState").textContent = "上传图片中...";
+        const data = await fileToDataUrl(file);
+        const res = await fetch("/api/admin/uploads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name: file.name || "image", type: file.type, data }),
+        });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || "图片上传失败");
+        return payload.image;
+      };
+
+      $("fileInput").addEventListener("change", async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        try {
+          if (file.type.startsWith("image/")) {
+            const image = await uploadImageFile(file);
+            insertAtCursor($("body"), `![${imageAlt(file)}](${image.url})`);
+            $("saveState").className = "status ok";
+            $("saveState").textContent = "图片已插入正文";
+          } else {
+            $("body").value = await file.text();
+          }
+        } catch (error) {
+          $("saveState").className = "status err";
+          $("saveState").textContent = error.message;
+        } finally {
+          event.target.value = "";
+        }
+      });
+
+      $("body").addEventListener("paste", async (event) => {
+        const items = Array.from(event.clipboardData?.items || []);
+        const images = items
+          .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+          .map((item) => item.getAsFile())
+          .filter(Boolean);
+        if (!images.length) return;
+        event.preventDefault();
+        try {
+          for (const file of images) {
+            const image = await uploadImageFile(file);
+            insertAtCursor($("body"), `![${imageAlt(file)}](${image.url})`);
+          }
+          $("saveState").className = "status ok";
+          $("saveState").textContent = "图片已插入正文";
+        } catch (error) {
+          $("saveState").className = "status err";
+          $("saveState").textContent = error.message;
+        }
+      });
+
+      const resetForm = () => {
+        $("opinionForm").reset();
+        $("itemId").value = "";
+        $("tradeDate").value = new Date().toISOString().slice(0, 10);
+        $("saveState").className = "status";
+        $("saveState").textContent = "";
+      };
+
+      const renderOpinionList = () => {
+        const list = $("opinionList");
+        if (!opinionItems.length) {
+          list.innerHTML = '<div class="opinion-row"><span class="status">暂无内容。</span></div>';
+          return;
+        }
+        list.innerHTML = opinionItems.map((item) => `
+          <div class="opinion-row" data-item-id="${escapeHtml(item.id)}">
+            <span class="opinion-title">${escapeHtml(item.title)}</span>
+            <div class="opinion-meta">
+              <span>${escapeHtml(item.sectionLabel)}</span>
+              <span>${escapeHtml(item.tradeDate)}</span>
+              <span class="badge ${item.status === "draft" ? "draft" : ""}">${item.status === "draft" ? "草稿" : "已发布"}</span>
+            </div>
+            <div class="row-actions">
+              <button class="secondary" type="button" data-action="edit">编辑</button>
+              <button class="danger" type="button" data-action="delete">删除</button>
+            </div>
+          </div>
+        `).join("");
+      };
+
+      const loadOpinions = async () => {
+        const res = await fetch("/api/admin/opinions?limit=200", { credentials: "include" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "读取内容失败");
+        opinionItems = data.rows || [];
+        renderOpinionList();
+      };
+
+      const fillForm = (item) => {
+        $("itemId").value = item.id || "";
+        $("section").value = item.section || "weekly";
+        $("title").value = item.title || "";
+        $("tradeDate").value = item.tradeDate || new Date().toISOString().slice(0, 10);
+        $("summary").value = item.summary || "";
+        $("symbols").value = (item.symbols || []).join(", ");
+        $("topics").value = (item.topics || []).join(", ");
+        $("highlights").value = (item.highlights || []).join("\n");
+        $("body").value = item.body || "";
+        $("saveState").className = "status";
+        $("saveState").textContent = item.status === "draft" ? "正在编辑草稿" : "正在编辑已发布内容";
+      };
+
+      const renderAdminUsers = (payload = {}) => {
+        const summary = payload.summary || {};
+        $("adminTotalUsers").textContent = summary.total ?? "--";
+        $("adminActiveUsers").textContent = summary.active ?? "--";
+        $("adminPaidUsers").textContent = summary.paid ?? "--";
+        $("adminManagerUsers").textContent = summary.admin ?? "--";
+        const body = $("adminUsersBody");
+        if (!adminUsers.length) {
+          body.innerHTML = '<tr><td colspan="8">暂无用户。</td></tr>';
+          return;
+        }
+        const canSetAdmin = currentAdmin && currentAdmin.role === "super_admin";
+        body.innerHTML = adminUsers.map((user) => {
+          const disabled = user.isSuperAdmin ? "disabled" : "";
+          const source = user.createdBy?.email ? user.createdBy.email : "自主注册";
+          const plan = user.plan === "paid" ? "monthly" : user.plan;
+          return `
+            <tr data-admin-user-id="${user.id}">
+              <td><strong>${escapeHtml(user.email)}</strong><span>ID ${user.id}</span></td>
+              <td>${escapeHtml(source)}</td>
+              <td>
+                ${user.isSuperAdmin ? `<strong>${roleLabel(user.role)}</strong>` : `
+                  <select data-admin-field="role" ${disabled}>
+                    <option value="user" ${user.role === "user" ? "selected" : ""}>普通用户</option>
+                    <option value="admin" ${user.role === "admin" ? "selected" : ""} ${canSetAdmin ? "" : "disabled"}>普通管理员</option>
+                  </select>
+                `}
+              </td>
+              <td>
+                <select data-admin-field="plan" ${disabled}>
+                  <option value="free" ${plan === "free" ? "selected" : ""}>免费</option>
+                  <option value="monthly" ${plan === "monthly" ? "selected" : ""}>月度</option>
+                  <option value="yearly" ${plan === "yearly" ? "selected" : ""}>年度</option>
+                </select>
+              </td>
+              <td><input data-admin-field="subscriptionExpiresAt" type="date" value="${escapeHtml((user.subscriptionExpiresAt || "").slice(0, 10))}" ${disabled} /></td>
+              <td>
+                <label class="inline-check">
+                  <input data-admin-field="isActive" type="checkbox" ${user.isActive ? "checked" : ""} ${disabled} />
+                  <span>${user.isActive ? "启用" : "停用"}</span>
+                </label>
+              </td>
+              <td>${escapeHtml(formatDateTime(user.lastLoginAt))}</td>
+              <td>
+                ${user.isSuperAdmin ? '<span class="status">保留</span>' : `
+                  <div class="row-actions">
+                    <button class="secondary" type="button" data-user-action="events">记录</button>
+                    <button type="button" data-user-action="save">保存</button>
+                    <button class="secondary" type="button" data-user-action="reset-password">改密</button>
+                  </div>
+                `}
+              </td>
+            </tr>
+          `;
+        }).join("");
+      };
+
+      const loadAdminUsers = async () => {
+        const res = await fetch("/api/admin/users", { credentials: "include" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "读取用户失败");
+        adminUsers = data.users || [];
+        renderAdminUsers(data);
+      };
+
+      const renderAdminMetrics = (metrics = {}) => {
+        const users = metrics.users || {};
+        const active = metrics.active || {};
+        const navClicks = metrics.navClicks || [];
+        const retention = metrics.retention || [];
+        const totalClicks = navClicks.reduce((sum, row) => sum + Number(row.clicks || 0), 0);
+        $("adminMetricMonthly").textContent = users.monthlyPaid ?? "--";
+        $("adminMetricYearly").textContent = users.yearlyPaid ?? "--";
+        $("adminMetricActive3").textContent = active.d3 ?? "--";
+        $("adminMetricActive30").textContent = active.d30 ?? "--";
+        $("adminNavClicksBody").innerHTML = navClicks.length ? navClicks.map((row) => `
+          <tr>
+            <td>${escapeHtml(frontPageLabel(row.page))}</td>
+            <td>${escapeHtml(row.clicks)}</td>
+            <td>${escapeHtml(row.users)}</td>
+            <td>${totalClicks ? `${Math.round((Number(row.clicks || 0) / totalClicks) * 100)}%` : "--"}</td>
+          </tr>
+        `).join("") : '<tr><td colspan="4">暂无数据。</td></tr>';
+        $("adminRetentionBody").innerHTML = retention.length ? retention.map((row) => `
+          <tr>
+            <td>${escapeHtml(row.cohortDay)}</td>
+            <td>${escapeHtml(row.registered)}</td>
+            <td>${row.registered ? `${Math.round((Number(row.retained3d || 0) / row.registered) * 100)}%` : "--"}</td>
+            <td>${row.registered ? `${Math.round((Number(row.retained7d || 0) / row.registered) * 100)}%` : "--"}</td>
+            <td>${row.registered ? `${Math.round((Number(row.retained30d || 0) / row.registered) * 100)}%` : "--"}</td>
+          </tr>
+        `).join("") : '<tr><td colspan="5">暂无数据。</td></tr>';
+      };
+
+      const loadAdminMetrics = async () => {
+        const res = await fetch("/api/admin/metrics", { credentials: "include" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "读取监控数据失败");
+        adminMetrics = data;
+        renderAdminMetrics(adminMetrics);
+      };
+
+      const renderUserEvents = (events = []) => {
+        const list = $("adminEventList");
+        if (!events.length) {
+          list.innerHTML = '<div class="event-item"><span>暂无记录。</span></div>';
+          return;
+        }
+        list.innerHTML = events.map((event) => {
+          const before = event.before || {};
+          const after = event.after || {};
+          const changes = [];
+          if (before.plan !== after.plan) changes.push(`套餐 ${planLabel(before.plan)} → ${planLabel(after.plan)}`);
+          if (before.subscriptionExpiresAt !== after.subscriptionExpiresAt) changes.push(`到期 ${before.subscriptionExpiresAt || "无"} → ${after.subscriptionExpiresAt || "无"}`);
+          if (before.role !== after.role) changes.push(`角色 ${roleLabel(before.role)} → ${roleLabel(after.role)}`);
+          if (before.isActive !== after.isActive) changes.push(`状态 ${before.isActive ? "启用" : "停用"} → ${after.isActive ? "启用" : "停用"}`);
+          return `
+            <div class="event-item">
+              <strong>${escapeHtml(actionLabel(event.action))}</strong>
+              <span>${escapeHtml(formatDateTime(event.createdAt))} · 操作人 ${escapeHtml(event.actor?.email || "用户自己")} · 用户 ${escapeHtml(event.target?.email || "--")}</span>
+              <p>${escapeHtml(changes.join("；") || "已记录")}</p>
+            </div>
+          `;
+        }).join("");
+      };
+
+      const loadUserEvents = async (userId = "") => {
+        const suffix = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+        const res = await fetch(`/api/admin/user-events${suffix}`, { credentials: "include" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "读取记录失败");
+        renderUserEvents(data.rows || []);
+      };
+
+      async function checkAdmin() {
+        const res = await fetch("/api/auth/status", { credentials: "include" });
+        const data = await res.json();
+        const admin = data.entitlements && data.entitlements.admin;
+        currentAdmin = data.user || null;
+        $("userState").textContent = admin ? `已登录：${data.user.email}` : "需要管理员账号";
+        $("submitButton").disabled = !admin;
+        $("draftButton").disabled = !admin;
+        $("newButton").disabled = !admin;
+        document.querySelectorAll('#adminCreateForm [name="role"] option[value="admin"]').forEach((option) => {
+          option.disabled = !(data.user && data.user.role === "super_admin");
+        });
+        if (admin) {
+          await Promise.all([loadOpinions(), loadAdminUsers(), loadAdminMetrics(), loadUserEvents()]);
+        }
+      }
+
+      document.querySelectorAll("[data-tab-target]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-tab-target]").forEach((item) => item.classList.toggle("is-active", item === button));
+          document.querySelectorAll(".admin-section").forEach((section) => {
+            section.classList.toggle("is-hidden", section.id !== button.dataset.tabTarget);
+          });
+        });
+      });
+
+      $("newButton").addEventListener("click", resetForm);
+
+      $("opinionList").addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-action]");
+        if (!button) return;
+        const row = button.closest("[data-item-id]");
+        const item = opinionItems.find((entry) => entry.id === row.dataset.itemId);
+        if (!item) return;
+        if (button.dataset.action === "edit") {
+          fillForm(item);
+          return;
+        }
+        if (!window.confirm(`确定删除「${item.title}」？`)) return;
+        button.disabled = true;
+        try {
+          const res = await fetch(`/api/admin/opinions/${encodeURIComponent(item.id)}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "删除失败");
+          if ($("itemId").value === item.id) resetForm();
+          await loadOpinions();
+        } catch (error) {
+          $("saveState").className = "status err";
+          $("saveState").textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      $("opinionForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const saveStatus = event.submitter?.dataset?.saveStatus || "published";
+        $("saveState").className = "status";
+        $("saveState").textContent = "保存中...";
+        $("submitButton").disabled = true;
+        $("draftButton").disabled = true;
+        const payload = Object.fromEntries(new FormData(form));
+        payload.status = saveStatus;
+        try {
+          const res = await fetch("/api/admin/opinions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "保存失败");
+          $("saveState").className = "status ok";
+          $("saveState").innerHTML = data.item.status === "draft"
+            ? `已保存草稿：${escapeHtml(data.item.title)}`
+            : `已发布：<a href="/#market-opinion/${data.item.section}/${encodeURIComponent(data.item.id)}">${escapeHtml(data.item.title)}</a>`;
+          fillForm(data.item);
+          await loadOpinions();
+        } catch (error) {
+          $("saveState").className = "status err";
+          $("saveState").textContent = error.message;
+        } finally {
+          $("submitButton").disabled = false;
+          $("draftButton").disabled = false;
+        }
+      });
+
+      $("adminCreateForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        const payload = {
+          email: form.get("email"),
+          password: form.get("password"),
+          role: form.get("role"),
+          plan: form.get("plan"),
+          subscriptionExpiresAt: form.get("subscriptionExpiresAt"),
+          isActive: form.get("isActive") === "on",
+        };
+        $("adminCreateMsg").className = "status";
+        $("adminCreateMsg").textContent = "创建中...";
+        try {
+          const res = await fetch("/api/admin/users/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "创建失败");
+          event.currentTarget.reset();
+          event.currentTarget.querySelector('[name="isActive"]').checked = true;
+          $("adminCreateMsg").className = "status ok";
+          $("adminCreateMsg").textContent = "用户已创建";
+          await Promise.all([loadAdminUsers(), loadAdminMetrics(), loadUserEvents(data.user.id)]);
+        } catch (error) {
+          $("adminCreateMsg").className = "status err";
+          $("adminCreateMsg").textContent = error.message;
+        }
+      });
+
+      $("adminRefreshUsers").addEventListener("click", () => {
+        Promise.all([loadAdminUsers(), loadAdminMetrics(), loadUserEvents()]).catch((error) => {
+          $("adminCreateMsg").className = "status err";
+          $("adminCreateMsg").textContent = error.message;
+        });
+      });
+
+      $("adminUsersBody").addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-user-action]");
+        if (!button) return;
+        const row = button.closest("[data-admin-user-id]");
+        const userId = Number(row.dataset.adminUserId);
+        if (button.dataset.userAction === "events") {
+          loadUserEvents(userId).catch((error) => {
+            $("adminEventList").innerHTML = `<div class="event-item"><span>${escapeHtml(error.message)}</span></div>`;
+          });
+          return;
+        }
+        if (button.dataset.userAction === "reset-password") {
+          const password = window.prompt("输入新密码，至少 8 位");
+          if (!password) return;
+          try {
+            const res = await fetch("/api/admin/users/reset-password", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ userId, password }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "改密失败");
+            await loadUserEvents(userId);
+          } catch (error) {
+            window.alert(error.message || "改密失败");
+          }
+          return;
+        }
+        const getField = (name) => row.querySelector(`[data-admin-field="${name}"]`);
+        const payload = {
+          userId,
+          role: getField("role").value,
+          plan: getField("plan").value,
+          subscriptionExpiresAt: getField("subscriptionExpiresAt").value,
+          isActive: getField("isActive").checked,
+        };
+        button.disabled = true;
+        try {
+          const res = await fetch("/api/admin/users/update-plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "保存失败");
+          await Promise.all([loadAdminUsers(), loadAdminMetrics(), loadUserEvents(userId)]);
+        } catch (error) {
+          window.alert(error.message || "保存失败");
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      checkAdmin().catch(() => {
+        $("userState").textContent = "无法连接后台";
+        $("submitButton").disabled = true;
+        $("draftButton").disabled = true;
+        $("newButton").disabled = true;
+      });
+    </script>
+  </body>
+</html>

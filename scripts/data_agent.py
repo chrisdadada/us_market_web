@@ -515,10 +515,22 @@ def quality_rows(df: pd.DataFrame, score_col: str, limit: int) -> list[dict[str,
     return rows
 
 
+def extend_unique_rows(primary: pd.DataFrame, fallback: pd.DataFrame, target: int) -> pd.DataFrame:
+    if fallback.empty or len(primary) >= target:
+        return primary
+    seen = set(primary["ticker"].dropna().astype(str)) if "ticker" in primary else set()
+    extra = fallback[~fallback["ticker"].astype(str).isin(seen)] if "ticker" in fallback else fallback
+    return pd.concat([primary, extra.head(target - len(primary))], ignore_index=True)
+
+
 def build_earnings_quality(data_root: Path, as_of: str, limit: int) -> dict[str, Any]:
     root = data_root / "reports" / "earnings_quality_momentum"
     quality = read_csv(root / "earnings_quality_momentum_core.csv")
+    full = read_csv(root / "earnings_quality_momentum_full.csv")
     confluence = read_csv(root / "wall_street_confluence.csv")
+    if not full.empty and "earnings_quality_momentum_score" in full:
+        full = full.sort_values("earnings_quality_momentum_score", ascending=False)
+    quality = extend_unique_rows(quality, full, min(limit, 120))
     quality_payload = quality_rows(quality, "earnings_quality_momentum_score", limit)
     confluence_payload = quality_rows(confluence, "wall_street_confluence_score", limit)
     return {

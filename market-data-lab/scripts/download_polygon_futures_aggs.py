@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import time
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,15 @@ PRODUCT_MONTH_CODES = {
 }
 
 
+@dataclass(frozen=True)
+class FuturesContract:
+    product: str
+    ticker: str
+    contract_year: int
+    contract_month: int
+    contract_expiry_date: date
+
+
 def third_friday(year: int, month: int) -> date:
     day = date(year, month, 1)
     first_friday_offset = (4 - day.weekday()) % 7
@@ -67,7 +77,7 @@ def product_expiry_date(product: str, year: int, month: int) -> date:
     return third_friday(year, month)
 
 
-def parse_contract(ticker: str, product: str) -> tuple[str, int, int, date]:
+def parse_contract(ticker: str, product: str, contract_year_hint: int | None = None) -> tuple[str, int, int, date]:
     suffix = ticker[len(product) :]
     if len(suffix) < 2:
         raise ValueError(f"Unsupported futures ticker: {ticker}")
@@ -76,21 +86,36 @@ def parse_contract(ticker: str, product: str) -> tuple[str, int, int, date]:
     month_codes = PRODUCT_MONTH_CODES.get(product, PRODUCT_MONTH_CODES["ES"])
     if month_code not in month_codes or not year_digit.isdigit():
         raise ValueError(f"Unsupported futures ticker: {ticker}")
-    year = 2020 + int(year_digit)
+    if contract_year_hint is not None:
+        year = int(contract_year_hint)
+        if year % 10 != int(year_digit):
+            raise ValueError(f"Ticker/year mismatch: {ticker} vs {contract_year_hint}")
+    else:
+        year = 2020 + int(year_digit)
     month = FUTURES_MONTH_CODES[month_code]
     return month_code, year, month, product_expiry_date(product, year, month)
 
 
-def contract_tickers(product: str, start: date, end: date, extra_years: int = 1) -> list[str]:
+def contract_tickers(product: str, start: date, end: date, extra_years: int = 1) -> list[FuturesContract]:
     product = product.upper()
     month_codes = PRODUCT_MONTH_CODES.get(product)
     if not month_codes:
         raise SystemExit(f"Unsupported futures product: {product}")
-    tickers: list[str] = []
+    contracts: list[FuturesContract] = []
     for year in range(start.year, end.year + extra_years + 1):
         for code in month_codes:
-            tickers.append(f"{product}{code}{year % 10}")
-    return tickers
+            ticker = f"{product}{code}{year % 10}"
+            month = FUTURES_MONTH_CODES[code]
+            contracts.append(
+                FuturesContract(
+                    product=product,
+                    ticker=ticker,
+                    contract_year=year,
+                    contract_month=month,
+                    contract_expiry_date=product_expiry_date(product, year, month),
+                )
+            )
+    return contracts
 
 
 def year_chunks(start: date, end: date) -> list[tuple[date, date]]:
@@ -144,6 +169,9 @@ def request_json(session: requests.Session, url: str, params: dict[str, Any], pa
             except Exception:
                 detail = {}
             message = detail.get("error") or detail.get("message") or response.reason
+            if response.status_code == 404:
+                print(f"warn Polygon futures not found: {url}", flush=True)
+                return {"results": []}
             raise RuntimeError(f"Polygon futures request failed: status={response.status_code} message={message}")
         return response.json()
 
@@ -151,8 +179,7 @@ def request_json(session: requests.Session, url: str, params: dict[str, Any], pa
 def download_aggs(
     session: requests.Session,
     api_key: str,
-    ticker: str,
-    product: str,
+    contract: FuturesContract,
     timeframe: str,
     start: date,
     end: date,
@@ -161,7 +188,7 @@ def download_aggs(
     rows: list[dict[str, Any]] = []
     chunk_days = 31 if timeframe == "5m" else 366
     for sub_start, sub_end in date_chunks(start, end, chunk_days):
-        url = f"{BASE_URL}/futures/vX/aggs/{ticker}"
+        url = f"{BASE_URL}/futures/vX/aggs/{contract.ticker}"
         params: dict[str, Any] = {
             "resolution": timeframe_resolution(timeframe),
             "window_start.gte": sub_start.isoformat(),
@@ -185,7 +212,7 @@ def download_aggs(
     df = pd.DataFrame(rows)
     df = df.rename(columns={"window_start": "window_start_ns", "transactions": "transaction_count"})
     if "ticker" not in df.columns:
-        df["ticker"] = ticker
+        df["ticker"] = contract.ticker
     if "transaction_count" not in df.columns:
         df["transaction_count"] = pd.NA
     if "settlement_price" not in df.columns:
@@ -193,12 +220,11 @@ def download_aggs(
     if "dollar_volume" not in df.columns:
         df["dollar_volume"] = pd.NA
 
-    _, contract_year, contract_month, expiry = parse_contract(ticker, product)
-    df["product"] = product
-    df["contract_ticker"] = ticker
-    df["contract_year"] = contract_year
-    df["contract_month"] = contract_month
-    df["contract_expiry_date"] = expiry.isoformat()
+    df["product"] = contract.product
+    df["contract_ticker"] = contract.ticker
+    df["contract_year"] = contract.contract_year
+    df["contract_month"] = contract.contract_month
+    df["contract_expiry_date"] = contract.contract_expiry_date.isoformat()
     df["timestamp_utc"] = pd.to_datetime(df["window_start_ns"], unit="ns", utc=True)
     df["timestamp_ct"] = df["timestamp_utc"].dt.tz_convert("America/Chicago")
     df["session_end_date"] = pd.to_datetime(df["session_end_date"]).dt.date
@@ -384,7 +410,7 @@ def main() -> None:
     raw_by_product_timeframe: dict[tuple[str, str], list[Path]] = {}
 
     for product in products:
-        for ticker in contract_tickers(product, start, end):
+        for contract in contract_tickers(product, start, end):
             for timeframe in timeframes:
                 for raw_chunk in year_chunks(start, end):
                     chunk_start, chunk_end = clip_chunk(raw_chunk, start, end)
@@ -397,18 +423,18 @@ def main() -> None:
                         "raw",
                         timeframe,
                         product,
-                        ticker,
-                        f"{ticker}_{timeframe}_{chunk_start.year}.parquet",
+                        contract.ticker,
+                        f"{contract.ticker}_{timeframe}_{chunk_start.year}.parquet",
                     )
                     if out.exists() and out.stat().st_size > 0 and not args.overwrite:
                         print(f"exists {out}", flush=True)
                         raw_outputs.append(out)
                         raw_by_product_timeframe.setdefault((product, timeframe), []).append(out)
                         continue
-                    print(f"download {ticker} {timeframe} {chunk_start}..{chunk_end}", flush=True)
-                    df = download_aggs(session, api_key, ticker, product, timeframe, chunk_start, chunk_end, args.pause)
+                    print(f"download {contract.ticker} {timeframe} {chunk_start}..{chunk_end}", flush=True)
+                    df = download_aggs(session, api_key, contract, timeframe, chunk_start, chunk_end, args.pause)
                     if df.empty:
-                        print(f"warn empty {ticker} {timeframe} {chunk_start.year}", flush=True)
+                        print(f"warn empty {contract.ticker} {timeframe} {chunk_start.year}", flush=True)
                         continue
                     write_parquet(df, out)
                     print(f"saved {out} rows={len(df):,}", flush=True)
