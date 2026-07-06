@@ -14,8 +14,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
-DEFAULT_INPUT = ROOT / "data" / "strength-scanner.json"
-DEFAULT_OUTPUT = ROOT / "data" / "sector-flow.json"
+DEFAULT_INPUT = ROOT / ".tmp" / "strength-scanner.json"
+DEFAULT_OUTPUT = ROOT / ".tmp" / "sector-flow.json"
 SECTOR_OVERRIDES_PATH = ROOT / "data" / "sector-overrides.json"
 
 

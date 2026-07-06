@@ -17,7 +17,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUTPUT = ROOT / "data" / "manual" / "earnings-calendar.json"
+DEFAULT_OUTPUT = ROOT / ".tmp" / "earnings-calendar.json"
 DEFAULT_WATCHLIST = [
     "AAPL",
     "AMZN",

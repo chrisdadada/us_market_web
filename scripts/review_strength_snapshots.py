@@ -186,16 +186,19 @@ def build_review(data_root: Path, snapshot_dir: Path, horizons: list[int]) -> di
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
-    parser.add_argument("--snapshot-dir", type=Path, default=Path("data/strength-snapshots"))
-    parser.add_argument("--output", type=Path, default=Path("data/strength-review.json"))
+    parser.add_argument("--snapshot-dir", type=Path, default=Path(".tmp/strength-snapshots"))
+    parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--horizons", default="1,3,5,20")
     args = parser.parse_args()
 
     horizons = [int(item.strip()) for item in args.horizons.split(",") if item.strip()]
     payload = build_review(args.data_root, args.snapshot_dir, horizons)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {args.output}: {payload['summary']}")
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"Wrote {args.output}: {payload['summary']}")
+    else:
+        print(payload["summary"])
 
 
 if __name__ == "__main__":

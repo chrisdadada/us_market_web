@@ -13,8 +13,8 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
-DEFAULT_YTD_OUTPUT = ROOT / "data" / "ytd-gainers.json"
-DEFAULT_MOVERS_OUTPUT = ROOT / "data" / "market-movers.json"
+DEFAULT_YTD_OUTPUT = ROOT / ".tmp" / "ytd-gainers.json"
+DEFAULT_MOVERS_OUTPUT = ROOT / ".tmp" / "market-movers.json"
 SECTOR_OVERRIDES_PATH = ROOT / "data" / "sector-overrides.json"
 
 

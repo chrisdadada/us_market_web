@@ -4,6 +4,7 @@ import { createReadStream } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { readProductJson } from "./product_db_test_data.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const defaultMaxDocumentHeight = 9000;
@@ -55,7 +56,7 @@ const flowsToMarketSectionCases = [
 ];
 
 async function readJson(relativePath) {
-  return JSON.parse(await readFile(join(root, relativePath), "utf8"));
+  return readProductJson(relativePath);
 }
 
 function sendJson(response, payload, status = 200) {
@@ -182,6 +183,11 @@ function startStaticServer() {
       const url = new URL(request.url || "/", "http://127.0.0.1");
       if (url.pathname === "/api/product" || url.pathname.startsWith("/api/product/")) {
         sendJson(response, await productApiPayload(url));
+        return;
+      }
+      const datasetMatch = url.pathname.match(/^\/data\/([a-z0-9-]+)\.json$/i);
+      if (datasetMatch) {
+        sendJson(response, await readJson(`data/${datasetMatch[1]}.json`));
         return;
       }
       const requestedPath = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);

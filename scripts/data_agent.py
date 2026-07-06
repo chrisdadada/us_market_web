@@ -661,12 +661,12 @@ def build_manifest(as_of: str, health: dict[str, Any]) -> dict[str, Any]:
         "asOf": as_of,
         "ok": health["ok"],
         "endpoints": [
-            {"name": "manifest", "static": "data/api/manifest.json", "api": "/api/data"},
-            {"name": "health", "static": "data/api/health.json", "api": "/api/data/health"},
-            {"name": "market-temperature", "static": "data/market-temperature.json", "api": "/api/data/market-temperature"},
-            {"name": "market-leaders", "static": "data/api/market-leaders.json", "api": "/api/data/market-leaders"},
-            {"name": "earnings-quality", "static": "data/earnings-quality.json", "api": "/api/data/earnings-quality"},
-            {"name": "analyst-heat", "static": "data/api/analyst-heat.json", "api": "/api/data/analyst-heat"},
+            {"name": "manifest", "api": "/api/data"},
+            {"name": "health", "api": "/api/data/health"},
+            {"name": "market-temperature", "api": "/api/data/market-temperature"},
+            {"name": "market-leaders", "api": "/api/data/market-leaders"},
+            {"name": "earnings-quality", "api": "/api/data/earnings-quality"},
+            {"name": "analyst-heat", "api": "/api/data/analyst-heat"},
         ],
     }
 

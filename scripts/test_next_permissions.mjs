@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { readProductJson } from "./product_db_test_data.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
@@ -46,7 +47,7 @@ const profiles = {
 };
 
 async function readJson(relativePath) {
-  return JSON.parse(await readFile(join(root, relativePath), "utf8"));
+  return readProductJson(relativePath);
 }
 
 function sendJson(response, payload, status = 200) {

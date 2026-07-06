@@ -431,7 +431,12 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 self.assertGreaterEqual(counts["sector_flow_rows"], 8)
                 self.assertGreaterEqual(counts["stock_event_rows"], 100)
                 self.assertGreaterEqual(counts["calendar_events"], 1)
-                earnings_payload = json.loads((ROOT / "data" / "earnings-quality.json").read_text())
+                earnings_payload = json.loads(
+                    conn.execute(
+                        "SELECT payload_json FROM datasets WHERE name = ?",
+                        ("earnings-quality",),
+                    ).fetchone()[0]
+                )
                 earnings_source_rows = {
                     (board, (row.get("ticker") or row.get("symbol") or "").strip().upper())
                     for board, board_payload in (earnings_payload.get("boards") or {}).items()

@@ -16,6 +16,7 @@ from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
+TMP_DIR = ROOT / ".tmp"
 DEFAULT_OUTPUT = DATA_DIR / "product.db"
 SCHEMA_VERSION = 1
 KNOWN_SECTORS = {
@@ -206,7 +207,7 @@ def load_strength_review_payload() -> tuple[dict[str, Any], Path]:
         from review_strength_snapshots import DEFAULT_DATA_ROOT, build_review
 
         data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
-        return build_review(data_root, DATA_DIR / "strength-snapshots", [1, 3, 5, 20]), Path("direct:strength-review")
+        return build_review(data_root, TMP_DIR / "strength-snapshots", [1, 3, 5, 20]), Path("direct:strength-review")
     except Exception as exc:
         print(f"WARN: strength review direct import skipped: {exc}")
     path = DATA_DIR / "strength-review.json"
@@ -215,6 +216,13 @@ def load_strength_review_payload() -> tuple[dict[str, Any], Path]:
 
 def json_text(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def parse_json_text(value: Any, fallback: Any) -> Any:
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return fallback
 
 
 def scalar(value: Any) -> Any:
@@ -961,7 +969,7 @@ def import_strength(conn: sqlite3.Connection) -> int:
             sys.path.insert(0, str(ROOT / "scripts"))
             from build_strength_scanner import build_scanner
 
-            payload = build_scanner(data_root, None, DATA_DIR / "strength-snapshots", 5_000_000, 40)
+            payload = build_scanner(data_root, None, TMP_DIR / "strength-snapshots", 5_000_000, 40)
             path = Path("direct:strength-scanner")
         except Exception as exc:
             print(f"WARN: strength scanner direct import skipped: {exc}")
@@ -1060,10 +1068,26 @@ def import_options_flow(conn: sqlite3.Connection) -> int:
     return count
 
 
-def import_market_opinion(conn: sqlite3.Connection) -> int:
-    path = DATA_DIR / "market-opinion-content.json"
-    payload = read_json(path)
-    rows = payload.get("items") or []
+def import_market_opinion(conn: sqlite3.Connection, existing_db: Path | None = None) -> int:
+    path = Path("direct:market-opinion-db")
+    rows: list[dict[str, Any]] = []
+    if existing_db and existing_db.exists() and existing_db.stat().st_size > 0:
+        try:
+            with sqlite3.connect(f"file:{existing_db}?mode=ro", uri=True) as source:
+                source.row_factory = sqlite3.Row
+                rows = [
+                    parse_json_text(row["payload_json"], {})
+                    for row in source.execute(
+                        """
+                        SELECT payload_json
+                        FROM market_opinion_items
+                        ORDER BY COALESCE(trade_date, '') DESC, item_id DESC
+                        """
+                    )
+                ]
+        except sqlite3.Error as exc:
+            print(f"WARN: market opinion DB import skipped: {exc}")
+    payload = {"generatedAt": now_iso(), "items": rows}
     count = 0
     for row in rows:
         item_id = text_value(row.get("id"))
@@ -1141,7 +1165,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "strength_rows": import_strength(conn),
                 "market_temperature_indicators": import_market_temperature(conn),
                 "options_flow_rows": import_options_flow(conn),
-                "market_opinion_items": import_market_opinion(conn),
+                "market_opinion_items": import_market_opinion(conn, output if output.exists() else None),
             }
             import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review"])
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
