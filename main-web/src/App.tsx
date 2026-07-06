@@ -3579,7 +3579,6 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
           <article><span>扫描结果</span><strong>{rows.length}</strong><em>{readyCount} 个可进场</em></article>
           <article><span>刷新频率</span><strong>{autoRefresh ? "30 秒" : "手动"}</strong><em>盘口快照</em></article>
           <article><span>最高扣费后收益</span><strong className={signedClass(best?.expected_net_usdt)}>{scannerUsdt(best?.expected_net_usdt)}</strong><em>按当前参数</em></article>
-          <article><span>接口状态</span><strong>{hasErrorRows ? "部分失败" : "正常"}</strong><em>Binance / Bitget</em></article>
         </div>
       </section>
 

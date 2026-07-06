@@ -2876,7 +2876,7 @@ const renderStocksPage = () => {
     "#stocksSectorGapNote",
     unknownSector
       ? "少量长尾标的未分类。"
-      : "主要板块分类与市值字段完整。",
+      : "主要板块分类清晰。",
   );
   setText("#stocksCalendarStatus", calendarCounts.earnings ? "宏观+财报" : calendarCounts.macro ? "宏观" : "暂无");
   setText(
@@ -4038,15 +4038,15 @@ const watchlistCatalystSummary = (item, calendar) => {
     return {
       label: `事件 · ${formatDisplayDate(item.eventRow.eventDate)}`,
       detail: item.eventRow.reason || displayEventLabel(item.eventRow, "股票事件"),
-      meta: item.eventRow.return20dPct == null ? "事件后表现待补" : `事件后20日 ${formatSignedPct(item.eventRow.return20dPct)}`,
+      meta: item.eventRow.return20dPct == null ? "--" : `事件后20日 ${formatSignedPct(item.eventRow.return20dPct)}`,
     };
   }
   if (item.quality) {
     const date = item.quality.latestEarningsDate || item.quality.reportDate;
     return {
-      label: `财报 · ${date ? formatDisplayDate(date) : "日期待补"}`,
+      label: `财报 · ${date ? formatDisplayDate(date) : "日期未公布"}`,
       detail: item.quality.userReason || item.quality.userAngle || "财报线索",
-      meta: item.quality.avgPriceTargetUpsidePct == null ? "目标价空间待补" : `目标空间 ${formatSignedPct(item.quality.avgPriceTargetUpsidePct)}`,
+      meta: item.quality.avgPriceTargetUpsidePct == null ? "--" : `目标空间 ${formatSignedPct(item.quality.avgPriceTargetUpsidePct)}`,
     };
   }
   if (calendar.count) {
@@ -4234,7 +4234,7 @@ const renderWatchlist = () => {
       const sourceChips = dataSources
         .filter(([, active]) => active)
         .map(([label]) => `<b>${escapeHtml(label)}</b>`)
-        .join("") || "<b>待接入</b>";
+        .join("");
       const marketCap = item.market?.marketCap || item.quality?.marketCap || findProductProfile(item.symbol)?.marketCap || "--";
       return `
           <article class="watchlist-workbench-row" role="row" data-watchlist-symbol="${escapeHtml(item.symbol)}">
@@ -4339,7 +4339,7 @@ const calendarEarningsFactForSymbol = (symbol, quality) => {
     return {
       event: null,
       dateLabel: formatDisplayDate(quality.latestEarningsDate),
-      estimate: "预估待接入",
+      estimate: "--",
       source: "财报观察",
       title: quality.userAngle || "最近财报",
       note: compactText(quality.userReason || "来自财报观察数据。", 96),
@@ -4348,11 +4348,11 @@ const calendarEarningsFactForSymbol = (symbol, quality) => {
   }
   return {
     event: null,
-    dateLabel: "财报日期待接入",
-    estimate: "预估待接入",
+    dateLabel: "--",
+    estimate: "--",
     source: "--",
     title: "暂无财报日期",
-    note: "财经日历和财报观察暂未提供该标的日期。",
+    note: "",
     isFuture: false,
   };
 };
@@ -4401,7 +4401,7 @@ const stockEarningsDateLabel = (linkedRows, quality) => {
   const earnings = linkedRows.find((row) => row.type === "earnings");
   if (earnings?.date) return formatDisplayDate(earnings.date);
   if (quality?.latestEarningsDate) return formatDisplayDate(quality.latestEarningsDate);
-  return "财报日期待接入";
+  return "--";
 };
 
 const stockEarningsFact = (linkedRows, quality) => {
@@ -4420,8 +4420,8 @@ const stockEarningsFact = (linkedRows, quality) => {
     };
   }
   return {
-    label: "财报日期待接入",
-    note: "财经日历和财报观察暂未提供该标的日期。",
+    label: "--",
+    note: "",
   };
 };
 
@@ -4435,7 +4435,7 @@ const stockSectorFlowDetail = (profile, sectorRankRows) => {
   const flowClass = Number.isFinite(flowValue) && flowValue < 0 ? "is-negative" : Number.isFinite(flowValue) && flowValue > 0 ? "is-positive" : "";
   return {
     row,
-    label: row?.status || (Number.isFinite(flowValue) ? (flowValue >= 0 ? "资金净流入" : "资金净流出") : "资金方向待接入"),
+    label: row?.status || (Number.isFinite(flowValue) ? (flowValue >= 0 ? "资金净流入" : "资金净流出") : "--"),
     netFlow: Number.isFinite(flowValue) ? formatSignedCompactMoney(flowValue) : row?.netFlowLabel || "--",
     activeValue: row?.activeValueLabel || (row?.activeValue ? formatCompactMoney(row.activeValue) : "--"),
     breadth: Number.isFinite(breadthPct) ? `${Math.round(breadthPct)}%` : "--",
@@ -5007,14 +5007,14 @@ const renderStockHub = (symbol) => {
           <section>
             <h3>日程 / 财报事实</h3>
             <table class="stock-detail-fact-table">
-              <thead><tr><th>字段</th><th>当前值</th><th>解读</th></tr></thead>
+              <thead><tr><th>项目</th><th>当前值</th><th>观察</th></tr></thead>
               <tbody>${eventFactRows}</tbody>
             </table>
           </section>
           <section class="stock-risk-facts">
             <h3>资金 / 风险</h3>
             <table class="stock-detail-fact-table">
-              <thead><tr><th>字段</th><th>当前值</th><th>解读</th></tr></thead>
+              <thead><tr><th>项目</th><th>当前值</th><th>观察</th></tr></thead>
               <tbody>${flowFactRows}</tbody>
             </table>
           </section>
@@ -5780,7 +5780,7 @@ const pageModules = [
     title: "信号中心",
     nav: "信号",
     summary: "跟踪方向变化、定时复盘和板块共振。",
-    status: "接口接入",
+    status: "已上线",
   },
 ];
 
@@ -5795,8 +5795,8 @@ pageMeta.courses = ["课程学习营", "课程"];
 pageMeta.live = ["持仓参考", "Open 持仓参考"];
 
 const dataFreshnessLabel = (value, item = {}) => {
-  if (item.status === "waiting" || item.ready === false) return { label: "待接入", level: "muted" };
-  if (!value) return { label: "待接入", level: "muted" };
+  if (item.status === "waiting" || item.ready === false) return { label: "--", level: "muted" };
+  if (!value) return { label: "--", level: "muted" };
   const age = daysBetween(value, new Date());
   if (age <= 0) return { label: "今日可用", level: "fresh" };
   if (age === 1) return { label: "1天前", level: "fresh" };
