@@ -4,7 +4,7 @@ import { createReadStream } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { readProductJson } from "./product_db_test_data.mjs";
+import { readProductDataset } from "./product_db_test_data.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const defaultMaxDocumentHeight = 9000;
@@ -14,7 +14,6 @@ const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
   [".css", "text/css; charset=utf-8"],
-  [".json", "application/json; charset=utf-8"],
   [".png", "image/png"],
   [".svg", "image/svg+xml"],
 ]);
@@ -55,8 +54,8 @@ const flowsToMarketSectionCases = [
   { section: "flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
 ];
 
-async function readJson(relativePath) {
-  return readProductJson(relativePath);
+async function readDataset(name) {
+  return readProductDataset(name);
 }
 
 function sendJson(response, payload, status = 200) {
@@ -95,17 +94,17 @@ function marketRow(row, board) {
 }
 
 async function productApiPayload(url) {
-  const ytd = await readJson("data/ytd-gainers.json");
-  const movers = await readJson("data/market-movers.json");
-  const sectorFlow = await readJson("data/sector-flow.json");
-  const calendar = await readJson("data/events-calendar.json");
-  const strength = await readJson("data/strength-scanner.json");
-  const eventOpportunities = await readJson("data/event-opportunities.json");
-  const earningsQuality = await readJson("data/earnings-quality.json");
-  const core = await readJson("data/core-signals.json");
-  const strengthReview = await readJson("data/strength-review.json");
-  const marketTemperature = await readJson("data/market-temperature.json");
-  const marketOpinion = await readJson("data/market-opinion-content.json");
+  const ytd = await readDataset("ytd-gainers");
+  const movers = await readDataset("market-movers");
+  const sectorFlow = await readDataset("sector-flow");
+  const calendar = await readDataset("events-calendar");
+  const strength = await readDataset("strength-scanner");
+  const eventOpportunities = await readDataset("event-opportunities");
+  const earningsQuality = await readDataset("earnings-quality");
+  const core = await readDataset("core-signals");
+  const strengthReview = await readDataset("strength-review");
+  const marketTemperature = await readDataset("market-temperature");
+  const marketOpinion = await readDataset("market-opinion-content");
   const allMarketRows = [
     ...(ytd.rows || []).map((row) => marketRow(row, "ytd")),
     ...Object.entries(movers.boards || {}).flatMap(([board, payload]) => (payload.rows || []).map((row) => marketRow(row, board))),
@@ -140,7 +139,7 @@ async function productApiPayload(url) {
 
   if (url.pathname.startsWith("/api/product/raw/")) {
     const name = url.pathname.split("/").pop();
-    return readJson(`data/${name}.json`);
+    return readDataset(name);
   }
 
   if (url.pathname === "/api/product/symbols") {
@@ -183,11 +182,6 @@ function startStaticServer() {
       const url = new URL(request.url || "/", "http://127.0.0.1");
       if (url.pathname === "/api/product" || url.pathname.startsWith("/api/product/")) {
         sendJson(response, await productApiPayload(url));
-        return;
-      }
-      const datasetMatch = url.pathname.match(/^\/data\/([a-z0-9-]+)\.json$/i);
-      if (datasetMatch) {
-        sendJson(response, await readJson(`data/${datasetMatch[1]}.json`));
         return;
       }
       const requestedPath = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
@@ -291,13 +285,6 @@ async function assertRoute(page, expected) {
 }
 
 async function assertExpandedStockSearch(page, serverUrl) {
-  await page.route("**/data/site-data-index.json*", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: "{}",
-    });
-  });
   await page.goto(`${serverUrl}#stocks`, { waitUntil: "networkidle" });
   await page.waitForSelector('.page-view.is-active[data-view="stocks"]');
   await page.waitForFunction(() => document.querySelectorAll("#stocksTableBody tr").length >= 200);

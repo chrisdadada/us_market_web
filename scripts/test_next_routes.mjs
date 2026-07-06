@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { readProductJson } from "./product_db_test_data.mjs";
+import { readProductDataset } from "./product_db_test_data.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
@@ -18,8 +18,8 @@ const mimeTypes = new Map([
   [".svg", "image/svg+xml"],
 ]);
 
-async function readJson(relativePath) {
-  return readProductJson(relativePath);
+async function readDataset(name) {
+  return readProductDataset(name);
 }
 
 function sendJson(response, payload, status = 200) {
@@ -42,12 +42,12 @@ async function apiPayload(url) {
     return { authenticated: false, user: null, entitlements: { paid: false, pro: false, proPlus: false, admin: false } };
   }
 
-  const ytd = await readJson("data/ytd-gainers.json");
-  const movers = await readJson("data/market-movers.json");
-  const sectorFlow = await readJson("data/sector-flow.json");
-  const strength = await readJson("data/strength-scanner.json");
-  const calendar = await readJson("data/events-calendar.json");
-  const opinions = await readJson("data/market-opinion-content.json");
+  const ytd = await readDataset("ytd-gainers");
+  const movers = await readDataset("market-movers");
+  const sectorFlow = await readDataset("sector-flow");
+  const strength = await readDataset("strength-scanner");
+  const calendar = await readDataset("events-calendar");
+  const opinions = await readDataset("market-opinion-content");
 
   const opinionItems = (opinions.items || []).filter((item) => item.status === "published");
   const allMarketRows = [
@@ -182,7 +182,7 @@ const routeCases = [
   { query: "?page=forum", text: "论坛讨论区" },
 ];
 
-const moverFixture = await readJson("data/market-movers.json");
+const moverFixture = await readDataset("market-movers");
 const topSectorByBoard = ["day", "week", "month"].map((board) => {
   const totals = new Map();
   for (const row of moverFixture.boards?.[board]?.rows || []) {

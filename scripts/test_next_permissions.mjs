@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { readProductJson } from "./product_db_test_data.mjs";
+import { readProductDataset } from "./product_db_test_data.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
@@ -46,8 +46,8 @@ const profiles = {
   },
 };
 
-async function readJson(relativePath) {
-  return readProductJson(relativePath);
+async function readDataset(name) {
+  return readProductDataset(name);
 }
 
 function sendJson(response, payload, status = 200) {
@@ -69,12 +69,12 @@ async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/auth/status") return authProfile;
   if (url.pathname === "/api/auth/logout") return { ok: true };
 
-  const ytd = await readJson("data/ytd-gainers.json");
-  const movers = await readJson("data/market-movers.json");
-  const sectorFlow = await readJson("data/sector-flow.json");
-  const strength = await readJson("data/strength-scanner.json");
-  const calendar = await readJson("data/events-calendar.json");
-  const opinions = await readJson("data/market-opinion-content.json");
+  const ytd = await readDataset("ytd-gainers");
+  const movers = await readDataset("market-movers");
+  const sectorFlow = await readDataset("sector-flow");
+  const strength = await readDataset("strength-scanner");
+  const calendar = await readDataset("events-calendar");
+  const opinions = await readDataset("market-opinion-content");
 
   if (url.pathname === "/api/product/bootstrap") {
     return {
