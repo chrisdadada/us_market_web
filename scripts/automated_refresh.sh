@@ -232,11 +232,6 @@ base = datetime.fromisoformat(sys.argv[1]).date()
 print((base + timedelta(days=int(sys.argv[2]))).isoformat())
 PY
 )}"
-run_root "download multi-source earnings calendar" \
-  "${PY}" scripts/download_earnings_calendar.py \
-  --start "${END_DATE}" \
-  --end "${EVENTS_END_DATE}" \
-  --output "${ROOT}/data/manual/earnings-calendar.json"
 
 run_lab "build current-year tradable universe" \
   "${PY}" scripts/build_polygon_universe.py \
@@ -318,11 +313,6 @@ if [[ "${RUN_OPTIONS_FLOW}" == "1" ]]; then
     --rate-limit-sleep 70 \
     --max-retries 8
 
-  run_lab "build options flow product snapshot" \
-    "${PY}" scripts/build_options_flow_product.py \
-    --start "${OPTIONS_START_DATE}" \
-    --end "${OPTIONS_END_DATE}" \
-    --output "${ROOT}/data/options-flow-snapshot.json"
 fi
 
 CACHE_VERSION="$(date +%Y%m%d)-product1"

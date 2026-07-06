@@ -263,17 +263,24 @@ def merge_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(by_symbol_date.values(), key=lambda row: (row["date"], row.get("time") or "", row["symbol"]))
 
 
-def main() -> int:
-    args = parse_args()
-    start = date.fromisoformat(args.start)
-    end = date.fromisoformat(args.end) if args.end else start + timedelta(days=90)
+def build_calendar_payload(
+    start: date,
+    end: date,
+    *,
+    watchlist: list[str] | None = None,
+    timeout: int = 30,
+    nasdaq_workers: int = 8,
+    fmp_api_key: str = "",
+    alpha_vantage_api_key: str = "",
+    finnhub_api_key: str = "",
+) -> dict[str, Any]:
     provider_events: dict[str, list[dict[str, Any]]] = {}
     errors: dict[str, str] = {}
     providers = [
-        ("Nasdaq Web", lambda: fetch_nasdaq_web(start, end, args.timeout, args.nasdaq_workers), True),
-        ("Financial Modeling Prep", lambda: fetch_fmp(start, end, args.fmp_api_key, args.timeout), bool(args.fmp_api_key)),
-        ("Alpha Vantage", lambda: fetch_alpha_vantage(start, end, args.alpha_vantage_api_key, args.timeout), bool(args.alpha_vantage_api_key)),
-        ("Finnhub", lambda: fetch_finnhub(start, end, args.finnhub_api_key, args.timeout), bool(args.finnhub_api_key)),
+        ("Nasdaq Web", lambda: fetch_nasdaq_web(start, end, timeout, nasdaq_workers), True),
+        ("Financial Modeling Prep", lambda: fetch_fmp(start, end, fmp_api_key, timeout), bool(fmp_api_key)),
+        ("Alpha Vantage", lambda: fetch_alpha_vantage(start, end, alpha_vantage_api_key, timeout), bool(alpha_vantage_api_key)),
+        ("Finnhub", lambda: fetch_finnhub(start, end, finnhub_api_key, timeout), bool(finnhub_api_key)),
     ]
     for source_name, fetcher, configured in providers:
         if not configured:
@@ -285,10 +292,10 @@ def main() -> int:
             provider_events[source_name] = []
             errors[source_name] = str(exc)
     events = merge_events([event for rows in provider_events.values() for event in rows])
-    watchlist = [clean_symbol(symbol) for symbol in args.watchlist.split(",") if clean_symbol(symbol)]
+    watch = watchlist or []
     present = {clean_symbol(event.get("symbol")) for event in events}
-    missing_watchlist = [symbol for symbol in watchlist if symbol not in present]
-    out = {
+    missing_watchlist = [symbol for symbol in watch if symbol not in present]
+    return {
         "description": "Future earnings calendar merged from configured providers.",
         "updatedAt": utc_now(),
         "sourceName": "Multi-source earnings calendar",
@@ -299,14 +306,31 @@ def main() -> int:
         "missingWatchlist": missing_watchlist,
         "events": events,
     }
+
+
+def main() -> int:
+    args = parse_args()
+    start = date.fromisoformat(args.start)
+    end = date.fromisoformat(args.end) if args.end else start + timedelta(days=90)
+    watchlist = [clean_symbol(symbol) for symbol in args.watchlist.split(",") if clean_symbol(symbol)]
+    out = build_calendar_payload(
+        start,
+        end,
+        watchlist=watchlist,
+        timeout=args.timeout,
+        nasdaq_workers=args.nasdaq_workers,
+        fmp_api_key=args.fmp_api_key,
+        alpha_vantage_api_key=args.alpha_vantage_api_key,
+        finnhub_api_key=args.finnhub_api_key,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"wrote {len(events)} earnings events to {args.output}")
+    print(f"wrote {len(out['events'])} earnings events to {args.output}")
     print(f"providerCounts={out['providerCounts']}")
-    if errors:
-        print(f"providerErrors={errors}", file=sys.stderr)
-    if missing_watchlist:
-        print(f"WARN: missing earnings dates for watchlist symbols: {', '.join(missing_watchlist)}")
+    if out["providerErrors"]:
+        print(f"providerErrors={out['providerErrors']}", file=sys.stderr)
+    if out["missingWatchlist"]:
+        print(f"WARN: missing earnings dates for watchlist symbols: {', '.join(out['missingWatchlist'])}")
     return 0
 
 

@@ -46,12 +46,20 @@ OPTIONS_DEPLOY_AFTER_REFRESH="${OPTIONS_DEPLOY_AFTER_REFRESH:-1}"
 OPTIONS_PROMOTE_PROD_AFTER_DEPLOY="${OPTIONS_PROMOTE_PROD_AFTER_DEPLOY:-0}"
 
 OPTIONS_END_DATE="${OPTIONS_END_DATE:-$("${PY}" - <<'PY'
-import json
+import sqlite3
 from pathlib import Path
 
-path = Path("/Users/linlifu/Documents/New project/data/site-data-index.json")
-payload = json.loads(path.read_text())
-print(payload.get("asOf") or payload.get("updatedAt") or "")
+path = Path("/Users/linlifu/Documents/New project/data/product.db")
+if not path.exists():
+    print("")
+else:
+    conn = sqlite3.connect(path)
+    row = conn.execute(
+        "SELECT COALESCE(as_of, generated_at, '') FROM datasets WHERE name = ?",
+        ("site-data-index",),
+    ).fetchone()
+    conn.close()
+    print(row[0] if row else "")
 PY
 )}"
 OPTIONS_START_DATE="${OPTIONS_START_DATE:-$("${PY}" - "${OPTIONS_END_DATE}" <<'PY'
@@ -103,18 +111,13 @@ run_lab "refresh options flow daily aggregates" \
   --rate-limit-sleep 70 \
   --max-retries 8
 
-run_lab "build options flow product JSON" \
-  "${PY}" scripts/build_options_flow_product.py \
-  --start "${OPTIONS_START_DATE}" \
-  --end "${OPTIONS_END_DATE}" \
-  --output "${ROOT}/data/options-flow-snapshot.json"
+run_root "build product database" \
+  env TRACKING_ASOF="${OPTIONS_END_DATE}" OPTIONS_START_DATE="${OPTIONS_START_DATE}" OPTIONS_END_DATE="${OPTIONS_END_DATE}" MARKET_DATA_ROOT="${DATA_ROOT}" \
+  "${PY}" scripts/build_product_db.py
 
 CACHE_VERSION="$(date +%Y%m%d)-options1"
 run_root "refresh app data cache version" \
   sed -i '' -E "s/v=[0-9]{8}-[A-Za-z0-9_-]+/v=${CACHE_VERSION}/g" app.js index.html
-
-run_root "validate JSON files" \
-  bash -lc 'find data -type f -name "*.json" -print0 | xargs -0 -n1 jq empty'
 
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v

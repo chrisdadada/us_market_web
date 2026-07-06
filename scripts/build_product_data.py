@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -122,7 +123,22 @@ def normalize_manual_earnings_event(row: dict[str, Any], source_name: str) -> di
 
 
 def build_manual_earnings_calendar_events(start: date, end: date, limit: int = 5000) -> list[dict[str, Any]]:
-    payload = read_json(MANUAL_EARNINGS_CALENDAR)
+    try:
+        from download_earnings_calendar import DEFAULT_WATCHLIST, build_calendar_payload
+
+        payload = build_calendar_payload(
+            start,
+            end,
+            watchlist=DEFAULT_WATCHLIST,
+            timeout=int(os.environ.get("EARNINGS_CALENDAR_TIMEOUT", "30")),
+            nasdaq_workers=int(os.environ.get("EARNINGS_CALENDAR_WORKERS", "8")),
+            fmp_api_key=os.environ.get("FMP_API_KEY", ""),
+            alpha_vantage_api_key=os.environ.get("ALPHA_VANTAGE_API_KEY") or os.environ.get("ALPHAVANTAGE_API_KEY", ""),
+            finnhub_api_key=os.environ.get("FINNHUB_API_KEY", ""),
+        )
+    except Exception as exc:
+        print(f"WARN: direct earnings calendar fetch skipped: {exc}")
+        payload = read_json(MANUAL_EARNINGS_CALENDAR)
     events = payload.get("events")
     if not isinstance(events, list):
         return []

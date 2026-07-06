@@ -75,7 +75,7 @@ def compact_rows(rows: pd.DataFrame, value_column: str) -> list[dict]:
     ]
 
 
-def build_payload(df: pd.DataFrame, out_path: Path) -> dict:
+def build_payload(df: pd.DataFrame, out_path: Path | None = None) -> dict:
     latest = max(df["bar_date"])
     latest_df = df[df["bar_date"] == latest].copy()
     symbols = sorted(latest_df["underlying"].dropna().astype(str).unique())
@@ -170,8 +170,9 @@ def build_payload(df: pd.DataFrame, out_path: Path) -> dict:
             "warnings": ["Polygon daily aggregates do not identify aggressor buy/sell direction."],
         },
     }
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    if out_path is not None:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     return payload
 
 

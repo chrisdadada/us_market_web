@@ -78,8 +78,12 @@ def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
 
 
 def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
+    if name == "site-data-index":
+        return load_site_data_index_payload()
     if name == "validation-center":
         return load_product_data_payload(name)
+    if name == "strength-review":
+        return load_strength_review_payload()
     try:
         sys.path.insert(0, str(ROOT / "scripts"))
         if name == "macro-series":
@@ -105,9 +109,107 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
                 DEFAULT_SPY_HOLDINGS_URL,
                 DEFAULT_SPY_FACT_SHEET_URL,
             ), Path("direct:index-valuation")
+        if name == "core-signals":
+            from build_core_signals import DEFAULT_DATA_ROOT, build_signals
+
+            data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
+            return build_signals(data_root), Path("direct:core-signals")
     except Exception as exc:
         print(f"WARN: {name} direct import skipped: {exc}")
     path = DATA_DIR / f"{name}.json"
+    return read_json(path), path
+
+
+def date_value(value: Any):
+    text = text_value(value)
+    if not text:
+        return None
+    return datetime.fromisoformat(text[:10]).date()
+
+
+def load_options_flow_payload() -> tuple[dict[str, Any], Path]:
+    try:
+        data_root = os.environ.get("MARKET_DATA_ROOT")
+        if data_root and not os.environ.get("DATA_ROOT"):
+            os.environ["DATA_ROOT"] = data_root
+        sys.path.insert(0, str(ROOT / "market-data-lab" / "scripts"))
+        from build_options_flow_product import build_payload, load_env, read_option_aggs
+
+        load_env()
+        start = date_value(os.environ.get("OPTIONS_START_DATE") or os.environ.get("START_DATE"))
+        end = date_value(os.environ.get("OPTIONS_END_DATE") or os.environ.get("TRACKING_ASOF"))
+        df = read_option_aggs(start, end)
+        if df.empty:
+            raise ValueError("no options aggregates found")
+        return build_payload(df), Path("direct:options-flow-snapshot")
+    except Exception as exc:
+        print(f"WARN: options flow direct import skipped: {exc}")
+    path = DATA_DIR / "options-flow-snapshot.json"
+    return read_json(path), path
+
+
+def load_earnings_quality_payload() -> tuple[dict[str, Any], Path]:
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from data_agent import DEFAULT_DATA_ROOT, build_earnings_quality, latest_trade_date
+
+        data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
+        as_of = text_value(os.environ.get("TRACKING_ASOF")) or latest_trade_date(data_root)
+        return build_earnings_quality(data_root, as_of, 160), Path("direct:earnings-quality")
+    except Exception as exc:
+        print(f"WARN: earnings quality direct import skipped: {exc}")
+    path = DATA_DIR / "earnings-quality.json"
+    return read_json(path), path
+
+
+def load_site_data_index_payload() -> tuple[dict[str, Any], Path]:
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from data_agent import (
+            DEFAULT_DATA_ROOT,
+            build_analyst_heat,
+            build_earnings_quality,
+            build_health,
+            build_manifest,
+            build_market_leaders,
+            build_market_temperature,
+            latest_trade_date,
+            now_iso as agent_now_iso,
+        )
+
+        data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
+        as_of = text_value(os.environ.get("TRACKING_ASOF")) or latest_trade_date(data_root)
+        health = build_health(data_root, as_of)
+        return {
+            "generatedAt": agent_now_iso(),
+            "asOf": as_of,
+            "sourceRoot": str(data_root),
+            "health": health,
+            "manifest": build_manifest(as_of, health),
+            "payloads": {
+                "marketTemperature": build_market_temperature(data_root),
+                "marketLeaders": build_market_leaders(data_root, as_of, 100),
+                "earningsQuality": build_earnings_quality(data_root, as_of, 160),
+                "analystHeat": build_analyst_heat(data_root, 100),
+                "sectorFlow": load_sector_flow_payload()[0],
+            },
+        }, Path("direct:site-data-index")
+    except Exception as exc:
+        print(f"WARN: site data index direct import skipped: {exc}")
+    path = DATA_DIR / "site-data-index.json"
+    return read_json(path), path
+
+
+def load_strength_review_payload() -> tuple[dict[str, Any], Path]:
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from review_strength_snapshots import DEFAULT_DATA_ROOT, build_review
+
+        data_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_DATA_ROOT))
+        return build_review(data_root, DATA_DIR / "strength-snapshots", [1, 3, 5, 20]), Path("direct:strength-review")
+    except Exception as exc:
+        print(f"WARN: strength review direct import skipped: {exc}")
+    path = DATA_DIR / "strength-review.json"
     return read_json(path), path
 
 
@@ -809,8 +911,7 @@ def import_calendar(conn: sqlite3.Connection) -> int:
 
 
 def import_earnings_quality(conn: sqlite3.Connection) -> int:
-    path = DATA_DIR / "earnings-quality.json"
-    payload = read_json(path)
+    payload, path = load_earnings_quality_payload()
     count = 0
     for board, board_payload in (payload.get("boards") or {}).items():
         rows = board_payload.get("rows") if isinstance(board_payload, dict) else []
@@ -937,8 +1038,7 @@ def import_market_temperature(conn: sqlite3.Connection) -> int:
 
 
 def import_options_flow(conn: sqlite3.Connection) -> int:
-    path = DATA_DIR / "options-flow-snapshot.json"
-    payload = read_json(path)
+    payload, path = load_options_flow_payload()
     count = 0
     for board, rows in (payload.get("boards") or {}).items():
         if not isinstance(rows, list):
