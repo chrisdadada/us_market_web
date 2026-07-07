@@ -42,6 +42,29 @@ class OpenPortfolioCashTest(unittest.TestCase):
         self.assertEqual(after["availableCash"], 8_877_400)
         self.assertEqual(len(after["trades"]), 2)
 
+    def test_trade_history_amounts_realized_pnl_and_equity_are_stable(self) -> None:
+        self.add({"tradeTime": "2026-01-01", "symbol": "ABC", "side": "buy", "price": 10, "amount": 1_000})
+        self.add({"tradeTime": "2026-01-02", "symbol": "ABC", "side": "sell", "price": 15, "quantity": 40})
+        self.add({"tradeTime": "2026-01-03", "symbol": "ABC", "side": "buy", "price": 12, "amount": 120})
+
+        result = open_portfolio.payload(self.conn)
+        self.assertEqual(result["availableCash"], 9_999_480)
+        self.assertEqual(result["realizedPnl"], 200)
+        self.assertEqual(result["equity"], 10_000_200)
+        self.assertEqual(result["holdings"], [{
+            "symbol": "ABC",
+            "quantity": 70,
+            "quantityStep": 1.0,
+            "avgCost": 10.29,
+            "cost": 720,
+            "positionPct": 0.01,
+        }])
+
+        newest, sell, oldest = result["trades"]
+        self.assertEqual((newest["tradeTime"], newest["side"], newest["amount"], newest["quantity"], newest["realizedPnl"], newest["equityAfter"]), ("2026-01-03", "buy", 120, 10, 0, 10_000_200))
+        self.assertEqual((sell["tradeTime"], sell["side"], sell["amount"], sell["quantity"], sell["realizedPnl"], sell["equityAfter"]), ("2026-01-02", "sell", 600, 40, 200, 10_000_200))
+        self.assertEqual((oldest["tradeTime"], oldest["side"], oldest["amount"], oldest["quantity"], oldest["realizedPnl"], oldest["equityAfter"]), ("2026-01-01", "buy", 1_000, 100, 0, 10_000_000))
+
 
 if __name__ == "__main__":
     unittest.main()
