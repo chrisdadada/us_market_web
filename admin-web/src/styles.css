@@ -238,7 +238,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 .openTradeForm {
   display: grid;
-  grid-template-columns: 190px 150px 130px 150px minmax(180px, 1fr) 120px;
+  grid-template-columns: 190px 150px 130px 190px minmax(180px, 1fr) 120px;
   gap: 14px;
   align-items: end;
 }
@@ -282,20 +282,25 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .openTradeForm label {
   display: grid;
   gap: 6px;
+  min-width: 0;
   color: #526174;
   font-size: 12px;
   font-weight: 680;
+  white-space: nowrap;
 }
 .labelMeta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
 }
 .labelMeta em {
+  overflow: hidden;
   color: #728096;
   font-style: normal;
   font-weight: 750;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .openTradeForm input,
