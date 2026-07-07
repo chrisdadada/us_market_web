@@ -8701,16 +8701,8 @@ body,
   padding: 16px;
 }
 
-.courseCardTitleRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 8px;
-}
-
 .courseCardGrid h2 {
-  margin: 0;
+  margin: 0 0 8px;
   color: #172033;
   font-size: 18px;
   font-weight: 600;
@@ -8727,7 +8719,7 @@ body,
   overflow: hidden;
 }
 
-.courseCardGrid section > div:not(.courseDiscountBlock):not(.courseCardTitleRow),
+.courseCardGrid section > div:not(.courseDiscountBlock),
 .courseCardGrid footer {
   display: flex;
   align-items: center;
@@ -8735,7 +8727,7 @@ body,
   gap: 12px;
 }
 
-.courseCardGrid section > div:not(.courseDiscountBlock):not(.courseCardTitleRow) {
+.courseCardGrid section > div:not(.courseDiscountBlock) {
   justify-content: flex-start;
   margin-bottom: 15px;
 }
@@ -8744,38 +8736,37 @@ body,
   margin: 0 0 10px;
 }
 
-.courseDiscountLabel {
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  border-radius: 7px;
-  background: #fff1f0;
-  color: #e02316;
-  padding: 0 9px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .courseDiscountBlock p {
   height: auto;
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 9px;
   margin: 0;
 }
 
 .courseDiscountBlock strong {
-  color: #e02316;
-  font-size: 32px;
+  color: #202838;
+  font-size: 30px;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .courseDiscountBlock em {
   color: #8a96a8;
   font-size: 13px;
   text-decoration: line-through;
+}
+
+.courseDiscountBlock span {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #fff6f4;
+  color: #c2412f;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .courseCardGrid span,
@@ -8786,16 +8777,16 @@ body,
   font-weight: 500;
 }
 
-.courseCardGrid .courseDiscountLabel {
-  color: #e02316;
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .courseCardGrid .courseDiscountBlock em {
   color: #8a96a8;
   font-size: 13px;
   text-decoration: line-through;
+}
+
+.courseCardGrid .courseDiscountBlock span {
+  color: #c2412f;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .courseCardGrid button {
@@ -8859,12 +8850,8 @@ body,
   margin-bottom: 14px;
 }
 
-.courseDetailText > .courseDiscountLabel {
-  margin-bottom: 10px;
-}
-
 .detailDiscount strong {
-  font-size: 34px;
+  font-size: 32px;
 }
 
 .courseDetailText .courseMetaPills {
