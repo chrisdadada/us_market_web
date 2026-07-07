@@ -322,6 +322,11 @@ function calendarValue(label?: string | number | null, value?: string | number |
   return Number.isFinite(n) ? String(value).trim() : "";
 }
 
+function calendarShortDate(event?: CalendarEvent | null) {
+  if (!event?.date) return "--";
+  return `${String(event.date).slice(5)} ${calendarTime24(event.time)}`;
+}
+
 function compactText(value?: string | null, max = 88) {
   if (isBlankValue(value)) return "";
   const text = String(value || "")
@@ -956,10 +961,12 @@ function App() {
       </aside>
 
       <section className="workspace">
-        <header className={`topbar ${page === "home" ? "homeTopbar" : ""}`}>
-          <form className="globalSearch" onSubmit={submitGlobalSearch}>
-            <input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="搜索股票、观点、财报、页面" />
-          </form>
+        <header className={`topbar ${page === "home" ? "homeTopbar" : ""} ${page === "calendar" ? "calendarTopbar" : ""}`}>
+          {page !== "calendar" ? (
+            <form className="globalSearch" onSubmit={submitGlobalSearch}>
+              <input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="搜索股票、观点、财报、页面" />
+            </form>
+          ) : null}
           {auth?.authenticated && auth.user ? (
             <details className="accountMenu">
               <summary className="accountButton">{accountName(auth)}</summary>
@@ -2349,7 +2356,6 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [windowDays, setWindowDays] = useState("7");
   const [impact, setImpact] = useState("all");
   const [eventType, setEventType] = useState("all");
-  const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [selectedEventId, setSelectedEventId] = useState("");
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
@@ -2360,21 +2366,24 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [macroLoading, setMacroLoading] = useState(false);
   const [resultLoading, setResultLoading] = useState(false);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const nextMacro = macroRows.find((event) => isFutureOrToday(event.date)) || macroRows[0];
+  const nextHighImpact = [...events, ...macroRows].find((event) => event.impact === "high" && isFutureOrToday(event.date));
+  const nextMacro = macroRows.find((event) => event.id !== nextHighImpact?.id && isFutureOrToday(event.date)) ||
+    macroRows.find((event) => isFutureOrToday(event.date)) ||
+    macroRows[0];
   const nextEarnings = events.find((event) => event.type === "earnings" && isFutureOrToday(event.date)) ||
     events.find((event) => event.type === "earnings");
   const selectedEvent = events.find((event) => event.id === selectedEventId) ||
     macroRows.find((event) => event.id === selectedEventId) ||
     resultRows.find((event) => event.id === selectedEventId) ||
-    nextEarnings ||
     nextMacro ||
+    nextEarnings ||
     resultRows[0] ||
     events[0] ||
     macroRows[0];
 
   useEffect(() => {
     setPageIndex(0);
-  }, [eventType, impact, query, windowDays]);
+  }, [eventType, impact, windowDays]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2384,21 +2393,23 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
       offset: pageIndex * pageSize,
       windowDays,
       impact,
-      type: eventType,
-      q: query.trim()
+      type: eventType
     }).then((payload) => {
       if (cancelled) return;
       const nextRows = payload.rows || [];
+      const defaultEvent = nextRows.find((event) => event.type === "macro" && isFutureOrToday(event.date)) ||
+        nextRows.find((event) => event.impact === "high" && isFutureOrToday(event.date)) ||
+        nextRows[0];
       setEvents(nextRows);
       setTotal(payload.total || 0);
-      setSelectedEventId((current) => nextRows.some((event) => event.id === current) ? current : nextRows[0]?.id || "");
+      setSelectedEventId((current) => nextRows.some((event) => event.id === current) ? current : defaultEvent?.id || "");
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [eventType, impact, pageIndex, query, windowDays]);
+  }, [eventType, impact, pageIndex, windowDays]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2432,9 +2443,25 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
 
 	  return (
 	    <div className="calendarPage calendarV3">
+        <section className="calendarFocusStrip">
+          <article>
+            <span>下一件高影响</span>
+            <strong>{calendarTitle(nextHighImpact?.title)}</strong>
+            <em>{calendarShortDate(nextHighImpact)}</em>
+          </article>
+          <article>
+            <span>下一场宏观</span>
+            <strong>{calendarTitle(nextMacro?.title)}</strong>
+            <em>{calendarShortDate(nextMacro)}</em>
+          </article>
+          <article>
+            <span>下一份财报</span>
+            <strong>{calendarTitle(nextEarnings?.title)}</strong>
+            <em>{calendarShortDate(nextEarnings)}</em>
+          </article>
+        </section>
 	      <section className="calendarWorkbench">
 	        <div className="calendarFilters">
-	          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="代码 / 公司 / CPI / FOMC" />
           <div className="calendarWindowTabs">
             {[
               ["7", "未来7天"],
@@ -2599,6 +2626,13 @@ function CalendarGroupedTimeline({
 
   return (
     <section className="calendarGroupedPanel">
+      <div className="calendarTimelineHead">
+        <span>日期</span>
+        <span>时间</span>
+        <span>事件</span>
+        <span>类型</span>
+        <span>影响</span>
+      </div>
       <div className="calendarGroupedList">
         {groups.map(([date, items]) => (
           <section className="calendarDateGroup" key={date}>
@@ -2638,6 +2672,7 @@ function CalendarSelectedPanel({ event }: { event?: CalendarEvent }) {
   const forecast = event ? calendarValue(event.forecastLabel, event.forecastValue) : "";
   const previous = event ? calendarValue(event.previousLabel, event.previousValue) : "";
   const note = event ? calendarSummaryText(event) : "";
+  const assets = event?.relatedAssets?.length ? event.relatedAssets.slice(0, 6).join(" / ") : "";
   return (
     <section className="calendarSelectedPanel">
       <div className="panelHead">
@@ -2657,7 +2692,8 @@ function CalendarSelectedPanel({ event }: { event?: CalendarEvent }) {
             {actual ? <div><dt>实际</dt><dd>{actual}</dd></div> : null}
             {forecast ? <div><dt>预期</dt><dd>{forecast}</dd></div> : null}
             {previous ? <div><dt>前值</dt><dd>{previous}</dd></div> : null}
-            {!actual && !forecast && !previous && note ? <div><dt>备注</dt><dd>{note}</dd></div> : null}
+            {assets ? <div><dt>关联</dt><dd>{assets}</dd></div> : null}
+            {note ? <div><dt>备注</dt><dd>{note}</dd></div> : null}
           </dl>
         </>
       ) : (
