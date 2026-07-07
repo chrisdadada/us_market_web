@@ -33,6 +33,7 @@ data/*.db-*
 
 # Design and QA screenshots are useful locally but noisy in git.
 screenshots/
+mockups/*.png
 mockups/output/
 .tmp/
 logs/
