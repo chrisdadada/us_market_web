@@ -3026,7 +3026,6 @@ function OpenPortfolioPage() {
 
       <section className="openMetricGrid">
         <article><span>初始资金</span><strong>{openMoney(data?.initialCapital)}</strong></article>
-        <article><span>可用资金</span><strong>{openMoney(data?.availableCash)}</strong></article>
         <article><span>当前资金</span><strong>{openMoney(data?.equity)}</strong></article>
         <article><span>已实现收益</span><strong className={signedClass(data?.realizedPnl)}>{openSignedMoney(data?.realizedPnl)}</strong></article>
         <article><span>收益率</span><strong className={signedClass(data?.realizedReturnPct)}>{data ? signed(data.realizedReturnPct) : "--"}</strong></article>
