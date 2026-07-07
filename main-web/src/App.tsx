@@ -2974,9 +2974,10 @@ function openSignedMoney(value?: number | null) {
   return `${prefix}${openMoney(Math.abs(value))}`;
 }
 
-function openQuantity(value?: number | null) {
+function openQuantity(value?: number | null, step?: number | null) {
   if (value === undefined || value === null || !Number.isFinite(value)) return "--";
-  const digits = Math.abs(value) >= 1 ? 2 : 6;
+  const stepText = step ? String(step) : "";
+  const digits = !step || step >= 1 ? 0 : stepText.includes("e-") ? Number(stepText.split("e-")[1]) || 0 : stepText.split(".")[1]?.length || 0;
   return Number(value).toLocaleString("zh-CN", { maximumFractionDigits: digits });
 }
 
@@ -3025,6 +3026,7 @@ function OpenPortfolioPage() {
 
       <section className="openMetricGrid">
         <article><span>初始资金</span><strong>{openMoney(data?.initialCapital)}</strong></article>
+        <article><span>可用资金</span><strong>{openMoney(data?.availableCash)}</strong></article>
         <article><span>当前资金</span><strong>{openMoney(data?.equity)}</strong></article>
         <article><span>已实现收益</span><strong className={signedClass(data?.realizedPnl)}>{openSignedMoney(data?.realizedPnl)}</strong></article>
         <article><span>收益率</span><strong className={signedClass(data?.realizedReturnPct)}>{data ? signed(data.realizedReturnPct) : "--"}</strong></article>
@@ -3071,7 +3073,7 @@ function OpenPortfolioPage() {
                   <td>{exactPercent(row.positionPct)}</td>
                   <td>{openMoney(row.cost)}</td>
                   <td>{priceDisplay(row.avgCost)}</td>
-                  <td>{openQuantity(row.quantity)}</td>
+                  <td>{openQuantity(row.quantity, row.quantityStep)}</td>
                 </tr>
               ))}
               {!data?.holdings.length ? <tr><td colSpan={5}>暂无持仓</td></tr> : null}
@@ -3100,7 +3102,7 @@ function OpenPortfolioPage() {
                   <td><strong>{row.symbol}</strong></td>
                   <td className={row.side === "buy" ? "positive" : "negative"}>{row.side === "buy" ? "买入" : "卖出"}</td>
                   <td>{priceDisplay(row.price)}</td>
-                  <td>{openQuantity(row.quantity)}</td>
+                  <td>{openQuantity(row.quantity, row.quantityStep)}</td>
                   <td>{openMoney(row.amount)}</td>
                   <td className={signedClass(row.realizedPnl)}>{row.side === "sell" ? openSignedMoney(row.realizedPnl) : "--"}</td>
                 </tr>

@@ -117,6 +117,7 @@ export type OpenPortfolioTrade = {
   positionPct: number;
   amount: number;
   quantity: number;
+  quantityStep: number;
   realizedPnl: number;
   equityAfter: number;
   note?: string;
@@ -125,9 +126,10 @@ export type OpenPortfolioTrade = {
 export type OpenPortfolioPayload = {
   initialCapital: number;
   equity: number;
+  availableCash: number;
   realizedPnl: number;
   realizedReturnPct: number;
-  holdings: Array<{ symbol: string; quantity: number; avgCost: number; cost: number; positionPct: number }>;
+  holdings: Array<{ symbol: string; quantity: number; quantityStep: number; avgCost: number; cost: number; positionPct: number }>;
   trades: OpenPortfolioTrade[];
   curve: Array<{ time: string; value: number }>;
 };

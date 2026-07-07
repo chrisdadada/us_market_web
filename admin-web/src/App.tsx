@@ -79,6 +79,27 @@ function signedMoney(value?: number | null) {
   return `${prefix}${adminMoney(Math.abs(value))}`;
 }
 
+function quantityDigits(step?: number | null) {
+  if (!step || step >= 1) return 0;
+  const text = String(step);
+  if (text.includes("e-")) return Number(text.split("e-")[1]) || 0;
+  return text.split(".")[1]?.length || 0;
+}
+
+function formatTradeQuantity(value?: number | null, step?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  return Number(value).toLocaleString("zh-CN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: quantityDigits(step)
+  });
+}
+
+function floorTradeQuantity(value: number, step?: number | null) {
+  const safeStep = step && step > 0 ? step : 1;
+  const digits = quantityDigits(safeStep);
+  return Number((Math.floor((value + Number.EPSILON) / safeStep) * safeStep).toFixed(digits));
+}
+
 function daysUntil(value?: string | null) {
   if (!value) return null;
   const end = new Date(`${String(value).slice(0, 10)}T23:59:59`);
@@ -1470,7 +1491,7 @@ function OpenPortfolioPage() {
   };
   const setSellQuantity = (ratio: number) => {
     if (!selectedHolding) return;
-    setForm({ ...form, quantity: String(Math.floor(selectedHolding.quantity * ratio * 1000000) / 1000000) });
+    setForm({ ...form, quantity: String(floorTradeQuantity(selectedHolding.quantity * ratio, selectedHolding.quantityStep)) });
   };
 
   async function loadOpenPortfolio() {
@@ -1541,6 +1562,7 @@ function OpenPortfolioPage() {
 
       <div className="statsGrid">
         <StatCard label="初始资金" value={adminMoney(data?.initialCapital)} />
+        <StatCard label="可用资金" value={adminMoney(data?.availableCash)} />
         <StatCard label="当前资金" value={adminMoney(data?.equity)} />
         <StatCard label="已实现收益" value={signedMoney(data?.realizedPnl)} tone={(data?.realizedPnl || 0) >= 0 ? "positive" : "dangerText"} />
         <StatCard label="当前持仓" value={data?.holdings.length ?? "--"} note={`交易 ${data?.trades.length ?? "--"} 笔`} />
@@ -1566,11 +1588,14 @@ function OpenPortfolioPage() {
           )}</label>
           <label>价格<input type="number" min="0" step="0.000001" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
           {form.side === "buy" ? (
-            <label>买入金额<input type="number" min="0" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" /></label>
+            <label>买入金额
+              <input type="number" min="0" max={data?.availableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
+              <span className="fieldHint">可用 {adminMoney(data?.availableCash)}</span>
+            </label>
           ) : (
             <label>卖出数量
               <div className="quantityInput">
-                <input type="number" min="0" max={selectedHolding?.quantity || undefined} step="0.000001" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder={selectedHolding ? String(selectedHolding.quantity) : ""} />
+                <input type="number" min="0" max={selectedHolding?.quantity || undefined} step={selectedHolding?.quantityStep || 1} value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder={selectedHolding ? formatTradeQuantity(selectedHolding.quantity, selectedHolding.quantityStep) : ""} />
                 <button type="button" onClick={() => setSellQuantity(1 / 3)}>1/3</button>
                 <button type="button" onClick={() => setSellQuantity(1 / 2)}>半仓</button>
                 <button type="button" onClick={() => setSellQuantity(1)}>全卖</button>
@@ -1594,7 +1619,7 @@ function OpenPortfolioPage() {
                   <td>{adminPercent(row.positionPct)}</td>
                   <td>{adminMoney(row.cost)}</td>
                   <td>{adminPrice(row.avgCost)}</td>
-                  <td>{row.quantity.toLocaleString("zh-CN", { maximumFractionDigits: 6 })}</td>
+                  <td>{formatTradeQuantity(row.quantity, row.quantityStep)}</td>
                   <td><button type="button" className="tableAction dangerAction" onClick={() => setForm({ tradeTime: localDateInputValue(), symbol: row.symbol, side: "sell", price: "", amount: "", quantity: "", note: "" })}>卖出</button></td>
                 </tr>
               ))}
@@ -1614,7 +1639,7 @@ function OpenPortfolioPage() {
                   <td><strong>{row.symbol}</strong></td>
                   <td><span className={`status ${row.side === "buy" ? "positiveBg" : "dangerBg"}`}>{row.side === "buy" ? "买入" : "卖出"}</span></td>
                   <td>{adminPrice(row.price)}</td>
-                  <td>{row.quantity.toLocaleString("zh-CN", { maximumFractionDigits: 6 })}</td>
+                  <td>{formatTradeQuantity(row.quantity, row.quantityStep)}</td>
                   <td>{adminMoney(row.amount)}</td>
                   <td className={row.realizedPnl >= 0 ? "positive" : "dangerText"}>{row.side === "sell" ? signedMoney(row.realizedPnl) : "--"}</td>
                   <td><button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => removeTrade(row.id)}>删除</button></td>
