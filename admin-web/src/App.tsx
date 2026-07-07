@@ -1560,7 +1560,7 @@ function OpenPortfolioPage() {
       {message ? <div className="notice inlineNotice">{message}</div> : null}
       {loading ? <div className="contentLoading inlineNotice">读取中</div> : null}
 
-      <div className="statsGrid">
+      <div className="statsGrid openStatsGrid">
         <StatCard label="初始资金" value={adminMoney(data?.initialCapital)} />
         <StatCard label="可用资金" value={adminMoney(data?.availableCash)} />
         <StatCard label="当前资金" value={adminMoney(data?.equity)} />
