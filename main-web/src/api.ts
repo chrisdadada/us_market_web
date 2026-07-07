@@ -311,6 +311,9 @@ export type CourseSeries = {
   summary: string;
   intro: string;
   progressStatus: "updating" | "finished";
+  originalPrice: string;
+  discountPrice: string;
+  discountLabel: string;
   coverUrl: string;
   sortOrder: number;
   status: "published" | "draft";

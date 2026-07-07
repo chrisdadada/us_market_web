@@ -466,6 +466,30 @@ function courseProgressLabel(status?: CourseSeries["progressStatus"]) {
   return status === "finished" ? "已完结" : "更新中";
 }
 
+function coursePriceText(value?: string) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return /^\d/.test(text) ? `￥${text}` : text;
+}
+
+function courseDiscountBlock(course: CourseSeries, className = "courseDiscountBlock") {
+  const current = coursePriceText(course.discountPrice);
+  const original = coursePriceText(course.originalPrice);
+  const label = String(course.discountLabel || "").trim();
+  if (!current && !original && !label) return null;
+  return (
+    <div className={className}>
+      {label ? <span>{label}</span> : null}
+      {current || original ? (
+        <p>
+          {current ? <strong>{current}</strong> : null}
+          {original ? <em>{original}</em> : null}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function opinionDisplayTitle(item?: Opinion | null, max = 56) {
   if (!item) return "--";
   const sectionLabel = opinionSectionLabel(item);
@@ -3413,6 +3437,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
             <div className="courseSummaryRich articleProse">
               {richCourseSummary(selected.summary, `${selected.lessonCount || selected.lessons?.length || 0} 节视频`)}
             </div>
+            {courseDiscountBlock(selected, "courseDiscountBlock detailDiscount")}
             <div className="courseMetaPills">
               <span className={selected.unlocked ? "unlocked" : "locked"}>{selected.unlocked ? "已解锁" : "待开通"}</span>
               <span>{courseProgressLabel(selected.progressStatus)}</span>
@@ -3503,6 +3528,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
                 <section>
                   <h2>{item.title}</h2>
                   <p>{compactText(item.summary, 82) || `${item.lessons?.length || 0} 节视频`}</p>
+                  {courseDiscountBlock(item)}
                   <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{item.unlocked ? "可学习" : "交易实战课程介绍"}</span></div>
                   <footer>
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>

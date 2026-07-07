@@ -925,6 +925,9 @@ type CourseSeriesForm = {
   summary: string;
   intro: string;
   progressStatus: CourseSeries["progressStatus"];
+  originalPrice: string;
+  discountPrice: string;
+  discountLabel: string;
   coverUrl: string;
   sortOrder: string;
   status: CourseSeries["status"];
@@ -939,7 +942,7 @@ type CourseLessonForm = {
   status: CourseLesson["status"];
 };
 
-const emptyCourseSeriesForm = (): CourseSeriesForm => ({ title: "", summary: "", intro: "", progressStatus: "updating", coverUrl: "", sortOrder: "", status: "draft" });
+const emptyCourseSeriesForm = (): CourseSeriesForm => ({ title: "", summary: "", intro: "", progressStatus: "updating", originalPrice: "", discountPrice: "", discountLabel: "", coverUrl: "", sortOrder: "", status: "draft" });
 const emptyCourseLessonForm = (): CourseLessonForm => ({ title: "", sortOrder: "", coverUrl: "", videoKey: "", status: "published" });
 
 function CoursesPage({ users }: { users: AdminUser[] }) {
@@ -1167,6 +1170,9 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       summary: item.summary || "",
       intro: item.intro || item.summary || "",
       progressStatus: item.progressStatus || "updating",
+      originalPrice: item.originalPrice || "",
+      discountPrice: item.discountPrice || "",
+      discountLabel: item.discountLabel || "",
       coverUrl: item.coverUrl || "",
       sortOrder: String(item.sortOrder || ""),
       status: item.status
@@ -1347,6 +1353,9 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <label>优先级<input type="number" min="1" value={seriesForm.sortOrder} onChange={(event) => setSeriesForm({ ...seriesForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
               <label>展示状态<select value={seriesForm.progressStatus} onChange={(event) => setSeriesForm({ ...seriesForm, progressStatus: event.target.value as CourseSeries["progressStatus"] })}><option value="updating">更新中</option><option value="finished">已完结</option></select></label>
               <label>上架状态<select value={seriesForm.status} onChange={(event) => setSeriesForm({ ...seriesForm, status: event.target.value as CourseSeries["status"] })}><option value="draft">草稿</option><option value="published">上架</option></select></label>
+              <label>原价<input value={seriesForm.originalPrice} onChange={(event) => setSeriesForm({ ...seriesForm, originalPrice: event.target.value })} placeholder="99" /></label>
+              <label>折扣价<input value={seriesForm.discountPrice} onChange={(event) => setSeriesForm({ ...seriesForm, discountPrice: event.target.value })} placeholder="9.9" /></label>
+              <label>折扣文案<input value={seriesForm.discountLabel} onChange={(event) => setSeriesForm({ ...seriesForm, discountLabel: event.target.value })} placeholder="限时体验价" /></label>
               <label className="fullField">转化文案<textarea rows={4} value={seriesForm.summary} onChange={(event) => setSeriesForm({ ...seriesForm, summary: event.target.value })} placeholder="用于课程卡片和详情顶部" /></label>
               <label className="fullField">课程介绍<textarea rows={5} value={seriesForm.intro} onChange={(event) => setSeriesForm({ ...seriesForm, intro: event.target.value })} placeholder={"用于详情页下方介绍，支持 Markdown，例如：\n1. 第一条说明\n2. 第二条说明"} /></label>
               <div className="fullField courseCoverUpload">

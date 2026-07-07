@@ -1231,6 +1231,9 @@ def init_db() -> None:
               summary TEXT,
               intro TEXT,
               progress_status TEXT NOT NULL DEFAULT 'updating',
+              original_price TEXT,
+              discount_price TEXT,
+              discount_label TEXT,
               cover_url TEXT,
               sort_order INTEGER NOT NULL DEFAULT 1,
               status TEXT NOT NULL DEFAULT 'draft',
@@ -1283,6 +1286,12 @@ def init_db() -> None:
             conn.execute("ALTER TABLE course_series ADD COLUMN intro TEXT")
         if "progress_status" not in course_series_columns:
             conn.execute("ALTER TABLE course_series ADD COLUMN progress_status TEXT NOT NULL DEFAULT 'updating'")
+        if "original_price" not in course_series_columns:
+            conn.execute("ALTER TABLE course_series ADD COLUMN original_price TEXT")
+        if "discount_price" not in course_series_columns:
+            conn.execute("ALTER TABLE course_series ADD COLUMN discount_price TEXT")
+        if "discount_label" not in course_series_columns:
+            conn.execute("ALTER TABLE course_series ADD COLUMN discount_label TEXT")
         course_lesson_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_lessons)").fetchall()}
         if "cover_url" not in course_lesson_columns:
             conn.execute("ALTER TABLE course_lessons ADD COLUMN cover_url TEXT")
@@ -1760,6 +1769,9 @@ def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None
         "summary": row["summary"] or "",
         "intro": (row["intro"] if "intro" in row.keys() else "") or row["summary"] or "",
         "progressStatus": (row["progress_status"] if "progress_status" in row.keys() else "") or "updating",
+        "originalPrice": (row["original_price"] if "original_price" in row.keys() else "") or "",
+        "discountPrice": (row["discount_price"] if "discount_price" in row.keys() else "") or "",
+        "discountLabel": (row["discount_label"] if "discount_label" in row.keys() else "") or "",
         "coverUrl": signed_course_image_url(row["cover_url"] or ""),
         "sortOrder": row["sort_order"],
         "status": row["status"],
@@ -2048,6 +2060,9 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
     progress_status = str(payload.get("progressStatus") or "updating").strip()
     if progress_status not in COURSE_PROGRESS_STATUSES:
         raise ValueError("交易实战课程展示状态不正确")
+    original_price = str(payload.get("originalPrice") or "").strip()
+    discount_price = str(payload.get("discountPrice") or "").strip()
+    discount_label = str(payload.get("discountLabel") or "").strip()
     cover_url = course_video_key(str(payload.get("coverUrl") or "").strip())
     timestamp = now_iso()
     with db() as conn:
@@ -2065,10 +2080,10 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
             conn.execute(
                 """
                 UPDATE course_series
-                SET title = ?, summary = ?, intro = ?, progress_status = ?, cover_url = ?, sort_order = ?, status = ?, updated_at = ?
+                SET title = ?, summary = ?, intro = ?, progress_status = ?, original_price = ?, discount_price = ?, discount_label = ?, cover_url = ?, sort_order = ?, status = ?, updated_at = ?
                 WHERE id = ?
                 """,
-                (title, summary, intro, progress_status, cover_url, sort_order, status, timestamp, series_id),
+                (title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, sort_order, status, timestamp, series_id),
             )
             row = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
             return course_series_payload(row)
@@ -2085,10 +2100,10 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
         cursor = conn.execute(
             """
             INSERT INTO course_series
-            (slug, title, summary, intro, progress_status, cover_url, sort_order, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (slug, title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, sort_order, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (slug, title, summary, intro, progress_status, cover_url, sort_order, status, timestamp, timestamp),
+            (slug, title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, sort_order, status, timestamp, timestamp),
         )
         row = conn.execute("SELECT * FROM course_series WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return course_series_payload(row)
