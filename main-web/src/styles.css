@@ -32,29 +32,6 @@
   padding: 22px 24px 40px;
 }
 
-.marketTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 12px;
-}
-
-.marketTop h1 {
-  margin: 0;
-  color: #172033;
-  font-size: 24px;
-  line-height: 1.2;
-  font-weight: 760;
-}
-
-.marketTop span {
-  color: #6b7890;
-  font-size: 13px;
-  font-weight: 650;
-  white-space: nowrap;
-}
-
 .marketToolbar {
   display: flex;
   align-items: center;
@@ -405,15 +382,6 @@
 .marketPage {
   background: #f4f7fb;
   padding: 18px 24px 40px;
-}
-.marketTop {
-  display: flex;
-  justify-content: flex-end;
-  min-height: 0;
-  margin: 0 0 8px;
-  color: #718096;
-  font-size: 12px;
-  font-weight: 520;
 }
 .marketToolbar {
   display: flex;
@@ -9677,19 +9645,23 @@ body,
   padding: 20px 28px 44px;
 }
 
-.marketTop {
-  min-height: 0;
-  margin-bottom: 10px;
-}
-
-.marketTop span {
-  color: #7b8798;
-  font-size: 12px;
-  font-weight: 500;
-}
-
 .marketToolbar {
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
   margin-bottom: 12px;
+}
+
+.marketToolbar .marketSegment:last-of-type {
+  justify-self: end;
+}
+
+.marketDate {
+  justify-self: end;
+  color: #8a97aa;
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .marketSegment {

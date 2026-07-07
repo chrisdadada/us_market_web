@@ -1943,10 +1943,6 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors]);
   return (
     <div className="marketPage">
-      <header className="marketTop">
-        <span>{sectorDate}</span>
-      </header>
-
       <div className="marketToolbar">
         <div className="marketSegment">
           <button type="button" className={viewMode === "rank" ? "active" : ""} onClick={() => setViewMode("rank")}>排行</button>
@@ -1957,6 +1953,7 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
           <button type="button" className={sectorRange === "week" ? "active" : ""} onClick={() => setSectorRange("week")}>近1周</button>
           <button type="button" className={sectorRange === "month" ? "active" : ""} onClick={() => setSectorRange("month")}>近1月</button>
         </div>
+        <span className="marketDate">{sectorDate}</span>
       </div>
 
       <section className="marketFundsWorkspace benchmark">
