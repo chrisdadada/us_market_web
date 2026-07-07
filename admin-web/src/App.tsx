@@ -79,6 +79,21 @@ function signedMoney(value?: number | null) {
   return `${prefix}${adminMoney(Math.abs(value))}`;
 }
 
+function openAvailableCashAt(data: OpenPortfolioPayload | null, tradeDate?: string) {
+  if (!data) return null;
+  const target = formatDate(tradeDate);
+  if (!target || target === "--") return data.availableCash;
+  let cash = Number(data.initialCapital || 0);
+  [...data.trades]
+    .sort((a, b) => formatDate(a.tradeTime).localeCompare(formatDate(b.tradeTime)) || a.id - b.id)
+    .forEach((trade) => {
+      if (formatDate(trade.tradeTime) > target) return;
+      const amount = Number(trade.amount || 0);
+      cash += trade.side === "sell" ? amount : -amount;
+    });
+  return cash;
+}
+
 function quantityDigits(step?: number | null) {
   if (!step || step >= 1) return 0;
   const text = String(step);
@@ -1486,6 +1501,7 @@ function OpenPortfolioPage() {
   const [message, setMessage] = useState("");
   const holdings = data?.holdings || [];
   const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
+  const tradeDateAvailableCash = useMemo(() => openAvailableCashAt(data, form.tradeTime), [data, form.tradeTime]);
   const setTradeSide = (side: "buy" | "sell") => {
     setForm({ ...form, side, symbol: side === "sell" ? holdings[0]?.symbol || "" : "", amount: "", quantity: "" });
   };
@@ -1512,6 +1528,11 @@ function OpenPortfolioPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    const buyAmount = Number(form.amount);
+    if (form.side === "buy" && tradeDateAvailableCash !== null && Number.isFinite(buyAmount) && buyAmount > tradeDateAvailableCash + 0.01) {
+      setMessage(`${form.symbol.trim().toUpperCase() || "标的"} 买入金额超过所选日期可用资金`);
+      return;
+    }
     setSaving(true);
     setMessage("");
     try {
@@ -1588,9 +1609,9 @@ function OpenPortfolioPage() {
           )}</label>
           <label>价格<input type="number" min="0" step="0.000001" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
           {form.side === "buy" ? (
-            <label>买入金额
-              <input type="number" min="0" max={data?.availableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
-              <span className="fieldHint">可用 {adminMoney(data?.availableCash)}</span>
+            <label>
+              <span className="labelMeta"><span>买入金额</span><em>所选日期可用 {adminMoney(tradeDateAvailableCash)}</em></span>
+              <input type="number" min="0" max={tradeDateAvailableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
             </label>
           ) : (
             <label>卖出数量

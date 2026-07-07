@@ -286,10 +286,17 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-size: 12px;
   font-weight: 680;
 }
-.fieldHint {
+.labelMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.labelMeta em {
   color: #728096;
-  font-size: 12px;
+  font-style: normal;
   font-weight: 750;
+  white-space: nowrap;
 }
 .openTradeForm input,
 .openTradeForm select {
