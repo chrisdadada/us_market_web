@@ -3498,12 +3498,12 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
               <article key={item.id} className={selected?.id === item.id ? "active" : ""}>
                 <div className="courseThumb">
                   {item.coverUrl ? <img src={item.coverUrl} alt="" /> : null}
-                  <span className={item.unlocked ? "unlocked" : "locked"}>{item.unlocked ? "已解锁" : "待开通"}</span>
+                  <span className={item.progressStatus === "finished" ? "unlocked" : "locked"}>{courseProgressLabel(item.progressStatus)}</span>
                 </div>
                 <section>
                   <h2>{item.title}</h2>
                   <p>{compactText(item.summary, 82) || `${item.lessons?.length || 0} 节视频`}</p>
-                  <div><span>{courseProgressLabel(item.progressStatus)}</span><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span></div>
+                  <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{item.unlocked ? "可学习" : "交易实战课程介绍"}</span></div>
                   <footer>
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>
                       {item.unlocked ? "开始学习" : "查看详情"}
