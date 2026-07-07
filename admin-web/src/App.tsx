@@ -924,6 +924,7 @@ type CourseSeriesForm = {
   title: string;
   summary: string;
   intro: string;
+  progressStatus: CourseSeries["progressStatus"];
   coverUrl: string;
   sortOrder: string;
   status: CourseSeries["status"];
@@ -938,7 +939,7 @@ type CourseLessonForm = {
   status: CourseLesson["status"];
 };
 
-const emptyCourseSeriesForm = (): CourseSeriesForm => ({ title: "", summary: "", intro: "", coverUrl: "", sortOrder: "", status: "draft" });
+const emptyCourseSeriesForm = (): CourseSeriesForm => ({ title: "", summary: "", intro: "", progressStatus: "updating", coverUrl: "", sortOrder: "", status: "draft" });
 const emptyCourseLessonForm = (): CourseLessonForm => ({ title: "", sortOrder: "", coverUrl: "", videoKey: "", status: "published" });
 
 function CoursesPage({ users }: { users: AdminUser[] }) {
@@ -1165,6 +1166,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       title: item.title,
       summary: item.summary || "",
       intro: item.intro || item.summary || "",
+      progressStatus: item.progressStatus || "updating",
       coverUrl: item.coverUrl || "",
       sortOrder: String(item.sortOrder || ""),
       status: item.status
@@ -1214,6 +1216,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                 <th>优先级</th>
                 <th>视频</th>
                 <th>授权</th>
+                <th>展示</th>
                 <th>状态</th>
                 <th>操作</th>
               </tr>
@@ -1225,6 +1228,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   <td>{item.sortOrder}</td>
                   <td>{item.lessonCount}</td>
                   <td>{item.grantCount}</td>
+                  <td><span className={`status ${item.progressStatus === "finished" ? "positiveBg" : ""}`}>{item.progressStatus === "finished" ? "已完结" : "更新中"}</span></td>
                   <td><span className={`status ${item.status === "published" ? "positiveBg" : ""}`}>{item.status === "published" ? "上架" : "草稿"}</span></td>
                   <td>
                     <button
@@ -1341,6 +1345,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             <div className="editForm courseModalBody">
               <label>系列名称<input value={seriesForm.title} onChange={(event) => setSeriesForm({ ...seriesForm, title: event.target.value })} placeholder="例如 财报季交易框架" /></label>
               <label>优先级<input type="number" min="1" value={seriesForm.sortOrder} onChange={(event) => setSeriesForm({ ...seriesForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
+              <label>展示状态<select value={seriesForm.progressStatus} onChange={(event) => setSeriesForm({ ...seriesForm, progressStatus: event.target.value as CourseSeries["progressStatus"] })}><option value="updating">更新中</option><option value="finished">已完结</option></select></label>
               <label>上架状态<select value={seriesForm.status} onChange={(event) => setSeriesForm({ ...seriesForm, status: event.target.value as CourseSeries["status"] })}><option value="draft">草稿</option><option value="published">上架</option></select></label>
               <label className="fullField">转化文案<textarea rows={4} value={seriesForm.summary} onChange={(event) => setSeriesForm({ ...seriesForm, summary: event.target.value })} placeholder="用于课程卡片和详情顶部" /></label>
               <label className="fullField">课程介绍<textarea rows={5} value={seriesForm.intro} onChange={(event) => setSeriesForm({ ...seriesForm, intro: event.target.value })} placeholder={"用于详情页下方介绍，支持 Markdown，例如：\n1. 第一条说明\n2. 第二条说明"} /></label>

@@ -310,6 +310,7 @@ export type CourseSeries = {
   title: string;
   summary: string;
   intro: string;
+  progressStatus: "updating" | "finished";
   coverUrl: string;
   sortOrder: number;
   status: "published" | "draft";

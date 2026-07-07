@@ -82,6 +82,7 @@ export type CourseSeries = {
   title: string;
   summary: string;
   intro: string;
+  progressStatus: "updating" | "finished";
   coverUrl: string;
   sortOrder: number;
   status: "published" | "draft";
@@ -265,7 +266,7 @@ export const api = {
     return { ok: true, video: ticket.video };
   },
   courses: () => request<{ series: CourseSeries[]; grants: CourseGrant[] }>("/api/admin/courses"),
-  saveCourseSeries: (payload: { id?: number; title: string; summary: string; intro: string; coverUrl: string; sortOrder?: number; status: CourseSeries["status"] }) =>
+  saveCourseSeries: (payload: { id?: number; title: string; summary: string; intro: string; progressStatus: CourseSeries["progressStatus"]; coverUrl: string; sortOrder?: number; status: CourseSeries["status"] }) =>
     request<{ ok: true; series: CourseSeries }>("/api/admin/courses", {
       method: "POST",
       body: JSON.stringify(payload)

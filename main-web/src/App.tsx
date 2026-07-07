@@ -462,6 +462,10 @@ function richCourseSummary(summary: string, fallback: string) {
   return nodes.length ? nodes : <p>{fallback}</p>;
 }
 
+function courseProgressLabel(status?: CourseSeries["progressStatus"]) {
+  return status === "finished" ? "已完结" : "更新中";
+}
+
 function opinionDisplayTitle(item?: Opinion | null, max = 56) {
   if (!item) return "--";
   const sectionLabel = opinionSectionLabel(item);
@@ -3411,6 +3415,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
             </div>
             <div className="courseMetaPills">
               <span className={selected.unlocked ? "unlocked" : "locked"}>{selected.unlocked ? "已解锁" : "待开通"}</span>
+              <span>{courseProgressLabel(selected.progressStatus)}</span>
               <span>{selected.lessonCount || selected.lessons?.length || 0} 节视频</span>
               {activeLesson ? <span>当前播放：{activeLesson.title}</span> : null}
             </div>
@@ -3498,7 +3503,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
                 <section>
                   <h2>{item.title}</h2>
                   <p>{compactText(item.summary, 82) || `${item.lessons?.length || 0} 节视频`}</p>
-                  <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{item.unlocked ? "可学习" : "交易实战课程介绍"}</span></div>
+                  <div><span>{courseProgressLabel(item.progressStatus)}</span><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span></div>
                   <footer>
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>
                       {item.unlocked ? "开始学习" : "查看详情"}
