@@ -922,13 +922,8 @@
   color: #e04f62 !important;
 }
 
-.stockPreviewCard h3,
-.detailBlockHead h3 {
+.stockPreviewCard h3 {
   font-weight: 620;
-}
-
-.detailBlockHead span:empty {
-  display: none;
 }
 
 .stocksPreviewPanel {
@@ -972,40 +967,6 @@
 .previewBarRow {
   min-height: 34px;
   gap: 8px;
-}
-
-.stockDetailHero {
-  padding: 18px 20px;
-}
-
-.stockDetailHero h2 {
-  font-size: 28px;
-  font-weight: 680;
-}
-
-.stockDetailHero dl div,
-.detailBlock {
-  border-color: #e2eaf4;
-}
-
-.detailBlock {
-  padding: 14px;
-}
-
-.detailBlockHead {
-  min-height: 32px;
-  margin-bottom: 8px;
-}
-
-.detailBlock h3 {
-  color: #526176;
-  font-size: 13px;
-}
-
-.compactTable th,
-.compactTable td {
-  height: 38px;
-  font-weight: 520;
 }
 
 body {
@@ -1553,74 +1514,6 @@ body {
 }
 
 
-
-.opinionSectionCard {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: 0 14px 36px rgba(31, 45, 61, .08);
-  overflow: hidden;
-}
-
-
-.opinionPanelHead {
-  min-height: 56px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 0 22px;
-}
-
-.opinionPanelHead strong {
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 850;
-}
-
-.opinionPanelHead span {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-
-.opinionSectionCard > button {
-  width: 100%;
-  min-height: 96px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: #fff;
-  color: var(--text);
-  text-align: left;
-  padding: 18px 22px;
-}
-
-.opinionSectionCard > button:last-child {
-  border-bottom: 0;
-}
-
-.opinionSectionCard > button strong {
-  display: block;
-  font-size: 19px;
-  line-height: 1.35;
-}
-
-.opinionSectionCard > button p {
-  margin: 9px 0 0;
-  color: #526176;
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-.opinionSectionCard > button span {
-  display: block;
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 750;
-}
 
 .opinionEmpty {
   padding: 22px;
@@ -3069,20 +2962,6 @@ td.negative,
   gap: 22px;
 }
 
-.marketMiniBoard table {
-  table-layout: fixed;
-}
-
-.marketMiniBoard td {
-  vertical-align: middle;
-}
-
-.marketMiniBoard td:nth-child(2),
-.marketMiniBoard td:nth-child(3) {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .stocksPage {
   padding: 30px 40px 64px;
   display: grid;
@@ -3203,179 +3082,6 @@ td.negative,
 .pager span {
   color: var(--muted);
   font-weight: 700;
-}
-
-.stockDetailPanel {
-  border: 1px solid var(--line);
-  background: var(--panel);
-  position: sticky;
-  top: 18px;
-  max-height: calc(100vh - 230px);
-  overflow: auto;
-  min-width: 0;
-}
-
-.stockDetailHero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: start;
-  padding: 18px;
-  border-bottom: 1px solid var(--line);
-}
-
-.stockDetailHero span {
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.stockDetailHero h2 {
-  margin: 7px 0 5px;
-  font-size: 34px;
-  line-height: 1;
-}
-
-.stockDetailHero p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.45;
-}
-
-.stockDetailHero dl {
-  grid-column: 1 / -1;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  border: 1px solid var(--line);
-}
-
-.stockDetailHero dl div {
-  padding: 13px 14px;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.stockDetailHero dl div:nth-child(2n) {
-  border-right: 0;
-}
-
-.stockDetailHero dl div:nth-last-child(-n + 2) {
-  border-bottom: 0;
-}
-
-.stockDetailHero dt {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.stockDetailHero dd {
-  margin: 8px 0 0;
-  font-size: 17px;
-  font-weight: 800;
-}
-
-.stockDetailGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-}
-
-.detailBlock {
-  min-height: auto;
-  padding: 16px;
-  border-right: 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.detailBlock.wide {
-  grid-column: auto;
-}
-
-.detailBlock h3 {
-  margin: 0 0 14px;
-  color: var(--text);
-  font-size: 16px;
-}
-
-.metricGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  border: 1px solid var(--line);
-}
-
-.metricGrid div {
-  padding: 18px;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.metricGrid div:nth-child(2n),
-.metricGrid div:last-child {
-  border-right: 0;
-}
-
-.metricGrid div:nth-last-child(-n + 2) {
-  border-bottom: 0;
-}
-
-.metricGrid span {
-  display: block;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.metricGrid strong {
-  display: block;
-  margin-top: 12px;
-  font-size: 24px;
-}
-
-.trendState {
-  display: grid;
-  gap: 12px;
-}
-
-.trendState strong {
-  font-size: 28px;
-}
-
-.trendState span {
-  color: var(--amber);
-  font-weight: 800;
-}
-
-.trendState p,
-.emptyFact {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.7;
-}
-
-.compactTable th,
-.compactTable td {
-  padding: 14px 16px;
-}
-
-.factRow {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.factRow span {
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.factRow strong {
-  color: var(--text);
-  font-size: 16px;
-  line-height: 1.5;
 }
 
 .comingSoonPage {
@@ -3514,224 +3220,6 @@ td:nth-child(7) {
     grid-template-columns: 1fr;
   }
 
-  .stockDetailHero,
-  .stockDetailHero dl,
-  .stockDetailGrid,
-  .metricGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .detailBlock,
-  .stockDetailHero dl div,
-  .metricGrid div {
-    border-right: 0;
-  }
-}
-
-/* Final detail + calendar pages override. */
-.stockDetailPanel {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 14px 36px rgba(31, 45, 61, 0.06);
-}
-
-.stockDetailHero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
-  border-bottom: 1px solid var(--line);
-  padding: 24px 28px 0;
-}
-
-.stockDetailHero > div:first-child span {
-  display: block;
-  color: var(--blue);
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.stockDetailHero h2 {
-  margin: 8px 0 6px;
-  color: var(--text);
-  font-size: 40px;
-  line-height: 1;
-}
-
-.stockDetailHero p {
-  margin: 0;
-  color: #526176;
-  font-size: 16px;
-  font-weight: 750;
-}
-
-.stockDetailPrice {
-  display: grid;
-  justify-items: end;
-  align-content: start;
-  gap: 12px;
-}
-
-.stockDetailPrice > strong {
-  color: var(--text);
-  font-size: 34px;
-  line-height: 1;
-}
-
-.stockDetailHero dl {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  margin: 26px -28px 0;
-  border-top: 1px solid var(--line);
-}
-
-.stockDetailHero dl div {
-  padding: 18px 22px;
-  border-right: 1px solid var(--line);
-}
-
-.stockDetailHero dl div:last-child {
-  border-right: 0;
-}
-
-.stockDetailHero dt {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.stockDetailHero dd {
-  margin: 8px 0 0;
-  color: var(--text);
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.stockDetailGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.16fr) minmax(360px, 0.84fr);
-  gap: 18px;
-  padding: 18px 0 0;
-  background: transparent;
-}
-
-.detailBlock {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 14px 36px rgba(31, 45, 61, 0.06);
-}
-
-.detailBlock.wide {
-  grid-row: span 2;
-}
-
-.detailBlockHead {
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  border-bottom: 1px solid var(--line);
-  padding: 0 20px;
-}
-
-.detailBlock h3 {
-  margin: 0;
-  color: var(--text);
-  font-size: 18px;
-}
-
-.detailBlockHead span {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.compactTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.compactTable th,
-.compactTable td {
-  border-bottom: 1px solid var(--line);
-  padding: 16px 20px;
-  color: var(--text);
-  text-align: left;
-}
-
-.compactTable th {
-  background: #f8fafc;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.compactTable td {
-  font-weight: 850;
-}
-
-.strengthBars td:nth-child(2) {
-  width: 42%;
-}
-
-.bar {
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: #e8edf4;
-  overflow: hidden;
-}
-
-.bar b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--blue);
-}
-
-.factRow {
-  display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 12px;
-  border-bottom: 1px solid var(--line);
-  padding: 16px 20px;
-}
-
-.factRow span {
-  color: var(--muted);
-  font-weight: 850;
-}
-
-.factRow strong {
-  color: var(--text);
-  line-height: 1.45;
-}
-
-.emptyFact {
-  margin: 0;
-  padding: 22px 20px;
-  color: var(--muted);
-  font-weight: 850;
-}
-
-@media (max-width: 980px) {
-  .stockDetailHero,
-  .stockDetailGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .stockDetailPrice {
-    justify-items: start;
-  }
-
-  .stockDetailHero dl {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 /* Final white-shell overrides: keep this block last. */
@@ -6264,9 +5752,7 @@ body,
 }
 
 .stocksTerminalLayout .stocksScreenerCard,
-.stocksPreviewPanel > section,
-.stockDetailPanel,
-.detailBlock {
+.stocksPreviewPanel > section {
   border-radius: 14px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, .05);
 }
@@ -6336,61 +5822,6 @@ body,
 
 .previewBarRow {
   min-height: 28px;
-}
-
-.stockDetailHero {
-  padding: 20px 24px 0;
-}
-
-.stockDetailHero > div:first-child span {
-  font-weight: 600;
-}
-
-.stockDetailHero h2 {
-  font-size: 32px;
-  font-weight: 650;
-}
-
-.stockDetailHero p {
-  font-size: 14px;
-  font-weight: 450;
-}
-
-.stockDetailPrice > strong {
-  font-size: 28px;
-  font-weight: 650;
-}
-
-.stockDetailHero dl {
-  margin: 22px -24px 0;
-}
-
-.stockDetailHero dl div {
-  padding: 14px 18px;
-}
-
-.stockDetailHero dt {
-  font-weight: 600;
-}
-
-.stockDetailHero dd {
-  font-size: 17px;
-  font-weight: 650;
-}
-
-.detailBlockHead {
-  min-height: 46px;
-  padding: 0 16px;
-}
-
-.detailBlock h3 {
-  font-size: 15px;
-  font-weight: 620;
-}
-
-.detailBlockHead span {
-  font-size: 12px;
-  font-weight: 560;
 }
 
 /* Front polish pass: white terminal density, fewer heavy headings. */
@@ -9267,119 +8698,9 @@ body,
   width: 86px;
 }
 
-.stocksPage .stockDetailPanel {
-  padding: 16px;
-  border-radius: 16px;
-}
-
-.stocksPage .stockDetailHero {
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 14px;
-}
-
-.stocksPage .stockDetailHero h2 {
-  font-size: 24px;
-  font-weight: 650;
-}
-
-.stocksPage .stockDetailHero p {
-  font-size: 13px;
-  font-weight: 420;
-}
-
-.stocksPage .stockDetailPrice > strong {
-  font-size: 18px;
-  font-weight: 620;
-}
-
-.stocksPage .stockDetailHero dl {
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid #e5ecf5;
-  border-radius: 12px;
-}
-
-.stocksPage .stockDetailHero dl div {
-  padding: 10px 12px;
-  border: 0;
-  border-right: 1px solid #edf2f7;
-  background: #fbfdff;
-}
-
-.stocksPage .stockDetailHero dl div:last-child {
-  border-right: 0;
-}
-
-.stocksPage .stockDetailHero dt {
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.stocksPage .stockDetailHero dd {
-  margin-top: 5px;
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.stocksPage .stockDetailGrid {
-  gap: 12px;
-  padding-top: 12px;
-}
-
-.stocksPage .detailBlock {
-  border-radius: 14px;
-  box-shadow: none;
-}
-
-.stocksPage .detailBlockHead {
-  min-height: 42px;
-  padding: 0 14px;
-}
-
-.stocksPage .detailBlock h3 {
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.stocksPage .detailBlockHead span {
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.stocksPage .compactTable th,
-.stocksPage .compactTable td {
-  padding: 10px 14px;
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.stocksPage .compactTable th {
-  font-weight: 560;
-}
-
-.stocksPage .compactTable td:first-child,
 .stocksPage .previewPeerTable td:first-child {
   color: #172033;
   font-weight: 620;
-}
-
-.stocksPage .factRow {
-  grid-template-columns: 116px minmax(0, 1fr);
-  padding: 10px 14px;
-}
-
-.stocksPage .factRow span {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stocksPage .factRow strong {
-  overflow: hidden;
-  font-size: 12px;
-  font-weight: 520;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Global shell: page title lives in the page content, not in every topbar. */
@@ -10799,7 +10120,6 @@ body,
 .trackingPage .screenerCard,
 .stocksPage .screenerCard,
 .stocksPage .stocksPreviewPanel > section,
-.stocksPage .stockDetailPanel,
 .marketFundsWorkspace.benchmark,
 .marketFundsSide section,
 .marketVolumePanel {
