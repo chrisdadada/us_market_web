@@ -43,15 +43,16 @@ that stops before deploy:
 DEPLOY_AFTER_REFRESH=0 ./scripts/automated_refresh.sh
 ```
 
-Production promotion is blocked unless explicitly enabled:
+Production promotion is blocked unless explicitly enabled in the manual command
+for that run:
 
 ```bash
-ALLOW_PROD_PROMOTE=1 PROMOTE_PROD_AFTER_DEPLOY=1 ./scripts/automated_refresh.sh
+MANUAL_PROD_APPROVAL=1 ALLOW_PROD_PROMOTE=1 PROMOTE_PROD_AFTER_DEPLOY=1 ./scripts/automated_refresh.sh
 ```
 
-For approved recurring data refresh jobs, set those two flags in
-`~/.dongbimao/refresh.env` so the scheduled refresh can promote the validated
-product DB without manual reruns.
+Do not put prod promotion approval in `~/.dongbimao/refresh.env`. Scheduled
+refresh jobs may deploy dev, but prod updates require the user to manually
+request that specific production update.
 
 Options flow refresh is part of this automation by default. It uses Polygon REST
 options aggregates, so it intentionally advances slowly to avoid rate limits:

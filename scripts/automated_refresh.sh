@@ -8,6 +8,7 @@ DATA_ROOT="${DATA_ROOT:-/Volumes/Extreme SSD/market-data-lab/data}"
 LOG_DIR="${ROOT}/logs/automation"
 LOCK_DIR="${ROOT}/.automated_refresh.lock"
 LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-${HOME}/.dongbimao/refresh.env}"
+REQUESTED_MANUAL_PROD_APPROVAL="${MANUAL_PROD_APPROVAL:-0}"
 
 mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/refresh-$(date +%Y%m%d-%H%M%S).log"
@@ -58,8 +59,9 @@ OPTIONS_MAX_DAYS="${OPTIONS_MAX_DAYS:-1}"
 OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"
 DEPLOY_AFTER_REFRESH="${DEPLOY_AFTER_REFRESH:-1}"
 PROMOTE_PROD_AFTER_DEPLOY="${PROMOTE_PROD_AFTER_DEPLOY:-0}"
-if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" && "${ALLOW_PROD_PROMOTE:-0}" != "1" ]]; then
-  echo "Production promote blocked. Set ALLOW_PROD_PROMOTE=1 only after explicit user approval."
+MANUAL_PROD_APPROVAL="${REQUESTED_MANUAL_PROD_APPROVAL}"
+if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" && ( "${ALLOW_PROD_PROMOTE:-0}" != "1" || "${MANUAL_PROD_APPROVAL}" != "1" ) ]]; then
+  echo "Production promote blocked. Set MANUAL_PROD_APPROVAL=1 and ALLOW_PROD_PROMOTE=1 only after explicit user approval."
   exit 2
 fi
 if [[ -z "${REQUIRE_FRESH_ASOF:-}" ]]; then

@@ -169,7 +169,7 @@ React 标准：
 标准：
 
 - 默认只允许部署 dev。
-- production promote 必须用户当次明确授权。
+- production promote 必须用户当次手动通知并明确授权；不得通过定时任务、历史授权或本地 env 自动更新 prod。
 - 代码部署不拉行情、财报、期权等产品数据；数据刷新只走自动化任务或显式数据脚本。
 - dev / prod 前台、API、DB 应隔离。
 - 当前 `docs/release-flow.md` 记录过“同 API 服务”的历史现状，这是待清理技术债；新改动不得继续加重这个问题。
