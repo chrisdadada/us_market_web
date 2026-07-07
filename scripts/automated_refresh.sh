@@ -47,6 +47,8 @@ DAYS_BACK="${DAYS_BACK:-10}"
 DOWNLOAD_WORKERS="${DOWNLOAD_WORKERS:-4}"
 PROCESS_WORKERS="${PROCESS_WORKERS:-4}"
 RUN_REFERENCE="${RUN_REFERENCE:-1}"
+REFERENCE_ATTEMPTS="${REFERENCE_ATTEMPTS:-3}"
+REFERENCE_RETRY_SLEEP_SECONDS="${REFERENCE_RETRY_SLEEP_SECONDS:-600}"
 RUN_RESTRICTED_EVENTS="${RUN_RESTRICTED_EVENTS:-1}"
 EVENTS_FUTURE_DAYS="${EVENTS_FUTURE_DAYS:-90}"
 RUN_MINUTE_BARS="${RUN_MINUTE_BARS:-0}"
@@ -127,6 +129,8 @@ echo "SKIP_IF_SUCCESSFUL_TODAY=${SKIP_IF_SUCCESSFUL_TODAY}"
 echo "REQUIRE_FRESH_ASOF=${REQUIRE_FRESH_ASOF}"
 echo "RUN_OPTIONS_FLOW=${RUN_OPTIONS_FLOW}"
 echo "RUN_MINUTE_BARS=${RUN_MINUTE_BARS}"
+echo "REFERENCE_ATTEMPTS=${REFERENCE_ATTEMPTS}"
+echo "REFERENCE_RETRY_SLEEP_SECONDS=${REFERENCE_RETRY_SLEEP_SECONDS}"
 echo "EVENTS_FUTURE_DAYS=${EVENTS_FUTURE_DAYS}"
 echo "OPTIONS_PHASE=${OPTIONS_PHASE}"
 echo "OPTIONS_MAX_DAYS=${OPTIONS_MAX_DAYS}"
@@ -138,6 +142,27 @@ run_lab() {
   echo
   echo "--- ${label} ---"
   (cd "${LAB}" && "$@")
+}
+
+run_lab_retry() {
+  local label="$1"
+  local attempts="$2"
+  local sleep_seconds="$3"
+  local attempt=1
+  shift 3
+
+  while true; do
+    if run_lab "${label} (attempt ${attempt}/${attempts})" "$@"; then
+      return 0
+    fi
+    if (( attempt >= attempts )); then
+      echo "ERROR: ${label} failed after ${attempts} attempts"
+      return 1
+    fi
+    echo "WARN: ${label} failed; retrying in ${sleep_seconds}s"
+    sleep "${sleep_seconds}"
+    attempt=$((attempt + 1))
+  done
 }
 
 try_lab() {
@@ -194,7 +219,7 @@ if [[ "${RUN_MINUTE_BARS}" == "1" ]]; then
 fi
 
 if [[ "${RUN_REFERENCE}" == "1" ]]; then
-  run_lab "refresh Polygon reference data" \
+  run_lab_retry "refresh Polygon reference data" "${REFERENCE_ATTEMPTS}" "${REFERENCE_RETRY_SLEEP_SECONDS}" \
     "${PY}" scripts/download_polygon_reference.py \
     --datasets ticker_types,tickers,corporate_actions \
     --start "${YEAR_START}" --end "${END_DATE}" \
@@ -302,7 +327,7 @@ run_lab "build monetizable signal features" \
 if [[ "${RUN_OPTIONS_FLOW}" == "1" ]]; then
   OPTIONS_START_DATE="${OPTIONS_START_DATE:-${START_DATE}}"
   OPTIONS_END_DATE="${OPTIONS_END_DATE:-${ASOF}}"
-  run_lab "refresh options flow daily aggregates" \
+  try_lab "refresh options flow daily aggregates" \
     "${PY}" scripts/run_options_backfill_plan.py \
     --phase "${OPTIONS_PHASE}" \
     --start "${OPTIONS_START_DATE}" \
@@ -336,6 +361,9 @@ if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
     run_root "promote latest build to production" \
       bash scripts/promote_prod.sh
+
+    run_root "deploy product DB to production" \
+      env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
   fi
 fi
 

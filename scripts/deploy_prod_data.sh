@@ -9,8 +9,12 @@ REMOTE_DB="/tmp/dongbimao-product-new.db"
 cd "$(dirname "$0")/.."
 mkdir -p "$(dirname "${BUILD_DB}")"
 
-"${PY}" scripts/build_product_db.py --output "${BUILD_DB}"
-"${PY}" scripts/update_macro_calendar_results.py --db "${BUILD_DB}"
+if [ "${SKIP_PRODUCT_DB_BUILD:-0}" != "1" ]; then
+  "${PY}" scripts/build_product_db.py --output "${BUILD_DB}"
+  "${PY}" scripts/update_macro_calendar_results.py --db "${BUILD_DB}"
+else
+  test -f "${BUILD_DB}"
+fi
 
 rsync --partial "${BUILD_DB}" "${SERVER}:${REMOTE_DB}"
 

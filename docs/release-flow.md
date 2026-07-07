@@ -49,6 +49,10 @@ Production promotion is blocked unless explicitly enabled:
 ALLOW_PROD_PROMOTE=1 PROMOTE_PROD_AFTER_DEPLOY=1 ./scripts/automated_refresh.sh
 ```
 
+For approved recurring data refresh jobs, set those two flags in
+`~/.dongbimao/refresh.env` so the scheduled refresh can promote the validated
+product DB without manual reruns.
+
 Options flow refresh is part of this automation by default. It uses Polygon REST
 options aggregates, so it intentionally advances slowly to avoid rate limits:
 
