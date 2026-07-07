@@ -41,8 +41,16 @@ COPYFILE_DISABLE=1 tar \
 rsync --partial "${ARCHIVE}" "${SERVER}:${REMOTE_ARCHIVE}"
 
 ssh "${SERVER}" 'set -e
+rm -f /tmp/dongbimao-dev-product.db
+if [ -f /opt/dongbimao-dev/data/product.db ]; then
+  cp /opt/dongbimao-dev/data/product.db /tmp/dongbimao-dev-product.db
+fi
 rm -rf /opt/dongbimao-dev/*
 tar -xzf /tmp/dongbimao-site.tar.gz -C /opt/dongbimao-dev
+if [ -f /tmp/dongbimao-dev-product.db ]; then
+  mkdir -p /opt/dongbimao-dev/data
+  cp /tmp/dongbimao-dev-product.db /opt/dongbimao-dev/data/product.db
+fi
 rm -rf /tmp/dongbimao-web-assets /tmp/dongbimao-admin-assets
 mkdir -p /tmp/dongbimao-web-assets /tmp/dongbimao-admin-assets
 if [ -d /var/www/dongbimao-dev/assets ]; then

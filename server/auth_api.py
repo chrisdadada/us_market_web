@@ -24,6 +24,7 @@ from typing import Any, Iterator
 from urllib.parse import parse_qs, quote, urlencode, unquote, urlparse
 
 import funding_scanner
+import open_portfolio
 
 
 DB_PATH = Path(os.environ.get("APP_DB", "/var/lib/ytd-gainers/app.db"))
@@ -3145,6 +3146,22 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"records": TRADE_RECORDS})
             return
 
+        if self.path == "/api/open-portfolio":
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "持仓参考需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            try:
+                with product_db_write() as conn:
+                    self.send_json(open_portfolio.payload(conn))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:
+                self.send_json({"error": f"读取失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
         if self.path == "/api/courses":
             user = self.require_user()
             if not user:
@@ -3195,6 +3212,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             except Exception as exc:
                 self.send_json({"error": f"扫描失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if parsed.path == "/api/admin/open-portfolio":
+            user = self.require_admin()
+            if not user:
+                return
+            try:
+                with product_db_write() as conn:
+                    self.send_json(open_portfolio.payload(conn))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:
+                self.send_json({"error": f"读取失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
         if self.path == "/api/data" or self.path.startswith("/api/data/"):
@@ -3617,6 +3647,22 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": True, "item": item}, HTTPStatus.CREATED)
             return
 
+        if self.path == "/api/admin/open-portfolio/trades":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                with product_db_write() as conn:
+                    result = open_portfolio.add_trade(conn, self.read_json(), now_iso().replace("T", " ")[:19])
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"保存失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, **result}, HTTPStatus.CREATED)
+            return
+
         if self.path == "/api/admin/uploads":
             admin = self.require_admin()
             if not admin:
@@ -3727,6 +3773,26 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/admin/open-portfolio/trades/"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                trade_id = int(unquote(parsed.path.removeprefix("/api/admin/open-portfolio/trades/")))
+                with product_db_write() as conn:
+                    deleted = open_portfolio.delete_trade(conn, trade_id)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"删除失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            if not deleted:
+                self.send_json({"error": "交易记录不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
         if parsed.path.startswith("/api/admin/opinions/"):
             admin = self.require_admin()
             if not admin:

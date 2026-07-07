@@ -226,6 +226,105 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-size: 13px;
   font-weight: 750;
 }
+.openTradeForm {
+  display: grid;
+  grid-template-columns: 190px 150px 130px 150px minmax(180px, 1fr) 120px;
+  gap: 14px;
+  align-items: end;
+}
+.openTradeForm.sellForm {
+  grid-template-columns: 190px 150px 150px minmax(320px, 1fr) minmax(180px, 1fr) 120px;
+}
+.openTradeHeader {
+  border-bottom: 1px solid #e6ebf2;
+  padding-bottom: 16px;
+}
+.openTradeHeader.buy h2 {
+  color: #0f9b72;
+}
+.openTradeHeader.sell h2 {
+  color: #be123c;
+}
+.tradeSideButtons {
+  display: flex;
+  gap: 10px;
+}
+.tradeSideButtons button {
+  height: 36px;
+  border: 1px solid #d6dee9;
+  border-radius: 9px;
+  background: #fff;
+  color: #526174;
+  padding: 0 18px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.tradeSideButtons button.buy.active {
+  border-color: #b8ecd6;
+  background: #eafbF4;
+  color: #0f9b72;
+}
+.tradeSideButtons button.sell.active {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+.openTradeForm label {
+  display: grid;
+  gap: 6px;
+  color: #526174;
+  font-size: 12px;
+  font-weight: 680;
+}
+.openTradeForm input,
+.openTradeForm select {
+  height: 38px;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #182337;
+  background: #fff;
+  outline: none;
+}
+.quantityInput {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px 58px 58px;
+  gap: 8px;
+}
+.quantityInput button {
+  height: 38px;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  background: #fff;
+  color: #1677ff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tradeSubmit {
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 850;
+  cursor: pointer;
+}
+.tradeSubmit.buy {
+  background: #0f9b72;
+}
+.tradeSubmit.sell {
+  background: #ef4444;
+}
+.tradeSubmit:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+.openAdminGrid {
+  display: grid;
+  grid-template-columns: minmax(420px, .8fr) minmax(0, 1.2fr);
+  gap: 20px;
+  align-items: start;
+}
 .userIdentityCell,
 .lastEventCell {
   display: grid;

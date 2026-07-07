@@ -104,6 +104,30 @@ export type AuthStatus = {
   user: null | { id: number; email: string; role: string; isSuperAdmin: boolean };
 };
 
+export type OpenPortfolioTrade = {
+  id: number;
+  tradeTime: string;
+  symbol: string;
+  side: "buy" | "sell";
+  price: number;
+  positionPct: number;
+  amount: number;
+  quantity: number;
+  realizedPnl: number;
+  equityAfter: number;
+  note?: string;
+};
+
+export type OpenPortfolioPayload = {
+  initialCapital: number;
+  equity: number;
+  realizedPnl: number;
+  realizedReturnPct: number;
+  holdings: Array<{ symbol: string; quantity: number; avgCost: number; cost: number; positionPct: number }>;
+  trades: OpenPortfolioTrade[];
+  curve: Array<{ time: string; value: number }>;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -155,6 +179,16 @@ export const api = {
       summary: { total: number; active: number; paid: number; admin: number };
     }>("/api/admin/users"),
   metrics: () => request<AdminMetrics>("/api/admin/metrics"),
+  openPortfolio: () => request<OpenPortfolioPayload>("/api/admin/open-portfolio"),
+  saveOpenTrade: (payload: { tradeTime: string; symbol: string; side: "buy" | "sell"; price: number; amount?: number; quantity?: number; note?: string }) =>
+    request<{ ok: true } & OpenPortfolioPayload>("/api/admin/open-portfolio/trades", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  deleteOpenTrade: (id: number) =>
+    request<{ ok: true }>(`/api/admin/open-portfolio/trades/${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    }),
   events: (limit = 100, userId?: number) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (userId) params.set("userId", String(userId));

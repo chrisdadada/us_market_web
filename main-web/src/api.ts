@@ -362,6 +362,36 @@ export type FundingScannerQuery = {
   cached?: boolean;
 };
 
+export type OpenPortfolioTrade = {
+  id: number;
+  tradeTime: string;
+  symbol: string;
+  side: "buy" | "sell";
+  price: number;
+  positionPct: number;
+  amount: number;
+  quantity: number;
+  realizedPnl: number;
+  equityAfter: number;
+  note?: string;
+};
+
+export type OpenPortfolioPayload = {
+  initialCapital: number;
+  equity: number;
+  realizedPnl: number;
+  realizedReturnPct: number;
+  holdings: Array<{
+    symbol: string;
+    quantity: number;
+    avgCost: number;
+    cost: number;
+    positionPct: number;
+  }>;
+  trades: OpenPortfolioTrade[];
+  curve: Array<{ time: string; value: number }>;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -445,6 +475,7 @@ export const api = {
   symbols: (params: URLSearchParams) => request<SymbolSearchPayload>(`/api/product/symbols?${params.toString()}`),
   symbolDetail: (symbol: string) => request<SymbolDetailPayload>(`/api/product/symbols/${encodeURIComponent(symbol)}`),
   signals: () => request<SignalPayload>("/api/signals"),
+  openPortfolio: () => request<OpenPortfolioPayload>("/api/open-portfolio"),
   fundingScanner: (options: FundingScannerQuery) => {
     const params = new URLSearchParams();
     Object.entries(options).forEach(([key, value]) => params.set(key, String(value)));

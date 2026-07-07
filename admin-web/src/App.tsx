@@ -1,13 +1,14 @@
 import { ClipboardEvent, FormEvent, ReactElement, ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { api, AdminMetrics, AdminUser, AuthStatus, CourseGrant, CourseLesson, CourseSeries, MarketOpinion, OpinionStatus, UserEvent } from "./api";
+import { api, AdminMetrics, AdminUser, AuthStatus, CourseGrant, CourseLesson, CourseSeries, MarketOpinion, OpenPortfolioPayload, OpinionStatus, UserEvent } from "./api";
 
-type PageKey = "home" | "users" | "members" | "content" | "courses" | "events" | "admins";
+type PageKey = "home" | "users" | "members" | "content" | "open" | "courses" | "events" | "admins";
 
 const navItems: Array<{ key: PageKey; label: string }> = [
   { key: "home", label: "首页" },
   { key: "users", label: "用户管理" },
   { key: "members", label: "会员管理" },
   { key: "content", label: "内容管理" },
+  { key: "open", label: "Open 持仓" },
   { key: "courses", label: "交易实战课程管理" },
   { key: "events", label: "操作记录" },
   { key: "admins", label: "管理员" }
@@ -57,6 +58,27 @@ function formatDate(value?: string | null) {
   return String(value).slice(0, 10);
 }
 
+function adminMoney(value?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  return `${(Number(value) / 10000).toLocaleString("zh-CN", { maximumFractionDigits: 2 })}万`;
+}
+
+function adminPrice(value?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  return Number(value).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+}
+
+function adminPercent(value?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  return `${Number(value).toFixed(2)}%`;
+}
+
+function signedMoney(value?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  const prefix = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${prefix}${adminMoney(Math.abs(value))}`;
+}
+
 function daysUntil(value?: string | null) {
   if (!value) return null;
   const end = new Date(`${String(value).slice(0, 10)}T23:59:59`);
@@ -97,6 +119,12 @@ function localDateTimeInputValue(value?: string | null) {
   }
   const now = new Date();
   return `${now.getFullYear()}-${padTimePart(now.getMonth() + 1)}-${padTimePart(now.getDate())}T${padTimePart(now.getHours())}:${padTimePart(now.getMinutes())}:${padTimePart(now.getSeconds())}`;
+}
+
+function localDateInputValue(value?: string | null) {
+  if (value) return String(value).slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${padTimePart(now.getMonth() + 1)}-${padTimePart(now.getDate())}`;
 }
 
 function normalizeDateTimeInput(value: string) {
@@ -1407,6 +1435,186 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   );
 }
 
+function OpenPortfolioPage() {
+  const [data, setData] = useState<OpenPortfolioPayload | null>(null);
+  const [form, setForm] = useState({
+    tradeTime: localDateInputValue(),
+    symbol: "",
+    side: "buy" as "buy" | "sell",
+    price: "",
+    amount: "",
+    quantity: "",
+    note: ""
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const holdings = data?.holdings || [];
+  const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
+  const setTradeSide = (side: "buy" | "sell") => {
+    setForm({ ...form, side, symbol: side === "sell" ? holdings[0]?.symbol || "" : "", amount: "", quantity: "" });
+  };
+  const setSellQuantity = (ratio: number) => {
+    if (!selectedHolding) return;
+    setForm({ ...form, quantity: String(Math.floor(selectedHolding.quantity * ratio * 1000000) / 1000000) });
+  };
+
+  async function loadOpenPortfolio() {
+    setLoading(true);
+    setMessage("");
+    try {
+      setData(await api.openPortfolio());
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "读取失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadOpenPortfolio();
+  }, []);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      const result = await api.saveOpenTrade({
+        tradeTime: form.tradeTime,
+        symbol: form.symbol.trim().toUpperCase(),
+        side: form.side,
+        price: Number(form.price),
+        amount: form.side === "buy" ? Number(form.amount) : undefined,
+        quantity: form.side === "sell" ? Number(form.quantity) : undefined,
+        note: form.note
+      });
+      setData(result);
+      setForm({ tradeTime: localDateInputValue(), symbol: "", side: "buy", price: "", amount: "", quantity: "", note: "" });
+      setMessage("已保存");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeTrade(id: number) {
+    if (!window.confirm("删除这笔交易记录？")) return;
+    setSaving(true);
+    setMessage("");
+    try {
+      await api.deleteOpenTrade(id);
+      await loadOpenPortfolio();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="pageStack">
+      <div className="pageTitle">
+        <div>
+          <span>Open 持仓参考</span>
+          <h1>持仓与交易</h1>
+        </div>
+      </div>
+
+      {message ? <div className="notice inlineNotice">{message}</div> : null}
+      {loading ? <div className="contentLoading inlineNotice">读取中</div> : null}
+
+      <div className="statsGrid">
+        <StatCard label="初始资金" value={adminMoney(data?.initialCapital)} />
+        <StatCard label="当前资金" value={adminMoney(data?.equity)} />
+        <StatCard label="已实现收益" value={signedMoney(data?.realizedPnl)} tone={(data?.realizedPnl || 0) >= 0 ? "positive" : "dangerText"} />
+        <StatCard label="当前持仓" value={data?.holdings.length ?? "--"} note={`交易 ${data?.trades.length ?? "--"} 笔`} />
+      </div>
+
+      <section className="panel">
+        <div className={`panelHeader openTradeHeader ${form.side === "sell" ? "sell" : "buy"}`}>
+          <h2>{form.side === "buy" ? "买入" : "卖出"}</h2>
+          <div className="tradeSideButtons">
+            <button type="button" className={form.side === "buy" ? "active buy" : "buy"} onClick={() => setTradeSide("buy")}>买入</button>
+            <button type="button" className={form.side === "sell" ? "active sell" : "sell"} onClick={() => setTradeSide("sell")}>卖出</button>
+          </div>
+        </div>
+        <form className={`openTradeForm ${form.side === "sell" ? "sellForm" : ""}`} onSubmit={submit}>
+          <label>日期<input type="date" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} /></label>
+          <label>标的{form.side === "sell" ? (
+            <select value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })}>
+              <option value="">选择持仓</option>
+              {holdings.map((item) => <option value={item.symbol} key={item.symbol}>{item.symbol}</option>)}
+            </select>
+          ) : (
+            <input value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value.toUpperCase() })} placeholder="SNDK" />
+          )}</label>
+          <label>价格<input type="number" min="0" step="0.000001" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
+          {form.side === "buy" ? (
+            <label>买入金额<input type="number" min="0" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" /></label>
+          ) : (
+            <label>卖出数量
+              <div className="quantityInput">
+                <input type="number" min="0" max={selectedHolding?.quantity || undefined} step="0.000001" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder={selectedHolding ? String(selectedHolding.quantity) : ""} />
+                <button type="button" onClick={() => setSellQuantity(1 / 3)}>1/3</button>
+                <button type="button" onClick={() => setSellQuantity(1 / 2)}>半仓</button>
+                <button type="button" onClick={() => setSellQuantity(1)}>全卖</button>
+              </div>
+            </label>
+          )}
+          <label>备注<input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
+          <button className={`tradeSubmit ${form.side}`} type="submit" disabled={saving}>{saving ? "保存中" : form.side === "buy" ? "确认买入" : "确认卖出"}</button>
+        </form>
+      </section>
+
+      <div className="openAdminGrid">
+        <section className="panel tablePanel">
+          <div className="panelHeader"><h2>当前持仓</h2></div>
+          <table className="adminTable">
+            <thead><tr><th>标的</th><th>持仓比例</th><th>成本</th><th>均价</th><th>数量</th><th>操作</th></tr></thead>
+            <tbody>
+              {data?.holdings.map((row) => (
+                <tr key={row.symbol}>
+                  <td><strong>{row.symbol}</strong></td>
+                  <td>{adminPercent(row.positionPct)}</td>
+                  <td>{adminMoney(row.cost)}</td>
+                  <td>{adminPrice(row.avgCost)}</td>
+                  <td>{row.quantity.toLocaleString("zh-CN", { maximumFractionDigits: 6 })}</td>
+                  <td><button type="button" className="tableAction dangerAction" onClick={() => setForm({ tradeTime: localDateInputValue(), symbol: row.symbol, side: "sell", price: "", amount: "", quantity: "", note: "" })}>卖出</button></td>
+                </tr>
+              ))}
+              {!data?.holdings.length ? <tr><td colSpan={6}>暂无持仓</td></tr> : null}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="panel tablePanel">
+          <div className="panelHeader"><h2>交易历史</h2></div>
+          <table className="adminTable">
+            <thead><tr><th>日期</th><th>标的</th><th>方向</th><th>价格</th><th>数量</th><th>金额</th><th>已实现</th><th>操作</th></tr></thead>
+            <tbody>
+              {data?.trades.map((row) => (
+                <tr key={row.id}>
+                  <td>{formatDate(row.tradeTime)}</td>
+                  <td><strong>{row.symbol}</strong></td>
+                  <td><span className={`status ${row.side === "buy" ? "positiveBg" : "dangerBg"}`}>{row.side === "buy" ? "买入" : "卖出"}</span></td>
+                  <td>{adminPrice(row.price)}</td>
+                  <td>{row.quantity.toLocaleString("zh-CN", { maximumFractionDigits: 6 })}</td>
+                  <td>{adminMoney(row.amount)}</td>
+                  <td className={row.realizedPnl >= 0 ? "positive" : "dangerText"}>{row.side === "sell" ? signedMoney(row.realizedPnl) : "--"}</td>
+                  <td><button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => removeTrade(row.id)}>删除</button></td>
+                </tr>
+              ))}
+              {!data?.trades.length ? <tr><td colSpan={8}>暂无交易记录</td></tr> : null}
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 function EventsPage({ events }: { events: UserEvent[] }) {
   const [action, setAction] = useState("all");
   const [keyword, setKeyword] = useState("");
@@ -2344,6 +2552,7 @@ export function App() {
         {page === "users" ? <UsersPage users={users} events={events} currentUser={auth.user} onRefresh={loadData} /> : null}
         {page === "members" ? <MembersPage users={users} events={events} onRefresh={loadData} /> : null}
         {page === "content" ? <ContentPage /> : null}
+        {page === "open" ? <OpenPortfolioPage /> : null}
         {page === "courses" ? <CoursesPage users={users} /> : null}
         {page === "events" ? <EventsPage events={events} /> : null}
         {page === "admins" ? <AdminsPage users={users} events={events} /> : null}

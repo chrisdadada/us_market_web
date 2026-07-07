@@ -7858,6 +7858,21 @@ body,
   font-weight: 520;
 }
 
+.openHero span,
+.openNotice {
+  color: #718096;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.openNotice {
+  margin: 0;
+  border: 1px solid #dfe7f2;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+}
+
 .openMetricGrid {
   gap: 12px;
 }
@@ -10847,6 +10862,91 @@ body,
 
 .calendarV3 .macroEventList button {
   min-height: 54px;
+}
+
+/* Open portfolio: readable account layout. */
+.openPortfolioPage .openCurve {
+  height: 180px;
+}
+
+.openPortfolioPage .openTwoCol {
+  grid-template-columns: 1fr;
+}
+
+.openPortfolioPage .openTable {
+  table-layout: fixed;
+}
+
+.openPortfolioPage .openTable th,
+.openPortfolioPage .openTable td {
+  height: 46px;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.openPortfolioPage .openHoldingsTable th:not(:first-child),
+.openPortfolioPage .openHoldingsTable td:not(:first-child) {
+  text-align: right;
+}
+
+.openPortfolioPage .openHoldingsTable th:first-child,
+.openPortfolioPage .openHoldingsTable td:first-child {
+  width: 120px;
+}
+
+.openPortfolioPage .openHistoryTable th:nth-child(1),
+.openPortfolioPage .openHistoryTable td:nth-child(1) {
+  width: 116px;
+}
+
+.openPortfolioPage .openHistoryTable th:nth-child(2),
+.openPortfolioPage .openHistoryTable td:nth-child(2),
+.openPortfolioPage .openHistoryTable th:nth-child(3),
+.openPortfolioPage .openHistoryTable td:nth-child(3) {
+  width: 82px;
+}
+
+.openPortfolioPage .openHistoryTable th:nth-child(4),
+.openPortfolioPage .openHistoryTable td:nth-child(4),
+.openPortfolioPage .openHistoryTable th:nth-child(5),
+.openPortfolioPage .openHistoryTable td:nth-child(5),
+.openPortfolioPage .openHistoryTable th:nth-child(6),
+.openPortfolioPage .openHistoryTable td:nth-child(6),
+.openPortfolioPage .openHistoryTable th:nth-child(7),
+.openPortfolioPage .openHistoryTable td:nth-child(7) {
+  text-align: right;
+}
+
+.openPager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.openPager button {
+  height: 32px;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  background: #fff;
+  color: #344257;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.openPager button:disabled {
+  color: #a7b2c2;
+  cursor: not-allowed;
+}
+
+.openPager span {
+  color: #718096;
+  font-size: 12px;
+  font-weight: 750;
 }
 
 /* Opinion detail reading: single-column article, no side rail. */
