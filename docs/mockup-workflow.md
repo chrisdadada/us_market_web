@@ -21,6 +21,7 @@ Git 边界：
 
 - `mockups/*.html`、`mockups/*.svg` 可以作为确认图源文件按需提交。
 - `mockups/*.png`、`mockups/output/` 是截图产物，默认不提交。
+- 未确认、已替代、或用户明确不要的 mockup 文件，同轮清理，不长期留在工作区。
 
 脚本会同时检查：
 
