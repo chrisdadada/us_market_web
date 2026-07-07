@@ -57,7 +57,7 @@ SUPER_ADMIN_EMAIL = os.environ.get("SUPER_ADMIN_EMAIL", "admin@meigustrategy.loc
 SUPER_ADMIN_PASSWORD = os.environ.get("SUPER_ADMIN_PASSWORD", "")
 SIGNALS_API_TOKEN = os.environ.get("SIGNALS_API_TOKEN", "")
 MARKET_OPINION_SECTIONS = {
-    "weekly": "每周交易主线",
+    "weekly": "周度前瞻",
     "premarket": "盘前前瞻",
     "daily": "每日个股行情观点",
     "research": "研报解析",
@@ -374,6 +374,8 @@ def decode_upload_image(payload: dict[str, Any]) -> tuple[bytes, str, str]:
 
 def save_upload_image(payload: dict[str, Any]) -> dict[str, str]:
     raw, mime, ext = decode_upload_image(payload)
+    if str(payload.get("scope") or "").strip().lower() == "courses":
+        return upload_course_image(str(payload.get("name") or "course-cover"), mime, raw, ext)
     day = datetime.now(timezone.utc).strftime("%Y%m%d")
     root = upload_root()
     scope = str(payload.get("scope") or "opinions").strip().lower()
@@ -1095,7 +1097,7 @@ def product_market_opinion_payload(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "id": row["item_id"],
         "section": row["section"],
-        "sectionLabel": row["section_label"],
+        "sectionLabel": MARKET_OPINION_SECTIONS.get(row["section"], row["section_label"]),
         "title": row["title"],
         "tradeDate": row["trade_date"],
         "status": status,
@@ -1238,6 +1240,7 @@ def init_db() -> None:
               title TEXT NOT NULL,
               sort_order INTEGER NOT NULL DEFAULT 1,
               duration_label TEXT,
+              cover_url TEXT,
               video_key TEXT NOT NULL,
               status TEXT NOT NULL DEFAULT 'published',
               created_at TEXT NOT NULL,
@@ -1272,6 +1275,9 @@ def init_db() -> None:
         course_series_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_series)").fetchall()}
         if "sort_order" not in course_series_columns:
             conn.execute("ALTER TABLE course_series ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 1")
+        course_lesson_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_lessons)").fetchall()}
+        if "cover_url" not in course_lesson_columns:
+            conn.execute("ALTER TABLE course_lessons ADD COLUMN cover_url TEXT")
         if SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD:
             existing = conn.execute("SELECT id FROM users WHERE email = ?", (SUPER_ADMIN_EMAIL,)).fetchone()
             salt, password_hash = hash_password(SUPER_ADMIN_PASSWORD)
@@ -1635,19 +1641,21 @@ def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
     active = conn.execute(
         """
         SELECT
-          COUNT(DISTINCT CASE WHEN datetime(created_at) >= datetime('now', '-3 days') THEN user_id END) AS d3,
-          COUNT(DISTINCT CASE WHEN datetime(created_at) >= datetime('now', '-7 days') THEN user_id END) AS d7,
-          COUNT(DISTINCT CASE WHEN datetime(created_at) >= datetime('now', '-30 days') THEN user_id END) AS d30
-        FROM analytics_events
-        WHERE event_type = 'nav_click' AND user_id IS NOT NULL
+          COUNT(DISTINCT CASE WHEN datetime(a.created_at) >= datetime('now', '-3 days') THEN a.user_id END) AS d3,
+          COUNT(DISTINCT CASE WHEN datetime(a.created_at) >= datetime('now', '-7 days') THEN a.user_id END) AS d7,
+          COUNT(DISTINCT CASE WHEN datetime(a.created_at) >= datetime('now', '-30 days') THEN a.user_id END) AS d30
+        FROM analytics_events a
+        JOIN users u ON u.id = a.user_id AND u.role = 'user'
+        WHERE a.event_type = 'nav_click'
         """
     ).fetchone()
     nav_rows = conn.execute(
         """
-        SELECT event_key, COUNT(*) AS clicks, COUNT(DISTINCT user_id) AS users
-        FROM analytics_events
-        WHERE event_type = 'nav_click' AND user_id IS NOT NULL AND datetime(created_at) >= datetime('now', '-30 days')
-        GROUP BY event_key
+        SELECT a.event_key, COUNT(*) AS clicks, COUNT(DISTINCT a.user_id) AS users
+        FROM analytics_events a
+        JOIN users u ON u.id = a.user_id AND u.role = 'user'
+        WHERE a.event_type = 'nav_click' AND datetime(a.created_at) >= datetime('now', '-30 days')
+        GROUP BY a.event_key
         ORDER BY clicks DESC
         LIMIT 30
         """
@@ -1742,7 +1750,7 @@ def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None
         "slug": row["slug"],
         "title": row["title"],
         "summary": row["summary"] or "",
-        "coverUrl": row["cover_url"] or "",
+        "coverUrl": signed_course_image_url(row["cover_url"] or ""),
         "sortOrder": row["sort_order"],
         "status": row["status"],
         "lessonCount": row["lesson_count"] if "lesson_count" in row.keys() else len(lessons or []),
@@ -1763,6 +1771,7 @@ def course_lesson_payload(row: sqlite3.Row, include_key: bool = False) -> dict[s
         "title": row["title"],
         "sortOrder": row["sort_order"],
         "durationLabel": row["duration_label"] or "",
+        "coverUrl": signed_course_image_url(row["cover_url"] or ""),
         "status": row["status"],
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
@@ -1825,6 +1834,22 @@ def course_video_key(value: str) -> str:
     return raw
 
 
+def signed_course_image_url(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    key = course_video_key(raw)
+    if not key or not key.startswith("course-image/"):
+        return raw
+    try:
+        return signed_course_cos_url(key, method="get", ttl=COURSE_COS_SIGN_TTL)
+    except Exception:
+        try:
+            return cos_object_url(key)[0]
+        except Exception:
+            return raw
+
+
 def signed_course_cos_url(key: str, *, method: str = "get", now: int | None = None, ttl: int | None = None) -> str:
     if not COURSE_COS_SECRET_ID or not COURSE_COS_SECRET_KEY:
         raise RuntimeError("COS 未配置")
@@ -1871,6 +1896,54 @@ def course_video_object_key(name: str, content_type: str = "") -> str:
         suffix = ".mp4"
     day = datetime.now(timezone.utc).strftime("%Y%m%d")
     return f"lesson/{day}/{int(time.time())}-{secrets.token_hex(6)}-{safe_course_video_filename(name)}{suffix}"
+
+
+def course_image_object_key(name: str, ext: str) -> str:
+    suffix = ext if re.fullmatch(r"\.[a-z0-9]{1,8}", ext or "") else ".jpg"
+    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return f"course-image/{day}/{int(time.time())}-{secrets.token_hex(6)}-{safe_upload_filename(name, fallback='course-cover')}{suffix}"
+
+
+def upload_course_image(name: str, mime: str, raw: bytes, ext: str) -> dict[str, str]:
+    key = course_image_object_key(name, ext)
+    upload_url = signed_course_cos_url(key, method="put", ttl=600)
+    request = urllib.request.Request(
+        upload_url,
+        data=raw,
+        method="PUT",
+        headers={
+            "Content-Type": mime,
+            "Content-Length": str(len(raw)),
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            if response.status < 200 or response.status >= 300:
+                raise RuntimeError(f"COS 上传失败：HTTP {response.status}")
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"COS 上传失败：HTTP {exc.code}") from exc
+    return {"url": signed_course_image_url(key), "mime": mime, "name": Path(name or key).name}
+
+
+def create_course_image_upload_ticket(payload: dict[str, Any]) -> dict[str, str | int]:
+    name = str(payload.get("name") or "course-cover").strip()
+    mime = str(payload.get("type") or "").split(";", 1)[0].strip().lower()
+    size = int(payload.get("size") or 0)
+    if mime == "image/jpg":
+        mime = "image/jpeg"
+    if mime not in ALLOWED_UPLOAD_MIMES:
+        raise ValueError("只支持 PNG、JPG、WebP、GIF 图片")
+    if size <= 0:
+        raise ValueError("图片为空")
+    if size > UPLOAD_MAX_BYTES:
+        raise ValueError("图片太大，单张不能超过 8MB")
+    key = course_image_object_key(name, ALLOWED_UPLOAD_MIMES[mime])
+    return {
+        "key": key,
+        "url": signed_course_cos_url(key, method="get", ttl=COURSE_COS_SIGN_TTL),
+        "uploadUrl": signed_course_cos_url(key, method="put", ttl=1800),
+        "expiresIn": 1800,
+    }
 
 
 def create_course_video_upload_ticket(payload: dict[str, Any]) -> dict[str, str | int]:
@@ -1956,18 +2029,18 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
     series_id = int(payload.get("id") or 0)
     title = str(payload.get("title", "")).strip()
     if not title:
-        raise ValueError("课程名称不能为空")
+        raise ValueError("交易实战课程名称不能为空")
     status = str(payload.get("status") or "draft").strip()
     if status not in COURSE_STATUSES:
-        raise ValueError("课程状态不正确")
+        raise ValueError("交易实战课程状态不正确")
     summary = str(payload.get("summary") or "").strip()
-    cover_url = str(payload.get("coverUrl") or "").strip()
+    cover_url = course_video_key(str(payload.get("coverUrl") or "").strip())
     timestamp = now_iso()
     with db() as conn:
         if series_id > 0:
             existing = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
             if not existing:
-                raise ValueError("课程不存在")
+                raise ValueError("交易实战课程不存在")
             if payload.get("sortOrder") not in {None, ""}:
                 try:
                     sort_order = max(1, int(payload.get("sortOrder") or 1))
@@ -2017,6 +2090,7 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
     if status not in COURSE_STATUSES:
         raise ValueError("视频状态不正确")
     duration_label = str(payload.get("durationLabel") or "").strip()
+    cover_url = course_video_key(str(payload.get("coverUrl") or "").strip())
     timestamp = now_iso()
     with db() as conn:
         existing = None
@@ -2026,9 +2100,9 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError("视频不存在")
         series_id = int(payload.get("seriesId") or (existing["series_id"] if existing else 0))
         if series_id <= 0:
-            raise ValueError("课程必填")
+            raise ValueError("交易实战课程必填")
         if not conn.execute("SELECT 1 FROM course_series WHERE id = ?", (series_id,)).fetchone():
-            raise ValueError("课程不存在")
+            raise ValueError("交易实战课程不存在")
         if payload.get("sortOrder") not in {None, ""}:
             try:
                 sort_order = max(1, int(payload.get("sortOrder") or 1))
@@ -2044,10 +2118,10 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
             conn.execute(
                 """
                 UPDATE course_lessons
-                SET series_id = ?, title = ?, sort_order = ?, duration_label = ?, video_key = ?, status = ?, updated_at = ?
+                SET series_id = ?, title = ?, sort_order = ?, duration_label = ?, cover_url = ?, video_key = ?, status = ?, updated_at = ?
                 WHERE id = ?
                 """,
-                (series_id, title, sort_order, duration_label, video_key, status, timestamp, lesson_id),
+                (series_id, title, sort_order, duration_label, cover_url, video_key, status, timestamp, lesson_id),
             )
             row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
             return course_lesson_payload(row, include_key=True)
@@ -2055,10 +2129,10 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
         cursor = conn.execute(
             """
             INSERT INTO course_lessons
-            (series_id, title, sort_order, duration_label, video_key, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (series_id, title, sort_order, duration_label, cover_url, video_key, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (series_id, title, sort_order, duration_label, video_key, status, timestamp, timestamp),
+            (series_id, title, sort_order, duration_label, cover_url, video_key, status, timestamp, timestamp),
         )
         row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return course_lesson_payload(row, include_key=True)
@@ -2068,7 +2142,7 @@ def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
     series_id = int(payload.get("seriesId") or 0)
     user_query = str(payload.get("email") or payload.get("user") or "").strip()
     if series_id <= 0 or not user_query:
-        raise ValueError("课程和用户必填")
+        raise ValueError("交易实战课程和用户必填")
     with db() as conn:
         series = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
         target = conn.execute("SELECT * FROM users WHERE email = ? AND role = 'user'", (normalize_email(user_query),)).fetchone()
@@ -2081,7 +2155,7 @@ def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
                 None,
             )
         if not series:
-            raise ValueError("课程不存在")
+            raise ValueError("交易实战课程不存在")
         if not target:
             raise ValueError("用户不存在")
         timestamp = now_iso()
@@ -3097,7 +3171,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
                     return
                 if not course_has_access(conn, user, int(lesson["series_id"])):
-                    self.send_json({"error": "没有课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
+                    self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
                     return
             try:
                 self.send_json({"url": signed_course_video_url(lesson["video_key"]), "expiresIn": max(60, COURSE_COS_SIGN_TTL)})
@@ -3486,7 +3560,41 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path == "/api/admin/users/reset-password":
-            self.send_json({"error": "接口不存在"}, HTTPStatus.NOT_FOUND)
+            admin = self.require_admin()
+            if not admin:
+                return
+            if admin["role"] != "super_admin":
+                self.send_json({"error": "只有超级管理员可以重置密码"}, HTTPStatus.FORBIDDEN)
+                return
+            payload = self.read_json()
+            user_id = int(payload.get("userId", 0))
+            password = str(payload.get("password", ""))
+            try:
+                validate_password(password)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            with db() as conn:
+                target = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+                if not target:
+                    self.send_json({"error": "用户不存在"}, HTTPStatus.NOT_FOUND)
+                    return
+                if target["role"] == "super_admin":
+                    self.send_json({"error": "超级管理员密码不能在这里重置"}, HTTPStatus.FORBIDDEN)
+                    return
+                salt, password_hash = hash_password(password)
+                timestamp = now_iso()
+                conn.execute(
+                    """
+                    UPDATE users
+                    SET password_hash = ?, salt = ?, password_changed_at = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (password_hash, salt, timestamp, timestamp, user_id),
+                )
+                fresh = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+                write_user_event(conn, action="reset_password", actor=admin, target_before=target, target_after=fresh)
+            self.send_json({"ok": True, "user": admin_user_payload(fresh)})
             return
 
         if self.path == "/api/admin/opinions":
@@ -3548,6 +3656,21 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": f"上传准备失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
             self.send_json({"ok": True, "video": video}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/admin/courses/image-upload-url":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                image = create_course_image_upload_ticket(self.read_json())
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"上传准备失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": True, "image": image}, HTTPStatus.CREATED)
             return
 
         if self.path == "/api/admin/courses":
@@ -3615,6 +3738,35 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": True})
             return
 
+        if parsed.path.startswith("/api/admin/users/"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            if admin["role"] != "super_admin":
+                self.send_json({"error": "只有超级管理员可以删除用户"}, HTTPStatus.FORBIDDEN)
+                return
+            try:
+                user_id = int(unquote(parsed.path.removeprefix("/api/admin/users/")))
+            except ValueError:
+                self.send_json({"error": "用户不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            with db() as conn:
+                target = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+                if not target:
+                    self.send_json({"error": "用户不存在"}, HTTPStatus.NOT_FOUND)
+                    return
+                if target["role"] == "super_admin":
+                    self.send_json({"error": "超级管理员不能删除"}, HTTPStatus.FORBIDDEN)
+                    return
+                write_user_event(conn, action="delete_user", actor=admin, target_before=target, target_after=None)
+                conn.execute("DELETE FROM course_grants WHERE user_id = ? OR granted_by_user_id = ?", (user_id, user_id))
+                conn.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+                conn.execute("DELETE FROM analytics_events WHERE user_id = ?", (user_id,))
+                conn.execute("UPDATE users SET created_by_user_id = NULL WHERE created_by_user_id = ?", (user_id,))
+                conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            self.send_json({"ok": True})
+            return
+
         if parsed.path.startswith("/api/admin/courses/grants/"):
             admin = self.require_admin()
             if not admin:
@@ -3654,10 +3806,10 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 series_id = int(unquote(parsed.path.removeprefix("/api/admin/courses/")))
             except ValueError:
-                self.send_json({"error": "课程不存在"}, HTTPStatus.NOT_FOUND)
+                self.send_json({"error": "交易实战课程不存在"}, HTTPStatus.NOT_FOUND)
                 return
             if not delete_course_series(series_id):
-                self.send_json({"error": "课程不存在"}, HTTPStatus.NOT_FOUND)
+                self.send_json({"error": "交易实战课程不存在"}, HTTPStatus.NOT_FOUND)
                 return
             self.send_json({"ok": True})
             return

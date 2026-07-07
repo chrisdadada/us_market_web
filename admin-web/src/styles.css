@@ -1,6 +1,18 @@
 :root {
   color: #182337;
   background: #f5f7fa;
+  --admin-panel: #ffffff;
+  --admin-line: #e2e8f0;
+  --admin-line-strong: #d6dee9;
+  --admin-text: #182337;
+  --admin-muted: #718096;
+  --admin-blue: #1677ff;
+  --admin-card-radius: 12px;
+  --admin-card-shadow: 0 8px 18px rgba(15, 23, 42, .05);
+  --admin-table-head-size: 12px;
+  --admin-table-body-size: 14px;
+  --admin-table-head-weight: 600;
+  --admin-table-body-weight: 500;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -910,9 +922,9 @@ nav button {
 .statCard,
 .panel,
 .toolbarPanel {
-  border-color: #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, .05);
+  border-color: var(--admin-line);
+  border-radius: var(--admin-card-radius);
+  box-shadow: var(--admin-card-shadow);
 }
 
 .statCard {
@@ -966,26 +978,26 @@ nav button {
 }
 
 .adminTable th {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--admin-table-head-size);
+  font-weight: var(--admin-table-head-weight);
 }
 
 .adminTable td {
-  font-size: 14px;
-  font-weight: 560;
+  font-size: var(--admin-table-body-size);
+  font-weight: var(--admin-table-body-weight);
 }
 
 .userIdentityCell strong,
 .lastEventCell strong,
 .eventPersonCell strong {
   font-size: 14px;
-  font-weight: 680;
+  font-weight: 600;
 }
 
 .status,
 .roleBadge,
 .tableAction {
-  font-weight: 680;
+  font-weight: 600;
 }
 
 .tableAction {
@@ -1117,6 +1129,14 @@ nav button {
   text-overflow: ellipsis;
 }
 
+.lessonCoverThumb {
+  width: 72px;
+  height: 42px;
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
 .courseGrantForm {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) 120px;
@@ -1140,6 +1160,16 @@ nav button {
   border: 1px solid #d6dee9;
   border-radius: 8px;
   padding: 0 12px;
+}
+
+.passwordResetBox {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  border-top: 1px solid var(--admin-line);
+  padding-top: 14px;
 }
 
 .courseGrantList {

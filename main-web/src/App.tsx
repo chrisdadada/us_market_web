@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import {
   api,
   AuthStatus,
@@ -46,12 +46,12 @@ type AuthMode = "login" | "register" | "forgot" | "reset";
 
 const navItems: Array<{ key: PageKey; label: string; status?: string; disabled?: boolean }> = [
   { key: "home", label: "首页" },
-  { key: "opinions", label: "市场观点" },
-  { key: "tracking", label: "强势股票跟踪榜单" },
+  { key: "opinions", label: "美股热点风向标" },
+  { key: "tracking", label: "股票机会跟踪榜单" },
   { key: "stocks", label: "股票库" },
-  { key: "calendar", label: "财经日历" },
+  { key: "calendar", label: "美股重点财经前瞻" },
   { key: "market", label: "市场与资金" },
-  { key: "courses", label: "课程" },
+  { key: "courses", label: "交易实战课程" },
   { key: "open", label: "Open 持仓参考", status: "待开放", disabled: true },
   { key: "forum", label: "论坛讨论区", status: "待开放", disabled: true }
 ];
@@ -178,13 +178,18 @@ const trackingSymbolNames: Record<string, string> = {
 };
 
 const sectionLabels: Record<string, string> = {
-  weekly: "每周交易主线",
+  weekly: "周度前瞻",
   premarket: "盘前前瞻",
   daily: "每日个股行情观点",
   research: "研报解析",
   postmarket: "盘后复盘延展",
   journal: "交易日记"
 };
+
+function opinionSectionLabel(item?: Pick<Opinion, "section" | "sectionLabel"> | null) {
+  if (!item) return "美股热点风向标";
+  return sectionLabels[item.section] || item.sectionLabel || "美股热点风向标";
+}
 
 function isHomepageOpinion(item: Opinion) {
   if (!sectionLabels[item.section]) return false;
@@ -196,19 +201,19 @@ function homepageSectionLabel(item: Opinion) {
   if (item.section === "daily") return "每日个股";
   if (item.section === "premarket") return "盘前前瞻";
   if (item.section === "postmarket") return "盘后复盘";
-  return item.sectionLabel || sectionLabels[item.section] || "市场观点";
+  return opinionSectionLabel(item);
 }
 
 
 const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: string; text: string }>> = {
   opinions: {
     level: "monthly",
-    title: "会员可看完整市场观点",
+    title: "会员可看完整美股热点风向标",
     text: "免费账号可预览最新方向，完整正文、历史观点和栏目内容开通后查看。"
   },
   tracking: {
     level: "monthly",
-    title: "会员可看完整强势股榜单",
+    title: "会员可看完整股票机会跟踪榜单",
     text: "免费账号可看到涨幅和强弱线索，标的名称开通后查看。"
   },
   market: {
@@ -387,6 +392,7 @@ function compactText(value?: string | null, max = 88) {
   if (isBlankValue(value)) return "";
   const text = String(value || "")
     .replace(/!\[[^\]]*]\([^)]*\)/g, "")
+    .replace(/(^|\s)\d+[.)]\s*/g, " ")
     .replace(/[#>*_`-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -421,12 +427,22 @@ function richBodyNodes(markdown?: string | null) {
       nodes.push(<h2 key={`h-${blockIndex}`}>{block.replace(/^#{1,3}\s+/, "").trim()}</h2>);
       return;
     }
-    if (/^[-*]\s+/m.test(block)) {
-      const items = block.split(/\n/).map((line) => line.replace(/^[-*]\s+/, "").trim()).filter(Boolean);
+    const lines = block.split(/\n/).map((line) => line.trim()).filter(Boolean);
+    if (lines.length && lines.every((line) => /^[-*]\s+/.test(line))) {
+      const items = lines.map((line) => line.replace(/^[-*]\s+/, "").trim()).filter(Boolean);
       nodes.push(
         <ul key={`ul-${blockIndex}`}>
           {items.map((item, itemIndex) => <li key={`${blockIndex}-${itemIndex}`}>{item}</li>)}
         </ul>
+      );
+      return;
+    }
+    if (lines.length && lines.every((line) => /^\d+[.)]\s*/.test(line))) {
+      const items = lines.map((line) => line.replace(/^\d+[.)]\s*/, "").trim()).filter(Boolean);
+      nodes.push(
+        <ol key={`ol-${blockIndex}`}>
+          {items.map((item, itemIndex) => <li key={`${blockIndex}-${itemIndex}`}>{item}</li>)}
+        </ol>
       );
       return;
     }
@@ -470,14 +486,19 @@ function firstReadableParagraph(markdown?: string | null, fallback?: string | nu
   return text.length > 180 ? `${text.slice(0, 180)}...` : text;
 }
 
+function richCourseSummary(summary: string, fallback: string) {
+  const nodes = richBodyNodes(summary);
+  return nodes.length ? nodes : <p>{fallback}</p>;
+}
+
 function opinionDisplayTitle(item?: Opinion | null, max = 56) {
   if (!item) return "--";
-  const sectionLabel = isBlankValue(item.sectionLabel) ? sectionLabels[item.section] || "" : item.sectionLabel;
+  const sectionLabel = opinionSectionLabel(item);
   let title = isBlankValue(item.title) ? "" : String(item.title).trim();
   if (sectionLabel && title.startsWith(sectionLabel)) title = title.slice(sectionLabel.length).trim();
   title = title.replace(/#[^\s#]+/g, "").replace(/\s+/g, " ").trim();
   if (!title || title === sectionLabel || Object.values(sectionLabels).includes(title)) {
-    title = firstReadableParagraph(item.body, item.summary) || sectionLabel || "市场观点";
+    title = firstReadableParagraph(item.body, item.summary) || sectionLabel || "美股热点风向标";
   }
   return title.length > max ? `${title.slice(0, max)}...` : title;
 }
@@ -519,8 +540,13 @@ function getSectorRows(bootstrap: BootstrapPayload | null) {
   return bootstrap?.sectorFlow?.rows || bootstrap?.sectorFlow?.sectors || [];
 }
 
+function isDisplaySector(sector?: string | null) {
+  const value = String(sector || "").trim().toUpperCase();
+  return !!value && value !== "未分类" && value !== "ETF";
+}
+
 function getSectorRowsForBoard(bootstrap: BootstrapPayload | null, board: "day" | "week" | "month") {
-  const rows = (bootstrap?.movers?.boards?.[board]?.rows || []).filter((row) => row.sector && row.sector !== "未分类");
+  const rows = (bootstrap?.movers?.boards?.[board]?.rows || []).filter((row) => isDisplaySector(row.sector));
   const map = new Map<string, { sector: string; count: number; upCount: number; downCount: number; activeValue: number; netFlowProxy: number; avgChangePct: number; leaders: Array<{ symbol: string; change?: number; changePct: number; liquidity: string; name?: string }> }>();
   rows.forEach((row) => {
     const change = Number(row.change ?? row.changeYtd ?? 0);
@@ -545,6 +571,38 @@ function getSectorRowsForBoard(bootstrap: BootstrapPayload | null, board: "day" 
     avgChangePct: item.avgChangePct / Math.max(1, item.count),
     leaders: item.leaders.sort((a, b) => moneyNumber(b.liquidity) - moneyNumber(a.liquidity)).slice(0, 4),
   })).sort((a, b) => b.netFlowProxy - a.netFlowProxy);
+}
+
+function treemapRects(items: Array<{ value: number }>) {
+  const layouts: Array<{ x: number; y: number; w: number; h: number }> = [];
+  const split = (entries: Array<{ index: number; value: number }>, x: number, y: number, w: number, h: number) => {
+    if (!entries.length) return;
+    if (entries.length === 1) {
+      layouts[entries[0].index] = { x, y, w, h };
+      return;
+    }
+    const total = entries.reduce((sum, item) => sum + item.value, 0);
+    let acc = 0;
+    let cut = 1;
+    for (let i = 0; i < entries.length - 1; i += 1) {
+      if (Math.abs(total / 2 - (acc + entries[i].value)) <= Math.abs(total / 2 - acc)) {
+        acc += entries[i].value;
+        cut = i + 1;
+      }
+    }
+    const ratio = acc / total;
+    const head = entries.slice(0, cut);
+    const tail = entries.slice(cut);
+    if (w >= h) {
+      split(head, x, y, w * ratio, h);
+      split(tail, x + w * ratio, y, w * (1 - ratio), h);
+    } else {
+      split(head, x, y, w, h * ratio);
+      split(tail, x, y + h * ratio, w, h * (1 - ratio));
+    }
+  };
+  split(items.map((item, index) => ({ ...item, index })).sort((a, b) => b.value - a.value), 0, 0, 100, 100);
+  return layouts;
 }
 
 function boardLabel(board?: string) {
@@ -943,7 +1001,7 @@ function App() {
     <main className="terminalShell" onClickCapture={gateGuestClick}>
       <aside className="sideRail">
         <a className="brand" href="/">
-          <img src="/assets/dongbimao-logo.png" alt="" />
+          <img src="/assets/dongbimao-logo.png" alt="" width="38" height="38" />
           <span>
             <strong>懂币猫</strong>
             <small>美股投研</small>
@@ -1015,7 +1073,7 @@ function App() {
         {!loading && !pageDataLoading ? (
           <GatedPage rule={gatedRule} unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={openAuth} onUnlock={requestUnlock}>
             {page === "home" ? (
-              <HomePage bootstrap={bootstrap} opinions={opinions} calendar={calendar} trackingRows={trackingRows} opinionsLocked={homeOpinionsLocked} trackingLocked={homeTrackingLocked} onPage={navigatePage} />
+              <HomePage bootstrap={bootstrap} opinions={opinions} calendar={calendar} trackingRows={trackingRows} opinionsLocked={homeOpinionsLocked} trackingLocked={homeTrackingLocked} authenticated={Boolean(auth?.authenticated)} onAuth={openAuth} onUnlock={requestUnlock} onPage={navigatePage} />
             ) : null}
             {page === "opinions" ? (
               <OpinionsPage
@@ -1149,16 +1207,16 @@ function OnboardingModal({ open, onDone }: { open: boolean; onDone: () => Promis
           <article>
             <span>01</span>
             <strong>首页</strong>
-            <p>先看最新观点、强势股榜单和财经日历。</p>
+            <p>先看美股热点风向标、股票机会跟踪榜单和美股重点财经前瞻。</p>
           </article>
           <article>
             <span>02</span>
-            <strong>市场观点</strong>
+            <strong>美股热点风向标</strong>
             <p>按栏目阅读，点进正文看完整判断。</p>
           </article>
           <article>
             <span>03</span>
-            <strong>强势股榜单</strong>
+            <strong>股票机会跟踪榜单</strong>
             <p>看近1日、近1周、近1月和趋势策略方向。</p>
           </article>
         </div>
@@ -1281,6 +1339,9 @@ function HomePage({
   trackingRows,
   opinionsLocked,
   trackingLocked,
+  authenticated,
+  onAuth,
+  onUnlock,
   onPage
 }: {
   bootstrap: BootstrapPayload | null;
@@ -1289,16 +1350,20 @@ function HomePage({
   trackingRows: ReturnType<typeof mergedTrackingRows>;
   opinionsLocked: boolean;
   trackingLocked: boolean;
+  authenticated: boolean;
+  onAuth: (mode: AuthMode) => void;
+  onUnlock: () => void;
   onPage: (page: PageKey) => void;
 }) {
   const opinionRows = opinions.filter(isHomepageOpinion);
   const latest = opinionRows.find((item) => item.featured) || opinionRows.find((item) => (item.summary || item.body || "").length > 40) || opinionRows[0];
   const focusRows = trackingRows.filter((row) => row.oneMonth !== "--").slice(0, 4);
   const sectorRows = getSectorRows(bootstrap)
-    .filter((row) => row.sector && row.sector !== "未分类")
+    .filter((row) => isDisplaySector(row.sector))
     .slice(0, 4);
   const stockRows = (bootstrap?.movers?.boards?.day?.rows || [])
     .filter((row) => row.symbol)
+    .sort((a, b) => Number(b.change ?? b.changeYtd ?? -Infinity) - Number(a.change ?? a.changeYtd ?? -Infinity))
     .slice(0, 4);
   const eventRows = [...calendar]
     .sort((a, b) => {
@@ -1313,19 +1378,19 @@ function HomePage({
       <section className="frontHomeBoard">
         <article className="frontLeadPanel">
           <span>最新观点</span>
-          <h1>{latest?.title || "市场观点"}</h1>
+          <h1>{latest?.title || "美股热点风向标"}</h1>
           <div className={opinionsLocked ? "frontLeadPreview locked" : "frontLeadPreview"}>
             <p>{latest?.summary || compactText(latest?.body, 110) || "--"}</p>
             {opinionsLocked ? <span className="frontInlineLock" aria-label="会员内容"><i aria-hidden="true" /></span> : null}
           </div>
           <div className="frontLeadActions">
-            <button type="button" onClick={() => onPage("opinions")}>进入市场观点</button>
+            <button type="button" onClick={() => onPage("opinions")}>进入美股热点风向标</button>
           </div>
         </article>
 
         <aside className="frontQuickPanel">
           <div className="frontPanelHead">
-            <strong>财经日历</strong>
+            <strong>美股重点财经前瞻</strong>
             <button type="button" onClick={() => onPage("calendar")}>查看日历</button>
           </div>
           {eventRows.map((item) => (
@@ -1341,46 +1406,54 @@ function HomePage({
 
       <section className="frontHomeStrengthPanel">
         <div className="frontPanelHead">
-          <strong>强势股榜单</strong>
-          <button type="button" onClick={() => onPage("tracking")}>查看榜单</button>
+          <strong>股票机会跟踪榜单</strong>
+          <button type="button" onClick={() => onPage("tracking")}>查看机会</button>
         </div>
-        <table className="frontHomeTable frontHomeStrengthTable">
-          <thead>
-            <tr>
-              <th>股票</th>
-              <th>现价</th>
-              <th>近1天</th>
-              <th>近1周</th>
-              <th>近1月</th>
-              <th>成交额</th>
-              <th>趋势策略方向</th>
-            </tr>
-          </thead>
-          <tbody>
-            {focusRows.map((row) => (
-              <tr key={row.symbol} onClick={() => onPage("tracking")}>
-                <td>
-                  {trackingLocked ? (
-                    <MaskedValue value={`${row.symbol} ${row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol}`} />
-                  ) : (
-                    <>
-                      <strong>{row.symbol}</strong>
-                      <span>{row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol}</span>
-                    </>
-                  )}
-                </td>
-                <td>{priceDisplay(row.currentPrice)}</td>
-                <td className={signedClass(row.oneDay)}>{signed(row.oneDay)}</td>
-                <td className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</td>
-                <td className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</td>
-                <td>{isBlankValue(row.liquidity) ? "--" : row.liquidity}</td>
-                <td>
-                  <SignalDirectionBadge label={trackingDirection(row)} />
-                </td>
+        <div className={trackingLocked ? "frontHomeLockedTable" : ""}>
+          <table className="frontHomeTable frontHomeStrengthTable">
+            <thead>
+              <tr>
+                <th>股票</th>
+                <th>现价</th>
+                <th>近1天</th>
+                <th>近1周</th>
+                <th>近1月</th>
+                <th>成交额</th>
+                <th>趋势策略方向</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {focusRows.map((row) => (
+                <tr key={row.symbol} onClick={() => !trackingLocked && onPage("tracking")}>
+                  <td>
+                    {trackingLocked ? (
+                      <MaskedValue value={`${row.symbol} ${row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol}`} />
+                    ) : (
+                      <>
+                        <strong>{row.symbol}</strong>
+                        <span>{row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol}</span>
+                      </>
+                    )}
+                  </td>
+                  <td>{priceDisplay(row.currentPrice)}</td>
+                  <td className={signedClass(row.oneDay)}>{signed(row.oneDay)}</td>
+                  <td className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</td>
+                  <td className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</td>
+                  <td>{isBlankValue(row.liquidity) ? "--" : row.liquidity}</td>
+                  <td>
+                    <SignalDirectionBadge label={trackingDirection(row)} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {trackingLocked ? (
+            <button type="button" className="frontHomeTableLock" onClick={() => authenticated ? onUnlock() : onAuth("register")}>
+              <i aria-hidden="true" />
+              <span>开通查看股票机会跟踪榜单</span>
+            </button>
+          ) : null}
+        </div>
       </section>
 
       <section className="frontHomeBottomGrid">
@@ -1499,7 +1572,7 @@ function OpinionsPage({
             {!loading && !displayRows.length ? <div className="opinionLoading">--</div> : null}
             {!loading ? displayRows.map((item) => (
               <button type="button" key={item.id} onClick={() => onSelect(item)}>
-                <p className="opinionProductMeta"><time>{formatOpinionTime(item.tradeDate)}</time><b>{item.sectionLabel}</b></p>
+                <p className="opinionProductMeta"><time>{formatOpinionTime(item.tradeDate)}</time><b>{opinionSectionLabel(item)}</b></p>
                 <div>
                   <strong>{opinionDisplayTitle(item)}</strong>
                   <div className={locked ? "opinionLockedExcerpt opinionListPreview" : "opinionListPreview"}>
@@ -1528,14 +1601,14 @@ function OpinionsPage({
     <div className="opinionReaderPage">
       <article className="readerPanel articleReaderPanel">
         <div className="readerTop">
-          <button type="button" onClick={onBack}>返回市场观点</button>
+          <button type="button" onClick={onBack}>返回美股热点风向标</button>
           <button type="button" onClick={() => onPage("home")}>返回首页</button>
         </div>
         <div className="readerShell opinionReaderSingle">
           <main className="readerMain">
             <div className="readerHeader">
               <div className="readerMetaLine">
-                <span>{selected?.sectionLabel || "市场观点"}</span>
+                <span>{opinionSectionLabel(selected)}</span>
                 <time>{formatOpinionTime(selected?.tradeDate)}</time>
               </div>
               <h1>{opinionDisplayTitle(selected, 72)}</h1>
@@ -1824,7 +1897,7 @@ function TrackingStockDetailPage({
   return (
     <div className="trackingStockDetailPage">
       <section className="trackingStockHero">
-        <button type="button" className="detailBackLink" onClick={onBack}>返回强势股票跟踪榜单</button>
+        <button type="button" className="detailBackLink" onClick={onBack}>返回股票机会跟踪榜单</button>
         <div className="trackingStockHead">
           <div>
             <h1>{row.symbol}</h1>
@@ -1891,7 +1964,7 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
       : sectorRange === "day" && !sectorPayload
         ? getSectorRows(bootstrap)
         : [];
-    return rows.filter((item) => item.sector && item.sector !== "未分类");
+    return rows.filter((item) => isDisplaySector(item.sector));
   }, [activeSectorPayload, bootstrap, sectorPayload, sectorRange]);
   const [viewMode, setViewMode] = useState<"rank" | "map">("rank");
   const [selectedSector, setSelectedSector] = useState(sectors[0]?.sector || "");
@@ -1923,15 +1996,32 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   const selected = sectors.find((item) => item.sector === selectedSector) || sectors[0];
   const volumeRows = (bootstrap?.movers?.boards?.volume?.rows || []).slice(0, 8);
   const sectorDate = formatStoredDateTime(activeSectorPayload?.asOf || (sectorRange === "day" ? bootstrap?.movers?.updatedAt || bootstrap?.sectorFlow?.asOf : ""));
-  const heatMax = Math.max(1, ...sectors.map((sector) => Number(sector.activeValue || 0)));
-  const heatSize = (sector: typeof sectors[number]) => {
-    const ratio = Number(sector.activeValue || 0) / heatMax;
-    if (ratio > 0.7) return "xl";
-    if (ratio > 0.25) return "lg";
-    return "";
-  };
   const sectorChange = (sector?: typeof sectors[number]) => Number(sector?.avgChangePct ?? sector?.avgChange ?? 0);
   const sectorFlowTone = (sector?: typeof sectors[number]) => sectorChange(sector) >= 0 ? "up" : "down";
+  const heatTiles = useMemo(() => {
+    const values = sectors.map((sector) => ({
+      value: Math.max(1, Math.abs(Number(sector.netFlowProxy || 0)) || Number(sector.activeValue || 0))
+    }));
+    const max = Math.max(1, ...values.map((item) => item.value));
+    const rects = treemapRects(values);
+    return sectors.map((sector, index) => {
+      const rect = rects[index] || { x: 0, y: 0, w: 100, h: 100 };
+      const ratio = values[index].value / max;
+      const area = rect.w * rect.h;
+      const style: CSSProperties = {
+        left: `calc(${rect.x}% + 3px)`,
+        top: `calc(${rect.y}% + 3px)`,
+        width: `calc(${rect.w}% - 6px)`,
+        height: `calc(${rect.h}% - 6px)`
+      };
+      return {
+        sector,
+        style,
+        sizeClass: area > 1500 ? "heatLarge" : area > 650 ? "heatMedium" : "heatSmall",
+        strengthClass: ratio > 0.58 || Math.abs(sectorChange(sector)) >= 2 ? "heatStrong" : ratio > 0.25 || Math.abs(sectorChange(sector)) >= 0.8 ? "heatMid" : "heatSoft"
+      };
+    });
+  }, [sectors]);
   return (
     <div className="marketPage">
       <header className="marketTop">
@@ -1993,19 +2083,25 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
               </div>
             ) : (
               <div className="marketSectorHeatmap">
-                {sectors.map((sector) => (
-                  <button
-                    type="button"
-                    key={sector.sector}
-                    className={`${sectorFlowTone(sector)} ${heatSize(sector)} ${sector.sector === selected?.sector ? "selected" : ""}`}
-                    onClick={() => setSelectedSector(sector.sector)}
-                  >
-                    <strong>{sector.sector}</strong>
-                    <em className={signedClass(sectorChange(sector))}>{signed(sectorChange(sector))}</em>
-                    <span className={signedClass(sector.netFlowProxy)}>{money(sector.netFlowProxy)}</span>
-                    <small>{(sector.leaders || []).slice(0, 3).map((leader) => leader.symbol).join(" / ")}</small>
-                  </button>
-                ))}
+                {heatTiles.map((tile) => {
+                  const { sector } = tile;
+                  const leaders = (sector.leaders || []).slice(0, 3).map((leader) => leader.symbol).join(" / ");
+                  return (
+                    <button
+                      type="button"
+                      key={sector.sector}
+                      className={`${sectorFlowTone(sector)} ${tile.sizeClass} ${tile.strengthClass} ${sector.sector === selected?.sector ? "selected" : ""}`}
+                      style={tile.style}
+                      aria-label={`${sector.sector} ${signed(sectorChange(sector))} ${money(sector.netFlowProxy)}`}
+                      onClick={() => setSelectedSector(sector.sector)}
+                    >
+                      <strong>{sector.sector}</strong>
+                      <em>{signed(sectorChange(sector))}</em>
+                      {tile.sizeClass !== "heatSmall" ? <span>{money(sector.netFlowProxy)}</span> : null}
+                      {tile.sizeClass === "heatLarge" ? <small>{leaders}</small> : null}
+                    </button>
+                  );
+                })}
                 {!sectors.length ? <div className="marketEmpty">{sectorLoading ? "加载中" : "--"}</div> : null}
               </div>
             )}
@@ -2286,10 +2382,10 @@ function StocksPage({
                       <td>{pageIndex * pageSize + index + 1}</td>
                       <td><strong>{row.symbol}</strong><span>{stockCompany(row)}</span></td>
                       <td>{row.sector || "--"}</td>
-                      <td><strong className={signedClass(row.dayChange)}>{signed(row.dayChange)}</strong></td>
-                      <td><strong className={signedClass(row.weekChange)}>{signed(row.weekChange)}</strong></td>
-                      <td><strong className={signedClass(row.monthChange)}>{signed(row.monthChange)}</strong></td>
-                      <td><strong>{compactMoney(row.dollarVolume)}</strong><span>{ratioDisplay(row.volumeRatio)}</span></td>
+                      <td className={signedClass(row.dayChange)}>{signed(row.dayChange)}</td>
+                      <td className={signedClass(row.weekChange)}>{signed(row.weekChange)}</td>
+                      <td className={signedClass(row.monthChange)}>{signed(row.monthChange)}</td>
+                      <td>{compactMoney(row.dollarVolume)}<span>{ratioDisplay(row.volumeRatio)}</span></td>
                       <td>{marketCapDisplay(row)}</td>
                       <td><SignalDirectionBadge label={direction} /></td>
                     </tr>
@@ -2938,8 +3034,8 @@ function PositionSizingPage() {
     setFormError("");
     setRiskAmount((account * percent / 100).toLocaleString("en-US", {
       maximumFractionDigits: 2
-    }));
-  }
+  }));
+}
 
   function saveCalculation(event: FormEvent) {
     event.preventDefault();
@@ -3226,7 +3322,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
         setSeries(rows);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "课程加载失败");
+        if (!cancelled) setError(err instanceof Error ? err.message : "交易实战课程加载失败");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -3266,8 +3362,8 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     if (!selected) {
       return (
         <div className="coursesPage">
-          <button type="button" className="courseBackButton" onClick={onBack}>返回课程库</button>
-          <section className="coursesEmpty">课程不存在</section>
+          <button type="button" className="courseBackButton" onClick={onBack}>返回交易实战课程</button>
+          <section className="coursesEmpty">交易实战课程不存在</section>
         </div>
       );
     }
@@ -3275,14 +3371,16 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     return (
       <div className="coursesPage">
         <section className="courseDetailHero">
-          <button type="button" className="courseBackButton" onClick={onBack}>返回课程库</button>
+          <button type="button" className="courseBackButton" onClick={onBack}>返回交易实战课程</button>
           <div className="courseDetailCover">
             {selected.coverUrl ? <img src={selected.coverUrl} alt="" /> : null}
           </div>
           <div className="courseDetailText">
             <h1>{selected.title}</h1>
-            <p>{selected.summary || `${selected.lessonCount || selected.lessons?.length || 0} 节视频`}</p>
-            <div>
+            <div className="courseSummaryRich articleProse">
+              {richCourseSummary(selected.summary, `${selected.lessonCount || selected.lessons?.length || 0} 节视频`)}
+            </div>
+            <div className="courseMetaPills">
               <span className={selected.unlocked ? "unlocked" : "locked"}>{selected.unlocked ? "已解锁" : "待开通"}</span>
               <span>{selected.lessonCount || selected.lessons?.length || 0} 节视频</span>
               {activeLesson ? <span>当前播放：{activeLesson.title}</span> : null}
@@ -3310,12 +3408,13 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
 
             <aside className="courseLessonList">
               <div className="panelHead">
-                <strong>课程目录</strong>
+                <strong>交易实战课程目录</strong>
                 <span>{selected.lessons?.length || 0} 节</span>
               </div>
               {(selected.lessons || []).map((lesson, index) => (
                 <button key={lesson.id} type="button" className={activeLesson?.id === lesson.id ? "active" : ""} onClick={() => playLesson(lesson.id)}>
                   <b>{index + 1}</b>
+                  <span className="lessonCoverSlot">{lesson.coverUrl ? <img src={lesson.coverUrl} alt="" /> : null}</span>
                   <span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</span>
                   <i>{activeLesson?.id === lesson.id && videoUrl ? "播放中" : "播放"}</i>
                 </button>
@@ -3325,7 +3424,9 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
         ) : (
           <section className="courseLockedDetail">
             <h2>{selected.title}</h2>
-            <p>{selected.summary || "课程暂未开通权限。"}</p>
+            <div className="courseSummaryRich articleProse">
+              {richCourseSummary(selected.summary, "交易实战课程暂未开通权限。")}
+            </div>
             <button type="button" onClick={onUnlock}>联系开通</button>
           </section>
         )}
@@ -3337,16 +3438,15 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     <div className="coursesPage">
       <section className="coursesTopbar">
         <div>
-          <h1>课程库</h1>
-          <p>{series.length ? "按主题学习" : "暂无课程"}</p>
+          <h1>交易实战课程</h1>
         </div>
         <form className="courseSearch" onSubmit={submitCourseSearch}>
-          <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索课程" />
+          <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索交易实战课程" />
         </form>
       </section>
 
       {error ? <p className="courseError">{error}</p> : null}
-      {!series.length ? <section className="coursesEmpty">暂无课程</section> : null}
+      {!series.length ? <section className="coursesEmpty">暂无交易实战课程</section> : null}
 
       {series.length ? (
         <>
@@ -3368,18 +3468,18 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
                 </div>
                 <section>
                   <h2>{item.title}</h2>
-                  <p>{item.summary || `${item.lessons?.length || 0} 节视频`}</p>
-                  <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{item.unlocked ? "可学习" : "课程介绍"}</span></div>
+                  <p>{compactText(item.summary, 82) || `${item.lessons?.length || 0} 节视频`}</p>
+                  <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{item.unlocked ? "可学习" : "交易实战课程介绍"}</span></div>
                   <footer>
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>
-                      {item.unlocked ? "进入课程" : "查看详情"}
+                      {item.unlocked ? "开始学习" : "查看详情"}
                     </button>
                     <em>{item.unlocked ? "已授权" : "联系开通"}</em>
                   </footer>
                 </section>
               </article>
             ))}
-            {!filteredSeries.length ? <div className="coursesEmpty">暂无匹配课程</div> : null}
+            {!filteredSeries.length ? <div className="coursesEmpty">暂无匹配交易实战课程</div> : null}
           </section>
         </>
       ) : null}

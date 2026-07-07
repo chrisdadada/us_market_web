@@ -16,7 +16,7 @@ if [ -f "${LOCAL_ENV_FILE}" ]; then
   set +a
 fi
 
-if [ "${SKIP_PRODUCT_DB_BUILD:-0}" != "1" ]; then
+if [ "${BUILD_PRODUCT_DB:-0}" = "1" ] && [ "${SKIP_PRODUCT_DB_BUILD:-0}" != "1" ]; then
   "${PY}" scripts/build_product_db.py
   "${PY}" scripts/update_macro_calendar_results.py
 fi

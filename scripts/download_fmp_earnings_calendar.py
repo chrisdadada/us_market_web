@@ -55,7 +55,7 @@ def normalize_event(row: dict[str, Any]) -> dict[str, Any] | None:
         "type": "earnings",
         "impact": "medium",
         "sourceName": "Financial Modeling Prep",
-        "relatedModules": ["财经日历", "股票库", "财报观察"],
+        "relatedModules": ["美股重点财经前瞻", "股票库", "财报观察"],
         "relatedAssets": [symbol],
         "summary": f"{company}：{summary}",
         "raw": row,

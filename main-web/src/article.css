@@ -77,6 +77,21 @@
   line-height: 1.45;
 }
 
+.articleProse.courseSummaryRich {
+  padding: 0;
+}
+
+.articleProse.courseSummaryRich ul,
+.articleProse.courseSummaryRich ol {
+  padding-left: 20px;
+}
+
+.articleProse.courseSummaryRich p:last-child,
+.articleProse.courseSummaryRich ul:last-child,
+.articleProse.courseSummaryRich ol:last-child {
+  margin-bottom: 0;
+}
+
 .articleProse .readerFigure {
   overflow: hidden;
   margin: 20px 0;

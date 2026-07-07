@@ -200,6 +200,7 @@ const gates = {
 };
 
 const scenarios = [
+  { profile: "anonymous", page: "home", presentSelector: ".frontHomeTableLock" },
   { profile: "anonymous", page: "opinions", absent: Object.values(gates) },
   { profile: "anonymous", page: "tracking", presentSelector: ".lockedStockName" },
   { profile: "anonymous", page: "open", present: [gates.open] },
@@ -208,10 +209,12 @@ const scenarios = [
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
   { profile: "free", page: "tracking", presentSelector: ".lockedStockName" },
+  { profile: "free", page: "home", presentSelector: ".frontHomeTableLock" },
   { profile: "free", page: "open", present: [gates.open] },
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },
+  { profile: "monthly", page: "home", absentSelector: ".frontHomeTableLock" },
   { profile: "monthly", page: "open", present: [gates.open] },
   { profile: "monthly", page: "market", absent: Object.values(gates) },
   { profile: "yearly", page: "opinions", absent: Object.values(gates) },
@@ -233,6 +236,9 @@ try {
       for (const baseUrl of [server.rootUrl, server.nextUrl]) {
         for (const scenario of scenarios.filter((item) => item.profile === profileName)) {
           await page.goto(`${baseUrl}?page=${scenario.page}`, { waitUntil: "networkidle" });
+          if (scenario.page === "home") {
+            await page.waitForSelector(".frontHomeStrengthPanel");
+          }
           const text = await page.locator("body").innerText();
           for (const expected of scenario.present || []) {
             assert(text.includes(expected), `${profileName}/${baseUrl}/${scenario.page} should show gate: ${expected}`);
@@ -241,6 +247,7 @@ try {
             assert(!text.includes(unexpected), `${profileName}/${baseUrl}/${scenario.page} should not show gate: ${unexpected}`);
           }
           if (scenario.presentSelector) {
+            await page.waitForSelector(scenario.presentSelector);
             assert(await page.locator(scenario.presentSelector).count() > 0, `${profileName}/${baseUrl}/${scenario.page} should show ${scenario.presentSelector}`);
           }
           if (scenario.absentSelector) {

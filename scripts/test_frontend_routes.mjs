@@ -20,7 +20,7 @@ const mimeTypes = new Map([
 
 const routeCases = [
   { hash: "", view: "dashboard", text: "最新", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#market-opinion", view: "market-opinion", text: "市场观点" },
+  { hash: "#market-opinion", view: "market-opinion", text: "美股热点风向标" },
   { hash: "#market-opinion/weekly", view: "market-opinion", text: "6月行情可能" },
   { hash: "#market-opinion/daily", view: "market-opinion", text: "MRVL" },
   { hash: "#market-opinion/research", view: "market-opinion", text: "Intel 扩产预期链" },
@@ -30,7 +30,7 @@ const routeCases = [
   { hash: "#market", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#market/flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#events", view: "events", text: "财经日历", absentText: "股票事件" },
+  { hash: "#events", view: "events", text: "美股重点财经前瞻", absentText: "股票事件" },
   { hash: "#stocks", view: "stocks", text: "股票库" },
   { hash: "#tracking", view: "tracking", text: "本次新增" },
   { hash: "#stock-events", view: "dashboard", text: "最新" },

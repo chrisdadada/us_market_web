@@ -122,7 +122,7 @@ def make_event(source_name: str, row: dict[str, Any]) -> dict[str, Any] | None:
         "type": "earnings",
         "impact": "medium",
         "sourceName": source_name,
-        "relatedModules": ["财经日历", "股票库", "财报观察"],
+        "relatedModules": ["美股重点财经前瞻", "股票库", "财报观察"],
         "relatedAssets": [symbol],
         "summary": f"{company}：{source_summary(row, source_name)}",
         "raw": row,

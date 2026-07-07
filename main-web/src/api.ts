@@ -300,6 +300,7 @@ export type CourseLesson = {
   title: string;
   sortOrder: number;
   durationLabel: string;
+  coverUrl: string;
   status: "published" | "draft";
 };
 

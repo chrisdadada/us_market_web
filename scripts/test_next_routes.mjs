@@ -173,11 +173,11 @@ function assert(condition, message) {
 
 const routeCases = [
   { query: "", text: "首页" },
-  { query: "?page=opinions", text: "市场观点" },
-  { query: "?page=tracking", text: "强势股票跟踪榜单" },
+  { query: "?page=opinions", text: "美股热点风向标" },
+  { query: "?page=tracking", text: "股票机会跟踪榜单" },
   { query: "?page=market", text: "市场与资金" },
   { query: "?page=stocks&symbol=MU", text: "股票库" },
-  { query: "?page=calendar", text: "财经日历" },
+  { query: "?page=calendar", text: "美股重点财经前瞻" },
   { query: "?page=open", text: "Open 持仓参考" },
   { query: "?page=forum", text: "论坛讨论区" },
 ];
@@ -186,7 +186,7 @@ const moverFixture = await readDataset("market-movers");
 const topSectorByBoard = ["day", "week", "month"].map((board) => {
   const totals = new Map();
   for (const row of moverFixture.boards?.[board]?.rows || []) {
-    if (!row.sector || row.sector === "未分类") continue;
+    if (!row.sector || row.sector === "未分类" || row.sector === "ETF") continue;
     const change = Number(row.change || row.changeYtd || 0);
     const volume = Number(row.dollarVolume || 0);
     totals.set(row.sector, (totals.get(row.sector) || 0) + (change >= 0 ? volume : -volume));

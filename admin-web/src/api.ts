@@ -58,12 +58,18 @@ export type UploadedVideo = {
   name: string;
 };
 
+type CosUploadTicket = {
+  uploadUrl: string;
+  url: string;
+};
+
 export type CourseLesson = {
   id: number;
   seriesId: number;
   title: string;
   sortOrder: number;
   durationLabel: string;
+  coverUrl: string;
   videoKey?: string;
   status: "published" | "draft";
   createdAt: string;
@@ -113,6 +119,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+function putToCos(file: File, ticket: CosUploadTicket, onProgress?: (percent: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", ticket.uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+      } else {
+        reject(new Error(`COS 上传失败：${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("COS 上传失败"));
+    xhr.send(file);
+  });
+}
+
 export const api = {
   authStatus: () => request<AuthStatus>("/api/auth/status"),
 	  login: (email: string, password: string) =>
@@ -142,6 +169,15 @@ export const api = {
     request<{ ok: true; user: AdminUser }>("/api/admin/users/update-plan", {
       method: "POST",
       body: JSON.stringify(payload)
+    }),
+  resetUserPassword: (payload: { userId: number; password: string }) =>
+    request<{ ok: true; user: AdminUser }>("/api/admin/users/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  deleteUser: (id: number) =>
+    request<{ ok: true }>(`/api/admin/users/${encodeURIComponent(id)}`, {
+      method: "DELETE"
     }),
   opinions: (options?: {
     section?: string;
@@ -177,29 +213,20 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
+  uploadCourseImage: async (file: File, onProgress?: (percent: number) => void) => {
+    const ticket = await request<{ ok: true; image: UploadedImage & CosUploadTicket }>("/api/admin/courses/image-upload-url", {
+      method: "POST",
+      body: JSON.stringify({ name: file.name || "course-cover", type: file.type || "application/octet-stream", size: file.size })
+    });
+    await putToCos(file, ticket.image, onProgress);
+    return { ok: true, image: ticket.image };
+  },
   uploadCourseVideo: async (file: File, onProgress?: (percent: number) => void) => {
     const ticket = await request<{ ok: true; video: UploadedVideo & { uploadUrl: string } }>("/api/admin/courses/video-upload-url", {
       method: "POST",
       body: JSON.stringify({ name: file.name || "lesson-video.mp4", type: file.type || "application/octet-stream", size: file.size })
     });
-    await new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", ticket.video.uploadUrl);
-      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
-      };
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          onProgress?.(100);
-          resolve();
-        } else {
-          reject(new Error(`COS 上传失败：${xhr.status}`));
-        }
-      };
-      xhr.onerror = () => reject(new Error("COS 上传失败"));
-      xhr.send(file);
-    });
+    await putToCos(file, ticket.video, onProgress);
     return { ok: true, video: ticket.video };
   },
   courses: () => request<{ series: CourseSeries[]; grants: CourseGrant[] }>("/api/admin/courses"),
@@ -208,7 +235,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
-  saveCourseLesson: (payload: { id?: number; seriesId: number; title: string; sortOrder?: number; durationLabel?: string; videoKey: string; status: CourseLesson["status"] }) =>
+  saveCourseLesson: (payload: { id?: number; seriesId: number; title: string; sortOrder?: number; durationLabel?: string; coverUrl?: string; videoKey: string; status: CourseLesson["status"] }) =>
     request<{ ok: true; lesson: CourseLesson }>("/api/admin/courses/lessons", {
       method: "POST",
       body: JSON.stringify(payload)

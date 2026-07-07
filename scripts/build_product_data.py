@@ -104,7 +104,7 @@ def normalize_manual_earnings_event(row: dict[str, Any], source_name: str) -> di
         "type": "earnings",
         "impact": str(row.get("impact") or "medium"),
         "sourceName": str(row.get("sourceName") or source_name),
-        "relatedModules": row.get("relatedModules") or ["美股财经前瞻", "股票库", "财报观察"],
+        "relatedModules": row.get("relatedModules") or ["美股重点财经前瞻", "股票库", "财报观察"],
         "relatedAssets": row.get("relatedAssets") or [ticker],
         "summary": summary,
     }
@@ -212,7 +212,7 @@ def build_earnings_calendar_events(start: date, end: date, limit: int = 120) -> 
                 "type": "earnings",
                 "impact": earnings_impact(row.importance),
                 "sourceName": "Polygon/Benzinga",
-                "relatedModules": ["美股财经前瞻", "股票库", "财报观察"],
+                "relatedModules": ["美股重点财经前瞻", "股票库", "财报观察"],
                 "relatedAssets": [ticker],
                 "summary": f"{company}：{summary}",
             }
@@ -268,7 +268,7 @@ def build_bls_macro_events(start: date, end: date) -> list[dict[str, Any]]:
                 "type": "macro",
                 "impact": "high",
                 "sourceName": "BLS",
-                "relatedModules": ["美股财经前瞻"],
+                "relatedModules": ["美股重点财经前瞻"],
                 "relatedAssets": [],
                 "summary": summary_text,
             }
@@ -325,7 +325,7 @@ def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
                 "type": "macro",
                 "impact": "high",
                 "sourceName": "Federal Reserve",
-                "relatedModules": ["美股财经前瞻"],
+                "relatedModules": ["美股重点财经前瞻"],
                 "relatedAssets": [],
                 "summary": "美联储利率决议会影响美债利率、成长股估值和美元流动性。",
             }

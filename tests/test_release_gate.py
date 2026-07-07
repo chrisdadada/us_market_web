@@ -79,6 +79,11 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.SUPER_ADMIN_PASSWORD = "admin-password"
         auth_api.SIGNALS_API_TOKEN = "signals-token"
         auth_api.UPLOAD_ROOT = Path(self.tempdir.name) / "uploads"
+        auth_api.COURSE_COS_SECRET_ID = ""
+        auth_api.COURSE_COS_SECRET_KEY = ""
+        auth_api.COURSE_COS_BUCKET = ""
+        auth_api.COURSE_COS_REGION = ""
+        auth_api.COURSE_COS_DOMAIN = ""
         auth_api.init_db()
 
     def tearDown(self) -> None:
@@ -638,6 +643,24 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertTrue(users_by_email["paid@example.test"]["hasPaidAccess"])
         self.assertFalse(users_by_email["expired@example.test"]["hasPaidAccess"])
 
+    def test_admin_metrics_exclude_admin_activity(self) -> None:
+        admin = self.login("admin@example.test", "admin-password")
+        self.create_user(admin, "normal@example.test", "free")
+        user = self.login("normal@example.test", "user-password")
+
+        status, payload = admin.post("/api/analytics/event", {"eventType": "nav_click", "eventKey": "stocks", "path": "/?page=stocks"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "nav_click", "eventKey": "stocks", "path": "/?page=stocks"})
+        self.assertEqual(status, 201, payload)
+
+        status, payload = admin.get("/api/admin/metrics")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["users"]["total"], 1)
+        self.assertEqual(payload["active"]["d3"], 1)
+        self.assertEqual(payload["active"]["d7"], 1)
+        self.assertEqual(payload["active"]["d30"], 1)
+        self.assertEqual(payload["navClicks"], [{"page": "stocks", "clicks": 1, "users": 1}])
+
     def test_monthly_and_yearly_users_keep_paid_access(self) -> None:
         admin = self.login("admin@example.test", "admin-password")
         self.create_user(admin, "monthly@example.test", "monthly")
@@ -811,15 +834,71 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 403, payload)
         self.assertIn("超级管理员", payload["error"])
 
-    def test_admin_password_reset_endpoint_is_not_available(self) -> None:
-        admin = self.login("admin@example.test", "admin-password")
-        user = self.create_user(admin, "reset-disabled@example.test", "free")
+    def test_regular_admin_cannot_reset_password(self) -> None:
+        super_admin = self.login("admin@example.test", "admin-password")
+        self.create_user(super_admin, "manager-reset@example.test", "free", role="admin")
+        user = self.create_user(super_admin, "reset-denied@example.test", "free")
+        manager = self.login("manager-reset@example.test", "user-password")
 
-        status, payload = admin.post(
+        status, payload = manager.post(
             "/api/admin/users/reset-password",
             {"userId": user["id"], "password": "new-password"},
         )
-        self.assertEqual(status, 404, payload)
+        self.assertEqual(status, 403, payload)
+
+    def test_super_admin_can_reset_user_password(self) -> None:
+        super_admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(super_admin, "reset-ok@example.test", "free")
+
+        status, payload = super_admin.post(
+            "/api/admin/users/reset-password",
+            {"userId": user["id"], "password": "new-password"},
+        )
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["user"]["id"], user["id"])
+
+        status, payload = self.client().post(
+            "/api/auth/login",
+            {"email": "reset-ok@example.test", "password": "new-password"},
+        )
+        self.assertEqual(status, 200, payload)
+
+    def test_regular_admin_cannot_delete_user(self) -> None:
+        super_admin = self.login("admin@example.test", "admin-password")
+        self.create_user(super_admin, "manager-delete@example.test", "free", role="admin")
+        user = self.create_user(super_admin, "delete-denied@example.test", "free")
+        manager = self.login("manager-delete@example.test", "user-password")
+
+        status, payload = manager.delete(f"/api/admin/users/{user['id']}")
+        self.assertEqual(status, 403, payload)
+
+    def test_super_admin_can_delete_user(self) -> None:
+        super_admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(super_admin, "delete-ok@example.test", "free")
+
+        status, payload = super_admin.post(
+            "/api/admin/courses",
+            {"title": "删除测试课程", "summary": "课程简介", "coverUrl": "", "status": "published"},
+        )
+        self.assertEqual(status, 201, payload)
+        series_id = payload["series"]["id"]
+        status, payload = super_admin.post("/api/admin/courses/grants", {"seriesId": series_id, "user": user["email"]})
+        self.assertEqual(status, 201, payload)
+
+        status, payload = super_admin.delete(f"/api/admin/users/{user['id']}")
+        self.assertEqual(status, 200, payload)
+
+        status, payload = self.client().post(
+            "/api/auth/login",
+            {"email": "delete-ok@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 401, payload)
+        status, payload = super_admin.get("/api/admin/users")
+        self.assertEqual(status, 200, payload)
+        self.assertFalse(any(item["email"] == "delete-ok@example.test" for item in payload["users"]))
+        status, payload = super_admin.get("/api/admin/courses")
+        self.assertEqual(status, 200, payload)
+        self.assertFalse(any(item["userEmail"] == "delete-ok@example.test" for item in payload["grants"]))
 
     def test_course_grants_control_frontend_playback(self) -> None:
         admin = self.login("admin@example.test", "admin-password")
@@ -847,6 +926,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             {
                 "seriesId": series_id,
                 "title": "01 课程框架",
+                "coverUrl": "https://cdn.example.test/lesson-cover.jpg",
                 "videoKey": "https://example.test/video.mp4",
                 "status": "published",
             },
@@ -888,6 +968,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 "id": lesson_id,
                 "seriesId": series_id,
                 "title": "01 课程框架更新",
+                "coverUrl": "https://cdn.example.test/lesson-cover-updated.jpg",
                 "sortOrder": 9,
                 "videoKey": "https://example.test/video-updated.mp4",
                 "status": "published",
@@ -896,6 +977,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         self.assertEqual(payload["lesson"]["id"], lesson_id)
         self.assertEqual(payload["lesson"]["sortOrder"], 9)
+        self.assertEqual(payload["lesson"]["coverUrl"], "https://cdn.example.test/lesson-cover-updated.jpg")
 
         status, payload = client.get("/api/courses")
         self.assertEqual(status, 200, payload)
@@ -916,6 +998,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertTrue(payload["series"][0]["unlocked"])
         self.assertEqual(payload["series"][0]["coverUrl"], "/uploads/courses/cover.png")
         self.assertEqual(payload["series"][0]["lessons"][0]["title"], "01 课程框架更新")
+        self.assertEqual(payload["series"][0]["lessons"][0]["coverUrl"], "https://cdn.example.test/lesson-cover-updated.jpg")
 
         status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
         self.assertEqual(status, 200, payload)
@@ -1063,18 +1146,63 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertIn(f"![chart]({image_url})", payload["rows"][0]["body"])
 
-    def test_course_cover_upload_uses_courses_path(self) -> None:
+    def test_course_cover_upload_puts_to_cos(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
         admin = self.login("admin@example.test", "admin-password")
         tiny_gif = base64.b64encode(
             b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x00\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
         ).decode("ascii")
+        calls = []
+
+        class FakeResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        original = urllib.request.urlopen
+
+        def fake_urlopen(request, timeout=0):
+            calls.append((request, timeout))
+            return FakeResponse()
+
+        try:
+            urllib.request.urlopen = fake_urlopen
+            status, payload = admin.post(
+                "/api/admin/uploads",
+                {"name": "cover.gif", "type": "image/gif", "scope": "courses", "data": f"data:image/gif;base64,{tiny_gif}"},
+            )
+        finally:
+            urllib.request.urlopen = original
+
+        self.assertEqual(status, 201, payload)
+        self.assertIn("lesson-1259765032.cos.ap-chengdu.myqcloud.com/course-image/", payload["image"]["url"])
+        self.assertIn("q-sign-algorithm=sha1", payload["image"]["url"])
+        self.assertEqual(calls[0][0].get_method(), "PUT")
+
+    def test_course_cover_upload_url_matches_video_flow(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        admin = self.login("admin@example.test", "admin-password")
 
         status, payload = admin.post(
-            "/api/admin/uploads",
-            {"name": "cover.gif", "type": "image/gif", "scope": "courses", "data": f"data:image/gif;base64,{tiny_gif}"},
+            "/api/admin/courses/image-upload-url",
+            {"name": "cover.webp", "type": "image/webp", "size": 1234},
         )
+
         self.assertEqual(status, 201, payload)
-        self.assertIn("path=courses/", payload["image"]["url"])
+        self.assertIn("course-image/", payload["image"]["key"])
+        self.assertIn("lesson-1259765032.cos.ap-chengdu.myqcloud.com/course-image/", payload["image"]["url"])
+        self.assertIn("q-sign-algorithm=sha1", payload["image"]["url"])
+        self.assertIn("q-sign-algorithm=sha1", payload["image"]["uploadUrl"])
 
     def test_course_cos_url_is_signed_as_bucket_object(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"

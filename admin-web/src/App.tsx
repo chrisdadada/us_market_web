@@ -8,7 +8,7 @@ const navItems: Array<{ key: PageKey; label: string }> = [
   { key: "users", label: "用户管理" },
   { key: "members", label: "会员管理" },
   { key: "content", label: "内容管理" },
-  { key: "courses", label: "课程管理" },
+  { key: "courses", label: "交易实战课程管理" },
   { key: "events", label: "操作记录" },
   { key: "admins", label: "管理员" }
 ];
@@ -27,7 +27,7 @@ const roleLabels: Record<string, string> = {
 };
 
 const opinionSections = [
-  { value: "weekly", label: "每周交易主线" },
+  { value: "weekly", label: "周度前瞻" },
   { value: "premarket", label: "盘前前瞻" },
   { value: "daily", label: "每日个股行情观点" },
   { value: "research", label: "研报解析" },
@@ -164,10 +164,10 @@ function StatCard({ label, value, note, tone }: { label: string; value: string |
 
 const frontPageLabels: Record<string, string> = {
   dashboard: "首页",
-  "market-opinion": "市场观点",
-  tracking: "强势股票跟踪榜单",
+  "market-opinion": "美股热点风向标",
+  tracking: "股票机会跟踪榜单",
   stocks: "股票库",
-  events: "财经日历",
+  events: "美股重点财经前瞻",
   market: "市场与资金",
   options: "期权数据",
   stock: "个股详情",
@@ -339,6 +339,7 @@ function UserEditModal({
   selected,
   open,
   events,
+  currentUser,
   onRefresh,
   onClose,
   title = "用户设置",
@@ -347,6 +348,7 @@ function UserEditModal({
   selected: AdminUser | null;
   open: boolean;
   events: UserEvent[];
+  currentUser?: AuthStatus["user"];
   onRefresh: () => Promise<void>;
   onClose: () => void;
   title?: string;
@@ -360,11 +362,16 @@ function UserEditModal({
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const selectedEvents = events.filter((event) => event.target.id === selected?.id).slice(0, 5);
   const isProtectedSuperAdmin = selected?.role === "super_admin";
   const selectedState = selected ? membershipState(selected) : null;
   const canEditRole = mode === "account";
   const canEditMembership = form.role === "user";
+  const canResetPassword = currentUser?.role === "super_admin" && selected?.role !== "super_admin";
+  const canDeleteUser = currentUser?.role === "super_admin" && selected?.role !== "super_admin";
 
   useEffect(() => {
     if (!selected) return;
@@ -375,6 +382,7 @@ function UserEditModal({
       isActive: selected.isActive
     });
     setMessage("");
+    setNewPassword("");
   }, [selected?.id]);
 
   async function savePlan(event: React.FormEvent) {
@@ -406,6 +414,38 @@ function UserEditModal({
       setMessage(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function resetPassword() {
+    if (!selected || !newPassword.trim()) return;
+    setResetting(true);
+    setMessage("");
+    try {
+      await api.resetUserPassword({ userId: selected.id, password: newPassword });
+      setNewPassword("");
+      setMessage("密码已重置");
+      await onRefresh();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "重置失败");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  async function deleteUser() {
+    if (!selected) return;
+    if (!window.confirm(`确认删除 ${selected.email}？删除后无法恢复。`)) return;
+    setDeleting(true);
+    setMessage("");
+    try {
+      await api.deleteUser(selected.id);
+      await onRefresh();
+      onClose();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -521,8 +561,32 @@ function UserEditModal({
             />
             账号启用
           </label>
+          {canResetPassword ? (
+            <div className="passwordResetBox">
+              <label>
+                重置密码
+                <input
+                  type="password"
+                  value={newPassword}
+                  minLength={8}
+                  maxLength={128}
+                  autoComplete="new-password"
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="至少 8 位"
+                />
+              </label>
+              <button type="button" className="ghostButton" disabled={resetting || newPassword.length < 8} onClick={resetPassword}>
+                {resetting ? "重置中" : "重置密码"}
+              </button>
+            </div>
+          ) : null}
           {message ? <p className="inlineMessage">{message}</p> : null}
           <div className="modalActions">
+            {canDeleteUser ? (
+              <button type="button" className="dangerButton" disabled={deleting} onClick={deleteUser}>
+                {deleting ? "删除中" : "删除用户"}
+              </button>
+            ) : null}
             <button type="button" className="ghostButton" onClick={onClose}>取消</button>
             <button type="submit" className="primaryButton" disabled={saving || isProtectedSuperAdmin}>{saving ? "保存中" : "保存设置"}</button>
           </div>
@@ -597,10 +661,12 @@ function EventPersonCell({ email, label }: { email?: string | null; label?: stri
 function UsersPage({
   users,
   events,
+  currentUser,
   onRefresh
 }: {
   users: AdminUser[];
   events: UserEvent[];
+  currentUser: AuthStatus["user"];
   onRefresh: () => Promise<void>;
 }) {
   const [keyword, setKeyword] = useState("");
@@ -712,7 +778,7 @@ function UsersPage({
           </table>
         </section>
       </div>
-      <UserEditModal selected={selected} open={editorOpen} events={events} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} />
+      <UserEditModal selected={selected} open={editorOpen} events={events} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} />
     </div>
   );
 }
@@ -838,15 +904,17 @@ type CourseLessonForm = {
   id?: number;
   title: string;
   sortOrder: string;
+  coverUrl: string;
   videoKey: string;
   status: CourseLesson["status"];
 };
 
 const emptyCourseSeriesForm = (): CourseSeriesForm => ({ title: "", summary: "", coverUrl: "", sortOrder: "", status: "draft" });
-const emptyCourseLessonForm = (): CourseLessonForm => ({ title: "", sortOrder: "", videoKey: "", status: "published" });
+const emptyCourseLessonForm = (): CourseLessonForm => ({ title: "", sortOrder: "", coverUrl: "", videoKey: "", status: "published" });
 
 function CoursesPage({ users }: { users: AdminUser[] }) {
   const coverFileRef = useRef<HTMLInputElement | null>(null);
+  const lessonCoverFileRef = useRef<HTMLInputElement | null>(null);
   const videoFileRef = useRef<HTMLInputElement | null>(null);
   const [series, setSeries] = useState<CourseSeries[]>([]);
   const [grants, setGrants] = useState<CourseGrant[]>([]);
@@ -875,7 +943,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       setGrants(payload.grants || []);
       setSelectedId((current) => current || payload.series?.[0]?.id || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "课程读取失败");
+      setError(err instanceof Error ? err.message : "交易实战课程读取失败");
     } finally {
       setLoading(false);
     }
@@ -917,6 +985,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
         id: lessonForm.id,
         seriesId: selected.id,
         title: lessonForm.title,
+        coverUrl: lessonForm.coverUrl,
         videoKey: lessonForm.videoKey,
         status: lessonForm.status,
         sortOrder: sortOrder ? Number(sortOrder) : undefined
@@ -961,7 +1030,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   }
 
   async function deleteSeries(item: CourseSeries) {
-    if (!window.confirm(`删除课程系列「${item.title}」？该系列下的视频和授权也会一起删除。`)) return;
+    if (!window.confirm(`删除交易实战课程系列「${item.title}」？该系列下的视频和授权也会一起删除。`)) return;
     setSaving(true);
     setError("");
     try {
@@ -997,9 +1066,25 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setCoverUploading(true);
     setError("");
     try {
-      const data = await fileToDataUrl(file);
-      const payload = await api.uploadImage({ name: file.name || "course-cover", type: file.type, data, scope: "courses" });
+      const payload = await api.uploadCourseImage(file);
       setSeriesForm((current) => ({ ...current, coverUrl: payload.image.url }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "封面上传失败");
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  async function uploadLessonCover(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setError("请选择图片文件");
+      return;
+    }
+    setCoverUploading(true);
+    setError("");
+    try {
+      const payload = await api.uploadCourseImage(file);
+      setLessonForm((current) => ({ ...current, coverUrl: payload.image.url }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "封面上传失败");
     } finally {
@@ -1024,6 +1109,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
         id: lessonForm.id,
         seriesId: selected.id,
         title,
+        coverUrl: lessonForm.coverUrl,
         videoKey: payload.video.key,
         status: lessonForm.status,
         sortOrder: sortOrder ? Number(sortOrder) : undefined
@@ -1066,6 +1152,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       id: lesson.id,
       title: lesson.title,
       sortOrder: String(lesson.sortOrder || ""),
+      coverUrl: lesson.coverUrl || "",
       videoKey: lesson.videoKey || "",
       status: lesson.status
     });
@@ -1076,19 +1163,19 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     <div className="pageStack">
       <div className="pageTitle">
         <div>
-          <span>课程系列 / 视频 / 授权</span>
-          <h1>课程管理</h1>
+          <span>交易实战课程系列 / 视频 / 授权</span>
+          <h1>交易实战课程管理</h1>
         </div>
         <button type="button" className="primaryButton" onClick={openNewSeries}>新建系列</button>
       </div>
 
       {error ? <div className="notice inlineNotice">{error}</div> : null}
-      {loading ? <div className="contentLoading inlineNotice">课程刷新中</div> : null}
+      {loading ? <div className="contentLoading inlineNotice">交易实战课程刷新中</div> : null}
 
       <div className="courseAdminLayout">
         <section className="panel tablePanel">
           <div className="panelHeader">
-            <h2>课程系列</h2>
+            <h2>交易实战课程系列</h2>
           </div>
           <table className="adminTable">
             <thead>
@@ -1135,14 +1222,14 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   </td>
                 </tr>
               ))}
-              {!series.length && !loading ? <tr><td colSpan={6}>暂无课程</td></tr> : null}
+              {!series.length && !loading ? <tr><td colSpan={6}>暂无交易实战课程</td></tr> : null}
             </tbody>
           </table>
         </section>
 
         <section className="panel courseDetailPanel">
           <div className="panelHeader">
-            <h2>{selected?.title || "课程详情"}</h2>
+            <h2>{selected?.title || "交易实战课程详情"}</h2>
             <button
               type="button"
               className="tableAction"
@@ -1160,6 +1247,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                 <thead>
                   <tr>
                     <th>优先级</th>
+                    <th>封面</th>
                     <th>视频</th>
                     <th>COS Key</th>
                     <th>状态</th>
@@ -1170,6 +1258,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   {(selected.lessons || []).map((lesson) => (
                     <tr key={lesson.id}>
                       <td>{lesson.sortOrder}</td>
+                      <td>{lesson.coverUrl ? <img className="lessonCoverThumb" src={lesson.coverUrl} alt="" /> : "--"}</td>
                       <td>{lesson.title}</td>
                       <td className="courseKeyCell">{lesson.videoKey || "--"}</td>
                       <td><span className={`status ${lesson.status === "published" ? "positiveBg" : ""}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
@@ -1179,7 +1268,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                       </td>
                     </tr>
                   ))}
-                  {!selected.lessons?.length ? <tr><td colSpan={5}>暂无视频</td></tr> : null}
+                  {!selected.lessons?.length ? <tr><td colSpan={6}>暂无视频</td></tr> : null}
                 </tbody>
               </table>
 
@@ -1207,7 +1296,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               </div>
             </>
           ) : (
-            <div className="emptyPanel">请选择课程</div>
+            <div className="emptyPanel">请选择交易实战课程</div>
           )}
         </section>
       </div>
@@ -1216,14 +1305,14 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
         <div className="modalOverlay">
           <form className="adminModal courseModal" onSubmit={submitSeries}>
             <div className="modalHeader">
-              <h2>{seriesForm.id ? "编辑课程系列" : "新建课程系列"}</h2>
+              <h2>{seriesForm.id ? "编辑交易实战课程系列" : "新建交易实战课程系列"}</h2>
               <button type="button" onClick={() => setSeriesOpen(false)}>×</button>
             </div>
             <div className="editForm courseModalBody">
               <label>系列名称<input value={seriesForm.title} onChange={(event) => setSeriesForm({ ...seriesForm, title: event.target.value })} placeholder="例如 财报季交易框架" /></label>
               <label>优先级<input type="number" min="1" value={seriesForm.sortOrder} onChange={(event) => setSeriesForm({ ...seriesForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
               <label>上架状态<select value={seriesForm.status} onChange={(event) => setSeriesForm({ ...seriesForm, status: event.target.value as CourseSeries["status"] })}><option value="draft">草稿</option><option value="published">上架</option></select></label>
-              <label className="fullField">课程简介<input value={seriesForm.summary} onChange={(event) => setSeriesForm({ ...seriesForm, summary: event.target.value })} placeholder="前台课程卡片展示" /></label>
+              <label className="fullField">交易实战课程简介<textarea rows={5} value={seriesForm.summary} onChange={(event) => setSeriesForm({ ...seriesForm, summary: event.target.value })} placeholder={"前台详情支持 Markdown，例如：\n1. 第一条说明\n2. 第二条说明"} /></label>
               <div className="fullField courseCoverUpload">
                 <span>封面图</span>
                 <div>
@@ -1262,9 +1351,30 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <button type="button" onClick={() => setLessonOpen(false)}>×</button>
             </div>
             <div className="editForm courseModalBody">
-              <label>视频标题<input value={lessonForm.title} onChange={(event) => setLessonForm({ ...lessonForm, title: event.target.value })} placeholder="例如 01 课程框架" /></label>
+              <label>视频标题<input value={lessonForm.title} onChange={(event) => setLessonForm({ ...lessonForm, title: event.target.value })} placeholder="例如 01 交易实战课程框架" /></label>
               <label>优先级<input type="number" min="1" value={lessonForm.sortOrder} onChange={(event) => setLessonForm({ ...lessonForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
               <label>状态<select value={lessonForm.status} onChange={(event) => setLessonForm({ ...lessonForm, status: event.target.value as CourseLesson["status"] })}><option value="published">上架</option><option value="draft">草稿</option></select></label>
+              <div className="fullField courseCoverUpload">
+                <span>单节封面图</span>
+                <div>
+                  {lessonForm.coverUrl ? <img src={lessonForm.coverUrl} alt="" /> : <em>未上传</em>}
+                  <section>
+                    <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => lessonCoverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
+                    <small>{lessonForm.coverUrl || "支持 PNG、JPG、WebP、GIF，上传到 COS"}</small>
+                  </section>
+                </div>
+                <input
+                  ref={lessonCoverFileRef}
+                  className="hiddenFile"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadLessonCover(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </div>
               <div className="fullField courseVideoUpload">
                 <button type="button" className="ghostButton" disabled={videoUploading} onClick={() => videoFileRef.current?.click()}>{videoUploading ? "上传中" : "上传视频"}</button>
                 <span>{videoUploading ? `上传中 ${videoUploadProgress}%` : lessonForm.videoKey || "上传成功后自动保存视频，也可以手工粘贴 COS Key"}</span>
@@ -1883,7 +1993,7 @@ function ContentPage() {
       <div className="pageTitle">
         <div>
           <span>内容管理</span>
-          <h1>市场观点</h1>
+          <h1>美股热点风向标</h1>
         </div>
         <button type="button" className="primaryButton" onClick={createNew}>新建内容</button>
       </div>
@@ -1972,7 +2082,7 @@ function ContentPage() {
         <section className="panel editorPanel">
           <div className="editorMeta">
             <div>
-              <span>{form.sectionLabel || "市场观点"}</span>
+              <span>{form.sectionLabel || "美股热点风向标"}</span>
               <strong>{form.title || "未命名内容"}</strong>
             </div>
             <div className="editorBadges">
@@ -2070,7 +2180,7 @@ function ContentPage() {
 
           <div className="editorActions">
             <div className="editorActionState">
-              <span>{form.sectionLabel || "市场观点"}</span>
+              <span>{form.sectionLabel || "美股热点风向标"}</span>
               <strong>{hasUnsavedChanges ? "有未保存修改" : currentStatus}</strong>
             </div>
             <input
@@ -2228,7 +2338,7 @@ export function App() {
         {error ? <div className="notice">{error}</div> : null}
         {loading ? <div className="contentLoading">刷新数据中</div> : null}
         {page === "home" ? <HomePage users={users} events={events} metrics={metrics} /> : null}
-        {page === "users" ? <UsersPage users={users} events={events} onRefresh={loadData} /> : null}
+        {page === "users" ? <UsersPage users={users} events={events} currentUser={auth.user} onRefresh={loadData} /> : null}
         {page === "members" ? <MembersPage users={users} events={events} onRefresh={loadData} /> : null}
         {page === "content" ? <ContentPage /> : null}
         {page === "courses" ? <CoursesPage users={users} /> : null}
