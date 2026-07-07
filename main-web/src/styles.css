@@ -8701,8 +8701,16 @@ body,
   padding: 16px;
 }
 
-.courseCardGrid h2 {
+.courseCardTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0 0 8px;
+}
+
+.courseCardGrid h2 {
+  margin: 0;
   color: #172033;
   font-size: 18px;
   font-weight: 600;
@@ -8719,7 +8727,7 @@ body,
   overflow: hidden;
 }
 
-.courseCardGrid section > div:not(.courseDiscountBlock),
+.courseCardGrid section > div:not(.courseDiscountBlock):not(.courseCardTitleRow),
 .courseCardGrid footer {
   display: flex;
   align-items: center;
@@ -8727,22 +8735,20 @@ body,
   gap: 12px;
 }
 
-.courseCardGrid section > div:not(.courseDiscountBlock) {
+.courseCardGrid section > div:not(.courseDiscountBlock):not(.courseCardTitleRow) {
   justify-content: flex-start;
   margin-bottom: 15px;
 }
 
 .courseDiscountBlock {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 
-.courseDiscountBlock > span {
+.courseDiscountLabel {
   height: 26px;
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   border-radius: 7px;
   background: #fff1f0;
   color: #e02316;
@@ -8761,7 +8767,7 @@ body,
 
 .courseDiscountBlock strong {
   color: #e02316;
-  font-size: 24px;
+  font-size: 32px;
   line-height: 1;
   font-weight: 900;
 }
@@ -8780,7 +8786,7 @@ body,
   font-weight: 500;
 }
 
-.courseCardGrid .courseDiscountBlock > span {
+.courseCardGrid .courseDiscountLabel {
   color: #e02316;
   font-size: 12px;
   font-weight: 800;
@@ -8853,8 +8859,12 @@ body,
   margin-bottom: 14px;
 }
 
+.courseDetailText > .courseDiscountLabel {
+  margin-bottom: 10px;
+}
+
 .detailDiscount strong {
-  font-size: 28px;
+  font-size: 34px;
 }
 
 .courseDetailText .courseMetaPills {
