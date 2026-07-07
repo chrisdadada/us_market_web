@@ -3306,7 +3306,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
                   <h2>{item.title}</h2>
                   <p>{compactText(item.summary, 82) || `${item.lessons?.length || 0} 节视频`}</p>
                   {courseDiscountBlock(item)}
-                  <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{item.unlocked ? "可学习" : "交易实战课程介绍"}</span></div>
+                  <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频 ·</span><span>{item.unlocked ? "可学习" : "交易实战课程介绍"}</span></div>
                   <footer>
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>
                       {item.unlocked ? "开始学习" : "查看详情"}
