@@ -6,7 +6,6 @@ import {
   CalendarEvent,
   CourseSeries,
   FundingScannerRow,
-  MarketBoardRow,
   MarketRow,
   OpenPortfolioPayload,
   Opinion,
@@ -198,14 +197,6 @@ function isHomepageOpinion(item: Opinion) {
   return item.status === "published";
 }
 
-function homepageSectionLabel(item: Opinion) {
-  if (item.section === "daily") return "每日个股";
-  if (item.section === "premarket") return "盘前前瞻";
-  if (item.section === "postmarket") return "盘后复盘";
-  return opinionSectionLabel(item);
-}
-
-
 const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: string; text: string }>> = {
   opinions: {
     level: "monthly",
@@ -288,34 +279,6 @@ function impactClass(impact?: string) {
   if (impact === "high") return "impactHigh";
   if (impact === "medium") return "impactMedium";
   return "impactLow";
-}
-
-function readableTime(time?: string | null) {
-  if (isBlankValue(time)) return "时间待定";
-  const value = String(time || "").trim();
-  if (!value || value === "time-not-supplied") return "时间待定";
-  if (/before market open/i.test(value)) return "盘前";
-  if (/after market close/i.test(value)) return "盘后";
-  const labelClock = (clock: string) => {
-    const hour = Number(clock.slice(0, 2));
-    if (!Number.isFinite(hour)) return clock;
-    if (hour < 6) return `凌晨 ${clock}`;
-    if (hour < 12) return `早上 ${clock}`;
-    if (hour < 18) return `下午 ${clock}`;
-    return `晚上 ${clock}`;
-  };
-  if (value.includes("ET")) {
-    const clock = value.replace(" ET", "").trim();
-    const match = clock.match(/^(\d{2}):(\d{2})$/);
-    if (match) {
-      const hour = (Number(match[1]) + 12) % 24;
-      return `中国时间 ${String(hour).padStart(2, "0")}:${match[2]}`;
-    }
-    return `美东 ${clock}`;
-  }
-  if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return labelClock(value.slice(0, 5));
-  if (/^\d{2}:\d{2}$/.test(value)) return labelClock(value);
-  return value.replace("至 ", "持续到 ");
 }
 
 function calendarTime24(time?: string | null) {
@@ -543,34 +506,6 @@ function isDisplaySector(sector?: string | null) {
   return !!value && value !== "未分类" && value !== "ETF";
 }
 
-function getSectorRowsForBoard(bootstrap: BootstrapPayload | null, board: "day" | "week" | "month") {
-  const rows = (bootstrap?.movers?.boards?.[board]?.rows || []).filter((row) => isDisplaySector(row.sector));
-  const map = new Map<string, { sector: string; count: number; upCount: number; downCount: number; activeValue: number; netFlowProxy: number; avgChangePct: number; leaders: Array<{ symbol: string; change?: number; changePct: number; liquidity: string; name?: string }> }>();
-  rows.forEach((row) => {
-    const change = Number(row.change ?? row.changeYtd ?? 0);
-    const volume = Number(row.dollarVolume || 0);
-    const item = map.get(row.sector!) || { sector: row.sector!, count: 0, upCount: 0, downCount: 0, activeValue: 0, netFlowProxy: 0, avgChangePct: 0, leaders: [] };
-    item.count += 1;
-    item.upCount += change >= 0 ? 1 : 0;
-    item.downCount += change < 0 ? 1 : 0;
-    item.activeValue += volume;
-    item.netFlowProxy += change >= 0 ? volume : -volume;
-    item.avgChangePct += change;
-    item.leaders.push({ symbol: row.symbol, name: row.company || row.chineseName, change: change, changePct: change, liquidity: compactMoney(volume) });
-    map.set(row.sector!, item);
-  });
-  return [...map.values()].map((item, index) => ({
-    ...item,
-    rank: index + 1,
-    status: undefined,
-    activeValueLabel: undefined,
-    breadthPct: Math.round((item.upCount / Math.max(1, item.count)) * 10000) / 100,
-    avgChange: item.avgChangePct / Math.max(1, item.count),
-    avgChangePct: item.avgChangePct / Math.max(1, item.count),
-    leaders: item.leaders.sort((a, b) => moneyNumber(b.liquidity) - moneyNumber(a.liquidity)).slice(0, 4),
-  })).sort((a, b) => b.netFlowProxy - a.netFlowProxy);
-}
-
 function treemapRects(items: Array<{ value: number }>) {
   const layouts: Array<{ x: number; y: number; w: number; h: number }> = [];
   const split = (entries: Array<{ index: number; value: number }>, x: number, y: number, w: number, h: number) => {
@@ -603,21 +538,6 @@ function treemapRects(items: Array<{ value: number }>) {
   return layouts;
 }
 
-function boardLabel(board?: string) {
-  return {
-    day: "1D",
-    week: "7D",
-    month: "1M",
-    ytd: "YTD",
-    volume: "成交"
-  }[board || ""] || board || "--";
-}
-
-function marketRowChange(row?: MarketBoardRow) {
-  if (!row) return "--";
-  return signed(row.changePct ?? row.change ?? row.changeYtd);
-}
-
 function numericPercent(value?: number | string | null) {
   if (isBlankValue(value)) return NaN;
   if (typeof value === "number") return value;
@@ -633,17 +553,6 @@ function barWidth(value?: number | string | null, max = 100) {
 function stockCompany(row?: SymbolRow | null) {
   if (!row) return "--";
   return !isBlankValue(row.company) ? row.company! : !isBlankValue(row.chineseName) ? row.chineseName! : row.symbol;
-}
-
-function stockStatus(row?: SymbolRow | null) {
-  return isBlankValue(row?.strengthLabel) ? "--" : row!.strengthLabel!;
-}
-
-function stockStatusClass(row?: SymbolRow | null) {
-  const label = stockStatus(row);
-  if (label.includes("空")) return "short";
-  if (label !== "--") return "long";
-  return "none";
 }
 
 function planLabel(auth: AuthStatus | null) {
@@ -1656,49 +1565,6 @@ function OpinionsPage({
   );
 }
 
-function OpinionSectionCard({
-  title,
-  rows,
-  onSelect,
-  locked = false
-}: {
-  title: string;
-  rows: Opinion[];
-  onSelect: (item: Opinion) => void;
-  locked?: boolean;
-}) {
-  return (
-    <article className="opinionSectionCard">
-      <div className="opinionPanelHead">
-        <strong>{title}</strong>
-        <span>进入</span>
-      </div>
-      {rows.length ? rows.map((item) => (
-        <button type="button" key={item.id} onClick={() => onSelect(item)}>
-          <strong>{item.title}</strong>
-          <div className={locked ? "opinionLockedExcerpt" : ""}>
-            {item.summary || item.body ? <p>{compactText(item.summary || item.body, 72)}</p> : null}
-            <span>{formatOpinionTime(item.tradeDate)} · {[...(item.symbols || []), ...(item.topics || [])].slice(0, 3).join(" / ")}</span>
-            {locked ? <span className="opinionInlineLock" aria-label="锁定内容"><i aria-hidden="true" /></span> : null}
-          </div>
-        </button>
-      )) : (
-        <div className="opinionEmpty">--</div>
-      )}
-    </article>
-  );
-}
-
-function PerformanceCell({ value, max = 100 }: { value?: number | string | null; max?: number }) {
-  const text = signed(value);
-  return (
-    <div className="screenerMove">
-      <span className={signedClass(value)}>{text}</span>
-      <i><b style={{ width: `${barWidth(value, max)}%` }} /></i>
-    </div>
-  );
-}
-
 function TrackingPage({
   rows,
   asOf,
@@ -1924,7 +1790,7 @@ function TrackingStockDetailPage({
           <table>
             <thead><tr><th>维度</th><th>位置</th><th>当前值</th></tr></thead>
             <tbody>
-              {rankRows.map(([label, value, rank], index) => (
+              {rankRows.map(([label, value, rank]) => (
                 <tr key={label}>
                   <td>{label}</td>
                   <td><b>{rank ? `第 ${rank}` : "--"}</b><span><i style={{ width: `${rank ? Math.max(10, 100 - (rank - 1) * 6) : 0}%` }} /></span></td>
@@ -2165,27 +2031,6 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
         </table>
       </section>
     </div>
-  );
-}
-
-function MarketMiniBoard({ title, rows }: { title: string; rows: MarketRow[] }) {
-  return (
-    <article className="tablePanel marketMiniBoard">
-      <div className="panelHead">
-        <strong>{title}</strong>
-      </div>
-      <table>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={`${title}-${row.symbol}`}>
-              <td><strong>{row.symbol}</strong><span>{row.sector || rowName(row)}</span></td>
-              <td className={signedClass(row.change ?? row.changeYtd)}>{signed(row.change ?? row.changeYtd)}</td>
-              <td>{money(row.dollarVolume)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </article>
   );
 }
 
@@ -2496,121 +2341,6 @@ function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | 
         </table>
       </section>
     </aside>
-  );
-}
-
-function StockDetailPanel({ detail, loading }: { detail: SymbolDetailPayload | null; loading: boolean }) {
-  if (loading) {
-    return <section className="stockDetailPanel"><div className="loading" /></section>;
-  }
-  if (!detail) {
-    return <section className="stockDetailPanel"><div className="loading">--</div></section>;
-  }
-  const profile = detail.profile;
-  const marketRows = detail.marketRows || [];
-  const strength = detail.strength;
-  const rangeRows = marketRows.filter((row) => ["day", "week", "month", "ytd"].includes(row.board));
-  const currentDollarVolume = profile.dollarVolume ?? marketRows.find((row) => row.dollarVolume)?.dollarVolume;
-  const currentVolumeRatio = profile.volumeRatio ?? marketRows.find((row) => row.volumeRatio)?.volumeRatio;
-  return (
-    <section className="stockDetailPanel">
-      <div className="stockDetailHero">
-        <div>
-          <span>{profile.sector || "--"}</span>
-          <h2>{profile.symbol}</h2>
-          <p>{profile.company || profile.chineseName || profile.symbol}</p>
-        </div>
-        <div className="stockDetailPrice">
-          <strong>{Number.isFinite(Number(profile.price)) ? `$${Number(profile.price).toFixed(2)}` : "--"}</strong>
-          <SignalDirectionBadge label={strength?.label} />
-        </div>
-        <dl>
-          <div><dt>1天</dt><dd className={signedClass(marketRows.find((row) => row.board === "day")?.changePct)}>{marketRowChange(marketRows.find((row) => row.board === "day"))}</dd></div>
-          <div><dt>1周</dt><dd className={signedClass(marketRows.find((row) => row.board === "week")?.changePct)}>{marketRowChange(marketRows.find((row) => row.board === "week"))}</dd></div>
-          <div><dt>1月</dt><dd className={signedClass(marketRows.find((row) => row.board === "month")?.changePct)}>{marketRowChange(marketRows.find((row) => row.board === "month"))}</dd></div>
-          <div><dt>市值</dt><dd>{profile.marketCap || "--"}</dd></div>
-          <div><dt>成交额</dt><dd>{compactMoney(currentDollarVolume)}</dd></div>
-        </dl>
-      </div>
-
-      <div className="stockDetailGrid">
-        <article className="detailBlock">
-          <div className="detailBlockHead"><h3>成交异动</h3></div>
-          <table className="compactTable">
-            <tbody>
-              <tr><td>成交额</td><td>{compactMoney(currentDollarVolume)}</td></tr>
-              <tr><td><VolumeRatioLabel /></td><td>{ratioDisplay(currentVolumeRatio)}</td></tr>
-              {rangeRows.slice(0, 4).map((row) => (
-                <tr key={row.board}><td>{boardLabel(row.board)}</td><td className={signedClass(row.changePct ?? row.change ?? row.changeYtd)}>{marketRowChange(row)}</td></tr>
-              ))}
-            </tbody>
-          </table>
-        </article>
-
-        <article className="detailBlock wide">
-          <div className="detailBlockHead"><h3>同板块对比</h3><span>{profile.sector || "--"}</span></div>
-          <table className="compactTable">
-            <thead>
-              <tr>
-                <th>股票</th>
-                <th>板块</th>
-                <th>市值</th>
-                <th>价格</th>
-                <th>成交额</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(detail.peers || []).slice(0, 8).map((peer) => (
-                <tr key={peer.symbol}>
-                  <td>{peer.symbol}</td>
-                  <td>{peer.sector || "--"}</td>
-                  <td>{peer.marketCap || compactMoney(peer.marketCapValue)}</td>
-                  <td>{Number.isFinite(Number(peer.price)) ? `$${Number(peer.price).toFixed(2)}` : "--"}</td>
-                  <td>{compactMoney(peer.dollarVolume)}</td>
-                </tr>
-              ))}
-              {!(detail.peers || []).length ? <tr><td colSpan={5}>--</td></tr> : null}
-            </tbody>
-          </table>
-        </article>
-
-        <article className="detailBlock">
-          <div className="detailBlockHead"><h3>区间表现</h3></div>
-          <table className="compactTable strengthBars">
-            <tbody>
-              {rangeRows.map((row) => (
-                <tr key={row.board}>
-                  <td>{boardLabel(row.board)}</td>
-                  <td><div className="bar"><b style={{ width: `${barWidth(row.changePct ?? row.change ?? row.changeYtd, 120)}%` }} /></div></td>
-                  <td className={signedClass(row.changePct ?? row.change ?? row.changeYtd)}>{marketRowChange(row)}</td>
-                </tr>
-              ))}
-              {!rangeRows.length ? <tr><td colSpan={3}>--</td></tr> : null}
-            </tbody>
-          </table>
-        </article>
-
-        <article className="detailBlock">
-          <div className="detailBlockHead"><h3>事件</h3></div>
-          {(detail.events || []).length ? detail.events.slice(0, 4).map((event) => (
-            <div className="factRow" key={`${event.eventDate}-${event.eventLabel}`}>
-              <span>{formatDate(event.eventDate)}</span>
-              <strong>{event.eventLabel || event.eventType || "--"}</strong>
-            </div>
-          )) : <p className="emptyFact">--</p>}
-        </article>
-
-        <article className="detailBlock">
-          <div className="detailBlockHead"><h3>财报</h3></div>
-          {(detail.earnings || []).length ? detail.earnings.slice(0, 4).map((item) => (
-            <div className="factRow" key={`${item.board}-${item.rank}`}>
-              <span>{item.latestEarningsDate || item.latestGuidanceDate || "--"}</span>
-              <strong>{item.userAngle || item.userReason || "--"}</strong>
-            </div>
-          )) : <p className="emptyFact">--</p>}
-        </article>
-      </div>
-    </section>
   );
 }
 
@@ -3354,7 +3084,6 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState("");
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
-  const unlockedSeries = series.filter((item) => item.unlocked);
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const filteredSeries = useMemo(() => {
     const query = courseQuery.trim().toLowerCase();
@@ -3691,8 +3420,6 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
     if (!winner || typeof winner.expected_net_usdt !== "number") return row;
     return row.expected_net_usdt > winner.expected_net_usdt ? row : winner;
   }, undefined);
-  const hasErrorRows = rows.some((row) => row.reason.includes("接口失败"));
-
   return (
     <div className="fundingScannerPage">
       <header className="fundingScannerTop">
@@ -3797,20 +3524,6 @@ function ComingSoonPage({ title }: { title: string }) {
         <h1>{title}</h1>
       </section>
     </div>
-  );
-}
-
-function Panel({ title, action, onAction, children }: { title: string; action?: string; onAction?: () => void; children: ReactNode }) {
-  return (
-    <article className="panel">
-      <div className="panelHead">
-        <strong>{title}</strong>
-        {action ? (
-          onAction ? <button type="button" onClick={onAction}>{action}</button> : <span>{action}</span>
-        ) : null}
-      </div>
-      {children}
-    </article>
   );
 }
 
