@@ -236,18 +236,18 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-size: 13px;
   font-weight: 750;
 }
-.openTradeForm {
+.openTradeWorkspace {
   display: grid;
-  grid-template-columns: 190px 150px 130px 190px minmax(180px, 1fr) 120px;
-  gap: 14px;
-  align-items: end;
+  grid-template-columns: minmax(420px, 520px) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: stretch;
 }
-.openTradeForm.sellForm {
-  grid-template-columns: 190px 150px 150px minmax(320px, 1fr) minmax(180px, 1fr) 120px;
+.openTradePanel,
+.openCashPanel {
+  min-width: 0;
 }
 .openTradeHeader {
   border-bottom: 1px solid #e6ebf2;
-  padding-bottom: 16px;
 }
 .openTradeHeader.buy h2 {
   color: #0f9b72;
@@ -279,6 +279,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #fff1f2;
   color: #be123c;
 }
+.openTradeForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: end;
+  padding: 18px;
+}
 .openTradeForm label {
   display: grid;
   gap: 6px;
@@ -287,6 +294,9 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-size: 12px;
   font-weight: 680;
   white-space: nowrap;
+}
+.openTradeForm .fullField {
+  grid-column: 1 / -1;
 }
 .labelMeta {
   display: flex;
@@ -329,6 +339,9 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   cursor: pointer;
 }
 .tradeSubmit {
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-width: 118px;
   height: 38px;
   border: 0;
   border-radius: 8px;
@@ -345,6 +358,54 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .tradeSubmit:disabled {
   opacity: .6;
   cursor: wait;
+}
+.openTradeInlineError {
+  grid-column: 1 / -1;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #fecdd3;
+  border-radius: 9px;
+  background: #fff1f2;
+  color: #be123c;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.openCashPanel {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+}
+.openCashRows {
+  display: grid;
+  gap: 0;
+  padding: 14px 18px 4px;
+}
+.openCashRows div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  border-bottom: 1px solid #e6ebf2;
+  color: #66758a;
+  font-size: 13px;
+  font-weight: 650;
+}
+.openCashRows div:last-child {
+  border-bottom: 0;
+}
+.openCashRows strong {
+  color: #182337;
+  font-size: 14px;
+  font-weight: 700;
+}
+.openCashPanel p {
+  margin: 0;
+  padding: 10px 18px 18px;
+  color: #728096;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.65;
 }
 .openAdminGrid {
   display: grid;
@@ -1178,4 +1239,15 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .inlineNotice {
   margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .openTradeWorkspace,
+  .openAdminGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .openTradeForm {
+    grid-template-columns: 1fr;
+  }
 }

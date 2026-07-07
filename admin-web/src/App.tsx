@@ -1502,6 +1502,8 @@ function OpenPortfolioPage() {
   const holdings = data?.holdings || [];
   const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
   const tradeDateAvailableCash = useMemo(() => openAvailableCashAt(data, form.tradeTime), [data, form.tradeTime]);
+  const enteredBuyAmount = Number(form.amount || 0);
+  const buyAmountTooHigh = form.side === "buy" && tradeDateAvailableCash !== null && enteredBuyAmount > tradeDateAvailableCash + 0.01;
   const setTradeSide = (side: "buy" | "sell") => {
     setForm({ ...form, side, symbol: side === "sell" ? holdings[0]?.symbol || "" : "", amount: "", quantity: "" });
   };
@@ -1589,44 +1591,57 @@ function OpenPortfolioPage() {
         <StatCard label="当前持仓" value={data?.holdings.length ?? "--"} note={`交易 ${data?.trades.length ?? "--"} 笔`} />
       </div>
 
-      <section className="panel">
-        <div className={`panelHeader openTradeHeader ${form.side === "sell" ? "sell" : "buy"}`}>
-          <h2>{form.side === "buy" ? "买入" : "卖出"}</h2>
-          <div className="tradeSideButtons">
-            <button type="button" className={form.side === "buy" ? "active buy" : "buy"} onClick={() => setTradeSide("buy")}>买入</button>
-            <button type="button" className={form.side === "sell" ? "active sell" : "sell"} onClick={() => setTradeSide("sell")}>卖出</button>
+      <div className="openTradeWorkspace">
+        <section className="panel openTradePanel">
+          <div className={`panelHeader openTradeHeader ${form.side === "sell" ? "sell" : "buy"}`}>
+            <h2>新增交易</h2>
+            <div className="tradeSideButtons">
+              <button type="button" className={form.side === "buy" ? "active buy" : "buy"} onClick={() => setTradeSide("buy")}>买入</button>
+              <button type="button" className={form.side === "sell" ? "active sell" : "sell"} onClick={() => setTradeSide("sell")}>卖出</button>
+            </div>
           </div>
-        </div>
-        <form className={`openTradeForm ${form.side === "sell" ? "sellForm" : ""}`} onSubmit={submit}>
-          <label>日期<input type="date" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} /></label>
-          <label>标的{form.side === "sell" ? (
-            <select value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })}>
-              <option value="">选择持仓</option>
-              {holdings.map((item) => <option value={item.symbol} key={item.symbol}>{item.symbol}</option>)}
-            </select>
-          ) : (
-            <input value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value.toUpperCase() })} placeholder="SNDK" />
-          )}</label>
-          <label>价格<input type="number" min="0" step="0.000001" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
-          {form.side === "buy" ? (
-            <label>
-              <span className="labelMeta"><span>买入金额</span><em>所选日期可用 {adminMoney(tradeDateAvailableCash)}</em></span>
-              <input type="number" min="0" max={tradeDateAvailableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
-            </label>
-          ) : (
-            <label>卖出数量
-              <div className="quantityInput">
-                <input type="number" min="0" max={selectedHolding?.quantity || undefined} step={selectedHolding?.quantityStep || 1} value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder={selectedHolding ? formatTradeQuantity(selectedHolding.quantity, selectedHolding.quantityStep) : ""} />
-                <button type="button" onClick={() => setSellQuantity(1 / 3)}>1/3</button>
-                <button type="button" onClick={() => setSellQuantity(1 / 2)}>半仓</button>
-                <button type="button" onClick={() => setSellQuantity(1)}>全卖</button>
-              </div>
-            </label>
-          )}
-          <label>备注<input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
-          <button className={`tradeSubmit ${form.side}`} type="submit" disabled={saving}>{saving ? "保存中" : form.side === "buy" ? "确认买入" : "确认卖出"}</button>
-        </form>
-      </section>
+          <form className={`openTradeForm ${form.side === "sell" ? "sellForm" : ""}`} onSubmit={submit}>
+            <label>日期<input type="date" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} /></label>
+            <label>标的{form.side === "sell" ? (
+              <select value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })}>
+                <option value="">选择持仓</option>
+                {holdings.map((item) => <option value={item.symbol} key={item.symbol}>{item.symbol}</option>)}
+              </select>
+            ) : (
+              <input value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value.toUpperCase() })} placeholder="SNDK" />
+            )}</label>
+            <label>价格<input type="number" min="0" step="0.000001" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
+            {form.side === "buy" ? (
+              <label>
+                <span className="labelMeta"><span>买入金额</span><em>所选日期可用 {adminMoney(tradeDateAvailableCash)}</em></span>
+                <input type="number" min="0" max={tradeDateAvailableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
+              </label>
+            ) : (
+              <label>卖出数量
+                <div className="quantityInput">
+                  <input type="number" min="0" max={selectedHolding?.quantity || undefined} step={selectedHolding?.quantityStep || 1} value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder={selectedHolding ? formatTradeQuantity(selectedHolding.quantity, selectedHolding.quantityStep) : ""} />
+                  <button type="button" onClick={() => setSellQuantity(1 / 3)}>1/3</button>
+                  <button type="button" onClick={() => setSellQuantity(1 / 2)}>半仓</button>
+                  <button type="button" onClick={() => setSellQuantity(1)}>全卖</button>
+                </div>
+              </label>
+            )}
+            <label className="fullField">备注<input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
+            {buyAmountTooHigh ? <div className="openTradeInlineError">{form.symbol.trim().toUpperCase() || "标的"} 买入金额超过所选日期可用资金</div> : null}
+            <button className={`tradeSubmit ${form.side}`} type="submit" disabled={saving}>{saving ? "保存中" : form.side === "buy" ? "确认买入" : "确认卖出"}</button>
+          </form>
+        </section>
+
+        <section className="panel openCashPanel">
+          <div className="panelHeader"><h2>现金口径</h2></div>
+          <div className="openCashRows">
+            <div><span>当前可用</span><strong>{adminMoney(data?.availableCash)}</strong></div>
+            <div><span>所选日期可用</span><strong className={buyAmountTooHigh ? "dangerText" : ""}>{adminMoney(tradeDateAvailableCash)}</strong></div>
+            <div><span>本次买入</span><strong>{form.side === "buy" && Number.isFinite(enteredBuyAmount) && enteredBuyAmount > 0 ? adminMoney(enteredBuyAmount) : "--"}</strong></div>
+          </div>
+          <p>补录历史交易时，系统会把该交易插入到对应日期，再按时间顺序重算后续现金和持仓。</p>
+        </section>
+      </div>
 
       <div className="openAdminGrid">
         <section className="panel tablePanel">
