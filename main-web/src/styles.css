@@ -400,68 +400,6 @@
   font-weight: 560;
 }
 
-/* Calendar detail final pass. */
-.calendarSelectedLead {
-  border-bottom: 1px solid #e6edf5;
-  padding: 14px;
-}
-.calendarSelectedLead strong {
-  display: block;
-  color: #172033;
-  font-size: 15px;
-  font-weight: 620;
-  line-height: 1.45;
-}
-.calendarSelectedLead p {
-  display: flex;
-  gap: 8px;
-  margin: 10px 0 0;
-}
-.calendarSelectedLead span,
-.calendarSelectedLead em {
-  display: inline-flex;
-  min-height: 24px;
-  align-items: center;
-  border-radius: 999px;
-  background: #f3f7fb;
-  color: #718096;
-  padding: 0 9px;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 560;
-}
-.calendarSelectedLead .impactHigh { background: #fff2cf; color: #9a5b00; }
-.calendarSelectedLead .impactMedium { background: #edf7ff; color: #1769c2; }
-.calendarSelectedLead .impactLow { background: #f3f7fb; color: #718096; }
-.macroEventList button {
-  display: grid;
-  width: 100%;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 12px;
-  border: 0;
-  border-bottom: 1px solid #edf2f7;
-  background: #fff;
-  padding: 10px 12px;
-  text-align: left;
-  cursor: pointer;
-}
-.macroEventList button:hover,
-.macroEventList button.active {
-  background: #f7fbff;
-}
-.macroEventList button.highImpact {
-  box-shadow: inset 3px 0 0 #f59e0b;
-}
-.macroEventList button > div strong {
-  display: block;
-  color: #172033;
-  font-size: 15px;
-  font-weight: 620;
-}
-.macroEventList button > div span {
-  color: #718096;
-  font-size: 12px;
-}
 
 /* Market funds final pass: compact terminal layout. */
 .marketPage {
@@ -716,53 +654,6 @@
 .marketSectorHeatmap button .positive { color: #0aa879 !important; }
 .marketSectorHeatmap button .negative { color: #e04f62 !important; }
 
-.calendarPage.calendarV3 {
-  padding: 20px 24px 44px;
-}
-.calendarPage.calendarV3 .calendarWorkbench {
-  border-radius: 14px;
-}
-.calendarPage.calendarV3 .calendarCompactLayout {
-  grid-template-columns: minmax(0, 1fr) 300px;
-}
-.calendarPage.calendarV3 .calendarDateGroup {
-  grid-template-columns: 78px minmax(0, 1fr);
-}
-.calendarPage.calendarV3 .calendarDateCell {
-  padding: 12px 14px;
-}
-.calendarPage.calendarV3 .calendarDateCell strong {
-  font-size: 15px;
-  font-weight: 620;
-}
-.calendarPage.calendarV3 .calendarDateEvents button {
-  grid-template-columns: 56px minmax(0, 1fr) 56px 42px;
-  min-height: 54px;
-  padding: 8px 12px;
-}
-.calendarPage.calendarV3 .calendarDateEvents button strong {
-  font-size: 13px;
-  font-weight: 590;
-}
-.calendarPage.calendarV3 .calendarDateEvents strong em {
-  margin-left: 0;
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: 440;
-}
-.calendarPage.calendarV3 .calendarSelectedPanel dl div {
-  grid-template-columns: 56px minmax(0, 1fr);
-  padding: 10px 12px;
-}
-.calendarPage.calendarV3 .macroEventList article {
-  grid-template-columns: 46px minmax(0, 1fr);
-  padding: 10px 12px;
-}
-.calendarPage.calendarV3 .macroEventList article > div strong {
-  font-size: 15px;
-  font-weight: 620;
-}
-
 /* Opinion list final override: compact scan, no repeated section title. */
 .opinionProductPage {
   padding: 22px 28px 44px;
@@ -965,22 +856,15 @@
   justify-content: inherit;
 }
 
-.frontCalendarEvent.highImpact,
-.calendarDateEvents button.highImpact,
-.macroEventList article.highImpact {
+.frontCalendarEvent.highImpact {
   background: linear-gradient(90deg, #fff8ea 0, #fff 42%);
   box-shadow: inset 4px 0 0 #f59e0b;
 }
 
-.calendarDateEvents button.highImpact strong,
-.frontCalendarEvent.highImpact strong,
-.macroEventList article.highImpact h3 {
+.frontCalendarEvent.highImpact strong {
   color: #101827;
 }
 
-.calendarDateEvents i.impactHigh,
-.calendarSelectedPanel .impactHigh,
-.macroEventList .impactHigh,
 .frontCalendarEvent em.impactHigh {
   display: inline-flex;
   min-width: 32px;
@@ -991,18 +875,6 @@
   background: #fff2cf;
   color: #9a5b00 !important;
   font-weight: 760;
-}
-
-.calendarDateEvents i.impactMedium,
-.calendarSelectedPanel .impactMedium,
-.macroEventList .impactMedium {
-  display: inline-flex;
-  min-width: 32px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #eef6ff;
-  color: #1769c2;
 }
 
 .marketSectorHeatmap button {
@@ -4995,346 +4867,6 @@ body,
   }
 }
 
-/* Calendar: compact white workstation. */
-.calendarPage {
-  padding: 24px 28px 42px;
-}
-
-.calendarWorkbench {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(29, 43, 64, 0.05);
-}
-
-.calendarFilters {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto 140px 140px;
-  gap: 10px;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-  padding: 14px 16px;
-}
-
-.calendarFilters input,
-.calendarFilters select,
-.calendarWindowTabs button {
-  min-height: 36px;
-  border: 1px solid #d7e1ee;
-  border-radius: 9px;
-  background: #fff;
-  color: #172033;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.calendarFilters input::placeholder {
-  color: #8a98aa;
-}
-
-.calendarWindowTabs {
-  display: flex;
-  gap: 8px;
-  white-space: nowrap;
-}
-
-.calendarWindowTabs button {
-  cursor: pointer;
-}
-
-.calendarWindowTabs button.active {
-  border-color: #b9dcff;
-  background: #edf7ff;
-  color: #1677d2;
-}
-
-.calendarCompactLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  min-height: 620px;
-}
-
-.calendarGroupedPanel {
-  border-right: 1px solid var(--line);
-}
-
-.calendarGroupedList {
-  max-height: 680px;
-  overflow: auto;
-}
-
-.calendarDateGroup {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  border-bottom: 1px solid var(--line);
-}
-
-.calendarDateCell {
-  border-right: 1px solid var(--line);
-  background: #fbfdff;
-  padding: 16px 14px;
-}
-
-.calendarDateCell strong {
-  display: block;
-  color: #172033;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.calendarDateCell span {
-  display: block;
-  margin-top: 4px;
-  color: #708096;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.calendarDateEvents button {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 62px minmax(0, 1fr) 62px 42px;
-  gap: 12px;
-  align-items: center;
-  min-height: 62px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: #fff;
-  color: #172033;
-  padding: 0 16px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.calendarDateEvents button:last-child {
-  border-bottom: 0;
-}
-
-.calendarDateEvents button:hover,
-.calendarDateEvents button.active {
-  background: #f7fbff;
-}
-
-.calendarDateEvents button > span {
-  color: #708096;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.calendarDateEvents strong {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.calendarDateEvents strong em {
-  display: block;
-  overflow: hidden;
-  margin-top: 3px;
-  color: #708096;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 400;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.eventType,
-.calendarDateEvents i {
-  justify-self: end;
-  border-radius: 8px;
-  background: #f3f6fa;
-  color: #708096;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 500;
-}
-
-.eventType.macro {
-  background: #fff4df;
-  color: #b7791f;
-}
-
-.calendarDateEvents i.impactHigh,
-.calendarSelectedPanel .impactHigh,
-.macroEventList .impactHigh {
-  color: #b7791f;
-}
-
-.calendarDateEvents i.impactMedium,
-.calendarSelectedPanel .impactMedium,
-.macroEventList .impactMedium {
-  color: #1677d2;
-}
-
-.calendarDateEvents i.impactLow,
-.calendarSelectedPanel .impactLow,
-.macroEventList .impactLow {
-  color: #708096;
-}
-
-.calendarSideStack {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  background: #fbfdff;
-  padding: 16px;
-}
-
-.calendarSelectedPanel,
-.macroEventPanel {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-}
-
-.panelHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 46px;
-  border-bottom: 1px solid var(--line);
-  padding: 0 14px;
-}
-
-.panelHead strong {
-  color: #172033;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.panelHead span {
-  color: #708096;
-  font-size: 12px;
-}
-
-.calendarSelectedPanel dl {
-  margin: 0;
-}
-
-.calendarSelectedPanel dl div {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 10px;
-  border-bottom: 1px solid var(--line);
-  padding: 12px 14px;
-}
-
-.calendarSelectedPanel dl div:last-child {
-  border-bottom: 0;
-}
-
-.calendarSelectedPanel dt {
-  color: #708096;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.calendarSelectedPanel dd {
-  margin: 0;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.macroEventList article {
-  display: grid;
-  grid-template-columns: 54px minmax(0, 1fr);
-  gap: 12px;
-  border-bottom: 1px solid var(--line);
-  padding: 12px 14px;
-}
-
-.macroEventList article:last-child {
-  border-bottom: 0;
-}
-
-.macroEventList article > div strong {
-  display: block;
-  color: #172033;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.macroEventList article > div span {
-  color: #708096;
-  font-size: 12px;
-}
-
-.macroEventList h3 {
-  overflow: hidden;
-  margin: 0;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.macroEventList p {
-  display: flex;
-  gap: 8px;
-  margin: 5px 0 4px;
-}
-
-.macroEventList em,
-.macroEventList section > span {
-  color: #708096;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 400;
-}
-
-.calendarPager {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 0 0;
-  color: #708096;
-  font-size: 13px;
-}
-
-.calendarPager button {
-  min-height: 34px;
-  border: 1px solid #d7e1ee;
-  border-radius: 9px;
-  background: #fff;
-  color: #172033;
-  padding: 0 12px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.calendarPager button:disabled {
-  cursor: not-allowed;
-  opacity: .45;
-}
-
-.calendarEmpty {
-  padding: 28px;
-  color: #708096;
-  font-size: 14px;
-}
-
-@media (max-width: 1100px) {
-  .calendarFilters,
-  .calendarCompactLayout {
-    grid-template-columns: 1fr;
-  }
-
-  .calendarGroupedPanel {
-    border-right: 0;
-  }
-}
 
 /* Stocks library: final compact white override. */
 .stocksPage {
@@ -6238,68 +5770,6 @@ body,
   }
 }
 
-/* Calendar final cleanup: one workstation, no legacy-looking summary strip. */
-.calendarPage.calendarV3 {
-  padding: 24px 30px 44px;
-}
-
-.calendarV3 .calendarWorkbench {
-  overflow: hidden;
-  border: 1px solid #dfe7f1;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, .05);
-}
-
-.calendarV3 .calendarFilters {
-  grid-template-columns: minmax(300px, 1fr) auto 132px 132px;
-  padding: 12px 14px;
-  background: #fff;
-}
-
-.calendarV3 .calendarCompactLayout {
-  grid-template-columns: minmax(0, 1fr) 340px;
-  min-height: 560px;
-}
-
-.calendarV3 .calendarGroupedList {
-  max-height: 650px;
-}
-
-.calendarV3 .calendarDateGroup {
-  grid-template-columns: 86px minmax(0, 1fr);
-}
-
-.calendarV3 .calendarDateEvents button {
-  grid-template-columns: 58px minmax(0, 1fr) 58px 38px;
-  min-height: 56px;
-  padding: 0 14px;
-}
-
-.calendarV3 .calendarDateEvents strong {
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.calendarV3 .calendarDateEvents strong em {
-  margin-top: 2px;
-  font-size: 12px;
-  font-weight: 450;
-}
-
-.calendarV3 .calendarSelectedPanel dl div {
-  grid-template-columns: 58px minmax(0, 1fr);
-  padding: 11px 13px;
-}
-
-.calendarV3 .macroEventList article {
-  grid-template-columns: 46px minmax(0, 1fr);
-  padding: 11px 13px;
-}
-
-.calendarV3 .macroEventList article > div strong {
-  font-size: 16px;
-}
 
 /* Market final cleanup: topbar already owns the title. */
 .marketTop {
@@ -7102,134 +6572,6 @@ body,
   font-weight: 560;
   color: #697891;
 }
-
-.calendarV3 {
-  padding: 22px 28px 48px;
-}
-
-.calendarWorkbench {
-  border-radius: 16px;
-  background: #fff;
-  border-color: #dfe7f2;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
-}
-
-.calendarFilters {
-  padding: 12px;
-  gap: 8px;
-  border-bottom-color: #e3eaf3;
-}
-
-.calendarFilters input,
-.calendarFilters select,
-.calendarWindowTabs button {
-  height: 36px;
-  border-radius: 9px;
-  background: #fff;
-  border-color: #d8e2ef;
-  color: #172033;
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.calendarWindowTabs button.active {
-  color: #1677ff;
-  background: #eef6ff;
-  border-color: #a9d3ff;
-}
-
-.calendarCompactLayout {
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 0;
-}
-
-.calendarGroupedPanel,
-.calendarSelectedPanel,
-.macroEventPanel {
-  background: #fff;
-  border-color: #e2eaf4;
-}
-
-.calendarDateGroup {
-  grid-template-columns: 86px minmax(0, 1fr);
-  border-bottom-color: #e6edf5;
-}
-
-.calendarDateCell {
-  padding: 14px 16px;
-  background: #f8fafc;
-}
-
-.calendarDateCell strong {
-  font-size: 17px;
-  font-weight: 650;
-  color: #172033;
-}
-
-.calendarDateCell span {
-  font-size: 12px;
-  color: #6b7a90;
-}
-
-.calendarDateEvents button {
-  min-height: 58px;
-  padding: 10px 12px;
-  border-bottom-color: #edf2f7;
-}
-
-.calendarDateEvents button strong {
-  font-size: 14px;
-  font-weight: 620;
-  color: #172033;
-}
-
-.calendarDateEvents button strong em {
-  margin-left: 8px;
-  font-size: 12px;
-  font-weight: 520;
-  color: #7b8aa0;
-}
-
-.calendarDateEvents button > span,
-.calendarDateEvents button > em,
-.calendarDateEvents button > i {
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.calendarSideStack {
-  border-left: 1px solid #e2eaf4;
-}
-
-.panelHead {
-  min-height: 42px;
-  padding: 0 14px;
-  border-bottom-color: #e2eaf4;
-}
-
-.panelHead strong {
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.calendarSelectedPanel dl,
-.macroEventList {
-  padding: 12px;
-}
-
-.calendarSelectedPanel dt,
-.calendarSelectedPanel dd,
-.macroEventList h3,
-.macroEventList p,
-.macroEventList span {
-  font-size: 12px;
-}
-
-.calendarPager {
-  margin-top: 10px;
-  color: #6b7a90;
-}
-
 /* Tracking detail + market funds polish pass. */
 .trackingStockDetailPage {
   padding: 24px 28px 48px;
@@ -8528,13 +7870,6 @@ body,
   line-height: 1;
 }
 
-.coursesTopbar p {
-  margin: 0;
-  color: #607086;
-  font-size: 13px;
-  font-weight: 400;
-}
-
 .courseSearch input {
   width: 100%;
   height: 40px;
@@ -8740,21 +8075,23 @@ body,
   height: auto;
   display: flex;
   align-items: baseline;
-  gap: 9px;
+  gap: 8px;
   margin: 0;
 }
 
 .courseDiscountBlock strong {
-  color: #202838;
-  font-size: 30px;
+  color: #1d2636;
+  font-size: 28px;
   line-height: 1;
-  font-weight: 650;
+  font-weight: 620;
 }
 
 .courseDiscountBlock em {
-  color: #8a96a8;
-  font-size: 13px;
+  color: #8b96a6;
+  font-size: 14px;
+  font-weight: 560;
   text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
 }
 
 .courseDiscountBlock span {
@@ -8762,31 +8099,19 @@ body,
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  background: #fff6f4;
-  color: #c2412f;
+  background: #fff3f1;
+  color: #c84634;
   padding: 0 9px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 560;
 }
 
-.courseCardGrid span,
-.courseCardGrid em {
+.courseCardGrid section > div:not(.courseDiscountBlock) span,
+.courseCardGrid footer em {
   color: #718096;
   font-size: 12px;
   font-style: normal;
   font-weight: 500;
-}
-
-.courseCardGrid .courseDiscountBlock em {
-  color: #8a96a8;
-  font-size: 13px;
-  text-decoration: line-through;
-}
-
-.courseCardGrid .courseDiscountBlock span {
-  color: #c2412f;
-  font-size: 12px;
-  font-weight: 650;
 }
 
 .courseCardGrid button {
@@ -10197,12 +9522,14 @@ body,
 }
 
 .onboardingPanel {
-  width: min(560px, 100%);
+  width: min(720px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
   border: 1px solid #dbe5f1;
-  border-radius: 24px;
-  padding: 34px;
+  border-radius: 16px;
+  padding: 30px;
   background: #fff;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  overflow: auto;
 }
 
 .onboardingHead span {
@@ -10222,15 +9549,14 @@ body,
 
 .onboardingSteps {
   display: grid;
-  gap: 10px;
-  margin-bottom: 24px;
+  gap: 0;
+  margin-bottom: 18px;
 }
 
 .onboardingSteps article {
   display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 4px 14px;
-  padding: 14px 0;
+  gap: 6px;
+  padding: 15px 0;
   border-top: 1px solid #e7eef7;
 }
 
@@ -10258,6 +9584,19 @@ body,
   line-height: 1.55;
 }
 
+.riskNoticeBody {
+  max-height: 440px;
+  overflow: auto;
+  padding-right: 8px;
+}
+
+.riskAgreeText {
+  margin: 0 0 16px;
+  color: #526174;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .onboardingPanel > button {
   width: 100%;
   border: 0;
@@ -10278,6 +9617,12 @@ body,
 @media (max-width: 760px) {
   .unlockBody {
     grid-template-columns: 1fr;
+  }
+  .onboardingPanel {
+    padding: 22px;
+  }
+  .riskNoticeBody {
+    max-height: 52vh;
   }
 }
 
@@ -10321,227 +9666,6 @@ body,
   }
 }
 
-/* Calendar final polish: macro/high-impact events stay visible and scannable. */
-.calendarDateEvents button.highImpact,
-.macroEventList button.highImpact {
-  box-shadow: inset 3px 0 0 #f59e0b;
-}
-
-.calendarDateEvents button.highImpact {
-  background: #fffaf0;
-}
-
-.calendarDateEvents button.highImpact.active,
-.calendarDateEvents button.active {
-  background: #eef6ff;
-}
-
-.calendarDateEvents i.impactHigh,
-.calendarSelectedPanel .impactHigh,
-.macroEventList .impactHigh,
-.frontCalendarEvent em.impactHigh {
-  min-width: 34px;
-  border: 1px solid #f3c46b;
-  background: #fff4d9;
-  color: #9a5b00 !important;
-  font-weight: 700;
-}
-
-.macroEventList button.active {
-  background: #f3f9ff;
-}
-
-.macroEventList button.highImpact h3 {
-  color: #172033;
-}
-
-.calendarSelectedLead > strong {
-  color: #172033;
-  font-size: 15px;
-  font-weight: 650;
-  line-height: 1.45;
-}
-
-.calendarSelectedPanel dd {
-  color: #172033;
-  font-weight: 560;
-}
-
-/* Calendar final compact pass: data first, no empty-looking side rail. */
-.calendarV3 .calendarCompactLayout {
-  grid-template-columns: minmax(0, 1fr) 300px;
-}
-
-.calendarV3 .calendarDateEvents button {
-  grid-template-columns: 56px minmax(0, 1fr) 54px 38px;
-}
-
-.calendarV3 .calendarDateEvents strong,
-.calendarV3 .macroEventList h3,
-.calendarV3 .calendarSelectedLead > strong {
-  font-weight: 560;
-}
-
-.calendarV3 .calendarDateEvents strong em {
-  display: block;
-  margin: 2px 0 0;
-  font-weight: 400;
-}
-
-.calendarV3 .calendarSelectedPanel dl,
-.calendarV3 .macroEventList {
-  padding: 8px;
-}
-
-.calendarV3 .calendarSelectedPanel dl div {
-  padding: 9px 10px;
-}
-
-.calendarV3 .macroEventList button {
-  padding: 9px 10px;
-}
-
-.calendarV3 .macroEventList p {
-  margin: 4px 0 0;
-}
-
-.calendarV3 .calendarDateEvents button.highImpact,
-.calendarV3 .macroEventList button.highImpact {
-  box-shadow: none;
-}
-
-.calendarV3 .calendarDateEvents i.impactHigh,
-.calendarV3 .calendarSelectedPanel .impactHigh,
-.calendarV3 .macroEventList .impactHigh {
-  border-color: #f2cf83;
-  background: #fff7e6;
-  color: #a16207 !important;
-}
-
-/* Calendar selected event: compact fact panel. */
-.calendarV3 .calendarSelectedPanel {
-  overflow: hidden;
-}
-
-.calendarV3 .calendarSelectedLead {
-  padding: 12px 14px 10px;
-}
-
-.calendarV3 .calendarSelectedLead > strong {
-  font-size: 14px;
-  font-weight: 580;
-  line-height: 1.45;
-}
-
-.calendarV3 .calendarSelectedLead p {
-  margin-top: 8px;
-}
-
-.calendarV3 .calendarSelectedLead span,
-.calendarV3 .calendarSelectedLead em {
-  height: 24px;
-  padding: 0 8px;
-  font-size: 12px;
-}
-
-.calendarV3 .calendarSelectedPanel dl {
-  padding: 0;
-}
-
-.calendarV3 .calendarSelectedPanel dl div {
-  grid-template-columns: 64px minmax(0, 1fr);
-  min-height: 40px;
-  padding: 9px 14px;
-  border-top: 1px solid #e8eef6;
-}
-
-.calendarV3 .calendarSelectedPanel dt {
-  color: #7c8aa0;
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.calendarV3 .calendarSelectedPanel dd {
-  color: #1f2937;
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1.45;
-  text-align: right;
-}
-
-/* Calendar list finish: same density across main and side lists. */
-.calendarV3 .calendarDateEvents button {
-  min-height: 58px;
-  padding: 10px 14px;
-}
-
-.calendarV3 .calendarDateEvents button > span {
-  color: #637189;
-  font-size: 12.5px;
-  font-weight: 560;
-}
-
-.calendarV3 .calendarDateEvents strong {
-  color: #182235;
-  font-size: 14px;
-  line-height: 1.42;
-}
-
-.calendarV3 .calendarDateEvents strong em {
-  color: #748197;
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-
-.calendarV3 .calendarDateEvents .eventType,
-.calendarV3 .calendarDateEvents i {
-  justify-self: end;
-  height: 24px;
-  padding: 0 8px;
-  font-size: 12px;
-}
-
-.calendarV3 .calendarDateEvents button.highImpact,
-.calendarV3 .macroEventList button.highImpact {
-  box-shadow: inset 3px 0 0 #f59e0b;
-}
-
-.calendarV3 .macroEventList button {
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 10px;
-  min-height: 62px;
-  padding: 10px 12px;
-}
-
-.calendarV3 .macroEventList button > div strong {
-  color: #172033;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.calendarV3 .macroEventList button > div span,
-.calendarV3 .macroEventList section > span {
-  color: #7b8798;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.calendarV3 .macroEventList h3 {
-  color: #182235;
-  font-size: 13.5px;
-  line-height: 1.42;
-}
-
-.calendarV3 .macroEventList p {
-  gap: 6px;
-}
-
-.calendarV3 .macroEventList em {
-  height: 22px;
-  padding: 0 7px;
-  font-size: 12px;
-}
 
 .marketEmpty {
   display: grid;
@@ -10620,224 +9744,6 @@ body,
   color: #718096 !important;
 }
 
-/* Final calendar contract: compact white financial calendar. */
-.calendarPage.calendarV3 {
-  padding: 18px 28px 42px;
-  background: #f4f7fb;
-}
-
-.calendarV3 .calendarWorkbench {
-  overflow: hidden;
-  border: 1px solid #dfe7f2;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .045);
-}
-
-.calendarV3 .calendarFilters {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto 128px 118px;
-  gap: 8px;
-  align-items: center;
-  border-bottom: 1px solid #edf2f7;
-  background: #fff;
-  padding: 10px 12px;
-}
-
-.calendarV3 .calendarFilters input,
-.calendarV3 .calendarFilters select,
-.calendarV3 .calendarWindowTabs button {
-  height: 32px;
-  min-height: 32px;
-  border: 1px solid #d8e3ef;
-  border-radius: 8px;
-  background: #fff;
-  color: #172033;
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.calendarV3 .calendarFilters input {
-  padding: 0 11px;
-}
-
-.calendarV3 .calendarWindowTabs {
-  display: inline-flex;
-  gap: 6px;
-  border: 1px solid #d8e3ef;
-  border-radius: 10px;
-  background: #edf3fa;
-  padding: 3px;
-}
-
-.calendarV3 .calendarWindowTabs button {
-  min-width: 72px;
-  border: 0;
-  background: transparent;
-  color: #697891;
-  cursor: pointer;
-}
-
-.calendarV3 .calendarWindowTabs button.active {
-  background: #fff;
-  color: #1677ff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
-}
-
-.calendarV3 .calendarCompactLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  min-height: 540px;
-}
-
-.calendarV3 .calendarGroupedPanel {
-  min-width: 0;
-  border-right: 1px solid #e4ebf3;
-}
-
-.calendarV3 .calendarGroupedList {
-  max-height: 620px;
-  overflow: auto;
-}
-
-.calendarV3 .calendarDateGroup {
-  display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  border-bottom: 1px solid #edf2f7;
-}
-
-.calendarV3 .calendarDateCell {
-  border-right: 1px solid #edf2f7;
-  background: #f8fafc;
-  padding: 12px;
-}
-
-.calendarV3 .calendarDateCell strong {
-  display: block;
-  color: #172033;
-  font-size: 14px;
-  font-weight: 620;
-  line-height: 1.25;
-}
-
-.calendarV3 .calendarDateCell span {
-  display: block;
-  margin-top: 3px;
-  color: #75849a;
-  font-size: 11.5px;
-  font-weight: 540;
-}
-
-.calendarV3 .calendarDateEvents button {
-  display: grid;
-  grid-template-columns: 60px minmax(0, 1fr) 54px 36px;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
-  min-height: 54px;
-  border: 0;
-  border-bottom: 1px solid #edf2f7;
-  background: #fff;
-  padding: 8px 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.calendarV3 .calendarDateEvents button:last-child {
-  border-bottom: 0;
-}
-
-.calendarV3 .calendarDateEvents button:hover,
-.calendarV3 .calendarDateEvents button.active {
-  background: #f6fbff;
-}
-
-.calendarV3 .calendarDateEvents button.highImpact,
-.calendarV3 .macroEventList button.highImpact {
-  background: linear-gradient(90deg, #fff8ea 0, #fff 44%);
-  box-shadow: inset 4px 0 0 #f59e0b;
-}
-
-.calendarV3 .calendarDateEvents button > span {
-  color: #6f7f95;
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.calendarV3 .calendarDateEvents strong {
-  overflow: hidden;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.calendarV3 .calendarDateEvents strong em {
-  display: block;
-  overflow: hidden;
-  margin-top: 2px;
-  color: #75849a;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 520;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.calendarV3 .calendarDateEvents .eventType,
-.calendarV3 .calendarDateEvents i,
-.calendarV3 .calendarSelectedLead span,
-.calendarV3 .calendarSelectedLead em,
-.calendarV3 .macroEventList em {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 22px;
-  min-width: 30px;
-  border-radius: 7px;
-  background: #f3f7fb;
-  color: #697891;
-  padding: 0 7px;
-  font-size: 11.5px;
-  font-style: normal;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.calendarV3 .calendarDateEvents .eventType.macro {
-  background: #fff5df;
-  color: #9a5b00;
-}
-
-.calendarV3 .calendarDateEvents i.impactHigh,
-.calendarV3 .calendarSelectedLead .impactHigh,
-.calendarV3 .calendarSelectedPanel .impactHigh,
-.calendarV3 .macroEventList .impactHigh {
-  border: 1px solid #f4c46a;
-  background: #fff4d8;
-  color: #9a5b00;
-}
-
-.calendarV3 .calendarDateEvents i.impactMedium,
-.calendarV3 .calendarSelectedLead .impactMedium,
-.calendarV3 .calendarSelectedPanel .impactMedium,
-.calendarV3 .macroEventList .impactMedium {
-  border: 1px solid #bfddff;
-  background: #edf7ff;
-  color: #1769c2;
-}
-
-.calendarV3 .calendarDateEvents i.impactLow,
-.calendarV3 .calendarSelectedLead .impactLow,
-.calendarV3 .calendarSelectedPanel .impactLow,
-.calendarV3 .macroEventList .impactLow {
-  border: 1px solid #d9e2ec;
-  background: #f3f7fb;
-  color: #697891;
-}
-
 /* Final product QA override: one place for shared white-version polish. */
 .signalDirectionBadge {
   display: inline-flex;
@@ -10900,26 +9806,6 @@ body,
   opacity: .86;
 }
 
-.calendarV3 .calendarDateEvents button {
-  grid-template-columns: 72px minmax(0, 1fr) 58px 38px;
-  min-height: 50px;
-  padding: 9px 14px;
-}
-
-.calendarV3 .calendarDateEvents strong {
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-.calendarV3 .calendarDateEvents strong em,
-.calendarV3 .calendarDateEvents span {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.calendarV3 .macroEventList button {
-  min-height: 54px;
-}
 
 /* Open portfolio: readable account layout. */
 .openPortfolioPage .openCurve {
@@ -11332,222 +10218,6 @@ body,
   color: #cf3348 !important;
 }
 
-/* Effective calendar final pass: compact scan, high-impact marker, no faded text. */
-.calendarV3 .calendarDateEvents button {
-  grid-template-columns: 64px minmax(0, 1fr) 52px 38px !important;
-  min-height: 54px !important;
-}
-
-.calendarV3 .calendarDateEvents button.highImpact,
-.calendarV3 .macroEventList button.highImpact {
-  border-left: 4px solid #f59e0b !important;
-  background: #fffaf0 !important;
-  box-shadow: none !important;
-}
-
-.calendarV3 .calendarDateEvents button > span,
-.calendarV3 .calendarDateEvents strong,
-.calendarV3 .calendarDateEvents strong em,
-.calendarV3 .macroEventList h3,
-.calendarV3 .macroEventList p,
-.calendarV3 .macroEventList section > span {
-  opacity: 1 !important;
-}
-
-.calendarV3 .calendarDateEvents strong {
-  color: #172033 !important;
-}
-
-.calendarV3 .calendarDateEvents strong em {
-  color: #5f6f85 !important;
-}
-
-.calendarV3 .calendarDateEvents i.impactHigh,
-.calendarV3 .calendarSelectedLead .impactHigh,
-.calendarV3 .calendarSelectedPanel .impactHigh,
-.calendarV3 .macroEventList .impactHigh {
-  border-color: #f0b94f !important;
-  background: #fff1c7 !important;
-  color: #8a5100 !important;
-}
-
-.calendarV3 .calendarSelectedPanel dl div:empty {
-  display: none;
-}
-
-/* Effective opinion reader final pass: readable body, separate side rail. */
-.opinionReaderPage {
-  padding: 22px 28px 52px;
-}
-
-.readerMetaLine {
-  margin-bottom: 10px;
-  color: #718096;
-  font-size: 12.5px;
-  font-weight: 500;
-}
-
-.calendarV3 .calendarSideStack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow: auto;
-  max-height: 620px;
-  padding: 12px;
-}
-
-.calendarV3 .calendarSelectedPanel,
-.calendarV3 .macroEventPanel {
-  overflow: hidden;
-  border: 1px solid #dfe7f2;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.calendarV3 .panelHead {
-  display: flex;
-  align-items: center;
-  min-height: 38px;
-  border-bottom: 1px solid #edf2f7;
-  padding: 0 12px;
-}
-
-.calendarV3 .panelHead strong {
-  color: #172033;
-  font-size: 12.5px;
-  font-weight: 620;
-}
-
-.calendarV3 .calendarSelectedLead {
-  border-bottom: 1px solid #edf2f7;
-  padding: 10px 12px 8px;
-}
-
-.calendarV3 .calendarSelectedLead > strong {
-  display: block;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.calendarV3 .calendarSelectedLead p {
-  display: flex;
-  gap: 6px;
-  margin: 7px 0 0;
-}
-
-.calendarV3 .calendarSelectedPanel dl {
-  margin: 0;
-}
-
-.calendarV3 .calendarSelectedPanel dl div {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  min-height: 36px;
-  border-bottom: 1px solid #edf2f7;
-  padding: 8px 12px;
-}
-
-.calendarV3 .calendarSelectedPanel dl div:last-child {
-  border-bottom: 0;
-}
-
-.calendarV3 .calendarSelectedPanel dt,
-.calendarV3 .calendarSelectedPanel dd {
-  margin: 0;
-  color: #697891;
-  font-size: 12px;
-  font-weight: 560;
-  line-height: 1.45;
-}
-
-.calendarV3 .calendarSelectedPanel dd {
-  color: #172033;
-  text-align: right;
-}
-
-.calendarV3 .macroEventList {
-  padding: 6px;
-}
-
-.calendarV3 .macroEventList button {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 8px;
-  width: 100%;
-  min-height: 56px;
-  border: 0;
-  border-bottom: 1px solid #edf2f7;
-  background: #fff;
-  padding: 8px 10px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.calendarV3 .macroEventList button:last-child {
-  border-bottom: 0;
-}
-
-.calendarV3 .macroEventList button:hover,
-.calendarV3 .macroEventList button.active {
-  background: #f6fbff;
-}
-
-.calendarV3 .macroEventList button > div strong {
-  display: block;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.calendarV3 .macroEventList button > div span,
-.calendarV3 .macroEventList section > span {
-  display: block;
-  overflow: hidden;
-  color: #75849a;
-  font-size: 11.5px;
-  font-weight: 520;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.calendarV3 .macroEventList h3 {
-  overflow: hidden;
-  margin: 0;
-  color: #172033;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.calendarV3 .macroEventList p {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin: 3px 0 2px;
-}
-
-.calendarV3 .calendarPager {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-@media (max-width: 980px) {
-  .calendarV3 .calendarFilters,
-  .calendarV3 .calendarCompactLayout {
-    grid-template-columns: 1fr;
-  }
-
-  .calendarV3 .calendarGroupedPanel {
-    border-right: 0;
-    border-bottom: 1px solid #e4ebf3;
-  }
-}
 
 .trackingPage .screenerTable th:nth-child(10),
 .trackingPage .screenerTable td:nth-child(10) {
@@ -11867,169 +10537,6 @@ body,
   white-space: nowrap;
 }
 
-/* Calendar page final sweep: compact financial calendar layout. */
-.calendarPage.calendarV3 {
-  padding: 18px 28px 42px;
-}
-
-.calendarV3 .calendarWorkbench {
-  border-radius: 14px;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, .045);
-}
-
-.calendarV3 .calendarFilters {
-  grid-template-columns: minmax(260px, 1fr) auto 128px 118px;
-  gap: 8px;
-  padding: 10px 12px;
-}
-
-.calendarV3 .calendarFilters input,
-.calendarV3 .calendarFilters select,
-.calendarV3 .calendarWindowTabs button {
-  height: 32px;
-  min-height: 32px;
-  border-radius: 8px;
-  font-size: 12px;
-}
-
-.calendarV3 .calendarWindowTabs {
-  gap: 6px;
-}
-
-.calendarV3 .calendarWindowTabs button {
-  padding: 0 10px;
-}
-
-.calendarV3 .calendarCompactLayout {
-  grid-template-columns: minmax(0, 1fr) 292px;
-  min-height: 540px;
-}
-
-.calendarV3 .calendarGroupedList {
-  max-height: 620px;
-}
-
-.calendarV3 .calendarDateGroup {
-  grid-template-columns: 78px minmax(0, 1fr);
-}
-
-.calendarV3 .calendarDateCell {
-  padding: 12px 12px;
-}
-
-.calendarV3 .calendarDateCell strong {
-  font-size: 14px;
-  font-weight: 620;
-}
-
-.calendarV3 .calendarDateCell span {
-  font-size: 11.5px;
-}
-
-.calendarV3 .calendarDateEvents button {
-  grid-template-columns: 50px minmax(0, 1fr) 52px 34px;
-  gap: 10px;
-  min-height: 52px;
-  padding: 8px 12px;
-}
-
-.calendarV3 .calendarDateEvents button > span {
-  font-size: 12px;
-}
-
-.calendarV3 .calendarDateEvents strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.calendarV3 .calendarDateEvents strong em {
-  margin-top: 2px;
-  font-size: 12px;
-}
-
-.calendarV3 .calendarDateEvents .eventType,
-.calendarV3 .calendarDateEvents i {
-  height: 22px;
-  padding: 0 7px;
-  border-radius: 7px;
-  font-size: 11.5px;
-}
-
-.calendarV3 .calendarSideStack {
-  gap: 10px;
-  padding: 12px;
-}
-
-.calendarV3 .panelHead {
-  min-height: 38px;
-  padding: 0 12px;
-}
-
-.calendarV3 .panelHead strong {
-  font-size: 12.5px;
-  font-weight: 620;
-}
-
-.calendarV3 .calendarSelectedLead {
-  padding: 10px 12px 8px;
-}
-
-.calendarV3 .calendarSelectedLead > strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.calendarV3 .calendarSelectedLead p {
-  margin-top: 7px;
-}
-
-.calendarV3 .calendarSelectedLead span,
-.calendarV3 .calendarSelectedLead em {
-  height: 22px;
-  font-size: 11.5px;
-}
-
-.calendarV3 .calendarSelectedPanel dl div {
-  grid-template-columns: 52px minmax(0, 1fr);
-  min-height: 36px;
-  padding: 8px 12px;
-}
-
-.calendarV3 .calendarSelectedPanel dt,
-.calendarV3 .calendarSelectedPanel dd {
-  font-size: 12px;
-}
-
-.calendarV3 .macroEventList {
-  padding: 6px;
-}
-
-.calendarV3 .macroEventList button {
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 8px;
-  min-height: 56px;
-  padding: 8px 10px;
-}
-
-.calendarV3 .macroEventList button > div strong {
-  font-size: 13px;
-}
-
-.calendarV3 .macroEventList h3 {
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.calendarV3 .macroEventList p {
-  margin: 3px 0 0;
-  flex-wrap: wrap;
-}
-
-.calendarV3 .macroEventList em {
-  height: 20px;
-  padding: 0 6px;
-  font-size: 11.5px;
-}
 
 @media (max-width: 960px) {
   .fundingScannerPage {
@@ -12161,83 +10668,6 @@ body,
   width: 220px;
 }
 
-/* Effective calendar overrides: keep this after legacy calendar sweeps. */
-.calendarPage.calendarV3 {
-  background: #f4f7fb;
-}
-
-.calendarV3 .calendarWorkbench {
-  overflow: hidden;
-  border: 1px solid #dfe7f2;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .045);
-}
-
-.calendarV3 .calendarCompactLayout {
-  grid-template-columns: minmax(0, 1fr) 300px;
-}
-
-.calendarV3 .calendarGroupedPanel {
-  min-width: 0;
-  border-right: 1px solid #e4ebf3;
-}
-
-.calendarV3 .calendarDateGroup {
-  grid-template-columns: 82px minmax(0, 1fr);
-}
-
-.calendarV3 .calendarDateEvents button {
-  grid-template-columns: 60px minmax(0, 1fr) 54px 36px;
-  min-height: 54px;
-}
-
-.calendarV3 .calendarDateEvents button.highImpact,
-.calendarV3 .macroEventList button.highImpact {
-  background: linear-gradient(90deg, #fff8ea 0, #fff 44%);
-  box-shadow: inset 4px 0 0 #f59e0b;
-}
-
-.calendarV3 .calendarDateEvents strong,
-.calendarV3 .calendarDateEvents strong em,
-.calendarV3 .macroEventList h3,
-.calendarV3 .macroEventList button > div span,
-.calendarV3 .macroEventList section > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.calendarV3 .calendarDateEvents .eventType.macro {
-  background: #fff5df;
-  color: #9a5b00;
-}
-
-.calendarV3 .calendarDateEvents i.impactHigh,
-.calendarV3 .calendarSelectedLead .impactHigh,
-.calendarV3 .calendarSelectedPanel .impactHigh,
-.calendarV3 .macroEventList .impactHigh {
-  border: 1px solid #f4c46a;
-  background: #fff4d8;
-  color: #9a5b00;
-}
-
-.calendarV3 .calendarDateEvents i.impactMedium,
-.calendarV3 .calendarSelectedLead .impactMedium,
-.calendarV3 .calendarSelectedPanel .impactMedium,
-.calendarV3 .macroEventList .impactMedium {
-  border: 1px solid #bfddff;
-  background: #edf7ff;
-  color: #1769c2;
-}
-
-.calendarV3 .calendarDateEvents i.impactLow,
-.calendarV3 .calendarSelectedLead .impactLow,
-.calendarV3 .calendarSelectedPanel .impactLow,
-.calendarV3 .macroEventList .impactLow {
-  border: 1px solid #d9e2ec;
-  background: #f3f7fb;
-  color: #697891;
-}
 
 /* Final product QA override: keep this at EOF so legacy sweeps cannot win. */
 .signalDirectionBadge {
@@ -12467,23 +10897,491 @@ body,
   color: var(--red) !important;
 }
 
+
+
+/* Calendar V2: focus cards, no search, complete event details. */
+.topbar.calendarTopbar {
+  grid-template-columns: auto;
+  height: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  padding: 0 28px !important;
+  background: transparent !important;
+}
+
+.topbar.calendarTopbar .accountMenu,
+.topbar.calendarTopbar > .accountButton {
+  position: fixed;
+  top: 14px;
+  right: 28px;
+  z-index: 30;
+}
+
+.calendarPage.calendarV3 {
+  padding: 18px 28px 42px;
+  background: #f3f7fb;
+}
+
+.calendarFocusStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.calendarFocusStrip article {
+  min-height: 86px;
+  border: 1px solid #dbe5f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+  box-shadow: 0 10px 24px rgba(40, 68, 98, .05);
+}
+
+.calendarFocusStrip span {
+  display: block;
+  color: #718198;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.calendarFocusStrip strong {
+  display: block;
+  margin-top: 7px;
+  color: #172033;
+  font-size: 17px;
+  font-weight: 780;
+  line-height: 1.3;
+}
+
+.calendarFocusStrip em {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: #fff4d8;
+  color: #9a5b00;
+  padding: 0 9px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 720;
+}
+
+.calendarV3 .calendarWorkbench {
+  overflow: hidden;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(40, 68, 98, .08);
+}
+
+.calendarV3 .calendarFilters {
+  display: grid;
+  grid-template-columns: auto 160px 150px;
+  justify-content: end;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e6edf5;
+  background: #fff;
+}
+
+.calendarV3 .calendarFilters select,
+.calendarV3 .calendarWindowTabs button {
+  height: 42px;
+  border: 1px solid #d7e2ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #263244;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.calendarV3 .calendarWindowTabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #d7e2ee;
+  border-radius: 12px;
+  background: #eaf1f8;
+}
+
+.calendarV3 .calendarWindowTabs button {
+  min-width: 92px;
+  border: 0;
+  background: transparent;
+  color: #68778d;
+  cursor: pointer;
+}
+
+.calendarV3 .calendarWindowTabs button.active {
+  background: #fff;
+  color: #1677ff;
+  box-shadow: 0 6px 14px rgba(38, 65, 95, .10);
+}
+
+.calendarV3 .calendarCompactLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  min-height: 0;
+}
+
+.calendarV3 .calendarGroupedPanel {
+  min-width: 0;
+  border-right: 1px solid #dbe5f0;
+}
+
+.calendarV3 .calendarTimelineHead {
+  display: grid;
+  grid-template-columns: 112px 112px minmax(0, 1fr) 96px 72px;
+  gap: 14px;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-bottom: 1px solid #e6edf5;
+  background: #fbfdff;
+  color: #7a8799;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.calendarV3 .calendarGroupedList {
+  overflow: visible;
+}
+
+.calendarV3 .calendarDateGroup {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  border-bottom: 1px solid #e6edf5;
+}
+
+.calendarV3 .calendarDateCell {
+  padding: 18px;
+  border-right: 1px solid #e6edf5;
+  background: #fbfdff;
+}
+
+.calendarV3 .calendarDateCell strong {
+  display: block;
+  color: #172033;
+  font-size: 20px;
+  font-weight: 780;
+  line-height: 1;
+}
+
+.calendarV3 .calendarDateCell span {
+  display: block;
+  margin-top: 8px;
+  color: #7a8799;
+  font-size: 13px;
+  font-weight: 720;
+}
+
 .calendarV3 .calendarDateEvents button {
-  grid-template-columns: 72px minmax(0, 1fr) 58px 38px !important;
-  min-height: 50px !important;
-  padding: 9px 14px !important;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 96px 72px;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: 68px;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  background: #fff;
+  padding: 12px 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendarV3 .calendarDateEvents button:last-child {
+  border-bottom: 0;
+}
+
+.calendarV3 .calendarDateEvents button:hover,
+.calendarV3 .calendarDateEvents button.active {
+  background: #f6fbff;
+}
+
+.calendarV3 .calendarDateEvents button.highImpact,
+.calendarV3 .macroEventList button.highImpact {
+  border-left: 4px solid #f59e0b;
+  background: #fffaf0;
+}
+
+.calendarV3 .calendarDateEvents button > span {
+  color: #6f7f95;
+  font-size: 14px;
+  font-weight: 760;
 }
 
 .calendarV3 .calendarDateEvents strong {
-  font-size: 13.5px !important;
-  font-weight: 600 !important;
+  overflow: visible;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 760;
+  line-height: 1.35;
+  text-overflow: clip;
+  white-space: normal;
 }
 
-.calendarV3 .calendarDateEvents strong em,
-.calendarV3 .calendarDateEvents span {
-  font-size: 12px !important;
-  font-weight: 500 !important;
+.calendarV3 .calendarDateEvents strong em {
+  display: block;
+  overflow: visible;
+  margin-top: 5px;
+  color: #65748a;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 620;
+  line-height: 1.45;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.calendarV3 .calendarDateEvents .eventType,
+.calendarV3 .calendarDateEvents i,
+.calendarV3 .calendarSelectedLead span,
+.calendarV3 .calendarSelectedLead em,
+.calendarV3 .macroEventList em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 26px;
+  border-radius: 8px;
+  background: #f3f7fb;
+  color: #697891;
+  padding: 0 10px;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.calendarV3 .calendarDateEvents .eventType.macro {
+  background: #eaf4ff;
+  color: #1677ff;
+}
+
+.calendarV3 .calendarDateEvents i.impactHigh,
+.calendarV3 .calendarSelectedLead .impactHigh,
+.calendarV3 .calendarSelectedPanel .impactHigh,
+.calendarV3 .macroEventList .impactHigh {
+  border: 1px solid #f0b94f;
+  background: #fff1c7;
+  color: #8a5100;
+}
+
+.calendarV3 .calendarDateEvents i.impactMedium,
+.calendarV3 .calendarSelectedLead .impactMedium,
+.calendarV3 .calendarSelectedPanel .impactMedium,
+.calendarV3 .macroEventList .impactMedium {
+  border: 1px solid #bfddff;
+  background: #edf7ff;
+  color: #1769c2;
+}
+
+.calendarV3 .calendarDateEvents i.impactLow,
+.calendarV3 .calendarSelectedLead .impactLow,
+.calendarV3 .calendarSelectedPanel .impactLow,
+.calendarV3 .macroEventList .impactLow {
+  border: 1px solid #d9e2ec;
+  background: #f3f7fb;
+  color: #697891;
+}
+
+.calendarV3 .calendarSideStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: none;
+  overflow: visible;
+  padding: 14px;
+  background: #fbfdff;
+}
+
+.calendarV3 .calendarSelectedPanel,
+.calendarV3 .macroEventPanel {
+  overflow: hidden;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.calendarV3 .panelHead {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  border-bottom: 1px solid #e6edf5;
+  padding: 0 16px;
+}
+
+.calendarV3 .panelHead strong {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 780;
+}
+
+.calendarV3 .calendarSelectedLead {
+  border-bottom: 1px solid #edf2f7;
+  padding: 16px;
+}
+
+.calendarV3 .calendarSelectedLead > strong {
+  display: block;
+  color: #172033;
+  font-size: 19px;
+  font-weight: 780;
+  line-height: 1.4;
+}
+
+.calendarV3 .calendarSelectedLead p {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 0;
+}
+
+.calendarV3 .calendarSelectedPanel dl {
+  margin: 0;
+}
+
+.calendarV3 .calendarSelectedPanel dl div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 44px;
+  border-bottom: 1px solid #edf2f7;
+  padding: 11px 16px;
+}
+
+.calendarV3 .calendarSelectedPanel dl div:last-child {
+  border-bottom: 0;
+}
+
+.calendarV3 .calendarSelectedPanel dt,
+.calendarV3 .calendarSelectedPanel dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.calendarV3 .calendarSelectedPanel dt {
+  color: #7a8799;
+  font-weight: 720;
+}
+
+.calendarV3 .calendarSelectedPanel dd {
+  overflow: visible;
+  color: #172033;
+  font-weight: 760;
+  text-align: left;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.calendarV3 .macroEventList {
+  max-height: none;
+  overflow: visible;
+  padding: 0;
 }
 
 .calendarV3 .macroEventList button {
-  min-height: 54px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  min-height: 74px;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  background: #fff;
+  padding: 13px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendarV3 .macroEventList button:last-child {
+  border-bottom: 0;
+}
+
+.calendarV3 .macroEventList button:hover,
+.calendarV3 .macroEventList button.active {
+  background: #f6fbff;
+}
+
+.calendarV3 .macroEventList button > div strong {
+  display: block;
+  color: #172033;
+  font-size: 15px;
+  font-weight: 780;
+}
+
+.calendarV3 .macroEventList button > div span,
+.calendarV3 .macroEventList section > span {
+  display: block;
+  overflow: visible;
+  color: #68778d;
+  font-size: 12px;
+  font-weight: 720;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.calendarV3 .macroEventList h3 {
+  overflow: visible;
+  margin: 0;
+  color: #172033;
+  font-size: 15px;
+  font-weight: 780;
+  line-height: 1.35;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.calendarV3 .macroEventList p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 5px 0;
+}
+
+.calendarV3 .calendarPager {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  color: #708096;
+  font-size: 13px;
+}
+
+.calendarV3 .calendarPager button {
+  min-height: 34px;
+  border: 1px solid #d7e1ee;
+  border-radius: 9px;
+  background: #fff;
+  color: #172033;
+  padding: 0 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.calendarV3 .calendarPager button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.calendarV3 .calendarEmpty {
+  padding: 28px;
+  color: #708096;
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .calendarFocusStrip,
+  .calendarV3 .calendarFilters,
+  .calendarV3 .calendarCompactLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .calendarV3 .calendarGroupedPanel {
+    border-right: 0;
+    border-bottom: 1px solid #dbe5f0;
+  }
 }
