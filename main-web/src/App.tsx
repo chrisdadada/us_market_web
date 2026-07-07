@@ -884,7 +884,6 @@ function App() {
   const onboardingOpen = Boolean(
     auth?.authenticated &&
     auth.user?.role === "user" &&
-    auth.entitlements?.paid &&
     !auth.user?.onboardingSeenAt
   );
   const opinionsLocked = page === "opinions" && !pageUnlocked;
@@ -1111,30 +1110,44 @@ function OnboardingModal({ open, onDone }: { open: boolean; onDone: () => Promis
     onDone().finally(() => setSaving(false));
   };
   return (
-    <div className="onboardingOverlay" role="dialog" aria-modal="true" aria-label="网站使用说明">
+    <div className="onboardingOverlay" role="dialog" aria-modal="true" aria-label="风险免责声明">
       <section className="onboardingPanel">
         <div className="onboardingHead">
-          <span>欢迎使用懂币猫</span>
-          <h2>每天先看三处</h2>
+          <span>使用前请确认</span>
+          <h2>风险免责声明</h2>
         </div>
-        <div className="onboardingSteps">
+        <div className="onboardingSteps riskNoticeBody">
           <article>
-            <span>01</span>
-            <strong>首页</strong>
-            <p>先看美股热点风向标、股票机会跟踪榜单和美股重点财经前瞻。</p>
+            <strong>信息用途</strong>
+            <p>本平台提供的市场信息、观点内容、数据整理、工具计算和持仓记录，仅供学习交流与研究参考使用，不构成任何投资、法律、税务、会计或其他专业建议。</p>
           </article>
           <article>
-            <span>02</span>
-            <strong>美股热点风向标</strong>
-            <p>按栏目阅读，点进正文看完整判断。</p>
+            <strong>非投资建议</strong>
+            <p>本平台内容不构成对任何股票、ETF、期权、数字资产或其他金融产品的买入、卖出、持有、申购、赎回或配置建议，也不构成任何收益承诺。</p>
           </article>
           <article>
-            <span>03</span>
-            <strong>股票机会跟踪榜单</strong>
-            <p>看近1日、近1周、近1月和趋势策略方向。</p>
+            <strong>用户独立判断</strong>
+            <p>本平台内容未针对你的个人财务状况、投资目标、交易经验、风险承受能力或账户条件进行定制。你应基于自身情况独立判断，并在必要时咨询持牌专业人士。</p>
+          </article>
+          <article>
+            <strong>信息准确性</strong>
+            <p>本平台会尽力保证信息的及时性和准确性，但不保证所有内容、数据、价格、计算结果或展示记录完整、准确、及时或持续可用。相关信息可能存在延迟、遗漏、错误或过期。</p>
+          </article>
+          <article>
+            <strong>交易风险</strong>
+            <p>股票、ETF、期权、数字资产、保证金交易、做空、杠杆交易及套利策略均存在风险。市场波动、流动性不足、滑点、交易限制、强制平仓、交易所或券商规则变化等情况，可能导致损失扩大；部分交易可能造成超过本金的损失。</p>
+          </article>
+          <article>
+            <strong>工具与记录</strong>
+            <p>本平台的扫描器、仓位工具、资金曲线、Open 持仓参考和历史交易记录，仅按现有数据和输入条件进行展示或估算，不代表真实账户结果，不保证适合实际交易，也不应作为交易依据。</p>
+          </article>
+          <article>
+            <strong>确认继续</strong>
+            <p>点击“同意并继续”即表示你已阅读、理解并接受以上风险提示，并确认后续基于本平台内容作出的任何判断、交易或操作，均由你自行承担相应风险和结果。</p>
           </article>
         </div>
-        <button type="button" onClick={done} disabled={saving}>{saving ? "处理中" : "开始使用"}</button>
+        <p className="riskAgreeText">点击同意表示你已阅读并理解以上内容，确认继续使用本站。</p>
+        <button type="button" onClick={done} disabled={saving}>{saving ? "处理中" : "同意并继续"}</button>
       </section>
     </div>
   );
