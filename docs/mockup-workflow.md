@@ -17,6 +17,11 @@ npm run mock:shot -- all
 - `*-desktop.png`
 - `*-mobile.png`
 
+Git 边界：
+
+- `mockups/*.html`、`mockups/*.svg` 可以作为确认图源文件按需提交。
+- `mockups/*.png`、`mockups/output/` 是截图产物，默认不提交。
+
 脚本会同时检查：
 
 - 页面标题
