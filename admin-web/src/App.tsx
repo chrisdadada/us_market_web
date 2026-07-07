@@ -1503,6 +1503,9 @@ function OpenPortfolioPage() {
   const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
   const tradeDateAvailableCash = useMemo(() => openAvailableCashAt(data, form.tradeTime), [data, form.tradeTime]);
   const enteredBuyAmount = Number(form.amount || 0);
+  const enteredSellAmount = Number(form.price || 0) * Number(form.quantity || 0);
+  const buyAmountPct = tradeDateAvailableCash && enteredBuyAmount > 0 ? Math.min(100, Math.max(0, (enteredBuyAmount / tradeDateAvailableCash) * 100)) : 0;
+  const cashAfterTrade = tradeDateAvailableCash === null ? null : form.side === "buy" ? tradeDateAvailableCash - (Number.isFinite(enteredBuyAmount) ? enteredBuyAmount : 0) : tradeDateAvailableCash + (Number.isFinite(enteredSellAmount) ? enteredSellAmount : 0);
   const buyAmountTooHigh = form.side === "buy" && tradeDateAvailableCash !== null && enteredBuyAmount > tradeDateAvailableCash + 0.01;
   const setTradeSide = (side: "buy" | "sell") => {
     setForm({ ...form, side, symbol: side === "sell" ? holdings[0]?.symbol || "" : "", amount: "", quantity: "" });
@@ -1510,6 +1513,10 @@ function OpenPortfolioPage() {
   const setSellQuantity = (ratio: number) => {
     if (!selectedHolding) return;
     setForm({ ...form, quantity: String(floorTradeQuantity(selectedHolding.quantity * ratio, selectedHolding.quantityStep)) });
+  };
+  const setBuyAmountRatio = (ratio: number) => {
+    if (!tradeDateAvailableCash) return;
+    setForm({ ...form, amount: String(Math.floor(tradeDateAvailableCash * ratio * 100) / 100) });
   };
 
   async function loadOpenPortfolio() {
@@ -1594,7 +1601,7 @@ function OpenPortfolioPage() {
       <div className="openTradeWorkspace">
         <section className="panel openTradePanel">
           <div className={`panelHeader openTradeHeader ${form.side === "sell" ? "sell" : "buy"}`}>
-            <h2>新增交易</h2>
+            <h2>{form.side === "buy" ? "新增买入" : "新增卖出"}</h2>
             <div className="tradeSideButtons">
               <button type="button" className={form.side === "buy" ? "active buy" : "buy"} onClick={() => setTradeSide("buy")}>买入</button>
               <button type="button" className={form.side === "sell" ? "active sell" : "sell"} onClick={() => setTradeSide("sell")}>卖出</button>
@@ -1613,9 +1620,18 @@ function OpenPortfolioPage() {
             <label>价格<input type="number" min="0" step="0.000001" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
             {form.side === "buy" ? (
               <label>
-                <span className="labelMeta"><span>买入金额</span><em>所选日期可用 {adminMoney(tradeDateAvailableCash)}</em></span>
-                <input type="number" min="0" max={tradeDateAvailableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
-              </label>
+              <span className="labelMeta"><span>买入金额</span><em>所选日期可用 {adminMoney(tradeDateAvailableCash)}</em></span>
+              <input type="number" min="0" max={tradeDateAvailableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
+              <div className="amountSlider">
+                <input type="range" min="0" max="100" step="1" value={buyAmountPct} onChange={(event) => setBuyAmountRatio(Number(event.target.value) / 100)} />
+                <div>
+                  <button type="button" onClick={() => setBuyAmountRatio(0.25)}>25%</button>
+                  <button type="button" onClick={() => setBuyAmountRatio(0.5)}>50%</button>
+                  <button type="button" onClick={() => setBuyAmountRatio(0.75)}>75%</button>
+                  <button type="button" onClick={() => setBuyAmountRatio(1)}>100%</button>
+                </div>
+              </div>
+            </label>
             ) : (
               <label>卖出数量
                 <div className="quantityInput">
@@ -1637,7 +1653,8 @@ function OpenPortfolioPage() {
           <div className="openCashRows">
             <div><span>当前可用</span><strong>{adminMoney(data?.availableCash)}</strong></div>
             <div><span>所选日期可用</span><strong className={buyAmountTooHigh ? "dangerText" : ""}>{adminMoney(tradeDateAvailableCash)}</strong></div>
-            <div><span>本次买入</span><strong>{form.side === "buy" && Number.isFinite(enteredBuyAmount) && enteredBuyAmount > 0 ? adminMoney(enteredBuyAmount) : "--"}</strong></div>
+            <div><span>{form.side === "buy" ? "本次买入" : "本次卖出回收"}</span><strong>{form.side === "buy" ? (Number.isFinite(enteredBuyAmount) && enteredBuyAmount > 0 ? adminMoney(enteredBuyAmount) : "--") : (Number.isFinite(enteredSellAmount) && enteredSellAmount > 0 ? adminMoney(enteredSellAmount) : "--")}</strong></div>
+            <div><span>{form.side === "buy" ? "买入后可用" : "卖出后可用"}</span><strong className={buyAmountTooHigh ? "dangerText" : ""}>{cashAfterTrade !== null && Number.isFinite(cashAfterTrade) ? adminMoney(cashAfterTrade) : "--"}</strong></div>
           </div>
           <p>补录历史交易时，系统会把该交易插入到对应日期，再按时间顺序重算后续现金和持仓。</p>
         </section>

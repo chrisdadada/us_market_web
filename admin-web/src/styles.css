@@ -238,7 +238,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 .openTradeWorkspace {
   display: grid;
-  grid-template-columns: minmax(420px, 520px) minmax(280px, 1fr);
+  grid-template-columns: minmax(620px, 1fr) 380px;
   gap: 20px;
   align-items: stretch;
 }
@@ -335,6 +335,31 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #fff;
   color: #1677ff;
   font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.amountSlider {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+}
+.amountSlider input[type="range"] {
+  height: 16px;
+  padding: 0;
+  accent-color: #1677ff;
+}
+.amountSlider div {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.amountSlider button {
+  height: 30px;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  background: #fff;
+  color: #1677ff;
+  font-size: 12px;
   font-weight: 800;
   cursor: pointer;
 }
