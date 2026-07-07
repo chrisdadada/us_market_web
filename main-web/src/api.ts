@@ -309,6 +309,7 @@ export type CourseSeries = {
   slug: string;
   title: string;
   summary: string;
+  intro: string;
   coverUrl: string;
   sortOrder: number;
   status: "published" | "draft";

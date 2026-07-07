@@ -3308,7 +3308,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
       if (courseTab === "unlocked" && !item.unlocked) return false;
       if (courseTab === "locked" && item.unlocked) return false;
       if (!query) return true;
-      return `${item.title} ${item.summary}`.toLowerCase().includes(query);
+      return `${item.title} ${item.summary} ${item.intro}`.toLowerCase().includes(query);
     });
   }, [courseQuery, courseTab, series]);
 
@@ -3368,6 +3368,8 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
       );
     }
 
+    const courseIntro = selected.intro || selected.summary;
+
     return (
       <div className="coursesPage">
         <section className="courseDetailHero">
@@ -3425,7 +3427,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
           <section className="courseLockedDetail">
             <h2>{selected.title}</h2>
             <div className="courseSummaryRich articleProse">
-              {richCourseSummary(selected.summary, "交易实战课程暂未开通权限。")}
+              {richCourseSummary(courseIntro, "交易实战课程暂未开通权限。")}
             </div>
             <button type="button" onClick={onUnlock}>联系开通</button>
           </section>

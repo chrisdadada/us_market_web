@@ -1227,6 +1227,7 @@ def init_db() -> None:
               slug TEXT NOT NULL UNIQUE,
               title TEXT NOT NULL,
               summary TEXT,
+              intro TEXT,
               cover_url TEXT,
               sort_order INTEGER NOT NULL DEFAULT 1,
               status TEXT NOT NULL DEFAULT 'draft',
@@ -1275,6 +1276,8 @@ def init_db() -> None:
         course_series_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_series)").fetchall()}
         if "sort_order" not in course_series_columns:
             conn.execute("ALTER TABLE course_series ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 1")
+        if "intro" not in course_series_columns:
+            conn.execute("ALTER TABLE course_series ADD COLUMN intro TEXT")
         course_lesson_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_lessons)").fetchall()}
         if "cover_url" not in course_lesson_columns:
             conn.execute("ALTER TABLE course_lessons ADD COLUMN cover_url TEXT")
@@ -1750,6 +1753,7 @@ def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None
         "slug": row["slug"],
         "title": row["title"],
         "summary": row["summary"] or "",
+        "intro": (row["intro"] if "intro" in row.keys() else "") or row["summary"] or "",
         "coverUrl": signed_course_image_url(row["cover_url"] or ""),
         "sortOrder": row["sort_order"],
         "status": row["status"],
@@ -2034,6 +2038,7 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
     if status not in COURSE_STATUSES:
         raise ValueError("交易实战课程状态不正确")
     summary = str(payload.get("summary") or "").strip()
+    intro = str(payload.get("intro") or "").strip()
     cover_url = course_video_key(str(payload.get("coverUrl") or "").strip())
     timestamp = now_iso()
     with db() as conn:
@@ -2051,10 +2056,10 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
             conn.execute(
                 """
                 UPDATE course_series
-                SET title = ?, summary = ?, cover_url = ?, sort_order = ?, status = ?, updated_at = ?
+                SET title = ?, summary = ?, intro = ?, cover_url = ?, sort_order = ?, status = ?, updated_at = ?
                 WHERE id = ?
                 """,
-                (title, summary, cover_url, sort_order, status, timestamp, series_id),
+                (title, summary, intro, cover_url, sort_order, status, timestamp, series_id),
             )
             row = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
             return course_series_payload(row)
@@ -2071,10 +2076,10 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
         cursor = conn.execute(
             """
             INSERT INTO course_series
-            (slug, title, summary, cover_url, sort_order, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (slug, title, summary, intro, cover_url, sort_order, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (slug, title, summary, cover_url, sort_order, status, timestamp, timestamp),
+            (slug, title, summary, intro, cover_url, sort_order, status, timestamp, timestamp),
         )
         row = conn.execute("SELECT * FROM course_series WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return course_series_payload(row)
