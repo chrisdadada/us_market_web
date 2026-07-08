@@ -1498,8 +1498,9 @@ function OpenPortfolioPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [toast, setToast] = useState<{ text: string; tone: "success" | "error" } | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
+  const [tradePage, setTradePage] = useState(1);
   const holdings = data?.holdings || [];
   const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
   const tradeDateAvailableCash = useMemo(() => openAvailableCashAt(data, form.tradeTime), [data, form.tradeTime]);
@@ -1508,6 +1509,9 @@ function OpenPortfolioPage() {
   const buyAmountPct = tradeDateAvailableCash && enteredBuyAmount > 0 ? Math.min(100, Math.max(0, (enteredBuyAmount / tradeDateAvailableCash) * 100)) : 0;
   const cashAfterTrade = tradeDateAvailableCash === null ? null : form.side === "buy" ? tradeDateAvailableCash - (Number.isFinite(enteredBuyAmount) ? enteredBuyAmount : 0) : tradeDateAvailableCash + (Number.isFinite(enteredSellAmount) ? enteredSellAmount : 0);
   const buyAmountTooHigh = form.side === "buy" && tradeDateAvailableCash !== null && enteredBuyAmount > tradeDateAvailableCash + 0.01;
+  const tradePageSize = 10;
+  const tradeTotalPages = Math.max(1, Math.ceil((data?.trades.length || 0) / tradePageSize));
+  const tradeRows = (data?.trades || []).slice((tradePage - 1) * tradePageSize, tradePage * tradePageSize);
   const setTradeSide = (side: "buy" | "sell") => {
     setForm({ ...form, side, symbol: side === "sell" ? holdings[0]?.symbol || "" : "", amount: "", quantity: "" });
   };
@@ -1522,13 +1526,14 @@ function OpenPortfolioPage() {
 
   async function loadOpenPortfolio() {
     setLoading(true);
-    setMessage("");
+    setToast(null);
     try {
       const payload = await api.openPortfolio();
       setData(payload);
+      setTradePage(1);
       setNoteDrafts(Object.fromEntries(payload.trades.map((trade) => [trade.id, trade.note || ""])));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "读取失败");
+      setToast({ text: err instanceof Error ? err.message : "读取失败", tone: "error" });
     } finally {
       setLoading(false);
     }
@@ -1538,15 +1543,21 @@ function OpenPortfolioPage() {
     void loadOpenPortfolio();
   }, []);
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2400);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     const buyAmount = Number(form.amount);
     if (form.side === "buy" && tradeDateAvailableCash !== null && Number.isFinite(buyAmount) && buyAmount > tradeDateAvailableCash + 0.01) {
-      setMessage(`${form.symbol.trim().toUpperCase() || "标的"} 买入金额超过所选日期可用资金`);
+      setToast({ text: `${form.symbol.trim().toUpperCase() || "标的"} 买入金额超过所选日期可用资金`, tone: "error" });
       return;
     }
     setSaving(true);
-    setMessage("");
+    setToast(null);
     try {
       const result = await api.saveOpenTrade({
         tradeTime: form.tradeTime,
@@ -1560,9 +1571,10 @@ function OpenPortfolioPage() {
       setData(result);
       setNoteDrafts(Object.fromEntries(result.trades.map((trade) => [trade.id, trade.note || ""])));
       setForm({ tradeTime: localDateInputValue(), symbol: "", side: "buy", price: "", amount: "", quantity: "", note: "" });
-      setMessage("已保存");
+      setTradePage(1);
+      setToast({ text: "已保存", tone: "success" });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "保存失败");
+      setToast({ text: err instanceof Error ? err.message : "保存失败", tone: "error" });
     } finally {
       setSaving(false);
     }
@@ -1571,12 +1583,13 @@ function OpenPortfolioPage() {
   async function removeTrade(id: number) {
     if (!window.confirm("删除这笔交易记录？")) return;
     setSaving(true);
-    setMessage("");
+    setToast(null);
     try {
       await api.deleteOpenTrade(id);
       await loadOpenPortfolio();
+      setToast({ text: "交易已删除", tone: "success" });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "删除失败");
+      setToast({ text: err instanceof Error ? err.message : "删除失败", tone: "error" });
     } finally {
       setSaving(false);
     }
@@ -1584,14 +1597,14 @@ function OpenPortfolioPage() {
 
   async function saveTradeNote(id: number) {
     setSaving(true);
-    setMessage("");
+    setToast(null);
     try {
       const result = await api.updateOpenTradeNote(id, noteDrafts[id] || "");
       setData(result);
       setNoteDrafts(Object.fromEntries(result.trades.map((trade) => [trade.id, trade.note || ""])));
-      setMessage("备注已保存");
+      setToast({ text: "备注已保存", tone: "success" });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "保存备注失败");
+      setToast({ text: err instanceof Error ? err.message : "保存备注失败", tone: "error" });
     } finally {
       setSaving(false);
     }
@@ -1606,7 +1619,7 @@ function OpenPortfolioPage() {
         </div>
       </div>
 
-      {message ? <div className="notice inlineNotice">{message}</div> : null}
+      {toast ? <div className={`adminToast ${toast.tone}`}>{toast.text}</div> : null}
       {loading ? <div className="contentLoading inlineNotice">读取中</div> : null}
 
       <div className="statsGrid openStatsGrid">
@@ -1700,12 +1713,15 @@ function OpenPortfolioPage() {
           </table>
         </section>
 
-        <section className="panel tablePanel">
-          <div className="panelHeader"><h2>交易历史</h2></div>
+        <section className="panel tablePanel openHistoryAdminPanel">
+          <div className="panelHeader">
+            <h2>交易历史</h2>
+            <span className="tableMuted">第 {tradePage} / {tradeTotalPages} 页</span>
+          </div>
           <table className="adminTable">
             <thead><tr><th>日期</th><th>标的</th><th>方向</th><th>价格</th><th>数量</th><th>金额</th><th>已实现</th><th>备注</th><th>操作</th></tr></thead>
             <tbody>
-              {data?.trades.map((row) => (
+              {tradeRows.map((row) => (
                 <tr key={row.id}>
                   <td>{formatDate(row.tradeTime)}</td>
                   <td><strong>{row.symbol}</strong></td>
@@ -1716,7 +1732,7 @@ function OpenPortfolioPage() {
                   <td className={row.realizedPnl >= 0 ? "positive" : "dangerText"}>{row.side === "sell" ? signedMoney(row.realizedPnl) : "--"}</td>
                   <td>
                     <div className="tradeNoteEdit">
-                      <input value={noteDrafts[row.id] ?? row.note ?? ""} onChange={(event) => setNoteDrafts({ ...noteDrafts, [row.id]: event.target.value })} />
+                      <textarea value={noteDrafts[row.id] ?? row.note ?? ""} onChange={(event) => setNoteDrafts({ ...noteDrafts, [row.id]: event.target.value })} />
                       <button type="button" className="tableAction" disabled={saving || (noteDrafts[row.id] ?? "") === (row.note || "")} onClick={() => saveTradeNote(row.id)}>保存</button>
                     </div>
                   </td>
@@ -1726,6 +1742,13 @@ function OpenPortfolioPage() {
               {!data?.trades.length ? <tr><td colSpan={9}>暂无交易记录</td></tr> : null}
             </tbody>
           </table>
+          {data && data.trades.length > tradePageSize ? (
+            <div className="adminPager">
+              <button type="button" disabled={tradePage <= 1} onClick={() => setTradePage((page) => Math.max(1, page - 1))}>上一页</button>
+              <span>{tradePage} / {tradeTotalPages}</span>
+              <button type="button" disabled={tradePage >= tradeTotalPages} onClick={() => setTradePage((page) => Math.min(tradeTotalPages, page + 1))}>下一页</button>
+            </div>
+          ) : null}
         </section>
       </div>
     </div>

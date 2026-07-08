@@ -89,6 +89,27 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .notice, .contentLoading { margin: 24px 44px 0; border-radius: 12px; padding: 14px 18px; font-weight: 700; }
 .notice { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
 .contentLoading { background: #eff6ff; color: #1677ff; border: 1px solid #cfe5ff; }
+.adminToast {
+  position: fixed;
+  top: 86px;
+  right: 34px;
+  z-index: 20;
+  min-width: 220px;
+  max-width: 360px;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #166534;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, .12);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 750;
+}
+.adminToast.error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
 .emptyPanel { min-height: 280px; display: grid; place-items: center; color: #7b8798; font-weight: 750; }
 
 .loginPage, .loadingPage { min-height: 100vh; display: grid; place-items: center; background: #f5f7fa; }
@@ -224,23 +245,25 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .tradeNoteEdit {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) 56px;
+  grid-template-columns: minmax(260px, 1fr) 56px;
   gap: 8px;
   align-items: center;
 }
 
-.tradeNoteEdit input {
-  height: 34px;
+.tradeNoteEdit textarea {
+  min-height: 54px;
   min-width: 0;
+  resize: vertical;
   border: 1px solid #d6dee9;
   border-radius: 8px;
-  padding: 0 10px;
+  padding: 8px 10px;
   color: #182337;
   background: #fff;
   outline: none;
+  line-height: 1.45;
 }
 
-.tradeNoteEdit input:focus {
+.tradeNoteEdit textarea:focus {
   border-color: #1677ff;
   box-shadow: 0 0 0 3px #dcebff;
 }
@@ -457,9 +480,41 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 .openAdminGrid {
   display: grid;
-  grid-template-columns: minmax(420px, .8fr) minmax(0, 1.2fr);
+  grid-template-columns: 1fr;
   gap: 20px;
   align-items: start;
+}
+.openHistoryAdminPanel .adminTable {
+  min-width: 1080px;
+}
+.adminPager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #e6ebf2;
+  padding-top: 14px;
+  margin-top: 12px;
+}
+.adminPager button {
+  height: 34px;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  background: #fff;
+  color: #1677ff;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.adminPager button:disabled {
+  color: #9aa7b8;
+  cursor: not-allowed;
+}
+.adminPager span {
+  color: #718096;
+  font-size: 13px;
+  font-weight: 700;
 }
 .userIdentityCell,
 .lastEventCell {
