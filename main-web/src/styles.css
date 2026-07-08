@@ -4631,6 +4631,8 @@ body,
 }
 
 .openHero,
+.openChartPanel,
+.openMetricGrid article,
 .openPanel {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -4660,18 +4662,74 @@ body,
   font-weight: 500;
 }
 
+.openMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.openMetricGrid article {
+  padding: 14px 16px;
+}
+
+.openMetricGrid span {
+  display: block;
+  color: #708096;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.openMetricGrid strong {
+  display: block;
+  margin-top: 8px;
+  color: #172033;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.openChartPanel,
 .openPanel {
   min-width: 0;
 }
 
+.openChartPanel .panelHead,
 .openPanel .panelHead {
   min-height: 46px;
   border-bottom: 1px solid var(--line);
 }
 
+.openChartPanel .panelHead strong,
 .openPanel .panelHead strong {
   font-size: 14px;
   font-weight: 600;
+}
+
+.openCurve {
+  height: 280px;
+  padding: 18px;
+}
+
+.openCurve svg {
+  width: 100%;
+  height: 100%;
+}
+
+.openCurve line {
+  stroke: #e6edf5;
+  stroke-width: 1;
+}
+
+.openCurveArea {
+  fill: url(#openCurveFill);
+}
+
+.openCurveLine {
+  fill: none;
+  stroke: #1677d2;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .openMonthGrid {

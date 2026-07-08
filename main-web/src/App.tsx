@@ -2810,11 +2810,49 @@ function PositionSizingPage() {
   );
 }
 
+// ponytail: hidden by product decision; replace with a real setting only if this needs per-user/env control.
+const showOpenPortfolioDetails = false;
+
+function openMoney(value?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  return `${(Number(value) / 10000).toLocaleString("zh-CN", { maximumFractionDigits: 2 })}万`;
+}
+
+function openSignedMoney(value?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  const prefix = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${prefix}${openMoney(Math.abs(value))}`;
+}
+
+function openQuantity(value?: number | null, step?: number | null) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  const stepText = step ? String(step) : "";
+  const digits = !step || step >= 1 ? 0 : stepText.includes("e-") ? Number(stepText.split("e-")[1]) || 0 : stepText.split(".")[1]?.length || 0;
+  return Number(value).toLocaleString("zh-CN", { maximumFractionDigits: digits });
+}
+
+function openCurvePath(points: OpenPortfolioPayload["curve"]) {
+  const width = 900;
+  const height = 260;
+  if (points.length <= 1) return { line: `M0,${height} L${width},${height}`, area: `M0,${height} L${width},${height} L${width},${height} L0,${height} Z` };
+  const values = points.map((item) => item.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(1, max - min);
+  const line = points.map((item, index) => {
+    const x = (index / Math.max(1, points.length - 1)) * width;
+    const y = height - ((item.value - min) / span) * (height - 24) - 12;
+    return `${index ? "L" : "M"}${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(" ");
+  return { line, area: `${line} L${width},${height} L0,${height} Z` };
+}
+
 function OpenPortfolioPage() {
   const [data, setData] = useState<OpenPortfolioPayload | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [historyPage, setHistoryPage] = useState(1);
+  const curve = useMemo(() => showOpenPortfolioDetails ? openCurvePath(data?.curve || []) : { line: "", area: "" }, [data?.curve]);
   const historyPageSize = 10;
   const historyTotalPages = Math.max(1, Math.ceil((data?.trades.length || 0) / historyPageSize));
   const historyRows = (data?.trades || []).slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
@@ -2835,6 +2873,65 @@ function OpenPortfolioPage() {
     <div className="openPortfolioPage">
       {error ? <p className="openNotice">{error}</p> : null}
       {loading ? <p className="openNotice">读取中</p> : null}
+
+      {showOpenPortfolioDetails ? (
+        <>
+          <section className="openMetricGrid">
+            <article><span>初始资金</span><strong>{openMoney(data?.initialCapital)}</strong></article>
+            <article><span>当前资金</span><strong>{openMoney(data?.equity)}</strong></article>
+            <article><span>已实现收益</span><strong className={signedClass(data?.realizedPnl)}>{openSignedMoney(data?.realizedPnl)}</strong></article>
+            <article><span>收益率</span><strong className={signedClass(data?.realizedReturnPct)}>{data ? signed(data.realizedReturnPct) : "--"}</strong></article>
+            <article><span>当前持仓</span><strong>{data?.holdings.length ?? "--"} 只</strong></article>
+            <article><span>交易记录</span><strong>{data?.trades.length ?? "--"} 笔</strong></article>
+          </section>
+
+          <section className="openChartPanel">
+            <div className="panelHead"><strong>资金曲线</strong><span>只按买卖记录更新</span></div>
+            <div className="openCurve">
+              <svg viewBox="0 0 900 260" preserveAspectRatio="none" aria-label="资金曲线">
+                <defs>
+                  <linearGradient id="openCurveFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#1677ff" stopOpacity="0.18" />
+                    <stop offset="100%" stopColor="#1677ff" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1="64" x2="900" y2="64" />
+                <line x1="0" y1="130" x2="900" y2="130" />
+                <line x1="0" y1="196" x2="900" y2="196" />
+                <path className="openCurveArea" d={curve.area} />
+                <path className="openCurveLine" d={curve.line} />
+              </svg>
+            </div>
+          </section>
+
+          <section className="openPanel">
+            <div className="panelHead"><strong>当前持仓</strong></div>
+            <table className="openTable openHoldingsTable">
+              <thead>
+                <tr>
+                  <th>标的</th>
+                  <th>持仓比例</th>
+                  <th>成本</th>
+                  <th>均价</th>
+                  <th>数量</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.holdings.map((row) => (
+                  <tr key={row.symbol}>
+                    <td><strong>{row.symbol}</strong></td>
+                    <td>{exactPercent(row.positionPct)}</td>
+                    <td>{openMoney(row.cost)}</td>
+                    <td>{priceDisplay(row.avgCost)}</td>
+                    <td>{openQuantity(row.quantity, row.quantityStep)}</td>
+                  </tr>
+                ))}
+                {!data?.holdings.length ? <tr><td colSpan={5}>暂无持仓</td></tr> : null}
+              </tbody>
+            </table>
+          </section>
+        </>
+      ) : null}
 
       <section className="openPanel">
         <div className="panelHead"><strong>交易历史</strong><span>按时间倒序</span></div>
