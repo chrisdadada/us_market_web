@@ -2853,6 +2853,7 @@ function OpenPortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [historyPage, setHistoryPage] = useState(1);
   const curve = useMemo(() => showOpenPortfolioDetails ? openCurvePath(data?.curve || []) : { line: "", area: "" }, [data?.curve]);
+  const maxPositionPct = Math.max(1, ...(data?.holdings || []).map((row) => Number(row.positionPct) || 0));
   const historyPageSize = 10;
   const historyTotalPages = Math.max(1, Math.ceil((data?.trades.length || 0) / historyPageSize));
   const historyRows = (data?.trades || []).slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
@@ -2904,34 +2905,22 @@ function OpenPortfolioPage() {
             </div>
           </section>
 
-          <section className="openPanel">
-            <div className="panelHead"><strong>当前持仓</strong></div>
-            <table className="openTable openHoldingsTable">
-              <thead>
-                <tr>
-                  <th>标的</th>
-                  <th>持仓比例</th>
-                  <th>成本</th>
-                  <th>均价</th>
-                  <th>数量</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.holdings.map((row) => (
-                  <tr key={row.symbol}>
-                    <td><strong>{row.symbol}</strong></td>
-                    <td>{exactPercent(row.positionPct)}</td>
-                    <td>{openMoney(row.cost)}</td>
-                    <td>{priceDisplay(row.avgCost)}</td>
-                    <td>{openQuantity(row.quantity, row.quantityStep)}</td>
-                  </tr>
-                ))}
-                {!data?.holdings.length ? <tr><td colSpan={5}>暂无持仓</td></tr> : null}
-              </tbody>
-            </table>
-          </section>
         </>
       ) : null}
+
+      <section className="openPanel openPositionPanel">
+        <div className="panelHead"><strong>当前持仓</strong></div>
+        <div className="openPositionList">
+          {data?.holdings.map((row) => (
+            <div className="openPositionRow" key={row.symbol}>
+              <strong>{row.symbol}</strong>
+              <span><i style={{ width: `${Math.max(4, Math.min(100, ((Number(row.positionPct) || 0) / maxPositionPct) * 100))}%` }} /></span>
+              <em>{exactPercent(row.positionPct)}</em>
+            </div>
+          ))}
+          {!data?.holdings.length ? <div className="openEmpty">暂无持仓</div> : null}
+        </div>
+      </section>
 
       <section className="openPanel">
         <div className="panelHead"><strong>交易历史</strong><span>按时间倒序</span></div>
@@ -2940,6 +2929,7 @@ function OpenPortfolioPage() {
             <tr>
               <th>日期</th>
               <th>标的</th>
+              <th>方向</th>
               <th>价格</th>
               <th>备注</th>
             </tr>
@@ -2949,11 +2939,12 @@ function OpenPortfolioPage() {
               <tr key={row.id}>
                 <td>{formatDate(row.tradeTime)}</td>
                 <td><strong>{row.symbol}</strong></td>
+                <td><span className={`openSideBadge ${row.side}`}>{row.side === "buy" ? "买入" : "卖出"}</span></td>
                 <td>{priceDisplay(row.price)}</td>
                 <td>{row.note?.trim() || ""}</td>
               </tr>
             ))}
-            {!data?.trades.length ? <tr><td colSpan={4}>暂无交易记录</td></tr> : null}
+            {!data?.trades.length ? <tr><td colSpan={5}>暂无交易记录</td></tr> : null}
           </tbody>
         </table>
         {data && data.trades.length > historyPageSize ? (
