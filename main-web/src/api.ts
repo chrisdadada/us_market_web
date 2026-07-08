@@ -394,6 +394,7 @@ export type OpenPortfolioPayload = {
     avgCost: number;
     cost: number;
     positionPct: number;
+    sector?: string;
   }>;
   trades: OpenPortfolioTrade[];
   curve: Array<{ time: string; value: number }>;

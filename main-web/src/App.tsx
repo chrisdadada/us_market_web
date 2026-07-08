@@ -2812,6 +2812,7 @@ function PositionSizingPage() {
 
 // ponytail: hidden by product decision; replace with a real setting only if this needs per-user/env control.
 const showOpenPortfolioDetails = false;
+const openSectorColors = ["#2f80ed", "#7bb3ff", "#70c3a3", "#f6b75f", "#9aa8c7"];
 
 function openMoney(value?: number | null) {
   if (value === undefined || value === null || !Number.isFinite(value)) return "--";
@@ -2853,7 +2854,34 @@ function OpenPortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [historyPage, setHistoryPage] = useState(1);
   const curve = useMemo(() => showOpenPortfolioDetails ? openCurvePath(data?.curve || []) : { line: "", area: "" }, [data?.curve]);
-  const maxPositionPct = Math.max(1, ...(data?.holdings || []).map((row) => Number(row.positionPct) || 0));
+  const holdings = data?.holdings || [];
+  const totalPositionPct = holdings.reduce((sum, row) => sum + (Number(row.positionPct) || 0), 0);
+  const sectorRows = useMemo(() => {
+    const sectors = new Map<string, { name: string; pct: number; symbols: string[] }>();
+    holdings.forEach((row) => {
+      const name = row.sector?.trim() || "其他";
+      const current = sectors.get(name) || { name, pct: 0, symbols: [] };
+      current.pct += Number(row.positionPct) || 0;
+      current.symbols.push(row.symbol);
+      sectors.set(name, current);
+    });
+    return Array.from(sectors.values())
+      .sort((a, b) => b.pct - a.pct)
+      .map((row, index) => ({
+        ...row,
+        color: openSectorColors[index % openSectorColors.length],
+        share: totalPositionPct > 0 ? (row.pct / totalPositionPct) * 100 : 0,
+      }));
+  }, [holdings, totalPositionPct]);
+  const pieStyle = useMemo<CSSProperties>(() => {
+    let cursor = 0;
+    const stops = sectorRows.map((row) => {
+      const start = cursor;
+      cursor += row.share;
+      return `${row.color} ${start}% ${cursor}%`;
+    });
+    return { background: stops.length ? `conic-gradient(${stops.join(", ")})` : "#eaf1f8" };
+  }, [sectorRows]);
   const historyPageSize = 10;
   const historyTotalPages = Math.max(1, Math.ceil((data?.trades.length || 0) / historyPageSize));
   const historyRows = (data?.trades || []).slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
@@ -2910,14 +2938,35 @@ function OpenPortfolioPage() {
 
       <section className="openPanel openPositionPanel">
         <div className="panelHead"><strong>当前持仓</strong></div>
-        <div className="openPositionList">
-          {data?.holdings.map((row) => (
-            <div className="openPositionRow" key={row.symbol}>
-              <strong>{row.symbol}</strong>
-              <span><i style={{ width: `${Math.max(4, Math.min(100, ((Number(row.positionPct) || 0) / maxPositionPct) * 100))}%` }} /></span>
-              <em>{exactPercent(row.positionPct)}</em>
+        <div className="openPositionLayout">
+          <aside className="openSectorCard">
+            <div className="openSectorPie" style={pieStyle}>
+              <div>
+                <span>持仓合计</span>
+                <strong>{exactPercent(totalPositionPct)}</strong>
+              </div>
             </div>
-          ))}
+            <div className="openSectorLegend">
+              {sectorRows.map((row) => (
+                <div className="openSectorLegendItem" key={row.name}>
+                  <i style={{ background: row.color }} />
+                  <strong>{row.name}</strong>
+                  <em>{exactPercent(row.share)}</em>
+                  <span>{row.symbols.join(" / ")}</span>
+                </div>
+              ))}
+            </div>
+          </aside>
+          <div className="openPositionList">
+            {holdings.map((row) => (
+              <div className="openPositionRow" key={row.symbol}>
+                <strong>{row.symbol}</strong>
+                <span>{row.sector?.trim() || "其他"}</span>
+                <div><i style={{ width: `${Math.max(2, Math.min(100, Number(row.positionPct) || 0))}%` }} /></div>
+                <em>{exactPercent(row.positionPct)}</em>
+              </div>
+            ))}
+          </div>
           {!data?.holdings.length ? <div className="openEmpty">暂无持仓</div> : null}
         </div>
       </section>

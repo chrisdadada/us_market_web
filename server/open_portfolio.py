@@ -161,6 +161,19 @@ def list_rows(conn: Any) -> list[Any]:
     return list(conn.execute("SELECT * FROM open_portfolio_trades ORDER BY trade_time ASC, id ASC").fetchall())
 
 
+def load_symbol_sectors(conn: Any) -> dict[str, str]:
+    exists = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'symbols'").fetchone()
+    if not exists:
+        return {}
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(symbols)").fetchall()}
+    if "sector" not in columns:
+        return {}
+    return {
+        row["symbol"]: str(row["sector"] or "").strip()
+        for row in conn.execute("SELECT symbol, sector FROM symbols WHERE symbol IS NOT NULL").fetchall()
+    }
+
+
 def trade_payload(row: Any, extra: dict[str, Any] | None = None, steps: dict[str, tuple[Decimal, Decimal]] | None = None) -> dict[str, Any]:
     payload = {
         "id": row["id"],
@@ -258,7 +271,11 @@ def calculate(rows: list[Any], steps: dict[str, tuple[Decimal, Decimal]] | None 
 
 
 def payload(conn: Any) -> dict[str, Any]:
-    return calculate(list_rows(conn), load_quantity_steps(conn))
+    result = calculate(list_rows(conn), load_quantity_steps(conn))
+    sectors = load_symbol_sectors(conn)
+    for holding in result["holdings"]:
+        holding["sector"] = sectors.get(str(holding["symbol"]), "") or "其他"
+    return result
 
 
 def add_trade(conn: Any, raw_payload: dict[str, Any], created_at: str) -> dict[str, Any]:
@@ -295,8 +312,8 @@ def _demo() -> None:
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     ensure_schema(conn)
-    conn.execute("CREATE TABLE symbols (symbol TEXT PRIMARY KEY)")
-    conn.execute("INSERT INTO symbols (symbol) VALUES ('QQQ')")
+    conn.execute("CREATE TABLE symbols (symbol TEXT PRIMARY KEY, sector TEXT)")
+    conn.execute("INSERT INTO symbols (symbol, sector) VALUES ('QQQ', 'ETF'), ('ABC', '科技')")
     conn.execute(
         "INSERT INTO open_portfolio_symbol_rules (symbol, asset_type, quantity_step, min_quantity, source, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
         ("ETH", "crypto", "0.0001", "0.0005", "test", "2026-01-01"),
@@ -358,6 +375,7 @@ def _demo() -> None:
     assert update_trade_note(conn, 2, "减仓") is True
     updated = payload(conn)
     assert updated["trades"][1]["note"] == "减仓"
+    assert updated["holdings"][0]["sector"] == "科技"
     assert updated["realizedPnl"] == 500000
     try:
         calculate([

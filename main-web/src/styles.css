@@ -9026,17 +9026,106 @@ body,
   border-radius: 16px;
 }
 
-.openPositionList {
+.openPositionLayout {
   display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 18px;
   padding: 18px 20px 20px;
 }
 
+.openSectorCard {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  border: 1px solid #e2eaf3;
+  border-radius: 14px;
+  background: #f8fbfe;
+  padding: 18px;
+}
+
+.openSectorPie {
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+  margin: 0 auto;
+  border-radius: 50%;
+}
+
+.openSectorPie > div {
+  display: grid;
+  place-items: center;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: #f8fbfe;
+}
+
+.openSectorPie span {
+  color: #718096;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.openSectorPie strong {
+  color: #172033;
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.openSectorLegend {
+  display: grid;
+  gap: 12px;
+}
+
+.openSectorLegendItem {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.openSectorLegendItem i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.openSectorLegendItem strong,
+.openSectorLegendItem em {
+  color: #172033;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 610;
+}
+
+.openSectorLegendItem span {
+  grid-column: 2 / 4;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 540;
+}
+
+.openPositionList {
+  display: grid;
+  align-content: start;
+  border: 1px solid #e2eaf3;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
 .openPositionRow {
   display: grid;
-  grid-template-columns: 76px minmax(160px, 1fr) 76px;
+  grid-template-columns: 80px 92px minmax(160px, 1fr) 76px;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
+  min-height: 62px;
+  padding: 0 20px;
+  border-bottom: 1px solid #eef3f8;
+}
+
+.openPositionRow:last-child {
+  border-bottom: 0;
 }
 
 .openPositionRow strong {
@@ -9046,6 +9135,12 @@ body,
 }
 
 .openPositionRow span {
+  color: #718096;
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.openPositionRow div {
   height: 10px;
   overflow: hidden;
   border-radius: 999px;
@@ -9166,6 +9261,12 @@ body,
   color: #718096;
   font-size: 12px;
   font-weight: 750;
+}
+
+@media (max-width: 900px) {
+  .openPositionLayout {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Opinion detail reading: single-column article, no side rail. */
