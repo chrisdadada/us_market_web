@@ -2951,7 +2951,7 @@ function OpenPortfolioPage() {
                 <div className="openSectorLegendItem" key={row.name}>
                   <i style={{ background: row.color }} />
                   <strong>{row.name}</strong>
-                  <em>{exactPercent(row.share)}</em>
+                  <em>{exactPercent(row.pct)}</em>
                   <span>{row.symbols.join(" / ")}</span>
                 </div>
               ))}
