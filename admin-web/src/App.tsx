@@ -1500,6 +1500,7 @@ function OpenPortfolioPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ text: string; tone: "success" | "error" } | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
+  const [noteStatus, setNoteStatus] = useState<Record<number, { text: string; tone: "success" | "error" }>>({});
   const [tradePage, setTradePage] = useState(1);
   const holdings = data?.holdings || [];
   const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
@@ -1532,6 +1533,7 @@ function OpenPortfolioPage() {
       setData(payload);
       setTradePage(1);
       setNoteDrafts(Object.fromEntries(payload.trades.map((trade) => [trade.id, trade.note || ""])));
+      setNoteStatus({});
     } catch (err) {
       setToast({ text: err instanceof Error ? err.message : "读取失败", tone: "error" });
     } finally {
@@ -1598,12 +1600,15 @@ function OpenPortfolioPage() {
   async function saveTradeNote(id: number) {
     setSaving(true);
     setToast(null);
+    setNoteStatus((current) => ({ ...current, [id]: { text: "保存中", tone: "success" } }));
     try {
       const result = await api.updateOpenTradeNote(id, noteDrafts[id] || "");
       setData(result);
       setNoteDrafts(Object.fromEntries(result.trades.map((trade) => [trade.id, trade.note || ""])));
+      setNoteStatus((current) => ({ ...current, [id]: { text: "已保存", tone: "success" } }));
       setToast({ text: "备注已保存", tone: "success" });
     } catch (err) {
+      setNoteStatus((current) => ({ ...current, [id]: { text: "保存失败", tone: "error" } }));
       setToast({ text: err instanceof Error ? err.message : "保存备注失败", tone: "error" });
     } finally {
       setSaving(false);
@@ -1732,8 +1737,20 @@ function OpenPortfolioPage() {
                   <td className={row.realizedPnl >= 0 ? "positive" : "dangerText"}>{row.side === "sell" ? signedMoney(row.realizedPnl) : "--"}</td>
                   <td>
                     <div className="tradeNoteEdit">
-                      <textarea value={noteDrafts[row.id] ?? row.note ?? ""} onChange={(event) => setNoteDrafts({ ...noteDrafts, [row.id]: event.target.value })} />
-                      <button type="button" className="tableAction" disabled={saving || (noteDrafts[row.id] ?? "") === (row.note || "")} onClick={() => saveTradeNote(row.id)}>保存</button>
+                      <textarea value={noteDrafts[row.id] ?? row.note ?? ""} onChange={(event) => {
+                        setNoteDrafts({ ...noteDrafts, [row.id]: event.target.value });
+                        if (noteStatus[row.id]) {
+                          setNoteStatus((current) => {
+                            const nextStatus = { ...current };
+                            delete nextStatus[row.id];
+                            return nextStatus;
+                          });
+                        }
+                      }} />
+                      <div className="tradeNoteActions">
+                        <button type="button" className="tableAction" disabled={saving || (noteDrafts[row.id] ?? "") === (row.note || "")} onClick={() => saveTradeNote(row.id)}>保存</button>
+                        {noteStatus[row.id] ? <span className={noteStatus[row.id].tone}>{noteStatus[row.id].text}</span> : null}
+                      </div>
                     </div>
                   </td>
                   <td><button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => removeTrade(row.id)}>删除</button></td>

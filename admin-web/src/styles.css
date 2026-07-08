@@ -245,9 +245,9 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .tradeNoteEdit {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 56px;
+  grid-template-columns: minmax(260px, 1fr) 78px;
   gap: 8px;
-  align-items: center;
+  align-items: start;
 }
 
 .tradeNoteEdit textarea {
@@ -266,6 +266,22 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .tradeNoteEdit textarea:focus {
   border-color: #1677ff;
   box-shadow: 0 0 0 3px #dcebff;
+}
+
+.tradeNoteActions {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.tradeNoteActions span {
+  color: #0f9b72;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.tradeNoteActions span.error {
+  color: #be123c;
 }
 
 .dangerAction {
