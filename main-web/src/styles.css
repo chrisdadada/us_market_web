@@ -4631,9 +4631,7 @@ body,
 }
 
 .openHero,
-.openChartPanel,
-.openPanel,
-.openMetricGrid article {
+.openPanel {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -4662,80 +4660,18 @@ body,
   font-weight: 500;
 }
 
-.openMetricGrid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.openMetricGrid article {
-  padding: 14px 16px;
-}
-
-.openMetricGrid span {
-  display: block;
-  color: #708096;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.openMetricGrid strong {
-  display: block;
-  margin-top: 8px;
-  color: #172033;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.openChartPanel,
 .openPanel {
   min-width: 0;
 }
 
-.openChartPanel .panelHead,
 .openPanel .panelHead {
   min-height: 46px;
   border-bottom: 1px solid var(--line);
 }
 
-.openChartPanel .panelHead strong,
 .openPanel .panelHead strong {
   font-size: 14px;
   font-weight: 600;
-}
-
-.openCurve {
-  height: 280px;
-  padding: 18px;
-}
-
-.openCurve svg {
-  width: 100%;
-  height: 100%;
-}
-
-.openCurve line {
-  stroke: #e6edf5;
-  stroke-width: 1;
-}
-
-.openCurveArea {
-  fill: url(#openCurveFill);
-}
-
-.openCurveLine {
-  fill: none;
-  stroke: #1677d2;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.openTwoCol {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
-  gap: 16px;
 }
 
 .openMonthGrid {
@@ -4876,13 +4812,8 @@ body,
 }
 
 @media (max-width: 1100px) {
-  .openMetricGrid,
   .openProfitGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .openTwoCol {
-    grid-template-columns: 1fr;
   }
 
   .openMonthGrid {
@@ -5508,9 +5439,7 @@ body,
 }
 
 .openHero,
-.openChartPanel,
-.openPanel,
-.openMetricGrid article {
+.openPanel {
   border-radius: 14px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, .05);
 }
@@ -5528,42 +5457,13 @@ body,
   font-size: 12px;
 }
 
-.openMetricGrid {
-  gap: 10px;
-}
-
-.openMetricGrid article {
-  padding: 12px 14px;
-}
-
-.openMetricGrid strong {
-  margin-top: 6px;
-  font-size: 15px;
-  font-weight: 620;
-}
-
-.openChartPanel .panelHead,
 .openPanel .panelHead {
   min-height: 42px;
 }
 
-.openChartPanel .panelHead strong,
 .openPanel .panelHead strong {
   font-size: 13px;
   font-weight: 620;
-}
-
-.openCurve {
-  height: 240px;
-  padding: 14px;
-}
-
-.openCurveLine {
-  stroke-width: 3;
-}
-
-.openTwoCol {
-  gap: 14px;
 }
 
 .openMonth {
@@ -6572,9 +6472,7 @@ body,
 }
 
 .openHero,
-.openChartPanel,
-.openPanel,
-.openMetricGrid article {
+.openPanel {
   border: 1px solid #dfe7f2;
   background: #fff;
   border-radius: 16px;
@@ -6614,39 +6512,8 @@ body,
   padding: 12px 14px;
 }
 
-.openMetricGrid {
-  gap: 12px;
-}
-
-.openMetricGrid article {
-  min-height: 74px;
-  padding: 13px 15px;
-}
-
-.openMetricGrid span {
-  font-size: 12px;
-  font-weight: 520;
-  color: #718096;
-}
-
-.openMetricGrid strong {
-  margin-top: 8px;
-  font-size: 17px;
-  font-weight: 650;
-}
-
-.openChartPanel,
 .openPanel {
   overflow: hidden;
-}
-
-.openCurve {
-  height: 230px;
-  padding: 14px 16px;
-}
-
-.openTwoCol {
-  gap: 14px;
 }
 
 .openMonthGrid {
@@ -9096,15 +8963,7 @@ body,
 }
 
 
-/* Open portfolio: readable account layout. */
-.openPortfolioPage .openCurve {
-  height: 180px;
-}
-
-.openPortfolioPage .openTwoCol {
-  grid-template-columns: 1fr;
-}
-
+/* Open portfolio: frontend only shows trade history. */
 .openPortfolioPage .openTable {
   table-layout: fixed;
 }
@@ -9116,37 +8975,28 @@ body,
   white-space: nowrap;
 }
 
-.openPortfolioPage .openHoldingsTable th:not(:first-child),
-.openPortfolioPage .openHoldingsTable td:not(:first-child) {
-  text-align: right;
-}
-
-.openPortfolioPage .openHoldingsTable th:first-child,
-.openPortfolioPage .openHoldingsTable td:first-child {
-  width: 120px;
-}
-
 .openPortfolioPage .openHistoryTable th:nth-child(1),
 .openPortfolioPage .openHistoryTable td:nth-child(1) {
   width: 116px;
 }
 
 .openPortfolioPage .openHistoryTable th:nth-child(2),
-.openPortfolioPage .openHistoryTable td:nth-child(2),
+.openPortfolioPage .openHistoryTable td:nth-child(2) {
+  width: 92px;
+}
+
 .openPortfolioPage .openHistoryTable th:nth-child(3),
 .openPortfolioPage .openHistoryTable td:nth-child(3) {
-  width: 82px;
+  width: 110px;
+  text-align: right;
 }
 
 .openPortfolioPage .openHistoryTable th:nth-child(4),
-.openPortfolioPage .openHistoryTable td:nth-child(4),
-.openPortfolioPage .openHistoryTable th:nth-child(5),
-.openPortfolioPage .openHistoryTable td:nth-child(5),
-.openPortfolioPage .openHistoryTable th:nth-child(6),
-.openPortfolioPage .openHistoryTable td:nth-child(6),
-.openPortfolioPage .openHistoryTable th:nth-child(7),
-.openPortfolioPage .openHistoryTable td:nth-child(7) {
-  text-align: right;
+.openPortfolioPage .openHistoryTable td:nth-child(4) {
+  color: #526176;
+  font-weight: 500;
+  text-align: left;
+  white-space: normal;
 }
 
 .openPager {
