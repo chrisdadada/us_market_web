@@ -2950,7 +2950,7 @@ function OpenPortfolioPage() {
                 <td>{formatDate(row.tradeTime)}</td>
                 <td><strong>{row.symbol}</strong></td>
                 <td>{priceDisplay(row.price)}</td>
-                <td>{row.note?.trim() || (row.side === "buy" ? "买入" : "卖出")}</td>
+                <td>{row.note?.trim() || ""}</td>
               </tr>
             ))}
             {!data?.trades.length ? <tr><td colSpan={4}>暂无交易记录</td></tr> : null}
