@@ -222,6 +222,29 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border-color: #b9d8ff;
 }
 
+.tradeNoteEdit {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 56px;
+  gap: 8px;
+  align-items: center;
+}
+
+.tradeNoteEdit input {
+  height: 34px;
+  min-width: 0;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #182337;
+  background: #fff;
+  outline: none;
+}
+
+.tradeNoteEdit input:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 3px #dcebff;
+}
+
 .dangerAction {
   color: #be123c;
 }

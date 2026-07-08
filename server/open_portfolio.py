@@ -283,6 +283,12 @@ def delete_trade(conn: Any, trade_id: int) -> bool:
     return cursor.rowcount > 0
 
 
+def update_trade_note(conn: Any, trade_id: int, note: str) -> bool:
+    ensure_schema(conn)
+    cursor = conn.execute("UPDATE open_portfolio_trades SET note = ? WHERE id = ?", (str(note or "").strip(), trade_id))
+    return cursor.rowcount > 0
+
+
 def _demo() -> None:
     import sqlite3
 
@@ -345,6 +351,14 @@ def _demo() -> None:
     assert result["availableCash"] == 6000000
     assert result["holdings"][0]["quantity"] == 250000
     assert result["holdings"][0]["avgCost"] == 18
+    conn.executemany(
+        "INSERT INTO open_portfolio_trades (id, trade_time, symbol, side, price, position_pct, trade_amount, trade_quantity, note, created_at) VALUES (:id, :trade_time, :symbol, :side, :price, :position_pct, :trade_amount, :trade_quantity, :note, '2026-01-01')",
+        rows,
+    )
+    assert update_trade_note(conn, 2, "减仓") is True
+    updated = payload(conn)
+    assert updated["trades"][1]["note"] == "减仓"
+    assert updated["realizedPnl"] == 500000
     try:
         calculate([
             {"id": 1, "trade_time": "2026-01-01", "symbol": "ABC", "side": "buy", "price": 10, "position_pct": 200, "trade_amount": 20000000, "trade_quantity": 2000000, "note": ""},

@@ -195,6 +195,11 @@ export const api = {
     request<{ ok: true }>(`/api/admin/open-portfolio/trades/${encodeURIComponent(id)}`, {
       method: "DELETE"
     }),
+  updateOpenTradeNote: (id: number, note: string) =>
+    request<{ ok: true } & OpenPortfolioPayload>(`/api/admin/open-portfolio/trades/${encodeURIComponent(id)}/note`, {
+      method: "POST",
+      body: JSON.stringify({ note })
+    }),
   events: (limit = 100, userId?: number) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (userId) params.set("userId", String(userId));

@@ -3686,6 +3686,27 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": True, **result}, HTTPStatus.CREATED)
             return
 
+        if parsed.path.startswith("/api/admin/open-portfolio/trades/") and parsed.path.endswith("/note"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                trade_id = int(unquote(parsed.path.removeprefix("/api/admin/open-portfolio/trades/").removesuffix("/note")))
+                with product_db_write() as conn:
+                    updated = open_portfolio.update_trade_note(conn, trade_id, str(self.read_json().get("note", "")))
+                    result = open_portfolio.payload(conn)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"保存失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            if not updated:
+                self.send_json({"error": "交易记录不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True, **result})
+            return
+
         if self.path == "/api/admin/uploads":
             admin = self.require_admin()
             if not admin:
