@@ -2738,6 +2738,9 @@ function ContentPage() {
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"info" | "error">("info");
   const [savedSnapshot, setSavedSnapshot] = useState("");
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [pendingDiscardAction, setPendingDiscardAction] = useState<(() => void) | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const isCreating = selectedId === newOpinionId;
@@ -2789,13 +2792,7 @@ function ContentPage() {
     setMessage("");
   }
 
-  function confirmDiscardChanges() {
-    if (!hasUnsavedChanges) return true;
-    return window.confirm("当前内容还没保存，确定放弃修改？");
-  }
-
-  function createNew() {
-    if (!confirmDiscardChanges()) return;
+  function startNewDraft() {
     const item = emptyOpinion();
     setListPage(1);
     setSelectedId(newOpinionId);
@@ -2806,6 +2803,30 @@ function ContentPage() {
     setSavedSnapshot(opinionEditSnapshot(item, "", "", ""));
     setMessageTone("info");
     setMessage("");
+  }
+
+  function runWithDiscardConfirm(action: () => void) {
+    if (!hasUnsavedChanges) {
+      action();
+      return;
+    }
+    setPendingDiscardAction(() => action);
+    setDiscardConfirmOpen(true);
+  }
+
+  function closeDiscardConfirm() {
+    setDiscardConfirmOpen(false);
+    setPendingDiscardAction(null);
+  }
+
+  function confirmDiscardChanges() {
+    const action = pendingDiscardAction;
+    closeDiscardConfirm();
+    action?.();
+  }
+
+  function createNew() {
+    runWithDiscardConfirm(startNewDraft);
   }
 
   function clearFilters() {
@@ -2819,9 +2840,10 @@ function ContentPage() {
   }
 
   function changeSection(nextSection: string) {
-    if (!confirmDiscardChanges()) return;
-    setListPage(1);
-    setSection(nextSection);
+    runWithDiscardConfirm(() => {
+      setListPage(1);
+      setSection(nextSection);
+    });
   }
 
   useEffect(() => {
@@ -2879,18 +2901,17 @@ function ContentPage() {
     }
   }
 
-  async function remove() {
+  async function removeConfirmed() {
     if (!form.id) return;
-    if (hasUnsavedChanges && !window.confirm("当前内容有未保存修改，仍然删除这篇内容？")) return;
-    if (!window.confirm("确认删除这篇内容？")) return;
     setSaving(true);
     setMessageTone("info");
     setMessage("");
     try {
       await api.deleteOpinion(form.id);
+      setDeleteConfirmOpen(false);
       setMessageTone("info");
       setMessage("已删除");
-      createNew();
+      startNewDraft();
       await loadOpinions(section, listPage);
     } catch (err) {
       setMessageTone("error");
@@ -3044,8 +3065,7 @@ function ContentPage() {
               className={selectedId === item.id ? "contentListItem active" : "contentListItem"}
               key={item.id}
               onClick={() => {
-                if (!confirmDiscardChanges()) return;
-                selectOpinion(item);
+                runWithDiscardConfirm(() => selectOpinion(item));
               }}
             >
               <OpinionListItemMeta item={item} />
@@ -3180,10 +3200,46 @@ function ContentPage() {
             />
             <button type="button" className="ghostButton" disabled={saving || uploading} onClick={() => save("draft")}>保存草稿</button>
             <button type="button" className="primaryButton" disabled={saving} onClick={() => save("published")}>发布</button>
-            <button type="button" className="dangerButton" disabled={saving || !form.id} onClick={remove}>删除</button>
+            <button type="button" className="dangerButton" disabled={saving || !form.id} onClick={() => setDeleteConfirmOpen(true)}>删除</button>
           </div>
         </section>
       </div>
+
+      {discardConfirmOpen ? (
+        <div className="modalBackdrop modalBackdropTop" role="presentation" onMouseDown={closeDiscardConfirm}>
+          <section className="modalPanel contentConfirmModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modalHeader">
+              <h2>放弃未保存修改</h2>
+              <button type="button" className="iconButton" onClick={closeDiscardConfirm}>×</button>
+            </div>
+            <p className="contentConfirmCopy">当前内容还没保存，继续操作会丢失这些修改。</p>
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={closeDiscardConfirm}>取消</button>
+              <button type="button" className="dangerButton" onClick={confirmDiscardChanges}>放弃修改</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {deleteConfirmOpen ? (
+        <div className="modalBackdrop modalBackdropTop" role="presentation" onMouseDown={() => setDeleteConfirmOpen(false)}>
+          <section className="modalPanel contentConfirmModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modalHeader">
+              <h2>删除内容</h2>
+              <button type="button" className="iconButton" onClick={() => setDeleteConfirmOpen(false)}>×</button>
+            </div>
+            <div className="selectedUser contentDeleteSummary">
+              <strong>{form.title || "未命名内容"}</strong>
+              <span>{formatTime(form.tradeDate)} · {form.status === "published" ? "已发布" : "草稿"}</span>
+            </div>
+            <p className="contentConfirmCopy">{hasUnsavedChanges ? "当前有未保存修改。" : ""}删除后内容无法恢复。</p>
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={() => setDeleteConfirmOpen(false)}>取消</button>
+              <button type="button" className="dangerButton" disabled={saving} onClick={() => void removeConfirmed()}>{saving ? "删除中" : "确认删除"}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

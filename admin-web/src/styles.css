@@ -691,12 +691,28 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   width: min(500px, calc(100vw - 72px));
 }
 
+.contentConfirmModal {
+  width: min(520px, calc(100vw - 72px));
+}
+
 .accountDeleteCopy {
   margin: 14px 0 16px;
   color: #64748b;
   font-size: 13px;
   font-weight: 520;
   line-height: 1.6;
+}
+
+.contentConfirmCopy {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 520;
+  line-height: 1.6;
+}
+
+.contentDeleteSummary {
+  margin-bottom: 14px;
 }
 
 .modalHeader p {
