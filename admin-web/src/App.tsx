@@ -826,7 +826,8 @@ function UserDetailModal({
   seriesById,
   onClose,
   onEditAccount,
-  onEditMember
+  onEditMember,
+  onGrantAllCourses
 }: {
   user: AdminUser | null;
   events: UserEvent[];
@@ -835,6 +836,7 @@ function UserDetailModal({
   onClose: () => void;
   onEditAccount: () => void;
   onEditMember: () => void;
+  onGrantAllCourses: () => void;
 }) {
   if (!user) return null;
   const state = membershipState(user);
@@ -857,6 +859,7 @@ function UserDetailModal({
           </div>
           <div className="userDetailTopActions">
             <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
+            {user.role === "user" ? <button type="button" className="ghostButton" onClick={onGrantAllCourses}>授权全部课程</button> : null}
             <button type="button" className="ghostButton" onClick={onEditAccount}>账号操作</button>
             <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
           </div>
@@ -940,6 +943,10 @@ function UsersPage({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<"account" | "member">("member");
+  const [grantAllOpen, setGrantAllOpen] = useState(false);
+  const [grantAllExpiresAt, setGrantAllExpiresAt] = useState(grantExpiryPreset(365));
+  const [grantAllMessage, setGrantAllMessage] = useState("");
+  const [grantAllSaving, setGrantAllSaving] = useState(false);
   const selected = users.find((user) => user.id === selectedId) || null;
   const normalUsers = users.filter((user) => user.role === "user");
   const today = localDateInputValue();
@@ -1007,6 +1014,29 @@ function UsersPage({
   useEffect(() => {
     if (pageIndex > totalPages) setPageIndex(totalPages);
   }, [pageIndex, totalPages]);
+
+  async function submitGrantAllCourses(event: FormEvent) {
+    event.preventDefault();
+    if (!selected || !grantAllExpiresAt) return;
+    if (!courseSeries.length) {
+      setGrantAllMessage("当前没有课程可授权");
+      return;
+    }
+    setGrantAllSaving(true);
+    setGrantAllMessage("");
+    try {
+      for (const item of courseSeries) {
+        await api.grantCourse({ seriesId: item.id, user: selected.uid, expiresAt: grantAllExpiresAt });
+      }
+      setGrantAllOpen(false);
+      setGrantAllExpiresAt(grantExpiryPreset(365));
+      await onRefresh();
+    } catch (err) {
+      setGrantAllMessage(err instanceof Error ? err.message : "授权失败");
+    } finally {
+      setGrantAllSaving(false);
+    }
+  }
 
   return (
     <div className="pageStack userPage">
@@ -1141,8 +1171,37 @@ function UsersPage({
           setEditorMode("member");
           setEditorOpen(true);
         }}
+        onGrantAllCourses={() => {
+          setGrantAllExpiresAt(grantExpiryPreset(365));
+          setGrantAllMessage("");
+          setGrantAllOpen(true);
+        }}
       />
       <UserEditModal selected={selected} open={editorOpen} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} mode={editorMode} title={editorMode === "member" ? "设置会员" : "账号操作"} />
+      {grantAllOpen && selected ? (
+        <div className="modalOverlay">
+          <form className="adminModal courseModal courseGrantModal" onSubmit={submitGrantAllCourses}>
+            <div className="modalHeader">
+              <h2>授权全部课程</h2>
+              <button type="button" onClick={() => setGrantAllOpen(false)}>×</button>
+            </div>
+            <div className="courseGrantCurrent"><span>用户</span><strong>{selected.email}</strong></div>
+            <div className="courseGrantCurrent"><span>课程范围</span><strong>全部 {courseSeries.length} 门课程</strong></div>
+            <label>到期日期<input type="date" value={grantAllExpiresAt} onChange={(event) => setGrantAllExpiresAt(event.target.value)} required /></label>
+            <div className="grantQuickActions">
+              <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(30, grantAllExpiresAt))}>30天</button>
+              <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(180, grantAllExpiresAt))}>180天</button>
+              <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(365, grantAllExpiresAt))}>1年</button>
+            </div>
+            <p>保存后，这个用户会获得全部课程播放权限；已有授权会统一更新到这个到期日期。</p>
+            {grantAllMessage ? <p className="inlineMessage">{grantAllMessage}</p> : null}
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={() => setGrantAllOpen(false)}>取消</button>
+              <button type="submit" className="primaryButton" disabled={grantAllSaving || !courseSeries.length}>{grantAllSaving ? "授权中" : "确认授权"}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }
