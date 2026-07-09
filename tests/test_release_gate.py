@@ -638,6 +638,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
 
         users_by_email = {item["email"]: item for item in payload["users"]}
         self.assertFalse(users_by_email["admin@example.test"]["hasPaidAccess"])
+        self.assertRegex(users_by_email["paid@example.test"]["uid"], r"^DBM-[A-F0-9]{10}$")
         self.assertEqual(users_by_email["admin@example.test"]["plan"], "free")
         self.assertFalse(users_by_email["free@example.test"]["hasPaidAccess"])
         self.assertTrue(users_by_email["paid@example.test"]["hasPaidAccess"])
@@ -1014,6 +1015,16 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         grant_id = payload["grant"]["id"]
 
+        status, payload = admin.post("/api/admin/courses/grants/all", {"user": user["uid"], "expiresAt": "2028-01-01"})
+        self.assertEqual(status, 201, payload)
+        self.assertEqual(payload["count"], 2)
+        status, payload = admin.post("/api/admin/courses/grants/all", {"user": user["uid"], "expiresAt": "2029-01-01"})
+        self.assertEqual(status, 201, payload)
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            rows = conn.execute("SELECT series_id, expires_at FROM course_grants WHERE user_id = ? ORDER BY series_id", (user["id"],)).fetchall()
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(row[1] == "2029-01-01" for row in rows))
+
         status, payload = admin.get(f"/api/admin/user-events?userId={user['id']}")
         self.assertEqual(status, 200, payload)
         self.assertIn("grant_course", [item["action"] for item in payload["rows"]])
@@ -1022,7 +1033,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["series"][0]["title"], "财报季交易框架更新")
         self.assertTrue(payload["series"][0]["unlocked"])
-        self.assertEqual(payload["series"][0]["grantExpiresAt"], "2027-01-01")
+        self.assertEqual(payload["series"][0]["grantExpiresAt"], "2029-01-01")
         self.assertEqual(payload["series"][0]["coverUrl"], "/uploads/courses/cover.png")
         self.assertEqual(payload["series"][0]["lessons"][0]["title"], "01 课程框架更新")
         self.assertEqual(payload["series"][0]["lessons"][0]["coverUrl"], "https://cdn.example.test/lesson-cover-updated.jpg")

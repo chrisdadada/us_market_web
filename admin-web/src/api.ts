@@ -302,6 +302,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
+  grantAllCourses: (payload: { user: string; expiresAt: string }) =>
+    request<{ ok: true; count: number }>("/api/admin/courses/grants/all", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
   revokeCourseGrant: (id: number) =>
     request<{ ok: true }>(`/api/admin/courses/grants/${encodeURIComponent(id)}`, {
       method: "DELETE"

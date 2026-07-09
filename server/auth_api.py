@@ -1574,6 +1574,7 @@ def admin_user_payload(row: sqlite3.Row) -> dict[str, Any]:
     plan = normalize_plan(row["plan"]) if is_regular_user else "free"
     return {
         "id": row["id"],
+        "uid": public_uid(row),
         "email": row["email"],
         "role": row["role"],
         "plan": plan if plan in PLANS else "free",
@@ -2197,6 +2198,19 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
     return course_lesson_payload(row, include_key=True)
 
 
+def course_grant_target(conn: sqlite3.Connection, user_query: str) -> sqlite3.Row | None:
+    target = conn.execute("SELECT * FROM users WHERE email = ? AND role = 'user'", (normalize_email(user_query),)).fetchone()
+    if target or not user_query.upper().startswith("DBM-"):
+        return target
+    return next(
+        (
+            row for row in conn.execute("SELECT * FROM users WHERE role = 'user'").fetchall()
+            if public_uid(row) == user_query.upper()
+        ),
+        None,
+    )
+
+
 def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
     series_id = int(payload.get("seriesId") or 0)
     user_query = str(payload.get("email") or payload.get("user") or "").strip()
@@ -2207,15 +2221,7 @@ def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
         raise ValueError("请选择交易实战课程授权到期时间")
     with db() as conn:
         series = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
-        target = conn.execute("SELECT * FROM users WHERE email = ? AND role = 'user'", (normalize_email(user_query),)).fetchone()
-        if not target and user_query.upper().startswith("DBM-"):
-            target = next(
-                (
-                    row for row in conn.execute("SELECT * FROM users WHERE role = 'user'").fetchall()
-                    if public_uid(row) == user_query.upper()
-                ),
-                None,
-            )
+        target = course_grant_target(conn, user_query)
         if not series:
             raise ValueError("交易实战课程不存在")
         if not target:
@@ -2245,6 +2251,39 @@ def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
             (series_id, target["id"]),
         ).fetchone()
     return course_grant_payload(row)
+
+
+def grant_all_courses(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
+    user_query = str(payload.get("email") or payload.get("user") or "").strip()
+    expires_at = normalize_expires(payload.get("expiresAt"))
+    if not user_query:
+        raise ValueError("用户必填")
+    if not expires_at:
+        raise ValueError("请选择交易实战课程授权到期时间")
+    with db() as conn:
+        target = course_grant_target(conn, user_query)
+        if not target:
+            raise ValueError("用户不存在")
+        series_rows = conn.execute("SELECT id FROM course_series").fetchall()
+        if not series_rows:
+            raise ValueError("当前没有课程可授权")
+        timestamp = now_iso()
+        for row in series_rows:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO course_grants
+                (series_id, user_id, granted_by_user_id, expires_at, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (row["id"], target["id"], admin["id"], expires_at, timestamp),
+            )
+            conn.execute(
+                "UPDATE course_grants SET expires_at = ?, granted_by_user_id = ? WHERE series_id = ? AND user_id = ?",
+                (expires_at, admin["id"], row["id"], target["id"]),
+            )
+        fresh_target = conn.execute("SELECT * FROM users WHERE id = ?", (target["id"],)).fetchone()
+        write_user_event(conn, action="grant_course", actor=admin, target_before=target, target_after=fresh_target)
+    return {"ok": True, "count": len(series_rows)}
 
 
 def delete_course_lesson(lesson_id: int) -> bool:
@@ -3858,6 +3897,21 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": f"授权失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
             self.send_json({"ok": True, "grant": item}, HTTPStatus.CREATED)
+            return
+
+        if self.path == "/api/admin/courses/grants/all":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                result = grant_all_courses(self.read_json(), admin)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"授权失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json(result, HTTPStatus.CREATED)
             return
 
         self.send_json({"error": "接口不存在"}, HTTPStatus.NOT_FOUND)

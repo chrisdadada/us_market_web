@@ -1025,14 +1025,12 @@ function UsersPage({
     setGrantAllSaving(true);
     setGrantAllMessage("");
     try {
-      for (const item of courseSeries) {
-        await api.grantCourse({ seriesId: item.id, user: selected.uid, expiresAt: grantAllExpiresAt });
-      }
+      await api.grantAllCourses({ user: selected.email, expiresAt: grantAllExpiresAt });
       setGrantAllOpen(false);
       setGrantAllExpiresAt(localDateInputValue());
       await onRefresh();
     } catch (err) {
-      setGrantAllMessage(err instanceof Error ? err.message : "授权失败");
+      setGrantAllMessage(err instanceof Error ? err.message : "没有授权成功，请稍后再试");
     } finally {
       setGrantAllSaving(false);
     }
@@ -1185,15 +1183,14 @@ function UsersPage({
               <h2>授权全部课程</h2>
               <button type="button" onClick={() => setGrantAllOpen(false)}>×</button>
             </div>
-            <div className="courseGrantCurrent"><span>用户</span><strong>{selected.email}</strong></div>
-            <div className="courseGrantCurrent"><span>课程范围</span><strong>全部 {courseSeries.length} 门课程</strong></div>
+            <p className="grantAllSummary">给 {selected.email} 开通全部 {courseSeries.length} 门课程。</p>
             <label>到期日期<input type="date" value={grantAllExpiresAt} onChange={(event) => setGrantAllExpiresAt(event.target.value)} required /></label>
             <div className="grantQuickActions">
               <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(30, grantAllExpiresAt))}>30天</button>
               <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(180, grantAllExpiresAt))}>180天</button>
               <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(365, grantAllExpiresAt))}>1年</button>
             </div>
-            <p>保存后，这个用户会获得全部课程播放权限；已有授权会统一更新到这个到期日期。</p>
+            <p className="grantAllNote">已有课程授权会更新为同一个到期日。</p>
             {grantAllMessage ? <p className="inlineMessage">{grantAllMessage}</p> : null}
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setGrantAllOpen(false)}>取消</button>
