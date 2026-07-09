@@ -10,6 +10,15 @@ Dev and production frontend files are separated:
 - Test root: `/var/www/dongbimao-dev`
 - Production root: `/var/www/dongbimao-prod`
 
+## Branches
+
+- `master` is the stable production baseline.
+- New work starts from a `codex/...` branch.
+- Deploy code only after `npm run check` passes and the branch has a commit.
+- Deploy to dev first. Merge back to `master` only after dev is confirmed.
+- Deploy production code from `master` only after the user explicitly asks for that prod deploy.
+- Tag important production releases as `prod-YYYY-MM-DD-short-name`.
+
 ## Deploy To Test
 
 Code deploy does not rebuild `data/product.db` by default. Data refresh is owned
