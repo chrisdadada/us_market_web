@@ -319,6 +319,14 @@ function HomePage({ users, events, metrics }: { users: AdminUser[]; events: User
     .slice()
     .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
     .slice(0, 5);
+  const expiringMembers = users
+    .filter((user) => {
+      const days = daysUntil(user.subscriptionExpiresAt);
+      return user.role === "user" && user.isActive && user.hasPaidAccess && days !== null && days >= 0 && days <= 7;
+    })
+    .slice()
+    .sort((a, b) => String(a.subscriptionExpiresAt || "").localeCompare(String(b.subscriptionExpiresAt || "")))
+    .slice(0, 8);
 
   return (
     <div className="pageStack">
@@ -390,6 +398,38 @@ function HomePage({ users, events, metrics }: { users: AdminUser[]; events: User
             )) : (
               <tr><td colSpan={5}>暂无数据</td></tr>
             )}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="panel homeTablePanel">
+        <div className="panelHeader">
+          <h2>会员即将到期</h2>
+        </div>
+        <table className="adminTable">
+          <thead>
+            <tr>
+              <th>用户</th>
+              <th>会员</th>
+              <th>到期时间</th>
+              <th>剩余</th>
+              <th>最后登录</th>
+            </tr>
+          </thead>
+          <tbody>
+            {expiringMembers.map((user) => {
+              const days = daysUntil(user.subscriptionExpiresAt);
+              return (
+                <tr key={user.id}>
+                  <td><UserIdentityCell user={user} /></td>
+                  <td><MemberCell user={user} /></td>
+                  <td>{formatDate(user.subscriptionExpiresAt)}</td>
+                  <td><span className="status warningBg">{days === 0 ? "今天到期" : `${days} 天后`}</span></td>
+                  <td>{formatTime(user.lastLoginAt)}</td>
+                </tr>
+              );
+            })}
+            {!expiringMembers.length ? <tr><td colSpan={5}>暂无即将到期会员</td></tr> : null}
           </tbody>
         </table>
       </section>
