@@ -6751,30 +6751,30 @@ body,
 
 .accountButton,
 .topbar .accountButton {
-  height: 36px;
-  border-radius: 10px;
-  padding: 0 13px;
+  height: 34px;
+  border-radius: 8px;
+  padding: 0 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 560;
 }
 
 .accountPanel {
   top: 42px;
-  border-radius: 12px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, .14);
+  border-radius: 10px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, .12);
 }
 
 .authOverlay {
-  background: rgba(15, 23, 42, .42);
+  background: rgba(15, 23, 42, .34);
 }
 
 .authPanel {
   width: min(420px, calc(100vw - 36px));
   border: 1px solid #dfe7f2;
-  border-radius: 18px;
+  border-radius: 14px;
   background: #fff;
-  padding: 28px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, .2);
+  padding: 24px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .16);
 }
 
 .authPanel h2 {
@@ -6792,8 +6792,8 @@ body,
 }
 
 .authPanel input {
-  height: 40px;
-  border-radius: 10px;
+  height: 38px;
+  border-radius: 8px;
   border-color: #d8e2ef;
   background: #fff;
   color: #172033;
@@ -6801,16 +6801,17 @@ body,
 }
 
 .authClose {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   color: #718096;
+  font-size: 19px;
 }
 
 .authSubmit {
-  height: 42px;
-  margin-top: 18px;
-  border-radius: 10px;
+  height: 38px;
+  margin-top: 14px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 520;
 }
@@ -8625,17 +8626,17 @@ body,
   z-index: 80;
   display: grid;
   place-items: center;
-  padding: 28px;
-  background: rgba(15, 23, 42, .34);
+  padding: 24px;
+  background: rgba(15, 23, 42, .32);
 }
 
 .unlockPanel {
-  width: min(760px, 100%);
+  width: min(700px, 100%);
   overflow: hidden;
   border: 1px solid #d7e3f2;
-  border-radius: 22px;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 30px 80px rgba(15, 23, 42, .22);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .16);
 }
 
 .unlockHead {
@@ -8643,7 +8644,7 @@ body,
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 26px 30px 20px;
+  padding: 20px 24px 16px;
   border-bottom: 1px solid #dfe7f2;
 }
 
@@ -8662,13 +8663,13 @@ body,
 }
 
 .unlockClose {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #f2f6fb;
   color: #64748b;
-  font-size: 22px;
+  font-size: 19px;
   line-height: 1;
   cursor: pointer;
 }
@@ -8677,7 +8678,7 @@ body,
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
-  padding: 24px 30px 30px;
+  padding: 20px 24px 24px;
 }
 
 .unlockContactCard {
@@ -8747,10 +8748,10 @@ body,
   width: min(720px, 100%);
   max-height: min(760px, calc(100vh - 48px));
   border: 1px solid #dbe5f1;
-  border-radius: 16px;
-  padding: 30px;
+  border-radius: 14px;
+  padding: 24px;
   background: #fff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
   overflow: auto;
 }
 
@@ -8822,11 +8823,12 @@ body,
 .onboardingPanel > button {
   width: 100%;
   border: 0;
-  border-radius: 14px;
-  padding: 14px 18px;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 16px;
   background: #1f7ae0;
   color: #fff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 560;
   cursor: pointer;
 }

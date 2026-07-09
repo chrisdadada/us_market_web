@@ -44,11 +44,12 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .topbar { height: 68px; background: #fff; border-bottom: 1px solid #e4e9f0; display: flex; align-items: center; justify-content: space-between; padding: 0 34px; }
 .topbar h1 { margin: 0; font-size: 23px; font-weight: 600; }
 .topActions { display: flex; gap: 12px; }
-.ghostButton { border: 1px solid #d6dee9; background: #fff; color: #344257; border-radius: 8px; padding: 7px 13px; font-size: 13px; font-weight: 520; cursor: pointer; }
+.ghostButton { min-height: 32px; border: 1px solid #d6dee9; background: #fff; color: #344257; border-radius: 7px; padding: 0 12px; font-size: 13px; font-weight: 520; cursor: pointer; }
 .primaryButton, .dangerButton {
+  min-height: 32px;
   border: 0;
-  border-radius: 8px;
-  padding: 7px 14px;
+  border-radius: 7px;
+  padding: 0 13px;
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -92,17 +93,17 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .contentLoading { background: #eff6ff; color: #1677ff; border: 1px solid #cfe5ff; }
 .adminToast {
   position: fixed;
-  top: 76px;
-  right: 28px;
-  z-index: 20;
-  min-width: 180px;
-  max-width: 320px;
+  top: 18px;
+  right: 22px;
+  z-index: 120;
+  min-width: 220px;
+  max-width: 340px;
   border: 1px solid #bbf7d0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #166534;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .14);
-  padding: 11px 13px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .12);
+  padding: 10px 12px;
   font-size: 13px;
   font-weight: 520;
 }
@@ -1216,10 +1217,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   max-height: calc(100vh - 72px);
   overflow: auto;
   border: 1px solid #e3e9f1;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
-  padding: 20px 22px 22px;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, .16);
+  padding: 18px 20px 20px;
 }
 .modalHeader {
   display: flex;
@@ -1235,13 +1236,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-weight: 600;
 }
 .iconButton {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 1px solid #d6dee9;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   color: #526174;
-  font-size: 21px;
+  font-size: 19px;
   line-height: 1;
   cursor: pointer;
 }
@@ -2199,10 +2200,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   max-height: calc(100vh - 72px);
   overflow: auto;
   border: 1px solid #e3e9f1;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
-  padding: 20px 22px 22px;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, .16);
+  padding: 18px 20px 20px;
 }
 
 .courseDrawerOverlay .adminModal {
@@ -2210,13 +2211,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .modalHeader button {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 1px solid #d6dee9;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   color: #526174;
-  font-size: 21px;
+  font-size: 19px;
   line-height: 1;
   cursor: pointer;
 }
