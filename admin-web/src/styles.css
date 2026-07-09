@@ -642,8 +642,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userEventList div {
   display: grid;
-  grid-template-columns: 150px minmax(240px, 1fr) minmax(160px, auto);
-  gap: 12px;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 6px 12px;
   align-items: center;
   border: 1px solid #e5ebf3;
   border-radius: 10px;
@@ -668,8 +668,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .userEventList em {
-  justify-self: end;
-  max-width: 220px;
+  grid-column: 2;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1784,7 +1784,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: grid;
   grid-template-columns: minmax(260px, 1fr) 150px 150px 92px;
   gap: 10px;
-  border-top: 1px solid #e6ebf2;
   padding: 14px;
 }
 

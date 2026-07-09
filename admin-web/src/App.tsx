@@ -1668,9 +1668,6 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
 
       {courseView === "list" ? (
         <section className="panel tablePanel courseListPanel">
-          <div className="panelHeader">
-            <h2>课程列表</h2>
-          </div>
           <div className="courseListFilters">
             <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索课程名称" />
             <select value={courseStatus} onChange={(event) => setCourseStatus(event.target.value)}>
