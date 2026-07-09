@@ -944,7 +944,7 @@ function UsersPage({
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<"account" | "member">("member");
   const [grantAllOpen, setGrantAllOpen] = useState(false);
-  const [grantAllExpiresAt, setGrantAllExpiresAt] = useState(grantExpiryPreset(365));
+  const [grantAllExpiresAt, setGrantAllExpiresAt] = useState(localDateInputValue());
   const [grantAllMessage, setGrantAllMessage] = useState("");
   const [grantAllSaving, setGrantAllSaving] = useState(false);
   const selected = users.find((user) => user.id === selectedId) || null;
@@ -1029,7 +1029,7 @@ function UsersPage({
         await api.grantCourse({ seriesId: item.id, user: selected.uid, expiresAt: grantAllExpiresAt });
       }
       setGrantAllOpen(false);
-      setGrantAllExpiresAt(grantExpiryPreset(365));
+      setGrantAllExpiresAt(localDateInputValue());
       await onRefresh();
     } catch (err) {
       setGrantAllMessage(err instanceof Error ? err.message : "授权失败");
@@ -1172,7 +1172,7 @@ function UsersPage({
           setEditorOpen(true);
         }}
         onGrantAllCourses={() => {
-          setGrantAllExpiresAt(grantExpiryPreset(365));
+          setGrantAllExpiresAt(localDateInputValue());
           setGrantAllMessage("");
           setGrantAllOpen(true);
         }}
@@ -1544,7 +1544,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
 
   function openGrantModal(grant?: CourseGrant) {
     setGrantUser(grant ? grant.user.uid : "");
-    setGrantExpiresAt(grant?.expiresAt ? formatDate(grant.expiresAt) : grantExpiryPreset(365));
+    setGrantExpiresAt(grant?.expiresAt ? formatDate(grant.expiresAt) : localDateInputValue());
     setGrantOpen(true);
   }
 
