@@ -1053,7 +1053,7 @@ function UsersPage({
       setGrantAllOpen(false);
       setGrantAllExpiresAt(localDateInputValue());
       await onRefresh();
-      setGrantAllToast({ title: "已授权", detail: `${selected.email} 已开通全部课程`, tone: "success" });
+      setGrantAllToast({ title: "已授权", detail: `${selected.email} 已开通${grantScope === "intro" ? "入门课程" : "全部课程"}`, tone: "success" });
     } catch (err) {
       setGrantAllMessage(err instanceof Error ? err.message : "没有授权成功，请稍后再试");
     } finally {
