@@ -2750,6 +2750,18 @@ function ContentPage() {
   const listTotalPages = Math.max(1, Math.ceil(listTotal / contentPageSize));
   const visibleItems = items;
 
+  function contentToastTitle() {
+    if (messageTone === "error") return "操作失败";
+    if (message.includes("中")) return "处理中";
+    return "操作成功";
+  }
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(""), 2600);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
   async function loadOpinions(nextSection = section, nextPage = listPage) {
     setLoading(true);
     setMessage("");
@@ -3094,7 +3106,12 @@ function ContentPage() {
               <OpinionStatusBadge status={currentStatus === "已发布" ? "published" : currentStatus === "草稿" ? "draft" : "new"} />
             </div>
           </div>
-          {message ? <p className={`editorNotice ${messageTone === "error" ? "errorNotice" : ""}`}>{message}</p> : null}
+          {message ? (
+            <div className={`adminToast ${messageTone === "error" ? "error" : ""}`} role="status">
+              <strong>{contentToastTitle()}</strong>
+              <span>{message}</span>
+            </div>
+          ) : null}
 
           <div className="editorGrid">
             <label>
