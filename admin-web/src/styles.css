@@ -169,7 +169,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .toolbarPanel label,
 .editForm label,
 .editorPanel label,
-.courseGrantForm label {
+.courseGrantForm label,
+.courseGrantModal label {
   display: grid;
   gap: 6px;
   color: #526174;
@@ -183,7 +184,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .editorPanel input,
 .editorPanel select,
 .editorPanel textarea,
-.courseGrantForm input {
+.courseGrantForm input,
+.courseGrantModal input {
   height: 38px;
   border: 1px solid #d6dee9;
   border-radius: 8px;
@@ -200,7 +202,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .editorPanel input:focus,
 .editorPanel select:focus,
 .editorPanel textarea:focus,
-.courseGrantForm input:focus {
+.courseGrantForm input:focus,
+.courseGrantModal input:focus {
   border-color: #1677ff;
   box-shadow: 0 0 0 3px #dcebff;
 }
@@ -1693,10 +1696,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   line-height: 1.55;
 }
 
-.courseStatsGrid {
-  margin-bottom: 18px;
-}
-
 .courseListFilters {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) 160px 160px;
@@ -1720,30 +1719,99 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 0;
 }
 
-.courseBreadcrumb {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 16px 18px;
-  color: #728197;
-  font-size: 13px;
+.courseManageLayout {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.courseSidePanel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.courseSideFilters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid #e6ebf2;
+}
+
+.courseSideFilters input,
+.courseSideFilters select {
+  height: 38px;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #182337;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.courseSideList {
+  display: grid;
+}
+
+.courseSideList button {
+  border: 0;
+  border-top: 1px solid #edf1f6;
+  background: #fff;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.courseSideList button.active {
+  border-left: 4px solid #1677ff;
+  background: #eff6ff;
+  padding-left: 12px;
+}
+
+.courseSideList strong,
+.courseSideList span {
+  display: block;
+}
+
+.courseSideList strong {
+  color: #182337;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.courseSideList span {
+  margin-top: 6px;
+  color: #718096;
+  font-size: 12px;
   font-weight: 760;
 }
 
-.courseBreadcrumb button {
-  border: 0;
-  background: transparent;
-  color: #1677ff;
-  font: inherit;
-  cursor: pointer;
+.courseSideList em {
+  display: inline-flex;
+  margin: 10px 6px 0 0;
+  border-radius: 999px;
+  background: #e8fff4;
+  color: #059669;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.courseSideList p {
+  margin: 0;
+  padding: 16px;
+  color: #718096;
+  font-weight: 760;
 }
 
 .courseDetailHero {
   display: grid;
-  grid-template-columns: 160px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
-  align-items: center;
-  border-top: 1px solid #e6ebf2;
+  align-items: start;
   padding: 18px;
 }
 
@@ -1758,17 +1826,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-weight: 720;
 }
 
-.courseHeroCover {
-  height: 92px;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #eef3f8;
-}
-
-.courseHeroCover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.courseDetailStats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0 18px 16px;
 }
 
 .courseTabs {
@@ -1883,66 +1944,9 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding-top: 14px;
 }
 
-.courseGrantDrawer {
-  position: fixed;
-  inset: 0 0 0 auto;
-  z-index: 70;
-  width: min(390px, 100vw);
-  background: #fff;
-  border-left: 1px solid #dce5f0;
-  box-shadow: -18px 0 36px rgba(20, 34, 56, .12);
-  padding: 18px;
-}
-
-.courseGrantDrawer form,
-.courseGrantDrawer label {
-  display: grid;
-  gap: 10px;
-}
-
-.courseGrantDrawer form {
-  gap: 16px;
-}
-
-.courseGrantDrawer label {
-  color: #526174;
-  font-size: 12px;
-  font-weight: 760;
-}
-
-.courseGrantDrawer input {
-  height: 38px;
-  border: 1px solid #d6dee9;
-  border-radius: 8px;
-  padding: 0 12px;
-  color: #182337;
-  font-size: 14px;
-}
-
-.drawerHeader,
-.drawerActions,
 .grantQuickActions {
   display: flex;
   align-items: center;
-}
-
-.drawerHeader {
-  justify-content: space-between;
-}
-
-.drawerHeader h2 {
-  margin: 0;
-  font-size: 22px;
-}
-
-.drawerHeader button {
-  width: 34px;
-  height: 34px;
-  border: 1px solid #d6dee9;
-  border-radius: 8px;
-  background: #fff;
-  color: #526174;
-  font-size: 20px;
 }
 
 .grantQuickActions {
@@ -1958,25 +1962,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #126bd8;
   font-weight: 850;
   padding: 0 10px;
-}
-
-.courseGrantDrawer p {
-  margin: 0;
-  border: 1px solid #e3edf8;
-  border-radius: 8px;
-  background: #f8fbff;
-  color: #728197;
-  font-size: 13px;
-  font-weight: 720;
-  line-height: 1.6;
-  padding: 12px;
-}
-
-.drawerActions {
-  justify-content: flex-end;
-  gap: 10px;
-  border-top: 1px solid #edf1f6;
-  padding-top: 14px;
 }
 
 .modalOverlay {
@@ -2014,6 +1999,55 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseModalBody {
   grid-template-columns: 1fr 1fr;
+}
+
+.courseGrantModal {
+  width: min(520px, calc(100vw - 72px));
+  display: grid;
+  gap: 16px;
+}
+
+.courseGrantCurrent,
+.courseGrantModal p {
+  margin: 0;
+  border: 1px solid #e3edf8;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #728197;
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.6;
+  padding: 12px;
+}
+
+.courseGrantCurrent span,
+.courseGrantCurrent strong {
+  display: block;
+}
+
+.courseGrantCurrent span {
+  color: #718096;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.courseGrantCurrent strong {
+  margin-top: 4px;
+  color: #182337;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.courseConfirmModal {
+  width: min(520px, calc(100vw - 72px));
+}
+
+.courseConfirmModal p {
+  margin: 16px 0 0;
+  color: #526174;
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.7;
 }
 
 .fullField {

@@ -8,7 +8,7 @@ const navItems: Array<{ key: PageKey; label: string }> = [
   { key: "users", label: "用户管理" },
   { key: "content", label: "内容管理" },
   { key: "open", label: "Open 持仓" },
-  { key: "courses", label: "交易实战课程管理" },
+  { key: "courses", label: "课程管理" },
   { key: "events", label: "操作记录" },
   { key: "admins", label: "管理员" }
 ];
@@ -1187,6 +1187,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantUser, setGrantUser] = useState("");
   const [grantExpiresAt, setGrantExpiresAt] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ kind: "series" | "lesson" | "grant"; id: number } | null>(null);
   const [grantQuery, setGrantQuery] = useState("");
   const [grantStatus, setGrantStatus] = useState("all");
   const [grantPage, setGrantPage] = useState(1);
@@ -1212,6 +1213,9 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const grantTotalPages = Math.max(1, Math.ceil(filteredGrants.length / courseGrantPageSize));
   const grantRows = filteredGrants.slice((grantPage - 1) * courseGrantPageSize, grantPage * courseGrantPageSize);
   const grantableUsers = users.filter((user) => user.role === "user");
+  const confirmSeries = confirmAction?.kind === "series" ? series.find((item) => item.id === confirmAction.id) || null : null;
+  const confirmLesson = confirmAction?.kind === "lesson" && selected ? selected.lessons?.find((item) => item.id === confirmAction.id) || null : null;
+  const confirmGrant = confirmAction?.kind === "grant" ? grants.find((item) => item.id === confirmAction.id) || null : null;
   const visibleSeries = series.filter((item) => {
     const query = courseQuery.trim().toLowerCase();
     if (query && !`${item.title} ${item.slug}`.toLowerCase().includes(query)) return false;
@@ -1326,7 +1330,6 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   }
 
   async function deleteSeries(item: CourseSeries) {
-    if (!window.confirm(`删除交易实战课程系列「${item.title}」？该系列下的视频和授权也会一起删除。`)) return;
     setSaving(true);
     setError("");
     try {
@@ -1341,7 +1344,6 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   }
 
   async function deleteLesson(lesson: CourseLesson) {
-    if (!window.confirm(`删除视频「${lesson.title}」？`)) return;
     setSaving(true);
     setError("");
     try {
@@ -1351,6 +1353,21 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       setError(err instanceof Error ? err.message : "删除失败");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function runConfirmAction() {
+    if (!confirmAction) return;
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action.kind === "series") {
+      const item = series.find((row) => row.id === action.id);
+      if (item) await deleteSeries(item);
+    } else if (action.kind === "lesson" && selected) {
+      const item = selected.lessons?.find((row) => row.id === action.id);
+      if (item) await deleteLesson(item);
+    } else if (action.kind === "grant") {
+      await revokeGrant(action.id);
     }
   }
 
@@ -1466,7 +1483,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setCourseTab("basic");
   }
 
-  function openGrantDrawer(grant?: CourseGrant) {
+  function openGrantModal(grant?: CourseGrant) {
     setGrantUser(grant ? grant.user.uid : "");
     setGrantExpiresAt(grant?.expiresAt ? formatDate(grant.expiresAt) : grantExpiryPreset(365));
     setGrantOpen(true);
@@ -1484,27 +1501,19 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     <div className="pageStack">
       <div className="pageTitle">
         <div>
-          <span>交易实战课程系列 / 视频 / 授权</span>
-          <h1>交易实战课程管理</h1>
+          <span>后台 / 课程管理</span>
+          <h1>课程管理</h1>
         </div>
-        <button type="button" className="primaryButton" onClick={openNewSeries}>新建系列</button>
+        <button type="button" className="primaryButton" onClick={openNewSeries}>新建课程</button>
       </div>
 
       {error ? <div className="notice inlineNotice">{error}</div> : null}
-      {loading ? <div className="contentLoading inlineNotice">交易实战课程刷新中</div> : null}
-
-      <div className="statsGrid courseStatsGrid">
-        <StatCard label="课程系列" value={series.length} />
-        <StatCard label="已上架视频" value={series.reduce((sum, item) => sum + (item.status === "published" ? item.lessonCount : 0), 0)} />
-        <StatCard label="有效授权" value={series.reduce((sum, item) => sum + (item.grantCount || 0), 0)} tone="positive" />
-        <StatCard label="7天内到期" value={series.reduce((sum, item) => sum + (item.expiringCount || 0), 0)} />
-      </div>
+      {loading ? <div className="contentLoading inlineNotice">课程刷新中</div> : null}
 
       {courseView === "list" ? (
         <section className="panel tablePanel courseListPanel">
           <div className="panelHeader">
             <h2>课程列表</h2>
-            <button type="button" className="tableAction">导出授权</button>
           </div>
           <div className="courseListFilters">
             <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索课程名称" />
@@ -1542,28 +1551,62 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
           </table>
         </section>
       ) : selected ? (
-        <section className="panel courseDetailPage">
-          <div className="courseBreadcrumb">
-            <button type="button" onClick={() => setCourseView("list")}>交易实战课程</button>
-            <span>/</span>
-            <strong>{selected.title}</strong>
-          </div>
-          <div className="courseDetailHero">
-            <div className="courseHeroCover">{selected.coverUrl ? <img src={selected.coverUrl} alt="" /> : null}</div>
-            <div>
-              <h2>{selected.title}</h2>
-              <p>{selected.status === "published" ? "已上架" : "草稿"} · {selected.progressStatus === "finished" ? "已完结" : "更新中"} · {selected.lessonCount} 节视频 · {selected.grantCount} 个有效授权 · {selected.expiringCount || 0} 个 7 天内到期</p>
+        <div className="courseManageLayout">
+          <aside className="panel courseSidePanel">
+            <div className="panelHeader">
+              <h2>课程</h2>
+              <button type="button" className="tableAction" onClick={() => setCourseView("list")}>返回列表</button>
             </div>
-            <div>
-              <button type="button" className="tableAction" onClick={() => openEditSeries(selected)}>编辑课程</button>
-              <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => deleteSeries(selected)}>删除</button>
+            <div className="courseSideFilters">
+              <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索课程" />
+              <select value={courseStatus} onChange={(event) => setCourseStatus(event.target.value)}>
+                <option value="all">全部</option>
+                <option value="published">上架</option>
+                <option value="draft">草稿</option>
+              </select>
             </div>
-          </div>
-          <div className="courseTabs">
-            <button type="button" className={courseTab === "basic" ? "active" : ""} onClick={() => setCourseTab("basic")}>基本信息</button>
-            <button type="button" className={courseTab === "lessons" ? "active" : ""} onClick={() => setCourseTab("lessons")}>视频目录</button>
-            <button type="button" className={courseTab === "grants" ? "active" : ""} onClick={() => setCourseTab("grants")}>授权用户</button>
-          </div>
+            <div className="courseSideList">
+              {visibleSeries.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={item.id === selected.id ? "active" : ""}
+                  onClick={() => {
+                    setSelectedId(item.id);
+                    setGrantPage(1);
+                  }}
+                >
+                  <strong>{item.title}</strong>
+                  <span>{item.status === "published" ? "上架" : "草稿"} · {item.progressStatus === "finished" ? "已完结" : "更新中"} · {item.lessonCount} 节视频</span>
+                  <em>{item.grantCount} 授权</em>
+                  {item.expiringCount ? <em className="warningBg">{item.expiringCount} 快到期</em> : null}
+                </button>
+              ))}
+              {!visibleSeries.length ? <p>暂无课程</p> : null}
+            </div>
+          </aside>
+          <section className="panel courseDetailPage">
+            <div className="courseDetailHero">
+              <div>
+                <h2>{selected.title}</h2>
+                <p>{selected.status === "published" ? "上架" : "草稿"} · {selected.progressStatus === "finished" ? "已完结" : "更新中"} · {selected.lessonCount} 节视频 · 最近更新 {formatTime(selected.updatedAt)}</p>
+              </div>
+              <div>
+                <button type="button" className="tableAction" onClick={() => openEditSeries(selected)}>编辑课程</button>
+                <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "series", id: selected.id })}>删除课程</button>
+              </div>
+            </div>
+            <div className="statsGrid courseDetailStats">
+              <StatCard label="视频" value={selected.lessonCount} />
+              <StatCard label="有效授权" value={selected.grantCount} tone="positive" />
+              <StatCard label="7天内到期" value={selected.expiringCount || 0} />
+              <StatCard label="状态" value={selected.status === "published" ? "上架" : "草稿"} />
+            </div>
+            <div className="courseTabs">
+              <button type="button" className={courseTab === "basic" ? "active" : ""} onClick={() => setCourseTab("basic")}>基本信息</button>
+              <button type="button" className={courseTab === "lessons" ? "active" : ""} onClick={() => setCourseTab("lessons")}>视频目录</button>
+              <button type="button" className={courseTab === "grants" ? "active" : ""} onClick={() => setCourseTab("grants")}>授权用户</button>
+            </div>
 
           {courseTab === "basic" ? (
             <div className="courseBasicGrid">
@@ -1591,7 +1634,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                       <td><span className={`status ${lesson.status === "published" ? "positiveBg" : "warningBg"}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
                       <td>
                         <button type="button" className="tableAction" disabled={saving} onClick={() => openEditLesson(lesson)}>编辑</button>
-                        <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => deleteLesson(lesson)}>删除</button>
+                        <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "lesson", id: lesson.id })}>删除</button>
                       </td>
                     </tr>
                   ))}
@@ -1614,7 +1657,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                     <option value="unset">未设置到期</option>
                   </select>
                 </div>
-                <button type="button" className="primaryButton" onClick={() => openGrantDrawer()}>新增授权</button>
+                <button type="button" className="primaryButton" onClick={() => openGrantModal()}>新增授权</button>
               </div>
               <table className="adminTable">
                 <thead><tr><th>用户</th><th>授权时间</th><th>到期时间</th><th>状态</th><th>操作</th></tr></thead>
@@ -1628,8 +1671,8 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                         <td>{grant.expiresAt ? formatDate(grant.expiresAt) : "待改为1年"}</td>
                         <td><span className={`status ${state.className}`}>{state.label}</span></td>
                         <td>
-                          <button type="button" className="tableAction" disabled={saving} onClick={() => openGrantDrawer(grant)}>改到期</button>
-                          <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => revokeGrant(grant.id)}>取消</button>
+                          <button type="button" className="tableAction" disabled={saving} onClick={() => openGrantModal(grant)}>改到期</button>
+                          <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "grant", id: grant.id })}>取消</button>
                         </td>
                       </tr>
                     );
@@ -1646,30 +1689,33 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               ) : null}
             </div>
           ) : null}
-        </section>
+          </section>
+        </div>
       ) : null}
 
       {grantOpen && selected ? (
-        <div className="courseGrantDrawer">
-          <form onSubmit={submitGrant}>
-            <div className="drawerHeader">
+        <div className="modalOverlay">
+          <form className="adminModal courseModal courseGrantModal" onSubmit={submitGrant}>
+            <div className="modalHeader">
               <h2>{grantUser ? "修改授权" : "新增授权"}</h2>
               <button type="button" onClick={() => setGrantOpen(false)}>×</button>
             </div>
+            <div className="courseGrantCurrent"><span>当前课程</span><strong>{selected.title}</strong></div>
             <label>用户<input list="courseGrantUsers" value={grantUser} onChange={(event) => setGrantUser(event.target.value)} placeholder="邮箱或 UID" /></label>
             <datalist id="courseGrantUsers">
               {grantableUsers.map((user) => (
                 <option key={user.id} value={user.uid}>{user.email}</option>
               ))}
             </datalist>
-            <label>自定义到期日期<input type="date" value={grantExpiresAt} onChange={(event) => setGrantExpiresAt(event.target.value)} required /></label>
+            <label>到期日期<input type="date" value={grantExpiresAt} onChange={(event) => setGrantExpiresAt(event.target.value)} required /></label>
             <div className="grantQuickActions">
               <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(30, grantExpiresAt))}>30天</button>
               <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(180, grantExpiresAt))}>180天</button>
               <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(365, grantExpiresAt))}>1年</button>
+              <button type="button" onClick={() => setGrantExpiresAt("")}>清空</button>
             </div>
-            <p>到期后前台还会展示课程介绍，但用户不能播放视频。</p>
-            <div className="drawerActions">
+            <p>会员是否到期，不影响这门课程的播放权限。</p>
+            <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setGrantOpen(false)}>取消</button>
               <button type="submit" className="primaryButton" disabled={saving || !grantUser.trim()}>{saving ? "保存中" : "保存授权"}</button>
             </div>
@@ -1681,11 +1727,11 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
         <div className="modalOverlay">
           <form className="adminModal courseModal" onSubmit={submitSeries}>
             <div className="modalHeader">
-              <h2>{seriesForm.id ? "编辑交易实战课程系列" : "新建交易实战课程系列"}</h2>
+              <h2>{seriesForm.id ? "编辑课程" : "新建课程"}</h2>
               <button type="button" onClick={() => setSeriesOpen(false)}>×</button>
             </div>
             <div className="editForm courseModalBody">
-              <label>系列名称<input value={seriesForm.title} onChange={(event) => setSeriesForm({ ...seriesForm, title: event.target.value })} placeholder="例如 财报季交易框架" /></label>
+              <label>课程名称<input value={seriesForm.title} onChange={(event) => setSeriesForm({ ...seriesForm, title: event.target.value })} placeholder="例如 财报季交易框架" /></label>
               <label>优先级<input type="number" min="1" value={seriesForm.sortOrder} onChange={(event) => setSeriesForm({ ...seriesForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
               <label>展示状态<select value={seriesForm.progressStatus} onChange={(event) => setSeriesForm({ ...seriesForm, progressStatus: event.target.value as CourseSeries["progressStatus"] })}><option value="updating">更新中</option><option value="finished">已完结</option></select></label>
               <label>上架状态<select value={seriesForm.status} onChange={(event) => setSeriesForm({ ...seriesForm, status: event.target.value as CourseSeries["status"] })}><option value="draft">草稿</option><option value="published">上架</option></select></label>
@@ -1718,7 +1764,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             </div>
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setSeriesOpen(false)}>取消</button>
-              <button type="submit" className="primaryButton" disabled={saving || coverUploading}>{seriesForm.id ? "保存修改" : "保存系列"}</button>
+              <button type="submit" className="primaryButton" disabled={saving || coverUploading}>{seriesForm.id ? "保存修改" : "保存课程"}</button>
             </div>
           </form>
         </div>
@@ -1779,6 +1825,26 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <button type="submit" className="primaryButton" disabled={saving || videoUploading}>{lessonForm.id ? "保存修改" : "保存视频"}</button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {confirmAction ? (
+        <div className="modalOverlay">
+          <div className="adminModal courseConfirmModal">
+            <div className="modalHeader">
+              <h2>{confirmAction.kind === "grant" ? "取消授权" : "删除确认"}</h2>
+              <button type="button" onClick={() => setConfirmAction(null)}>×</button>
+            </div>
+            <p>
+              {confirmAction.kind === "series" && confirmSeries ? `确认删除课程「${confirmSeries.title}」？这会同时删除该课程下的视频和授权。` : null}
+              {confirmAction.kind === "lesson" && confirmLesson ? `确认删除视频「${confirmLesson.title}」？` : null}
+              {confirmAction.kind === "grant" && confirmGrant ? `确认取消 ${confirmGrant.user.email} 对「${series.find((item) => item.id === confirmGrant.seriesId)?.title || "当前课程"}」的播放权限？` : null}
+            </p>
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={() => setConfirmAction(null)}>取消</button>
+              <button type="button" className="dangerButton" disabled={saving} onClick={() => void runConfirmAction()}>{saving ? "处理中" : "确认"}</button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
