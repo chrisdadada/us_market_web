@@ -1860,6 +1860,21 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   overflow-wrap: anywhere;
 }
 
+.courseFixedTag,
+.courseSideList .courseFixedTag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  margin: 0 0 0 7px;
+  border-radius: 999px;
+  background: #eafbf4;
+  color: #0f9b72;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 760;
+  vertical-align: 1px;
+}
+
 .courseGrantUserCell small {
   overflow-wrap: anywhere;
 }

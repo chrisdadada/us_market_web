@@ -1311,6 +1311,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [error, setError] = useState("");
+  const [courseToast, setCourseToast] = useState<{ title: string; detail: string } | null>(null);
   const [seriesForm, setSeriesForm] = useState<CourseSeriesForm>(emptyCourseSeriesForm);
   const [lessonForm, setLessonForm] = useState<CourseLessonForm>(emptyCourseLessonForm);
   const selected = series.find((item) => item.id === selectedId) || series[0] || null;
@@ -1368,6 +1369,12 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     if (grantPage > grantTotalPages) setGrantPage(grantTotalPages);
   }, [grantPage, grantTotalPages]);
 
+  useEffect(() => {
+    if (!courseToast) return;
+    const timer = window.setTimeout(() => setCourseToast(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [courseToast]);
+
   async function submitSeries(event: FormEvent) {
     event.preventDefault();
     setSaving(true);
@@ -1382,6 +1389,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       setSeriesForm(emptyCourseSeriesForm());
       await loadCourses();
       setSelectedId(payload.series.id);
+      setCourseToast({ title: "已保存", detail: `${payload.series.title} 已更新` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
@@ -1408,6 +1416,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       setLessonOpen(false);
       setLessonForm(emptyCourseLessonForm());
       await loadCourses();
+      setCourseToast({ title: "已保存", detail: `${lessonForm.title || "视频"} 已更新` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
@@ -1426,6 +1435,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       setGrantExpiresAt("");
       setGrantOpen(false);
       await loadCourses();
+      setCourseToast({ title: "已授权", detail: `${selected.title} 授权已保存` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "授权失败");
     } finally {
@@ -1439,6 +1449,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     try {
       await api.revokeCourseGrant(id);
       await loadCourses();
+      setCourseToast({ title: "已取消", detail: "课程授权已取消" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "取消授权失败");
     } finally {
@@ -1453,6 +1464,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       await api.deleteCourseSeries(item.id);
       setSelectedId(null);
       await loadCourses();
+      setCourseToast({ title: "已删除", detail: `${item.title} 已删除` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "删除失败");
     } finally {
@@ -1466,6 +1478,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     try {
       await api.deleteCourseLesson(lesson.id);
       await loadCourses();
+      setCourseToast({ title: "已删除", detail: `${lesson.title} 已删除` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "删除失败");
     } finally {
@@ -1547,6 +1560,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       setLessonOpen(false);
       setLessonForm(emptyCourseLessonForm());
       await loadCourses();
+      setCourseToast({ title: "已上传", detail: `${title} 已保存` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "视频上传失败");
     } finally {
@@ -1614,6 +1628,10 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     return item.originalPrice || item.discountPrice ? `${item.originalPrice || "--"} / ${item.discountPrice || "--"}` : "--";
   }
 
+  function isUsStockCourse(item: CourseSeries) {
+    return usStockCourseTitles.has(item.title);
+  }
+
   function grantState(grant: CourseGrant) {
     if (!grant.expiresAt) return { key: "unset", label: "待改1年", className: "warningBg" };
     const days = daysUntil(grant.expiresAt);
@@ -1634,6 +1652,12 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
 
       {error ? <div className="notice inlineNotice">{error}</div> : null}
       {loading ? <div className="contentLoading inlineNotice">课程刷新中</div> : null}
+      {courseToast ? (
+        <div className="adminToast" role="status">
+          <strong>{courseToast.title}</strong>
+          <span>{courseToast.detail}</span>
+        </div>
+      ) : null}
 
       {courseView === "list" ? (
         <section className="panel tablePanel courseListPanel">
@@ -1667,7 +1691,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                 <tr key={item.id}>
                   <td>
                     <div className="courseTitleCell">
-                      <strong>{item.title}</strong>
+                      <strong>{item.title}{isUsStockCourse(item) ? <span className="courseFixedTag">美股课程</span> : null}</strong>
                       <small>{courseMeta(item).join(" · ")}</small>
                     </div>
                   </td>
@@ -1713,7 +1737,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                     setGrantPage(1);
                   }}
                 >
-                  <strong>{item.title}</strong>
+                  <strong>{item.title}{isUsStockCourse(item) ? <span className="courseFixedTag">美股课程</span> : null}</strong>
                   <span>{item.status === "published" ? "上架" : "草稿"} · {item.progressStatus === "finished" ? "已完结" : "更新中"} · {item.lessonCount} 节视频</span>
                   <em>{item.grantCount} 授权</em>
                   {item.expiringCount ? <em className="warningBg">{item.expiringCount} 快到期</em> : null}
