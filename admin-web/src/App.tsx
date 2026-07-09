@@ -203,6 +203,13 @@ function localDateInputValue(value?: string | null) {
   return `${now.getFullYear()}-${padTimePart(now.getMonth() + 1)}-${padTimePart(now.getDate())}`;
 }
 
+function isLocalDateInputValue(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(`${value}T00:00:00`);
+  return date.getFullYear() === year && date.getMonth() + 1 === month && date.getDate() === day;
+}
+
 function grantExpiryPreset(days: 30 | 180 | 365, base?: string | null) {
   return days === 365 ? dateAfterMonths(12, base) : dateAfterDays(days, base);
 }
@@ -2081,6 +2088,10 @@ function OpenPortfolioPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!isLocalDateInputValue(form.tradeTime)) {
+      setToast({ text: "日期请填写 YYYY-MM-DD", tone: "error" });
+      return;
+    }
     const buyAmount = Number(form.amount);
     if (form.side === "buy" && tradeDateAvailableCash !== null && Number.isFinite(buyAmount) && buyAmount > tradeDateAvailableCash + 0.01) {
       setToast({ text: `${form.symbol.trim().toUpperCase() || "标的"} 买入金额超过所选日期可用资金`, tone: "error" });
@@ -2173,7 +2184,7 @@ function OpenPortfolioPage() {
             </div>
           </div>
           <form className={`openTradeForm ${form.side === "sell" ? "sellForm" : ""}`} onSubmit={submit}>
-            <label>日期<input type="date" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} /></label>
+            <label>日期<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="YYYY-MM-DD" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} /></label>
             <label>标的{form.side === "sell" ? (
               <select value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })}>
                 <option value="">选择持仓</option>

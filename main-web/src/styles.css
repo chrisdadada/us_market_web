@@ -7767,6 +7767,7 @@ body,
 
 .fundingScannerTop,
 .fundingScannerPanel,
+.fundingLockedPanel,
 .fundingScannerRisk {
   border: 1px solid #dfe7f1;
   border-radius: 8px;
@@ -7803,6 +7804,32 @@ body,
 
 .fundingScannerTop strong.stale {
   color: #b7791f;
+}
+
+.fundingLockedPanel {
+  min-height: 180px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 24px;
+}
+
+.fundingLockedPanel h1,
+.fundingLockedPanel p {
+  margin: 0;
+}
+
+.fundingLockedPanel h1 {
+  color: #172033;
+  font-size: 22px;
+  font-weight: 560;
+  line-height: 1.25;
+}
+
+.fundingLockedPanel p {
+  color: #66758c;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .fundingScannerControls,

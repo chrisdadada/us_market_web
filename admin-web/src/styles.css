@@ -642,7 +642,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userEventList div {
   display: grid;
-  grid-template-columns: 145px minmax(0, 1fr) minmax(0, 180px);
+  grid-template-columns: 150px minmax(240px, 1fr) minmax(160px, auto);
   gap: 12px;
   align-items: center;
   border: 1px solid #e5ebf3;
@@ -663,13 +663,17 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #182337;
   font-size: 13px;
   min-width: 0;
-  overflow-wrap: anywhere;
+  line-height: 1.45;
+  overflow-wrap: break-word;
 }
 
 .userEventList em {
+  justify-self: end;
+  max-width: 220px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .userTabActions {

@@ -3053,7 +3053,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
         setSeries(rows);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "交易实战课程加载失败");
+        if (!cancelled) setError("课程暂时加载失败，请稍后刷新");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -3182,7 +3182,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
       </section>
 
       {error ? <p className="courseError">{error}</p> : null}
-      {!series.length ? <section className="coursesEmpty">暂无交易实战课程</section> : null}
+      {!error && !series.length ? <section className="coursesEmpty">暂无交易实战课程</section> : null}
 
       {series.length ? (
         <>
@@ -3359,7 +3359,14 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
   }, [autoRefresh, isAdmin, refresh]);
 
   if (!isAdmin) {
-    return <ComingSoonPage title="无权限" />;
+    return (
+      <div className="fundingScannerPage">
+        <section className="fundingLockedPanel">
+          <h1>资金费套利扫描</h1>
+          <p>当前账号暂未开通该工具。</p>
+        </section>
+      </div>
+    );
   }
 
   const visibleRows = rows.filter((row) => !onlyReady || row.signal === "ENTER");
