@@ -111,6 +111,18 @@ function signedMoney(value?: number | null) {
   return `${prefix}${adminMoney(Math.abs(value))}`;
 }
 
+type AdminToastPayload = { title: string; detail?: string; tone?: "success" | "error" } | null;
+
+function AdminToast({ toast }: { toast: AdminToastPayload }) {
+  if (!toast) return null;
+  return (
+    <div className={`adminToast ${toast.tone === "error" ? "error" : ""}`} role="status">
+      <strong>{toast.title}</strong>
+      {toast.detail ? <span>{toast.detail}</span> : null}
+    </div>
+  );
+}
+
 function openAvailableCashAt(data: OpenPortfolioPayload | null, tradeDate?: string) {
   if (!data) return null;
   const target = formatDate(tradeDate);
@@ -1102,12 +1114,7 @@ function UsersPage({
           <h1>用户列表</h1>
         </div>
       </div>
-      {grantAllToast ? (
-        <div className={`adminToast ${grantAllToast.tone === "error" ? "error" : ""}`} role="status">
-          <strong>{grantAllToast.title}</strong>
-          <span>{grantAllToast.detail}</span>
-        </div>
-      ) : null}
+      <AdminToast toast={grantAllToast} />
 
       <div className="statsGrid userStatsGrid">
         <StatCard label="总用户" value={stats.total} note={`有效 ${normalUsers.filter((user) => user.isActive).length}`} />
@@ -1680,12 +1687,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
 
       {error ? <div className="notice inlineNotice">{error}</div> : null}
       {loading ? <div className="contentLoading inlineNotice">课程刷新中</div> : null}
-      {courseToast ? (
-        <div className="adminToast" role="status">
-          <strong>{courseToast.title}</strong>
-          <span>{courseToast.detail}</span>
-        </div>
-      ) : null}
+      <AdminToast toast={courseToast} />
 
       {courseView === "list" ? (
         <section className="panel tablePanel courseListPanel">
@@ -2191,7 +2193,7 @@ function OpenPortfolioPage() {
         </div>
       </div>
 
-      {toast ? <div className={`adminToast ${toast.tone}`}>{toast.text}</div> : null}
+      <AdminToast toast={toast ? { title: toast.tone === "error" ? "操作失败" : "操作成功", detail: toast.text, tone: toast.tone } : null} />
       {loading ? <div className="contentLoading inlineNotice">读取中</div> : null}
 
       <div className="statsGrid openStatsGrid">
@@ -3106,12 +3108,7 @@ function ContentPage() {
               <OpinionStatusBadge status={currentStatus === "已发布" ? "published" : currentStatus === "草稿" ? "draft" : "new"} />
             </div>
           </div>
-          {message ? (
-            <div className={`adminToast ${messageTone === "error" ? "error" : ""}`} role="status">
-              <strong>{contentToastTitle()}</strong>
-              <span>{message}</span>
-            </div>
-          ) : null}
+          <AdminToast toast={message ? { title: contentToastTitle(), detail: message, tone: messageTone === "error" ? "error" : "success" } : null} />
 
           <div className="editorGrid">
             <label>
