@@ -1188,6 +1188,11 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: rgba(15, 23, 42, .34);
   padding: 28px;
 }
+
+.modalBackdropTop {
+  z-index: 70;
+}
+
 .modalPanel {
   width: min(680px, calc(100vw - 72px));
   max-height: calc(100vh - 72px);

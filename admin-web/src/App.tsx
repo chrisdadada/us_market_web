@@ -616,7 +616,7 @@ function UserEditModal({
   }
 
   return (
-    <div className="modalBackdrop" role="presentation" onMouseDown={onClose}>
+    <div className="modalBackdrop modalBackdropTop" role="presentation" onMouseDown={onClose}>
       <section className="modalPanel userEditModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modalHeader">
           <div>
