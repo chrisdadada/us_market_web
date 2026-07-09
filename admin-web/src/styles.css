@@ -1858,6 +1858,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseTitleCell strong,
 .courseGrantUserCell strong {
   overflow-wrap: anywhere;
+  font-weight: 650;
 }
 
 .courseFixedTag,
@@ -1871,7 +1872,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #0f9b72;
   padding: 0 7px;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: 620;
   vertical-align: 1px;
 }
 
@@ -1955,14 +1956,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseSideList strong {
   color: #182337;
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 680;
 }
 
 .courseSideList span {
   margin-top: 6px;
   color: #718096;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .courseSideList em {
@@ -1976,7 +1977,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 0 8px;
   font-size: 12px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 650;
 }
 
 .courseSideList em.warningBg {
@@ -1988,7 +1989,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   padding: 16px;
   color: #718096;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .courseDetailHero {
@@ -2003,14 +2004,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseDetailHero h2 {
   margin: 0 0 5px;
   font-size: 18px;
-  font-weight: 780;
+  font-weight: 680;
 }
 
 .courseDetailHero p {
   margin: 0;
   color: #64748b;
   font-size: 12px;
-  font-weight: 720;
+  font-weight: 560;
 }
 
 .courseDetailStats {
@@ -2029,11 +2030,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseDetailStats .statCard p {
   font-size: 12px;
+  font-weight: 560;
 }
 
 .courseDetailStats .statCard strong {
   margin-top: 8px;
   font-size: 17px;
+  font-weight: 650;
 }
 
 .courseTabs {
@@ -2051,7 +2054,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border-bottom: 2px solid transparent;
   background: transparent;
   color: #64748b;
-  font-weight: 780;
+  font-weight: 620;
   padding: 0 14px;
   font-size: 13px;
   cursor: pointer;
@@ -2085,7 +2088,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: block;
   color: #718096;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .courseBasicGrid strong,
@@ -2094,8 +2097,16 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 7px 0 0;
   color: #182337;
   font-size: 14px;
-  font-weight: 720;
+  font-weight: 560;
   line-height: 1.65;
+}
+
+.courseBasicGrid strong {
+  font-weight: 620;
+}
+
+.courseBasicGrid p {
+  font-weight: 520;
 }
 
 .courseTabActions {
