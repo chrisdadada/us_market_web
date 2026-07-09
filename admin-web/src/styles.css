@@ -1850,6 +1850,20 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-weight: 650;
 }
 
+.courseTitleCell,
+.courseGrantUserCell {
+  min-width: 0;
+}
+
+.courseTitleCell strong,
+.courseGrantUserCell strong {
+  overflow-wrap: anywhere;
+}
+
+.courseGrantUserCell small {
+  overflow-wrap: anywhere;
+}
+
 .courseActionCell {
   white-space: nowrap;
 }
@@ -2227,6 +2241,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 9px 10px;
   font-size: 12px;
   font-weight: 650;
+}
+
+.courseGrantDrawer .courseGrantDatePreview {
+  margin-top: -4px;
+  border: 0;
+  background: transparent;
+  color: #718096;
+  padding: 0;
 }
 
 .courseGrantDrawer .modalActions {

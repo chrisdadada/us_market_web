@@ -1606,6 +1606,14 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setGrantOpen(true);
   }
 
+  function courseMeta(item: CourseSeries) {
+    return [`优先级 ${item.sortOrder || "--"}`, item.originalPrice || item.discountPrice ? `${item.originalPrice || "--"} / ${item.discountPrice || "--"}` : ""].filter(Boolean);
+  }
+
+  function coursePrice(item: CourseSeries) {
+    return item.originalPrice || item.discountPrice ? `${item.originalPrice || "--"} / ${item.discountPrice || "--"}` : "--";
+  }
+
   function grantState(grant: CourseGrant) {
     if (!grant.expiresAt) return { key: "unset", label: "待改1年", className: "warningBg" };
     const days = daysUntil(grant.expiresAt);
@@ -1657,7 +1665,12 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             <tbody>
               {visibleSeries.map((item) => (
                 <tr key={item.id}>
-                  <td><strong>{item.title}</strong><small>优先级 {item.sortOrder} · {item.originalPrice || "--"} / {item.discountPrice || "--"}</small></td>
+                  <td>
+                    <div className="courseTitleCell">
+                      <strong>{item.title}</strong>
+                      <small>{courseMeta(item).join(" · ")}</small>
+                    </div>
+                  </td>
                   <td><span className={`status ${item.status === "published" ? "positiveBg" : ""}`}>{item.status === "published" ? "上架" : "草稿"}</span></td>
                   <td><span className={`status ${item.progressStatus === "finished" ? "positiveBg" : "warningBg"}`}>{item.progressStatus === "finished" ? "已完结" : "更新中"}</span></td>
                   <td>{item.lessonCount}</td>
@@ -1736,7 +1749,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             <div className="courseBasicGrid">
               <div><span>课程状态</span><strong>{selected.status === "published" ? "上架" : "草稿"}</strong></div>
               <div><span>课程进度</span><strong>{selected.progressStatus === "finished" ? "已完结" : "更新中"}</strong></div>
-              <div><span>价格</span><strong>{selected.originalPrice || "--"} / {selected.discountPrice || "--"}</strong></div>
+              <div><span>价格</span><strong>{coursePrice(selected)}</strong></div>
               <div><span>折扣文案</span><strong>{selected.discountLabel || "--"}</strong></div>
               <section><span>转化文案</span><p>{selected.summary || "--"}</p></section>
               <section><span>课程介绍</span><p>{selected.intro || "--"}</p></section>
@@ -1790,7 +1803,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                     const state = grantState(grant);
                     return (
                       <tr key={grant.id}>
-                        <td><strong>{grant.user.email}</strong><small>{grant.user.uid}</small></td>
+                        <td><div className="courseGrantUserCell"><strong>{grant.user.email}</strong><small>{grant.user.uid}</small></div></td>
                         <td>{formatDate(grant.createdAt)}</td>
                         <td>{grant.expiresAt ? formatDate(grant.expiresAt) : "待改为1年"}</td>
                         <td><span className={`status ${state.className}`}>{state.label}</span></td>
@@ -1832,6 +1845,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               ))}
             </datalist>
             <label>到期日期<input type="date" value={grantExpiresAt} onChange={(event) => setGrantExpiresAt(event.target.value)} required /></label>
+            <p className="courseGrantDatePreview">到期：{grantExpiresAt || "--"}</p>
             <div className="grantQuickActions">
               <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(30, grantExpiresAt))}>30天</button>
               <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(180, grantExpiresAt))}>180天</button>
