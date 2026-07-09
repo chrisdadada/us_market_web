@@ -99,17 +99,50 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   max-width: 320px;
   border: 1px solid #bbf7d0;
   border-radius: 10px;
-  background: #ecfdf5;
+  background: #fff;
   color: #166534;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .10);
-  padding: 10px 13px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .14);
+  padding: 11px 13px;
   font-size: 13px;
   font-weight: 650;
 }
+.adminToast::before {
+  content: "✓";
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #15935f;
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: top;
+}
+.adminToast strong {
+  display: inline-block;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 720;
+}
+.adminToast span {
+  display: block;
+  margin: 4px 0 0 26px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
 .adminToast.error {
   border-color: #fecdd3;
-  background: #fff1f2;
+  background: #fff;
   color: #be123c;
+}
+.adminToast.error::before {
+  content: "!";
+  background: #ffe4e6;
+  color: #d11b45;
 }
 .emptyPanel { min-height: 280px; display: grid; place-items: center; color: #7b8798; font-weight: 750; }
 
@@ -1289,10 +1322,32 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   height: 16px;
 }
 .inlineMessage {
-  margin: 14px 0 0;
-  color: #1677ff;
-  font-size: 14px;
-  font-weight: 760;
+  margin: 4px 0 0;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+.inlineMessage.error {
+  border-color: #fecdd3;
+  background: #fff7f8;
+  color: #be123c;
+}
+.fieldInvalid input,
+.fieldInvalid select,
+.fieldInvalid textarea {
+  border-color: #f0a8b6 !important;
+  background: #fffafa;
+}
+.fieldError {
+  margin-top: -2px;
+  color: #be123c;
+  font-size: 12px;
+  font-weight: 650;
 }
 .auditList {
   display: grid;
@@ -2008,8 +2063,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   gap: 16px;
 }
 
-.courseGrantCurrent,
-.courseGrantModal p {
+.courseGrantCurrent {
   margin: 0;
   border: 1px solid #e3edf8;
   border-radius: 10px;
@@ -2040,18 +2094,37 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .courseGrantModal .grantAllSummary {
-  border: 0;
-  background: transparent;
-  padding: 0;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  border: 1px solid #e8edf4;
+  border-radius: 9px;
+  background: #f8fafc;
+  padding: 11px 12px;
+  color: #182337;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.courseGrantModal .grantAllSummary span,
+.courseGrantModal .grantAllSummary em {
+  color: #718096;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.courseGrantModal .grantAllSummary strong {
   color: #182337;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 720;
 }
 
 .courseGrantModal .grantAllNote {
   border: 0;
-  background: #f8fbff;
-  padding: 10px 12px;
+  background: transparent;
+  margin: -2px 0 0;
+  padding: 0;
   color: #718096;
   font-size: 12px;
   font-weight: 650;

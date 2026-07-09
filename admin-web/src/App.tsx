@@ -517,6 +517,7 @@ function UserEditModal({
     isActive: true
   });
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">("success");
   const [saving, setSaving] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -544,6 +545,7 @@ function UserEditModal({
     event.preventDefault();
     if (!selected) return;
     if (isProtectedSuperAdmin) {
+      setMessageTone("error");
       setMessage("超级管理员为系统保留账号，不可编辑");
       return;
     }
@@ -563,9 +565,11 @@ function UserEditModal({
         subscriptionExpiresAt: result.user.subscriptionExpiresAt ? result.user.subscriptionExpiresAt.slice(0, 10) : "",
         isActive: result.user.isActive
       });
+      setMessageTone("success");
       setMessage("已保存设置");
       await onRefresh();
     } catch (err) {
+      setMessageTone("error");
       setMessage(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
@@ -579,9 +583,11 @@ function UserEditModal({
     try {
       await api.resetUserPassword({ userId: selected.id, password: newPassword });
       setNewPassword("");
+      setMessageTone("success");
       setMessage("密码已重置");
       await onRefresh();
     } catch (err) {
+      setMessageTone("error");
       setMessage(err instanceof Error ? err.message : "重置失败");
     } finally {
       setResetting(false);
@@ -598,6 +604,7 @@ function UserEditModal({
       await onRefresh();
       onClose();
     } catch (err) {
+      setMessageTone("error");
       setMessage(err instanceof Error ? err.message : "删除失败");
     } finally {
       setDeleting(false);
@@ -750,7 +757,7 @@ function UserEditModal({
               ) : null}
             </>
           ) : null}
-          {message ? <p className="inlineMessage">{message}</p> : null}
+          {message ? <p className={`inlineMessage ${messageTone}`}>{message}</p> : null}
           {mode === "member" ? (
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={onClose}>取消</button>
@@ -946,7 +953,9 @@ function UsersPage({
   const [grantAllOpen, setGrantAllOpen] = useState(false);
   const [grantAllExpiresAt, setGrantAllExpiresAt] = useState(localDateInputValue());
   const [grantAllMessage, setGrantAllMessage] = useState("");
+  const [grantAllDateError, setGrantAllDateError] = useState("");
   const [grantAllSaving, setGrantAllSaving] = useState(false);
+  const [grantAllToast, setGrantAllToast] = useState<{ title: string; detail: string; tone: "success" | "error" } | null>(null);
   const selected = users.find((user) => user.id === selectedId) || null;
   const normalUsers = users.filter((user) => user.role === "user");
   const today = localDateInputValue();
@@ -1015,20 +1024,34 @@ function UsersPage({
     if (pageIndex > totalPages) setPageIndex(totalPages);
   }, [pageIndex, totalPages]);
 
+  useEffect(() => {
+    if (!grantAllToast) return;
+    const timer = window.setTimeout(() => setGrantAllToast(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [grantAllToast]);
+
   async function submitGrantAllCourses(event: FormEvent) {
     event.preventDefault();
-    if (!selected || !grantAllExpiresAt) return;
+    if (!selected) return;
+    if (!grantAllExpiresAt) {
+      setGrantAllDateError("请选择到期日");
+      setGrantAllMessage("");
+      return;
+    }
     if (!courseSeries.length) {
-      setGrantAllMessage("当前没有课程可授权");
+      setGrantAllDateError("");
+      setGrantAllMessage("未找到可授权的课程");
       return;
     }
     setGrantAllSaving(true);
+    setGrantAllDateError("");
     setGrantAllMessage("");
     try {
       await api.grantAllCourses({ user: selected.email, expiresAt: grantAllExpiresAt });
       setGrantAllOpen(false);
       setGrantAllExpiresAt(localDateInputValue());
       await onRefresh();
+      setGrantAllToast({ title: "已授权", detail: `${selected.email} 已开通全部课程`, tone: "success" });
     } catch (err) {
       setGrantAllMessage(err instanceof Error ? err.message : "没有授权成功，请稍后再试");
     } finally {
@@ -1044,6 +1067,12 @@ function UsersPage({
           <h1>用户列表</h1>
         </div>
       </div>
+      {grantAllToast ? (
+        <div className={`adminToast ${grantAllToast.tone === "error" ? "error" : ""}`} role="status">
+          <strong>{grantAllToast.title}</strong>
+          <span>{grantAllToast.detail}</span>
+        </div>
+      ) : null}
 
       <div className="statsGrid userStatsGrid">
         <StatCard label="总用户" value={stats.total} note={`有效 ${normalUsers.filter((user) => user.isActive).length}`} />
@@ -1171,7 +1200,9 @@ function UsersPage({
         }}
         onGrantAllCourses={() => {
           setGrantAllExpiresAt(localDateInputValue());
+          setGrantAllDateError("");
           setGrantAllMessage("");
+          setGrantAllToast(null);
           setGrantAllOpen(true);
         }}
       />
@@ -1183,18 +1214,29 @@ function UsersPage({
               <h2>授权全部课程</h2>
               <button type="button" onClick={() => setGrantAllOpen(false)}>×</button>
             </div>
-            <p className="grantAllSummary">给 {selected.email} 开通全部 {courseSeries.length} 门课程。</p>
-            <label>到期日期<input type="date" value={grantAllExpiresAt} onChange={(event) => setGrantAllExpiresAt(event.target.value)} required /></label>
+            <p className="grantAllSummary"><span>用户</span><strong>{selected.email}</strong><em>全部 {courseSeries.length} 门课程</em></p>
+            <label className={grantAllDateError ? "fieldInvalid" : ""}>
+              到期日期
+              <input
+                type="date"
+                value={grantAllExpiresAt}
+                onChange={(event) => {
+                  setGrantAllExpiresAt(event.target.value);
+                  setGrantAllDateError("");
+                }}
+              />
+              {grantAllDateError ? <small className="fieldError">{grantAllDateError}</small> : null}
+            </label>
             <div className="grantQuickActions">
-              <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(30, grantAllExpiresAt))}>30天</button>
-              <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(180, grantAllExpiresAt))}>180天</button>
-              <button type="button" onClick={() => setGrantAllExpiresAt(grantExpiryPreset(365, grantAllExpiresAt))}>1年</button>
+              <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(30, grantAllExpiresAt)); setGrantAllDateError(""); }}>30天</button>
+              <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(180, grantAllExpiresAt)); setGrantAllDateError(""); }}>180天</button>
+              <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(365, grantAllExpiresAt)); setGrantAllDateError(""); }}>1年</button>
             </div>
-            <p className="grantAllNote">已有课程授权会更新为同一个到期日。</p>
-            {grantAllMessage ? <p className="inlineMessage">{grantAllMessage}</p> : null}
+            <p className="grantAllNote">已有授权会更新到这个日期。</p>
+            {grantAllMessage ? <p className="inlineMessage error">{grantAllMessage}</p> : null}
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setGrantAllOpen(false)}>取消</button>
-              <button type="submit" className="primaryButton" disabled={grantAllSaving || !courseSeries.length}>{grantAllSaving ? "授权中" : "确认授权"}</button>
+              <button type="submit" className="primaryButton" disabled={grantAllSaving}>{grantAllSaving ? "授权中" : "确认授权"}</button>
             </div>
           </form>
         </div>
