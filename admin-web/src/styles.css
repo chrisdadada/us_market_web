@@ -1125,6 +1125,9 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .openTradeNoteModal {
   width: min(560px, calc(100vw - 72px));
 }
+.openTradeDeleteModal {
+  width: min(520px, calc(100vw - 72px));
+}
 .openTradeNoteInfo {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1172,6 +1175,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .openTradeNoteField textarea:focus {
   border-color: #1677ff;
   box-shadow: 0 0 0 3px #dcebff;
+}
+.openTradeDeleteCopy {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 520;
+  line-height: 1.6;
 }
 .userIdentityCell,
 .lastEventCell {

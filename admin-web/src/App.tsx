@@ -2033,9 +2033,11 @@ function OpenPortfolioPage() {
   const [toast, setToast] = useState<{ text: string; tone: "success" | "error" } | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
   const [editingTradeId, setEditingTradeId] = useState<number | null>(null);
+  const [deleteTradeId, setDeleteTradeId] = useState<number | null>(null);
   const [tradePage, setTradePage] = useState(1);
   const holdings = data?.holdings || [];
   const editingTrade = data?.trades.find((trade) => trade.id === editingTradeId) || null;
+  const deleteTrade = data?.trades.find((trade) => trade.id === deleteTradeId) || null;
   const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
   const tradeDateAvailableCash = useMemo(() => openAvailableCashAt(data, form.tradeTime), [data, form.tradeTime]);
   const enteredBuyAmount = Number(form.amount || 0);
@@ -2129,12 +2131,12 @@ function OpenPortfolioPage() {
   }
 
   async function removeTrade(id: number) {
-    if (!window.confirm("删除这笔交易记录？")) return;
     setSaving(true);
     setToast(null);
     try {
       await api.deleteOpenTrade(id);
       await loadOpenPortfolio();
+      setDeleteTradeId(null);
       setToast({ text: "交易已删除", tone: "success" });
     } catch (err) {
       setToast({ text: err instanceof Error ? err.message : "删除失败", tone: "error" });
@@ -2297,7 +2299,7 @@ function OpenPortfolioPage() {
                   <td>
                     <div className="openHistoryActions">
                       <button type="button" className="tableAction" disabled={saving} onClick={() => openTradeNoteEditor(row)}>编辑</button>
-                      <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => removeTrade(row.id)}>删除</button>
+                      <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setDeleteTradeId(row.id)}>删除</button>
                     </div>
                   </td>
                 </tr>
@@ -2337,6 +2339,28 @@ function OpenPortfolioPage() {
               <button type="submit" className="primaryButton" disabled={saving || (noteDrafts[editingTrade.id] ?? "") === (editingTrade.note || "")}>{saving ? "保存中" : "保存"}</button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {deleteTrade ? (
+        <div className="modalBackdrop modalBackdropTop" role="presentation" onMouseDown={() => setDeleteTradeId(null)}>
+          <section className="modalPanel openTradeDeleteModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modalHeader">
+              <h2>删除交易记录</h2>
+              <button type="button" className="iconButton" onClick={() => setDeleteTradeId(null)}>×</button>
+            </div>
+            <div className="openTradeNoteInfo">
+              <div><span>日期</span><strong>{formatDate(deleteTrade.tradeTime)}</strong></div>
+              <div><span>标的</span><strong>{deleteTrade.symbol}</strong></div>
+              <div><span>方向</span><strong>{deleteTrade.side === "buy" ? "买入" : "卖出"}</strong></div>
+              <div><span>金额</span><strong>{adminMoney(deleteTrade.amount)}</strong></div>
+            </div>
+            <p className="openTradeDeleteCopy">删除后会按时间顺序重算现金和持仓。</p>
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={() => setDeleteTradeId(null)}>取消</button>
+              <button type="button" className="dangerButton" disabled={saving} onClick={() => void removeTrade(deleteTrade.id)}>{saving ? "删除中" : "确认删除"}</button>
+            </div>
+          </section>
         </div>
       ) : null}
     </div>
