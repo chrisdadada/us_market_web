@@ -20,6 +20,8 @@ const planLabels: Record<string, string> = {
   yearly: "年度"
 };
 
+const introCourseTitles = new Set(["美股定投课程", "美股投资框架课"]);
+
 const roleLabels: Record<string, string> = {
   user: "普通用户",
   admin: "管理员",
@@ -834,7 +836,8 @@ function UserDetailModal({
   onClose,
   onEditAccount,
   onEditMember,
-  onGrantCourses
+  onGrantCourses,
+  canGrantIntro
 }: {
   user: AdminUser | null;
   events: UserEvent[];
@@ -844,6 +847,7 @@ function UserDetailModal({
   onEditAccount: () => void;
   onEditMember: () => void;
   onGrantCourses: (scope: "all" | "intro") => void;
+  canGrantIntro: boolean;
 }) {
   if (!user) return null;
   const state = membershipState(user);
@@ -866,7 +870,7 @@ function UserDetailModal({
           </div>
           <div className="userDetailTopActions">
             <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
-            {user.role === "user" ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("intro")}>授权入门课程</button> : null}
+            {user.role === "user" && canGrantIntro ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("intro")}>授权入门课程</button> : null}
             {user.role === "user" ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("all")}>授权全部课程</button> : null}
             <button type="button" className="ghostButton" onClick={onEditAccount}>账号操作</button>
             <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
@@ -962,6 +966,7 @@ function UsersPage({
   const normalUsers = users.filter((user) => user.role === "user");
   const today = localDateInputValue();
   const seriesById = useMemo(() => new Map(courseSeries.map((item) => [item.id, item])), [courseSeries]);
+  const introCourseCount = courseSeries.filter((item) => introCourseTitles.has(item.title)).length;
   const grantsByUser = useMemo(() => {
     const map = new Map<number, CourseGrant[]>();
     courseGrants.forEach((grant) => {
@@ -1208,6 +1213,7 @@ function UsersPage({
           setGrantAllToast(null);
           setGrantAllOpen(true);
         }}
+        canGrantIntro={introCourseCount > 0}
       />
       <UserEditModal selected={selected} open={editorOpen} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} mode={editorMode} title={editorMode === "member" ? "设置会员" : "账号操作"} />
       {grantAllOpen && selected ? (
@@ -1220,7 +1226,7 @@ function UsersPage({
             <p className="grantAllSummary">
               <span>用户</span>
               <strong>{selected.email}</strong>
-              <em>{grantScope === "intro" ? "美股入门课程（2门）" : `全部 ${courseSeries.length} 门课程`}</em>
+              <em>{grantScope === "intro" ? `入门课程 ${introCourseCount} 门` : `全部 ${courseSeries.length} 门课程`}</em>
             </p>
             <label className={grantAllDateError ? "fieldInvalid" : ""}>
               到期日期
