@@ -973,6 +973,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-weight: 620;
   cursor: pointer;
 }
+.quantityInput button:disabled {
+  color: #9aa7b8;
+  cursor: not-allowed;
+}
 .amountSlider {
   display: grid;
   gap: 8px;

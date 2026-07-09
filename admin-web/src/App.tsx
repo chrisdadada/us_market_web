@@ -2047,7 +2047,7 @@ function OpenPortfolioPage() {
   const tradeTotalPages = Math.max(1, Math.ceil((data?.trades.length || 0) / tradePageSize));
   const tradeRows = (data?.trades || []).slice((tradePage - 1) * tradePageSize, tradePage * tradePageSize);
   const setTradeSide = (side: "buy" | "sell") => {
-    setForm({ ...form, side, symbol: side === "sell" ? holdings[0]?.symbol || "" : "", amount: "", quantity: "" });
+    setForm({ ...form, side, symbol: "", amount: "", quantity: "" });
   };
   const setSellQuantity = (ratio: number) => {
     if (!selectedHolding) return;
@@ -2202,7 +2202,7 @@ function OpenPortfolioPage() {
             {form.side === "buy" ? (
               <label>
               <span className="labelMeta"><span>买入金额</span><em>所选日期可用 {adminMoney(tradeDateAvailableCash)}</em></span>
-              <input type="number" min="0" max={tradeDateAvailableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="2000000" />
+              <input type="number" min="0" max={tradeDateAvailableCash || undefined} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="输入金额" />
               <div className="amountSlider">
                 <input type="range" min="0" max="100" step="1" value={buyAmountPct} onChange={(event) => setBuyAmountRatio(Number(event.target.value) / 100)} />
                 <div>
@@ -2214,16 +2214,17 @@ function OpenPortfolioPage() {
               </div>
             </label>
             ) : (
-              <label>卖出数量
+              <label>
+                <span className="labelMeta"><span>卖出数量</span>{selectedHolding ? <em>可卖 {formatTradeQuantity(selectedHolding.quantity, selectedHolding.quantityStep)}</em> : null}</span>
                 <div className="quantityInput">
-                  <input type="number" min="0" max={selectedHolding?.quantity || undefined} step={selectedHolding?.quantityStep || 1} value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder={selectedHolding ? formatTradeQuantity(selectedHolding.quantity, selectedHolding.quantityStep) : ""} />
-                  <button type="button" onClick={() => setSellQuantity(1 / 3)}>1/3</button>
-                  <button type="button" onClick={() => setSellQuantity(1 / 2)}>半仓</button>
-                  <button type="button" onClick={() => setSellQuantity(1)}>全卖</button>
+                  <input type="number" min="0" max={selectedHolding?.quantity || undefined} step={selectedHolding?.quantityStep || 1} value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder="输入数量" />
+                  <button type="button" disabled={!selectedHolding} onClick={() => setSellQuantity(1 / 3)}>1/3</button>
+                  <button type="button" disabled={!selectedHolding} onClick={() => setSellQuantity(1 / 2)}>半仓</button>
+                  <button type="button" disabled={!selectedHolding} onClick={() => setSellQuantity(1)}>全卖</button>
                 </div>
               </label>
             )}
-            <label className="fullField">交易逻辑<input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
+            <label className="fullField">交易逻辑<input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="选填" /></label>
             {buyAmountTooHigh ? <div className="openTradeInlineError">{form.symbol.trim().toUpperCase() || "标的"} 买入金额超过所选日期可用资金</div> : null}
             <button className={`tradeSubmit ${form.side}`} type="submit" disabled={saving}>{saving ? "保存中" : form.side === "buy" ? "确认买入" : "确认卖出"}</button>
           </form>
@@ -2237,7 +2238,7 @@ function OpenPortfolioPage() {
             <div><span>{form.side === "buy" ? "本次买入" : "本次卖出回收"}</span><strong>{form.side === "buy" ? (Number.isFinite(enteredBuyAmount) && enteredBuyAmount > 0 ? adminMoney(enteredBuyAmount) : "--") : (Number.isFinite(enteredSellAmount) && enteredSellAmount > 0 ? adminMoney(enteredSellAmount) : "--")}</strong></div>
             <div><span>{form.side === "buy" ? "买入后可用" : "卖出后可用"}</span><strong className={buyAmountTooHigh ? "dangerText" : ""}>{cashAfterTrade !== null && Number.isFinite(cashAfterTrade) ? adminMoney(cashAfterTrade) : "--"}</strong></div>
           </div>
-          <p>补录历史交易时，系统会把该交易插入到对应日期，再按时间顺序重算后续现金和持仓。</p>
+          <p>历史交易会按日期重算现金和持仓。</p>
         </section>
       </div>
 
