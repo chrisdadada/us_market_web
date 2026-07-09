@@ -1841,6 +1841,15 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   min-width: 260px;
 }
 
+.courseListTable small,
+.courseDetailPage .adminTable small {
+  display: block;
+  margin-top: 3px;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .courseActionCell {
   white-space: nowrap;
 }
