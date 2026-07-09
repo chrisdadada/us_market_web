@@ -10,7 +10,7 @@
   --admin-card-radius: 12px;
   --admin-card-shadow: 0 8px 18px rgba(15, 23, 42, .05);
   --admin-table-head-size: 12px;
-  --admin-table-body-size: 14px;
+  --admin-table-body-size: 13px;
   --admin-table-head-weight: 600;
   --admin-table-body-weight: 500;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -44,13 +44,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .topbar { height: 68px; background: #fff; border-bottom: 1px solid #e4e9f0; display: flex; align-items: center; justify-content: space-between; padding: 0 34px; }
 .topbar h1 { margin: 0; font-size: 23px; font-weight: 720; }
 .topActions { display: flex; gap: 12px; }
-.ghostButton { border: 1px solid #d6dee9; background: #fff; color: #344257; border-radius: 10px; padding: 10px 18px; font-weight: 750; cursor: pointer; }
+.ghostButton { border: 1px solid #d6dee9; background: #fff; color: #344257; border-radius: 8px; padding: 7px 13px; font-size: 13px; font-weight: 650; cursor: pointer; }
 .primaryButton, .dangerButton {
   border: 0;
-  border-radius: 10px;
-  padding: 10px 18px;
+  border-radius: 8px;
+  padding: 7px 14px;
   color: #fff;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
 }
 .primaryButton { background: #1677ff; }
@@ -63,25 +64,25 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .statsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
 .openStatsGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .statCard, .panel { background: #fff; border: 1px solid var(--admin-line); border-radius: var(--admin-card-radius); box-shadow: var(--admin-card-shadow); }
-.statCard { min-height: 118px; padding: 22px 24px; }
-.statCard p { margin: 0; color: #243247; font-size: 15px; font-weight: 680; }
-.statCard strong { display: block; margin-top: 16px; font-size: 32px; font-weight: 720; line-height: 1; }
-.statCard span { display: block; margin-top: 12px; color: #718096; font-size: 14px; font-weight: 650; }
+.statCard { min-height: 98px; padding: 18px 20px; }
+.statCard p { margin: 0; color: #243247; font-size: 14px; font-weight: 650; }
+.statCard strong { display: block; margin-top: 12px; font-size: 26px; font-weight: 700; line-height: 1; }
+.statCard span { display: block; margin-top: 9px; color: #718096; font-size: 13px; font-weight: 600; }
 .positive { color: #12b981; }
 .warning { color: #f59e0b; }
 .panel { padding: 22px 24px; }
 .panelHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-.panelHeader h2 { margin: 0; font-size: 22px; }
+.panelHeader h2 { margin: 0; font-size: 20px; font-weight: 720; }
 .homeTablePanel {
   overflow: auto;
 }
 .adminTable { width: 100%; border-collapse: collapse; }
-.adminTable th, .adminTable td { padding: 13px 12px; border-top: 1px solid #e6ebf2; text-align: left; vertical-align: middle; }
+.adminTable th, .adminTable td { padding: 10px 12px; border-top: 1px solid #e6ebf2; text-align: left; vertical-align: middle; }
 .adminTable th { color: #7b8798; font-size: var(--admin-table-head-size); font-weight: var(--admin-table-head-weight); }
 .adminTable td { color: #344257; font-size: var(--admin-table-body-size); font-weight: var(--admin-table-body-weight); }
 .adminTable tbody tr { cursor: default; }
 .adminTable tbody tr.selectedRow { background: #eff6ff; }
-.status { display: inline-flex; align-items: center; border-radius: 999px; background: #f1f5f9; color: #64748b; padding: 5px 12px; font-size: 13px; font-weight: 600; }
+.status { display: inline-flex; align-items: center; border-radius: 999px; background: #f1f5f9; color: #64748b; padding: 3px 9px; font-size: 12px; font-weight: 650; line-height: 1.45; }
 .positiveBg { background: #eafbF4; color: #0f9b72; }
 .warningBg { background: #fff7e6; color: #b7791f; }
 .dangerBg { background: #fff1f2; color: #be123c; }
@@ -91,19 +92,19 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .contentLoading { background: #eff6ff; color: #1677ff; border: 1px solid #cfe5ff; }
 .adminToast {
   position: fixed;
-  top: 86px;
-  right: 34px;
+  top: 76px;
+  right: 28px;
   z-index: 20;
-  min-width: 220px;
-  max-width: 360px;
+  min-width: 180px;
+  max-width: 320px;
   border: 1px solid #bbf7d0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #ecfdf5;
   color: #166534;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, .12);
-  padding: 12px 16px;
-  font-size: 14px;
-  font-weight: 750;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .10);
+  padding: 10px 13px;
+  font-size: 13px;
+  font-weight: 650;
 }
 .adminToast.error {
   border-color: #fecdd3;
@@ -332,7 +333,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .userDrawerActions .ghostButton,
 .userDrawerActions .primaryButton {
   width: 100%;
-  height: 38px;
+  height: 34px;
   padding: 0 12px;
 }
 .compactAuditList div {
@@ -363,8 +364,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .userDetailHead h2 {
   margin: 5px 0 6px;
   color: #182337;
-  font-size: 24px;
-  font-weight: 850;
+  font-size: 22px;
+  font-weight: 780;
   overflow-wrap: anywhere;
 }
 
@@ -377,8 +378,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userDetailTopActions .primaryButton,
 .userDetailTopActions .ghostButton {
-  height: 38px;
-  padding: 0 14px;
+  height: 34px;
+  padding: 0 12px;
 }
 
 .userDetailLayout {
@@ -396,7 +397,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #182337;
   font-size: 17px;
-  font-weight: 850;
+  font-weight: 750;
 }
 
 .userDetailSide > span {
@@ -450,14 +451,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .userDetailTabs button {
-  height: 48px;
+  height: 42px;
   border: 0;
   border-bottom: 3px solid transparent;
   background: transparent;
   color: #607086;
   padding: 0 14px;
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -498,8 +499,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: block;
   margin: 8px 0 4px;
   color: #182337;
-  font-size: 17px;
-  font-weight: 900;
+  font-size: 16px;
+  font-weight: 760;
 }
 
 .userDetailBlock {
@@ -762,12 +763,12 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 .tableAction {
   border: 1px solid #d6dee9;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   color: #1677ff;
-  padding: 7px 12px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 650;
   cursor: pointer;
 }
 .tableAction:hover {
@@ -1152,56 +1153,56 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: grid;
   place-items: center;
   background: rgba(15, 23, 42, .34);
-  padding: 36px;
+  padding: 28px;
 }
 .modalPanel {
   width: min(680px, calc(100vw - 72px));
   max-height: calc(100vh - 72px);
   overflow: auto;
   border: 1px solid #e3e9f1;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
-  padding: 22px 24px 24px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
+  padding: 20px 22px 22px;
 }
 .modalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 .modalHeader h2 {
   margin: 0;
   color: #182337;
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 720;
 }
 .iconButton {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 1px solid #d6dee9;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #526174;
-  font-size: 24px;
+  font-size: 21px;
   line-height: 1;
   cursor: pointer;
 }
 .modalActions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 8px;
   padding-top: 4px;
 }
 .modalActions .ghostButton {
   border: 1px solid #d6dee9;
   background: #fff;
   color: #344257;
-  height: 42px;
+  height: 34px;
 }
 .modalActions .primaryButton {
-  height: 42px;
+  height: 34px;
 }
 .modalAudit {
   margin-top: 18px;
@@ -1971,7 +1972,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: grid;
   place-items: center;
   background: rgba(15, 23, 42, .34);
-  padding: 36px;
+  padding: 28px;
 }
 
 .adminModal {
@@ -1979,20 +1980,20 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   max-height: calc(100vh - 72px);
   overflow: auto;
   border: 1px solid #e3e9f1;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
-  padding: 22px 24px 24px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
+  padding: 20px 22px 22px;
 }
 
 .modalHeader button {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 1px solid #d6dee9;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #526174;
-  font-size: 24px;
+  font-size: 21px;
   line-height: 1;
   cursor: pointer;
 }
@@ -2036,6 +2037,24 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #182337;
   font-size: 15px;
   font-weight: 850;
+}
+
+.courseGrantModal .grantAllSummary {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #182337;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.courseGrantModal .grantAllNote {
+  border: 0;
+  background: #f8fbff;
+  padding: 10px 12px;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .courseConfirmModal {
