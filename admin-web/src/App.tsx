@@ -1334,6 +1334,12 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     if (courseProgress !== "all" && item.progressStatus !== courseProgress) return false;
     return true;
   });
+  const courseStats = {
+    total: series.length,
+    published: series.filter((item) => item.status === "published").length,
+    grants: grants.filter((grant) => grant.active !== false).length,
+    expiring: series.reduce((sum, item) => sum + (item.expiringCount || 0), 0)
+  };
 
   async function loadCourses() {
     setError("");
@@ -1613,7 +1619,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       <div className="pageTitle">
         <div>
           <span>后台 / 课程管理</span>
-          <h1>课程管理</h1>
+          <h1>{courseView === "list" ? "课程列表" : selected?.title || "课程详情"}</h1>
         </div>
         <button type="button" className="primaryButton" onClick={openNewSeries}>新建课程</button>
       </div>
@@ -1638,8 +1644,15 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <option value="updating">更新中</option>
               <option value="finished">已完结</option>
             </select>
+            <button type="button" className="ghostButton" onClick={() => { setCourseQuery(""); setCourseStatus("all"); setCourseProgress("all"); }}>重置</button>
           </div>
-          <table className="adminTable">
+          <div className="courseListStats">
+            <div><span>课程总数</span><strong>{courseStats.total}</strong></div>
+            <div><span>已上架</span><strong>{courseStats.published}</strong></div>
+            <div><span>有效授权</span><strong>{courseStats.grants}</strong></div>
+            <div><span>7天内到期</span><strong>{courseStats.expiring}</strong></div>
+          </div>
+          <table className="adminTable courseListTable">
             <thead><tr><th>课程</th><th>状态</th><th>进度</th><th>视频</th><th>有效授权</th><th>即将到期</th><th>更新时间</th><th>操作</th></tr></thead>
             <tbody>
               {visibleSeries.map((item) => (
@@ -1651,7 +1664,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   <td>{item.grantCount}</td>
                   <td>{item.expiringCount || 0}</td>
                   <td>{formatTime(item.updatedAt)}</td>
-                  <td>
+                  <td className="courseActionCell">
                     <button type="button" className="tableAction" onClick={() => openCourse(item)}>进入详情</button>
                     <button type="button" className="tableAction" onClick={() => openEditSeries(item)}>编辑</button>
                   </td>
@@ -1805,8 +1818,8 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       ) : null}
 
       {grantOpen && selected ? (
-        <div className="modalOverlay">
-          <form className="adminModal courseModal courseGrantModal" onSubmit={submitGrant}>
+        <div className="modalOverlay courseDrawerOverlay">
+          <form className="adminModal courseModal courseGrantModal courseGrantDrawer" onSubmit={submitGrant}>
             <div className="modalHeader">
               <h2>{grantUser ? "修改授权" : "新增授权"}</h2>
               <button type="button" onClick={() => setGrantOpen(false)}>×</button>

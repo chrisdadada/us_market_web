@@ -1777,21 +1777,72 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseListFilters {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 160px 160px;
-  gap: 12px;
+  grid-template-columns: minmax(260px, 1fr) 150px 150px 92px;
+  gap: 10px;
   border-top: 1px solid #e6ebf2;
-  padding: 14px 0 18px;
+  padding: 14px;
 }
 
 .courseListFilters input,
 .courseListFilters select {
-  height: 38px;
+  height: 34px;
   border: 1px solid #d6dee9;
-  border-radius: 8px;
+  border-radius: 7px;
   padding: 0 12px;
   color: #182337;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 650;
   background: #fff;
+}
+
+.courseListFilters .ghostButton {
+  height: 34px;
+}
+
+.courseListStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid #e6ebf2;
+}
+
+.courseListStats div {
+  min-width: 0;
+  border-right: 1px solid #e6ebf2;
+  padding: 12px 16px;
+}
+
+.courseListStats div:last-child {
+  border-right: 0;
+}
+
+.courseListStats span {
+  display: block;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.courseListStats strong {
+  display: block;
+  margin-top: 6px;
+  color: #182337;
+  font-size: 18px;
+  font-weight: 780;
+}
+
+.courseListTable th,
+.courseListTable td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.courseListTable th:first-child,
+.courseListTable td:first-child {
+  min-width: 260px;
+}
+
+.courseActionCell {
+  white-space: nowrap;
 }
 
 .courseDetailPage {
@@ -1810,24 +1861,34 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   overflow: hidden;
 }
 
+.courseSidePanel .panelHeader {
+  margin: 0;
+  padding: 14px 16px;
+}
+
+.courseSidePanel .panelHeader h2 {
+  font-size: 16px;
+}
+
 .courseSideFilters {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 88px;
   gap: 10px;
-  padding: 14px 16px;
+  padding: 12px;
   border-top: 1px solid #e6ebf2;
+  border-bottom: 1px solid #e6ebf2;
 }
 
 .courseSideFilters input,
 .courseSideFilters select {
-  height: 38px;
+  height: 34px;
   border: 1px solid #d6dee9;
-  border-radius: 8px;
+  border-radius: 7px;
   padding: 0 12px;
   color: #182337;
   background: #fff;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .courseSideList {
@@ -1836,17 +1897,16 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseSideList button {
   border: 0;
-  border-top: 1px solid #edf1f6;
+  border-bottom: 1px solid #edf1f6;
   background: #fff;
-  padding: 14px 16px;
+  padding: 13px 14px;
   text-align: left;
   cursor: pointer;
 }
 
 .courseSideList button.active {
-  border-left: 4px solid #1677ff;
+  box-shadow: inset 3px 0 0 #1677ff;
   background: #eff6ff;
-  padding-left: 12px;
 }
 
 .courseSideList strong,
@@ -1869,14 +1929,21 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseSideList em {
   display: inline-flex;
-  margin: 10px 6px 0 0;
+  align-items: center;
+  height: 22px;
+  margin: 8px 6px 0 0;
   border-radius: 999px;
-  background: #e8fff4;
-  color: #059669;
-  padding: 5px 9px;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 0 8px;
   font-size: 12px;
   font-style: normal;
   font-weight: 850;
+}
+
+.courseSideList em.warningBg {
+  background: #fff7e6;
+  color: #b7791f;
 }
 
 .courseSideList p {
@@ -1891,24 +1958,44 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: start;
-  padding: 18px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e6ebf2;
 }
 
 .courseDetailHero h2 {
-  margin: 0 0 8px;
-  font-size: 24px;
+  margin: 0 0 5px;
+  font-size: 18px;
+  font-weight: 780;
 }
 
 .courseDetailHero p {
   margin: 0;
   color: #64748b;
+  font-size: 12px;
   font-weight: 720;
 }
 
 .courseDetailStats {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
-  padding: 0 18px 16px;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.courseDetailStats .statCard {
+  min-height: 74px;
+  padding: 12px;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.courseDetailStats .statCard p {
+  font-size: 12px;
+}
+
+.courseDetailStats .statCard strong {
+  margin-top: 8px;
+  font-size: 17px;
 }
 
 .courseTabs {
@@ -1916,17 +2003,19 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   gap: 2px;
   border-top: 1px solid #e6ebf2;
   border-bottom: 1px solid #e6ebf2;
-  padding: 0 18px;
+  padding: 0 14px;
+  background: #fbfcfe;
 }
 
 .courseTabs button {
-  height: 48px;
+  height: 40px;
   border: 0;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   background: transparent;
   color: #64748b;
   font-weight: 780;
-  padding: 0 18px;
+  padding: 0 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -1938,19 +2027,20 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseBasicGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  padding: 18px;
+  gap: 12px;
+  padding: 14px;
 }
 
 .courseBasicGrid div,
 .courseBasicGrid section {
   border: 1px solid #e3e9f1;
-  border-radius: 10px;
-  padding: 14px;
+  border-radius: 8px;
+  padding: 12px;
 }
 
 .courseBasicGrid section {
   grid-column: span 2;
+  min-height: 128px;
 }
 
 .courseBasicGrid span {
@@ -1963,39 +2053,38 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseBasicGrid strong,
 .courseBasicGrid p {
   display: block;
-  margin: 8px 0 0;
+  margin: 7px 0 0;
   color: #182337;
-  font-weight: 780;
+  font-size: 14px;
+  font-weight: 720;
+  line-height: 1.65;
 }
 
 .courseTabActions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 16px 18px 0;
+  padding: 12px 14px;
 }
 
 .courseGrantFilters {
   margin-right: auto;
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 220px 120px;
+  gap: 8px;
 }
 
 .courseGrantFilters input,
 .courseGrantFilters select {
   height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 7px;
   background: #fff;
-  color: var(--text);
+  color: var(--admin-text);
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 600;
-}
-
-.courseGrantFilters input {
-  width: 220px;
+  font-weight: 650;
 }
 
 .courseKeyCell {
@@ -2003,13 +2092,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   overflow: hidden;
   color: #64748b !important;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lessonCoverThumb {
-  width: 72px;
-  height: 42px;
+  width: 88px;
+  height: 48px;
   display: block;
-  border-radius: 6px;
+  border-radius: 7px;
   object-fit: cover;
 }
 
@@ -2053,6 +2143,11 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 28px;
 }
 
+.courseDrawerOverlay {
+  place-items: stretch end;
+  padding: 92px 28px 28px;
+}
+
 .adminModal {
   width: min(680px, calc(100vw - 72px));
   max-height: calc(100vh - 72px);
@@ -2062,6 +2157,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #fff;
   box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
   padding: 20px 22px 22px;
+}
+
+.courseDrawerOverlay .adminModal {
+  max-height: calc(100vh - 120px);
 }
 
 .modalHeader button {
@@ -2084,6 +2183,48 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   width: min(520px, calc(100vw - 72px));
   display: grid;
   gap: 16px;
+}
+
+.courseGrantDrawer {
+  align-self: start;
+  width: min(440px, calc(100vw - 72px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.courseGrantDrawer .modalHeader {
+  margin: 0;
+  padding: 16px;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.courseGrantDrawer .courseGrantCurrent,
+.courseGrantDrawer label,
+.courseGrantDrawer .grantQuickActions,
+.courseGrantDrawer > p {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.courseGrantDrawer .courseGrantCurrent {
+  margin-top: 16px;
+}
+
+.courseGrantDrawer > p {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #405168;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.courseGrantDrawer .modalActions {
+  margin: 0;
+  padding: 14px 16px;
+  border-top: 1px solid #e6ebf2;
+  background: #fbfcfe;
 }
 
 .courseGrantCurrent {
