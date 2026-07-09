@@ -496,7 +496,6 @@ function HomePage({ users, events, metrics }: { users: AdminUser[]; events: User
 function UserEditModal({
   selected,
   open,
-  events,
   currentUser,
   onRefresh,
   onClose,
@@ -505,7 +504,6 @@ function UserEditModal({
 }: {
   selected: AdminUser | null;
   open: boolean;
-  events: UserEvent[];
   currentUser?: AuthStatus["user"];
   onRefresh: () => Promise<void>;
   onClose: () => void;
@@ -523,13 +521,12 @@ function UserEditModal({
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const selectedEvents = events.filter((event) => event.target.id === selected?.id).slice(0, 5);
   const isProtectedSuperAdmin = selected?.role === "super_admin";
   const selectedState = selected ? membershipState(selected) : null;
   const canEditRole = mode === "account";
-  const canEditMembership = form.role === "user";
-  const canResetPassword = currentUser?.role === "super_admin" && selected?.role !== "super_admin";
-  const canDeleteUser = currentUser?.role === "super_admin" && selected?.role !== "super_admin";
+  const canEditMembership = mode === "member" && form.role === "user";
+  const canResetPassword = mode === "account" && currentUser?.role === "super_admin" && selected?.role !== "super_admin";
+  const canDeleteUser = mode === "account" && currentUser?.role === "super_admin" && selected?.role !== "super_admin";
 
   useEffect(() => {
     if (!selected) return;
@@ -613,9 +610,12 @@ function UserEditModal({
 
   return (
     <div className="modalBackdrop" role="presentation" onMouseDown={onClose}>
-      <section className="modalPanel" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+      <section className="modalPanel userEditModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modalHeader">
-          <h2>{title}</h2>
+          <div>
+            <h2>{title}</h2>
+            <p>{mode === "member" ? "只修改这个用户的会员类型和到期时间，课程授权不受影响。" : "基本设置、重置密码、删除账号分开操作。"}</p>
+          </div>
           <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
         </div>
         <form className="editForm" onSubmit={savePlan}>
@@ -655,6 +655,7 @@ function UserEditModal({
           </div>
           {canEditMembership ? (
             <>
+              <p className="formHint">当前：{planLabels[selected.plan] || selected.plan}，{formatDate(selected.subscriptionExpiresAt)} 到期。</p>
               <label>
                 会员类型
                 <select
@@ -687,74 +688,76 @@ function UserEditModal({
               </div>
             </>
           ) : null}
-          {canEditRole ? (
-            <label>
-              身份
-              <select
-                value={form.role}
-                disabled={isProtectedSuperAdmin}
-                onChange={(event) => setForm({ ...form, role: event.target.value as AdminUser["role"] })}
-              >
-                <option value="user">普通用户</option>
-                <option value="admin">管理员</option>
-                <option value="super_admin">超级管理员</option>
-              </select>
-            </label>
-          ) : null}
-          <label className="checkboxLine">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              disabled={isProtectedSuperAdmin}
-              onChange={(event) => setForm({ ...form, isActive: event.target.checked })}
-            />
-            账号启用
-          </label>
-          {canResetPassword ? (
-            <div className="passwordResetBox">
-              <label>
-                重置密码
-                <input
-                  type="password"
-                  value={newPassword}
-                  minLength={8}
-                  maxLength={128}
-                  autoComplete="new-password"
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  placeholder="至少 8 位"
-                />
-              </label>
-              <button type="button" className="ghostButton" disabled={resetting || newPassword.length < 8} onClick={resetPassword}>
-                {resetting ? "重置中" : "重置密码"}
-              </button>
-            </div>
+          {mode === "account" ? (
+            <>
+              <section className="settingsBlock">
+                <h3>基本设置</h3>
+                <label>
+                  身份
+                  <select
+                    value={form.role}
+                    disabled={isProtectedSuperAdmin}
+                    onChange={(event) => setForm({ ...form, role: event.target.value as AdminUser["role"] })}
+                  >
+                    <option value="user">普通用户</option>
+                    <option value="admin">管理员</option>
+                    <option value="super_admin">超级管理员</option>
+                  </select>
+                </label>
+                <label className="checkboxLine">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    disabled={isProtectedSuperAdmin}
+                    onChange={(event) => setForm({ ...form, isActive: event.target.checked })}
+                  />
+                  账号启用
+                </label>
+                <div className="modalActions compactActions">
+                  <button type="submit" className="primaryButton" disabled={saving || isProtectedSuperAdmin}>{saving ? "保存中" : "保存账号设置"}</button>
+                </div>
+              </section>
+              {canResetPassword ? (
+                <section className="settingsBlock">
+                  <h3>重置密码</h3>
+                  <div className="passwordResetBox">
+                    <label>
+                      新密码
+                      <input
+                        type="password"
+                        value={newPassword}
+                        minLength={8}
+                        maxLength={128}
+                        autoComplete="new-password"
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        placeholder="至少 8 位"
+                      />
+                    </label>
+                    <button type="button" className="ghostButton" disabled={resetting || newPassword.length < 8} onClick={resetPassword}>
+                      {resetting ? "重置中" : "确认重置"}
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+              {canDeleteUser ? (
+                <section className="settingsBlock dangerZone">
+                  <h3>危险操作</h3>
+                  <p>删除后账号、权限和操作记录都无法恢复。</p>
+                  <button type="button" className="dangerButton" disabled={deleting} onClick={deleteUser}>
+                    {deleting ? "删除中" : "删除用户"}
+                  </button>
+                </section>
+              ) : null}
+            </>
           ) : null}
           {message ? <p className="inlineMessage">{message}</p> : null}
-          <div className="modalActions">
-            {canDeleteUser ? (
-              <button type="button" className="dangerButton" disabled={deleting} onClick={deleteUser}>
-                {deleting ? "删除中" : "删除用户"}
-              </button>
-            ) : null}
-            <button type="button" className="ghostButton" onClick={onClose}>取消</button>
-            <button type="submit" className="primaryButton" disabled={saving || isProtectedSuperAdmin}>{saving ? "保存中" : "保存设置"}</button>
-          </div>
-        </form>
-
-        <div className="modalAudit">
-        <div className="panelHeader">
-          <h2>该用户最近操作</h2>
-        </div>
-        <div className="auditList">
-          {selectedEvents.length === 0 ? <div><span>暂无记录</span></div> : null}
-          {selectedEvents.map((event) => (
-            <div key={event.id}>
-              <strong>{eventSummary(event)}</strong>
-              <span>{event.actor.email || "--"} · {formatTime(event.createdAt)}</span>
+          {mode === "member" ? (
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={onClose}>取消</button>
+              <button type="submit" className="primaryButton" disabled={saving || isProtectedSuperAdmin}>{saving ? "保存中" : "保存设置"}</button>
             </div>
-          ))}
-        </div>
-        </div>
+          ) : null}
+        </form>
       </section>
     </div>
   );
@@ -823,9 +826,7 @@ function UserDetailModal({
   seriesById,
   onClose,
   onEditAccount,
-  onEditMember,
-  onExtendMembership,
-  onOpenCourses
+  onEditMember
 }: {
   user: AdminUser | null;
   events: UserEvent[];
@@ -834,66 +835,70 @@ function UserDetailModal({
   onClose: () => void;
   onEditAccount: () => void;
   onEditMember: () => void;
-  onExtendMembership: (days: 30 | 180 | 365) => void;
-  onOpenCourses: () => void;
 }) {
   if (!user) return null;
   const state = membershipState(user);
-  const selectedEvents = events.filter((event) => event.target.id === user.id).slice(0, 5);
-  const activeGrants = grants.filter((grant) => grant.active !== false).slice(0, 5);
+  const selectedEvents = events.filter((event) => event.target.id === user.id);
+  const activeGrants = grants.filter((grant) => grant.active !== false);
+  const expiringGrants = activeGrants.filter((grant) => {
+    const days = daysUntil(grant.expiresAt);
+    return days !== null && days >= 0 && days <= 7;
+  });
+  const membershipDays = daysUntil(user.subscriptionExpiresAt);
+  const hasMemberAlert = membershipDays !== null && user.hasPaidAccess && membershipDays >= 0 && membershipDays <= 7;
   return (
     <div className="modalBackdrop" role="presentation" onMouseDown={onClose}>
       <section className="modalPanel userDetailModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
-      <div className="userDrawerHead">
-        <div>
-          <h2>{user.email}</h2>
-          <span>{user.uid} · 注册 {formatTime(user.createdAt)}</span>
-        </div>
-        <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
-      </div>
-      <div className="userInfoGrid">
-        <div><span>账号状态</span><strong className={user.isActive ? "positive" : "dangerText"}>{user.isActive ? "启用" : "停用"}</strong></div>
-        <div><span>最后活跃</span><strong>{formatTime(user.lastLoginAt)}</strong></div>
-        <div><span>会员</span><strong className={state.tone || ""}>{state.label}</strong></div>
-        <div><span>会员到期</span><strong>{formatDate(user.subscriptionExpiresAt)}</strong></div>
-      </div>
-      <section className="userDrawerSection">
-        <h3>课程授权</h3>
-        {activeGrants.length ? activeGrants.map((grant) => (
-          <div className="userCourseRow" key={grant.id}>
-            <strong>{seriesById.get(grant.seriesId)?.title || "交易实战课程"}</strong>
-            <span>到期 {formatDate(grant.expiresAt)}</span>
+        <div className="userDetailHead">
+          <div>
+            <span>用户管理 / 用户详情</span>
+            <h2>{user.email}</h2>
+            <p>{user.uid} · 注册 {formatTime(user.createdAt)}</p>
           </div>
-        )) : <p>暂无课程授权</p>}
-      </section>
-      <section className="userDrawerSection">
-        <h3>会员操作</h3>
-        <div className="userDrawerActions">
-          <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
-          <button type="button" className="ghostButton" onClick={() => onExtendMembership(30)}>延长30天</button>
-          <button type="button" className="ghostButton" onClick={() => onExtendMembership(180)}>延长180天</button>
-          <button type="button" className="ghostButton" onClick={() => onExtendMembership(365)}>延长1年</button>
+          <div className="userDetailTopActions">
+            <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
+            <button type="button" className="ghostButton" onClick={onEditAccount}>账号操作</button>
+            <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
+          </div>
         </div>
-      </section>
-      <section className="userDrawerSection">
-        <h3>账号操作</h3>
-        <div className="userDrawerActions">
-          <button type="button" className="ghostButton" onClick={onOpenCourses}>课程授权</button>
-          <button type="button" className="ghostButton" onClick={onEditAccount}>账号设置</button>
+        <div className="userDetailContent">
+          <div className="userSummaryGrid">
+            <div><span>会员到期</span><strong>{formatDate(user.subscriptionExpiresAt)}</strong><em>{planLabels[user.plan] || state.label}</em></div>
+            <div><span>课程授权</span><strong>{activeGrants.length} 门</strong><em>{expiringGrants.length ? `${expiringGrants.length} 门 7 天内到期` : "暂无课程到期提醒"}</em></div>
+            <div><span>最后登录</span><strong>{formatDate(user.lastLoginAt)}</strong><em>{formatTime(user.lastLoginAt).slice(11)}</em></div>
+            <div><span>账号状态</span><strong>{user.isActive ? "启用" : "停用"}</strong><em>{roleLabels[user.role] || user.role}</em></div>
+          </div>
+          <div className="userDetailPanels">
+            <section className="userDetailBlock">
+              <h3>权益</h3>
+              <table className="adminTable">
+                <thead><tr><th>类型</th><th>状态</th><th>到期时间</th></tr></thead>
+                <tbody>
+                  <tr><td>会员权限<small>会员内容访问</small></td><td><span className={`status ${state.className}`}>{state.label}</span></td><td>{formatDate(user.subscriptionExpiresAt)}</td></tr>
+                  <tr><td>交易实战课程<small>课程播放权限</small></td><td>{activeGrants.length ? <span className="status positiveBg">{activeGrants.length} 门有效</span> : <span className="tableMuted">无授权</span>}</td><td>{expiringGrants.length ? `${formatDate(expiringGrants[0].expiresAt)} 等` : "--"}</td></tr>
+                </tbody>
+              </table>
+              <p>会员和课程是两套权限：会员到期不影响未到期课程，课程到期也不改变会员。</p>
+            </section>
+            <section className="userDetailBlock">
+              <h3>需要注意</h3>
+              {hasMemberAlert ? (
+                <div className="userAlert"><strong>会员将在 {membershipDays === 0 ? "今天" : `${membershipDays} 天后`} 到期</strong><span>到期后不能访问会员内容；课程是否能学看课程授权到期时间。</span><em>{formatDate(user.subscriptionExpiresAt)}</em></div>
+              ) : null}
+              {expiringGrants.map((grant) => (
+                <div className="userAlert" key={grant.id}><strong>{seriesById.get(grant.seriesId)?.title || "交易实战课程"} 即将到期</strong><span>去课程管理里修改到期时间或取消授权。</span><em>{formatDate(grant.expiresAt)}</em></div>
+              ))}
+              {!hasMemberAlert && !expiringGrants.length ? <p>暂无需要处理的提醒</p> : null}
+              <h3 className="userRecentTitle">最近操作</h3>
+              <div className="userEventList">
+                {selectedEvents.slice(0, 3).map((event) => (
+                  <div key={event.id}><span>{formatTime(event.createdAt)}</span><strong>{eventSummary(event)}</strong><em>{event.actor.email || "用户本人"}</em></div>
+                ))}
+                {!selectedEvents.length ? <p>暂无记录</p> : null}
+              </div>
+            </section>
+          </div>
         </div>
-      </section>
-      <section className="userDrawerSection">
-        <h3>最近操作</h3>
-        <div className="auditList compactAuditList">
-          {selectedEvents.length === 0 ? <div><span>暂无记录</span></div> : null}
-          {selectedEvents.map((event) => (
-            <div key={event.id}>
-              <strong>{eventSummary(event)}</strong>
-              <span>{event.actor.email || "--"} · {formatTime(event.createdAt)}</span>
-            </div>
-          ))}
-        </div>
-      </section>
       </section>
     </div>
   );
@@ -915,8 +920,7 @@ function UsersPage({
   courseSeries,
   courseGrants,
   currentUser,
-  onRefresh,
-  onOpenCourses
+  onRefresh
 }: {
   users: AdminUser[];
   events: UserEvent[];
@@ -925,7 +929,6 @@ function UsersPage({
   courseGrants: CourseGrant[];
   currentUser: AuthStatus["user"];
   onRefresh: () => Promise<void>;
-  onOpenCourses: () => void;
 }) {
   const [keyword, setKeyword] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -936,7 +939,7 @@ function UsersPage({
   const [pageIndex, setPageIndex] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editorMode, setEditorMode] = useState<"account" | "member">("account");
+  const [editorMode, setEditorMode] = useState<"account" | "member">("member");
   const selected = users.find((user) => user.id === selectedId) || null;
   const normalUsers = users.filter((user) => user.role === "user");
   const today = localDateInputValue();
@@ -1004,29 +1007,6 @@ function UsersPage({
   useEffect(() => {
     if (pageIndex > totalPages) setPageIndex(totalPages);
   }, [pageIndex, totalPages]);
-
-  async function extendMembership(days: 30 | 180 | 365) {
-    if (!selected || selected.role !== "user") return;
-    if (!selected.hasPaidAccess && selected.subscriptionStatus !== "expired") {
-      window.alert("免费用户请先点“设置会员”选择会员类型。");
-      return;
-    }
-    const plan = selected.plan === "free" ? "monthly" : selected.plan;
-    const expiresAt = grantExpiryPreset(days, selected.subscriptionExpiresAt);
-    if (!window.confirm(`确认把 ${selected.email} 的会员延长到 ${expiresAt}？`)) return;
-    try {
-      await api.updateUserPlan({
-        userId: selected.id,
-        role: selected.role,
-        plan,
-        subscriptionExpiresAt: expiresAt,
-        isActive: selected.isActive
-      });
-      await onRefresh();
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : "延长会员失败");
-    }
-  }
 
   return (
     <div className="pageStack userPage">
@@ -1161,10 +1141,8 @@ function UsersPage({
           setEditorMode("member");
           setEditorOpen(true);
         }}
-        onExtendMembership={extendMembership}
-        onOpenCourses={onOpenCourses}
       />
-      <UserEditModal selected={selected} open={editorOpen} events={events} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} mode={editorMode} title={editorMode === "member" ? "会员设置" : "账号设置"} />
+      <UserEditModal selected={selected} open={editorOpen} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} mode={editorMode} title={editorMode === "member" ? "设置会员" : "账号操作"} />
     </div>
   );
 }
@@ -3036,7 +3014,7 @@ export function App() {
         {error ? <div className="notice">{error}</div> : null}
         {loading ? <div className="contentLoading">刷新数据中</div> : null}
         {page === "home" ? <HomePage users={users} events={events} metrics={metrics} /> : null}
-        {page === "users" ? <UsersPage users={users} events={events} metrics={metrics} courseSeries={courseSeries} courseGrants={courseGrants} currentUser={auth.user} onRefresh={loadData} onOpenCourses={() => setPage("courses")} /> : null}
+        {page === "users" ? <UsersPage users={users} events={events} metrics={metrics} courseSeries={courseSeries} courseGrants={courseGrants} currentUser={auth.user} onRefresh={loadData} /> : null}
         {page === "content" ? <ContentPage /> : null}
         {page === "open" ? <OpenPortfolioPage /> : null}
         {page === "courses" ? <CoursesPage users={users} /> : null}

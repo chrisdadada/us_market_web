@@ -335,6 +335,384 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .compactAuditList div {
   padding: 11px 0;
 }
+
+.modalPanel.userDetailModal {
+  width: min(1120px, calc(100vw - 56px));
+  padding: 0;
+}
+
+.userDetailHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.userDetailHead span,
+.userDetailHead p {
+  margin: 0;
+  color: #718096;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.userDetailHead h2 {
+  margin: 5px 0 6px;
+  color: #182337;
+  font-size: 24px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.userDetailTopActions {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.userDetailTopActions .primaryButton,
+.userDetailTopActions .ghostButton {
+  height: 38px;
+  padding: 0 14px;
+}
+
+.userDetailLayout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 560px;
+}
+
+.userDetailSide {
+  border-right: 1px solid #e6ebf2;
+  padding: 20px;
+}
+
+.userDetailSide h3 {
+  margin: 0;
+  color: #182337;
+  font-size: 17px;
+  font-weight: 850;
+}
+
+.userDetailSide > span {
+  display: block;
+  margin-top: 7px;
+  color: #718096;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.userBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.userDetailSide dl {
+  margin: 0;
+  border-top: 1px solid #e6ebf2;
+}
+
+.userDetailSide dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 13px;
+  margin-top: 13px;
+  color: #607086;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.userDetailSide dt,
+.userDetailSide dd {
+  margin: 0;
+}
+
+.userDetailSide dd {
+  color: #182337;
+  font-weight: 850;
+  text-align: right;
+}
+
+.userDetailTabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 18px;
+  border-bottom: 1px solid #e6ebf2;
+  background: #f8fafc;
+}
+
+.userDetailTabs button {
+  height: 48px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #607086;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.userDetailTabs button.active {
+  color: #1677ff;
+  border-bottom-color: #1677ff;
+}
+
+.userDetailContent {
+  padding: 18px 22px 22px;
+}
+
+.userSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.userSummaryGrid > div {
+  min-height: 84px;
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  background: #fff;
+  padding: 14px;
+}
+
+.userSummaryGrid span,
+.userSummaryGrid em {
+  display: block;
+  color: #718096;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.userSummaryGrid strong {
+  display: block;
+  margin: 8px 0 4px;
+  color: #182337;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.userDetailBlock {
+  min-width: 0;
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  background: #fff;
+  padding: 14px 16px 16px;
+}
+
+.userDetailBlock h3 {
+  margin: 0 0 10px;
+  color: #182337;
+  font-size: 16px;
+}
+
+.userDetailBlock p,
+.userEventList p {
+  margin: 0;
+  color: #718096;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.userDetailPanels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.userDetailBlock .adminTable {
+  margin: 0 -16px;
+  width: calc(100% + 32px);
+}
+
+.userDetailBlock .adminTable th,
+.userDetailBlock .adminTable td {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.userDetailBlock .adminTable small {
+  display: block;
+  margin-top: 4px;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.userAlert {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #f3d39a;
+  border-radius: 10px;
+  background: #fffbeb;
+  padding: 13px 14px;
+  margin-top: 10px;
+}
+
+.userAlert strong,
+.userAlert span {
+  display: block;
+}
+
+.userAlert strong {
+  color: #182337;
+  font-size: 14px;
+}
+
+.userAlert span {
+  margin-top: 5px;
+  color: #806020;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.userAlert em {
+  color: #806020;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 850;
+  text-align: right;
+}
+
+.userRecentTitle {
+  margin-top: 18px !important;
+}
+
+.userEventList {
+  display: grid;
+  gap: 10px;
+}
+
+.userEventList div {
+  display: grid;
+  grid-template-columns: 150px minmax(220px, 1fr) minmax(150px, 190px);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.userEventList span,
+.userEventList em {
+  color: #718096;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.userEventList strong {
+  color: #182337;
+  font-size: 13px;
+}
+
+.userTabActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.userEditModal {
+  width: min(560px, calc(100vw - 72px));
+}
+
+.modalHeader p {
+  margin: 6px 0 0;
+  color: #718096;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.formHint {
+  margin: 0;
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #607086;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.accountDangerBox {
+  border-top: 1px solid #e6ebf2;
+  padding-top: 14px;
+}
+
+.settingsBlock {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #e5ebf3;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.settingsBlock h3 {
+  margin: 0;
+  color: #182337;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.settingsBlock p {
+  margin: 0;
+  color: #718096;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settingsBlock .passwordResetBox {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.compactActions {
+  margin-top: 0;
+}
+
+.dangerZone {
+  border-color: #fecdd3;
+  background: #fff8f9;
+}
+
+.dangerZone h3 {
+  color: #be123c;
+}
+
+@media (max-width: 980px) {
+  .userDetailLayout,
+  .userDetailPanels,
+  .userSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .userDetailHead,
+  .userDetailTopActions {
+    flex-wrap: wrap;
+  }
+
+  .userDetailSide {
+    border-right: 0;
+    border-bottom: 1px solid #e6ebf2;
+  }
+
+  .userEventList div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
 .tablePanel {
   overflow: auto;
   max-height: 720px;
