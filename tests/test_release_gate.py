@@ -1012,11 +1012,17 @@ class AuthApiReleaseGateTest(unittest.TestCase):
 
         status, payload = admin.post("/api/admin/courses/grants", {"seriesId": series_id, "user": user["uid"], "expiresAt": "2027-01-01"})
         self.assertEqual(status, 201, payload)
+        grant_id = payload["grant"]["id"]
+
+        status, payload = admin.get(f"/api/admin/user-events?userId={user['id']}")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("grant_course", [item["action"] for item in payload["rows"]])
 
         status, payload = client.get("/api/courses")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["series"][0]["title"], "财报季交易框架更新")
         self.assertTrue(payload["series"][0]["unlocked"])
+        self.assertEqual(payload["series"][0]["grantExpiresAt"], "2027-01-01")
         self.assertEqual(payload["series"][0]["coverUrl"], "/uploads/courses/cover.png")
         self.assertEqual(payload["series"][0]["lessons"][0]["title"], "01 课程框架更新")
         self.assertEqual(payload["series"][0]["lessons"][0]["coverUrl"], "https://cdn.example.test/lesson-cover-updated.jpg")
@@ -1025,11 +1031,20 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["url"], "https://example.test/video-updated.mp4")
 
+        status, payload = admin.delete(f"/api/admin/courses/grants/{grant_id}")
+        self.assertEqual(status, 200, payload)
+        status, payload = admin.get(f"/api/admin/user-events?userId={user['id']}")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("revoke_course", [item["action"] for item in payload["rows"]])
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 403, payload)
+
         status, payload = admin.delete(f"/api/admin/courses/lessons/{lesson_id}")
         self.assertEqual(status, 200, payload)
         status, payload = client.get("/api/courses")
         self.assertEqual(status, 200, payload)
-        self.assertEqual(payload["series"][0]["lessons"][0]["title"], "02 第二节")
+        self.assertFalse(payload["series"][0]["unlocked"])
+        self.assertEqual(payload["series"][0]["lessons"], [])
 
         status, payload = admin.delete(f"/api/admin/courses/{series_id}")
         self.assertEqual(status, 200, payload)

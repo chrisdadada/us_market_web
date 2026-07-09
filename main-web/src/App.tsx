@@ -492,6 +492,11 @@ function courseDiscountBlock(course: CourseSeries, className = "courseDiscountBl
   );
 }
 
+function courseGrantText(course: CourseSeries) {
+  if (!course.unlocked) return "联系开通";
+  return course.grantExpiresAt ? `到期 ${formatDate(course.grantExpiresAt)}` : "已授权";
+}
+
 function opinionDisplayTitle(item?: Opinion | null, max = 56) {
   if (!item) return "--";
   const sectionLabel = opinionSectionLabel(item);
@@ -3111,6 +3116,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
             {courseDiscountBlock(selected, "courseDiscountBlock detailDiscount")}
             <div className="courseMetaPills">
               <span className={selected.unlocked ? "unlocked" : "locked"}>{selected.unlocked ? "已解锁" : "待开通"}</span>
+              {selected.unlocked && selected.grantExpiresAt ? <span>授权到期：{formatDate(selected.grantExpiresAt)}</span> : null}
               <span>{courseProgressLabel(selected.progressStatus)}</span>
               <span>{selected.lessonCount || selected.lessons?.length || 0} 节视频</span>
               {activeLesson ? <span>当前播放：{activeLesson.title}</span> : null}
@@ -3205,7 +3211,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>
                       {item.unlocked ? "开始学习" : "查看详情"}
                     </button>
-                    <em>{item.unlocked ? "已授权" : "联系开通"}</em>
+                    <em>{courseGrantText(item)}</em>
                   </footer>
                 </section>
               </article>

@@ -318,6 +318,7 @@ export type CourseSeries = {
   sortOrder: number;
   status: "published" | "draft";
   unlocked?: boolean;
+  grantExpiresAt?: string | null;
   lessonCount: number;
   grantCount: number;
   lessons: CourseLesson[];

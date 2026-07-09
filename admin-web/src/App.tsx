@@ -38,11 +38,14 @@ const opinionSections = [
 const newOpinionId = "__new__";
 const contentPageSize = 12;
 const userPageSize = 20;
+const courseGrantPageSize = 12;
 
 const eventActionOptions = [
   { value: "all", label: "全部操作" },
   { value: "self_register", label: "用户注册" },
-  { value: "update_user", label: "修改用户/会员" }
+  { value: "update_user", label: "修改用户/会员" },
+  { value: "grant_course", label: "课程授权" },
+  { value: "revoke_course", label: "取消课程授权" }
 ];
 
 const beijingFormatter = new Intl.DateTimeFormat("zh-CN", {
@@ -1166,6 +1169,9 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantUser, setGrantUser] = useState("");
   const [grantExpiresAt, setGrantExpiresAt] = useState("");
+  const [grantQuery, setGrantQuery] = useState("");
+  const [grantStatus, setGrantStatus] = useState("all");
+  const [grantPage, setGrantPage] = useState(1);
   const [courseQuery, setCourseQuery] = useState("");
   const [courseStatus, setCourseStatus] = useState("all");
   const [courseProgress, setCourseProgress] = useState("all");
@@ -1179,6 +1185,14 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const [lessonForm, setLessonForm] = useState<CourseLessonForm>(emptyCourseLessonForm);
   const selected = series.find((item) => item.id === selectedId) || series[0] || null;
   const selectedGrants = selected ? grants.filter((grant) => grant.seriesId === selected.id) : [];
+  const filteredGrants = selectedGrants.filter((grant) => {
+    const query = grantQuery.trim().toLowerCase();
+    const state = grantState(grant).key;
+    if (query && !`${grant.user.email} ${grant.user.uid}`.toLowerCase().includes(query)) return false;
+    return grantStatus === "all" || state === grantStatus;
+  });
+  const grantTotalPages = Math.max(1, Math.ceil(filteredGrants.length / courseGrantPageSize));
+  const grantRows = filteredGrants.slice((grantPage - 1) * courseGrantPageSize, grantPage * courseGrantPageSize);
   const grantableUsers = users.filter((user) => user.role === "user");
   const visibleSeries = series.filter((item) => {
     const query = courseQuery.trim().toLowerCase();
@@ -1206,6 +1220,14 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   useEffect(() => {
     void loadCourses();
   }, []);
+
+  useEffect(() => {
+    setGrantPage(1);
+  }, [grantQuery, grantStatus, selected?.id]);
+
+  useEffect(() => {
+    if (grantPage > grantTotalPages) setGrantPage(grantTotalPages);
+  }, [grantPage, grantTotalPages]);
 
   async function submitSeries(event: FormEvent) {
     event.preventDefault();
@@ -1433,11 +1455,11 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   }
 
   function grantState(grant: CourseGrant) {
-    if (!grant.expiresAt) return { label: "待改1年", className: "warningBg" };
+    if (!grant.expiresAt) return { key: "unset", label: "待改1年", className: "warningBg" };
     const days = daysUntil(grant.expiresAt);
-    if (days !== null && days < 0) return { label: "已过期", className: "dangerBg" };
-    if (days !== null && days <= 7) return { label: "快到期", className: "warningBg" };
-    return { label: "有效", className: "positiveBg" };
+    if (days !== null && days < 0) return { key: "expired", label: "已过期", className: "dangerBg" };
+    if (days !== null && days <= 7) return { key: "expiring", label: "快到期", className: "warningBg" };
+    return { key: "active", label: "有效", className: "positiveBg" };
   }
 
   return (
@@ -1563,11 +1585,23 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
 
           {courseTab === "grants" ? (
             <div>
-              <div className="courseTabActions"><button type="button" className="primaryButton" onClick={() => openGrantDrawer()}>新增授权</button></div>
+              <div className="courseTabActions">
+                <div className="courseGrantFilters">
+                  <input value={grantQuery} onChange={(event) => setGrantQuery(event.target.value)} placeholder="搜索邮箱 / UID" />
+                  <select value={grantStatus} onChange={(event) => setGrantStatus(event.target.value)}>
+                    <option value="all">全部授权</option>
+                    <option value="active">有效</option>
+                    <option value="expiring">快到期</option>
+                    <option value="expired">已过期</option>
+                    <option value="unset">未设置到期</option>
+                  </select>
+                </div>
+                <button type="button" className="primaryButton" onClick={() => openGrantDrawer()}>新增授权</button>
+              </div>
               <table className="adminTable">
                 <thead><tr><th>用户</th><th>授权时间</th><th>到期时间</th><th>状态</th><th>操作</th></tr></thead>
                 <tbody>
-                  {selectedGrants.map((grant) => {
+                  {grantRows.map((grant) => {
                     const state = grantState(grant);
                     return (
                       <tr key={grant.id}>
@@ -1582,9 +1616,16 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                       </tr>
                     );
                   })}
-                  {!selectedGrants.length ? <tr><td colSpan={5}>暂无授权用户</td></tr> : null}
+                  {!filteredGrants.length ? <tr><td colSpan={5}>暂无授权用户</td></tr> : null}
                 </tbody>
               </table>
+              {filteredGrants.length > courseGrantPageSize ? (
+                <div className="adminPager">
+                  <button type="button" disabled={grantPage <= 1} onClick={() => setGrantPage((page) => Math.max(1, page - 1))}>上一页</button>
+                  <span>第 {grantPage} / {grantTotalPages} 页 · 共 {filteredGrants.length} 个授权</span>
+                  <button type="button" disabled={grantPage >= grantTotalPages} onClick={() => setGrantPage((page) => Math.min(grantTotalPages, page + 1))}>下一页</button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -2817,7 +2858,9 @@ function actionLabel(action: string) {
   const labels: Record<string, string> = {
     self_register: "用户注册",
     update_user: "修改用户/会员",
-    reset_password: "账号操作"
+    reset_password: "账号操作",
+    grant_course: "课程授权",
+    revoke_course: "取消课程授权"
   };
   return labels[action] || action;
 }
@@ -2833,6 +2876,8 @@ function valueLabel(key: string, value: unknown) {
 function eventSummary(event: UserEvent) {
   if (event.action === "self_register") return "用户自行注册";
   if (event.action === "reset_password") return "账号安全操作";
+  if (event.action === "grant_course") return "课程授权已保存";
+  if (event.action === "revoke_course") return "课程授权已取消";
   const before = event.before || {};
   const after = event.after || {};
   const labels: Record<string, string> = {

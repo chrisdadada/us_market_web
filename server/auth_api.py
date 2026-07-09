@@ -1800,6 +1800,8 @@ def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None
     }
     if "unlocked" in row.keys():
         payload["unlocked"] = bool(row["unlocked"])
+    if "grant_expires_at" in row.keys():
+        payload["grantExpiresAt"] = row["grant_expires_at"]
     return payload
 
 
@@ -2231,6 +2233,8 @@ def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
             "UPDATE course_grants SET expires_at = ?, granted_by_user_id = ? WHERE series_id = ? AND user_id = ?",
             (expires_at, admin["id"], series_id, target["id"]),
         )
+        fresh_target = conn.execute("SELECT * FROM users WHERE id = ?", (target["id"],)).fetchone()
+        write_user_event(conn, action="grant_course", actor=admin, target_before=target, target_after=fresh_target)
         row = conn.execute(
             """
             SELECT g.*, u.email, u.role, u.plan, u.subscription_expires_at
@@ -2292,7 +2296,8 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                 SELECT s.*,
                        COUNT(l.id) AS lesson_count,
                        COUNT(CASE WHEN g.expires_at IS NULL OR g.expires_at = '' OR date(g.expires_at) >= date('now') THEN g.id END) AS grant_count,
-                       CASE WHEN COUNT(g.id) > 0 THEN 1 ELSE 0 END AS unlocked
+                       CASE WHEN COUNT(g.id) > 0 THEN 1 ELSE 0 END AS unlocked,
+                       MAX(g.expires_at) AS grant_expires_at
                 FROM course_series s
                 LEFT JOIN course_grants g ON g.series_id = s.id AND g.user_id = ? AND (g.expires_at IS NULL OR g.expires_at = '' OR date(g.expires_at) >= date('now'))
                 LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
@@ -3934,7 +3939,20 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "授权不存在"}, HTTPStatus.NOT_FOUND)
                 return
             with db() as conn:
+                target = conn.execute(
+                    """
+                    SELECT u.*
+                    FROM course_grants g
+                    JOIN users u ON u.id = g.user_id
+                    WHERE g.id = ?
+                    """,
+                    (grant_id,),
+                ).fetchone()
+                if not target:
+                    self.send_json({"error": "授权不存在"}, HTTPStatus.NOT_FOUND)
+                    return
                 cursor = conn.execute("DELETE FROM course_grants WHERE id = ?", (grant_id,))
+                write_user_event(conn, action="revoke_course", actor=admin, target_before=target, target_after=target)
             if cursor.rowcount <= 0:
                 self.send_json({"error": "授权不存在"}, HTTPStatus.NOT_FOUND)
                 return
