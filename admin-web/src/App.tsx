@@ -834,7 +834,7 @@ function UserDetailModal({
   onClose,
   onEditAccount,
   onEditMember,
-  onGrantAllCourses
+  onGrantCourses
 }: {
   user: AdminUser | null;
   events: UserEvent[];
@@ -843,7 +843,7 @@ function UserDetailModal({
   onClose: () => void;
   onEditAccount: () => void;
   onEditMember: () => void;
-  onGrantAllCourses: () => void;
+  onGrantCourses: (scope: "all" | "intro") => void;
 }) {
   if (!user) return null;
   const state = membershipState(user);
@@ -866,7 +866,8 @@ function UserDetailModal({
           </div>
           <div className="userDetailTopActions">
             <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
-            {user.role === "user" ? <button type="button" className="ghostButton" onClick={onGrantAllCourses}>授权全部课程</button> : null}
+            {user.role === "user" ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("intro")}>授权入门课程</button> : null}
+            {user.role === "user" ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("all")}>授权全部课程</button> : null}
             <button type="button" className="ghostButton" onClick={onEditAccount}>账号操作</button>
             <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
           </div>
@@ -951,6 +952,7 @@ function UsersPage({
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<"account" | "member">("member");
   const [grantAllOpen, setGrantAllOpen] = useState(false);
+  const [grantScope, setGrantScope] = useState<"all" | "intro">("all");
   const [grantAllExpiresAt, setGrantAllExpiresAt] = useState(localDateInputValue());
   const [grantAllMessage, setGrantAllMessage] = useState("");
   const [grantAllDateError, setGrantAllDateError] = useState("");
@@ -1038,7 +1040,7 @@ function UsersPage({
       setGrantAllMessage("");
       return;
     }
-    if (!courseSeries.length) {
+    if (grantScope === "all" && !courseSeries.length) {
       setGrantAllDateError("");
       setGrantAllMessage("未找到可授权的课程");
       return;
@@ -1047,7 +1049,7 @@ function UsersPage({
     setGrantAllDateError("");
     setGrantAllMessage("");
     try {
-      await api.grantAllCourses({ user: selected.email, expiresAt: grantAllExpiresAt });
+      await api.grantAllCourses({ user: selected.email, expiresAt: grantAllExpiresAt, scope: grantScope });
       setGrantAllOpen(false);
       setGrantAllExpiresAt(localDateInputValue());
       await onRefresh();
@@ -1198,7 +1200,8 @@ function UsersPage({
           setEditorMode("member");
           setEditorOpen(true);
         }}
-        onGrantAllCourses={() => {
+        onGrantCourses={(scope) => {
+          setGrantScope(scope);
           setGrantAllExpiresAt(localDateInputValue());
           setGrantAllDateError("");
           setGrantAllMessage("");
@@ -1211,10 +1214,14 @@ function UsersPage({
         <div className="modalOverlay">
           <form className="adminModal courseModal courseGrantModal" onSubmit={submitGrantAllCourses}>
             <div className="modalHeader">
-              <h2>授权全部课程</h2>
+              <h2>{grantScope === "intro" ? "授权入门课程" : "授权全部课程"}</h2>
               <button type="button" onClick={() => setGrantAllOpen(false)}>×</button>
             </div>
-            <p className="grantAllSummary"><span>用户</span><strong>{selected.email}</strong><em>全部 {courseSeries.length} 门课程</em></p>
+            <p className="grantAllSummary">
+              <span>用户</span>
+              <strong>{selected.email}</strong>
+              <em>{grantScope === "intro" ? "美股入门课程（2门）" : `全部 ${courseSeries.length} 门课程`}</em>
+            </p>
             <label className={grantAllDateError ? "fieldInvalid" : ""}>
               到期日期
               <input
@@ -1232,7 +1239,7 @@ function UsersPage({
               <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(180, grantAllExpiresAt)); setGrantAllDateError(""); }}>180天</button>
               <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(365, grantAllExpiresAt)); setGrantAllDateError(""); }}>1年</button>
             </div>
-            <p className="grantAllNote">已有授权会更新到这个日期。</p>
+            <p className="grantAllNote">{grantScope === "intro" ? "包含：美股定投课程、美股投资框架课。" : "已有授权会更新到这个日期。"}</p>
             {grantAllMessage ? <p className="inlineMessage error">{grantAllMessage}</p> : null}
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setGrantAllOpen(false)}>取消</button>

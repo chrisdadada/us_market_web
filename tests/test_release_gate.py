@@ -1065,6 +1065,33 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["series"], [])
 
+    def test_intro_course_bulk_grant_only_grants_intro_titles(self) -> None:
+        admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(admin, "intro-course-user@example.test", "free")
+        for title in ["美股定投课程", "美股投资框架课", "滚仓实战系列课"]:
+            status, payload = admin.post(
+                "/api/admin/courses",
+                {"title": title, "summary": "课程简介", "coverUrl": "", "status": "published"},
+            )
+            self.assertEqual(status, 201, payload)
+
+        status, payload = admin.post("/api/admin/courses/grants/all", {"user": user["email"], "expiresAt": "2028-01-01", "scope": "intro"})
+        self.assertEqual(status, 201, payload)
+        self.assertEqual(payload["count"], 2)
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            rows = conn.execute(
+                """
+                SELECT s.title, g.expires_at
+                FROM course_grants g
+                JOIN course_series s ON s.id = g.series_id
+                WHERE g.user_id = ?
+                ORDER BY s.title
+                """,
+                (user["id"],),
+            ).fetchall()
+        self.assertEqual([row[0] for row in rows], ["美股定投课程", "美股投资框架课"])
+        self.assertTrue(all(row[1] == "2028-01-01" for row in rows))
+
     def test_admin_market_opinions_support_draft_edit_and_delete(self) -> None:
         self.use_empty_product_db()
         admin = self.login("admin@example.test", "admin-password")

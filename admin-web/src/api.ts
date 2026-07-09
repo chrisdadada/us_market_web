@@ -302,7 +302,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
-  grantAllCourses: (payload: { user: string; expiresAt: string }) =>
+  grantAllCourses: (payload: { user: string; expiresAt: string; scope?: "all" | "intro" }) =>
     request<{ ok: true; count: number }>("/api/admin/courses/grants/all", {
       method: "POST",
       body: JSON.stringify(payload)

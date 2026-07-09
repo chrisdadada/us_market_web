@@ -75,6 +75,7 @@ ALLOWED_UPLOAD_MIMES = {
 PLANS = {"free", "paid", "monthly", "yearly"}
 ROLES = {"user", "admin", "super_admin"}
 LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus", "monthly", "yearly"}
+INTRO_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
 COURSE_PROGRESS_STATUSES = {"updating", "finished"}
@@ -2256,6 +2257,7 @@ def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
 def grant_all_courses(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
     user_query = str(payload.get("email") or payload.get("user") or "").strip()
     expires_at = normalize_expires(payload.get("expiresAt"))
+    scope = str(payload.get("scope") or "all").strip()
     if not user_query:
         raise ValueError("用户必填")
     if not expires_at:
@@ -2264,9 +2266,15 @@ def grant_all_courses(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, 
         target = course_grant_target(conn, user_query)
         if not target:
             raise ValueError("用户不存在")
-        series_rows = conn.execute("SELECT id FROM course_series").fetchall()
+        if scope == "intro":
+            placeholders = ",".join("?" for _ in INTRO_COURSE_TITLES)
+            series_rows = conn.execute(f"SELECT id FROM course_series WHERE title IN ({placeholders})", INTRO_COURSE_TITLES).fetchall()
+        elif scope == "all":
+            series_rows = conn.execute("SELECT id FROM course_series").fetchall()
+        else:
+            raise ValueError("课程范围不正确")
         if not series_rows:
-            raise ValueError("当前没有课程可授权")
+            raise ValueError("未找到可授权的课程")
         timestamp = now_iso()
         for row in series_rows:
             conn.execute(
