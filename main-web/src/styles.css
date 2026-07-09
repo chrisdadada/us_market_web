@@ -57,7 +57,7 @@
   background: transparent;
   color: #6b7890;
   font-size: 13px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketSegment button.active {
@@ -96,13 +96,13 @@
 .marketPanelHead strong {
   color: #172033;
   font-size: 15px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketPanelHead span {
   color: #6b7890;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketSectorTable.benchmark {
@@ -165,7 +165,7 @@
   background: #eef6ff;
   color: #176ac1;
   font-size: 13px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketSectorTable.benchmark i {
@@ -231,14 +231,14 @@
 .marketSectorHeatmap strong {
   margin-bottom: 8px;
   font-size: 20px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketSectorHeatmap span,
 .marketSectorHeatmap em {
   font-size: 14px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: 560;
 }
 
 .marketSectorHeatmap small {
@@ -249,7 +249,7 @@
   overflow: hidden;
   color: rgba(255, 255, 255, .82);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -283,7 +283,7 @@
   display: block;
   color: #6b7890;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 .marketSectorFacts strong {
@@ -291,7 +291,7 @@
   margin-top: 4px;
   color: #172033;
   font-size: 18px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketLeaderList button {
@@ -314,14 +314,14 @@
 .marketLeaderList b {
   color: #172033;
   font-size: 13px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketLeaderList span {
   overflow: hidden;
   color: #6b7890;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -329,7 +329,7 @@
 .marketLeaderList em {
   font-size: 12px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: 560;
   text-align: right;
 }
 
@@ -579,7 +579,7 @@
   justify-self: end;
   font-size: 13px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: 520;
 }
 .marketVolumePanel {
   margin-top: 14px;
@@ -773,7 +773,7 @@
 
 .marketSectorFacts strong {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 .marketLeaderList button {
@@ -801,7 +801,7 @@
   grid-column: 3;
   grid-row: 1 / span 2;
   justify-self: end;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 .marketSectorTable.benchmark th,
@@ -813,7 +813,7 @@
 }
 
 .marketVolumePanel td strong {
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketVolumePanel td span {
@@ -842,7 +842,7 @@
   border-radius: 999px;
   background: #fff2cf;
   color: #9a5b00 !important;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketSectorHeatmap button {
@@ -908,7 +908,7 @@
 
 .stockPreviewTop h2 {
   font-size: 24px;
-  font-weight: 680;
+  font-weight: 560;
 }
 
 .stockPreviewTop p,
@@ -981,7 +981,7 @@ body {
   padding: 0 14px;
   color: #526176;
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .sideRail nav button.active {
@@ -992,7 +992,7 @@ body {
 
 .sideRail nav button em {
   color: #98a5b7;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .sideRail nav button.disabled {
@@ -1015,7 +1015,7 @@ body {
   margin: 0 0 8px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .navToolGroup a {
@@ -1026,7 +1026,7 @@ body {
   color: #526176;
   padding: 0 14px;
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 560;
   text-decoration: none;
 }
 
@@ -1070,7 +1070,7 @@ body {
 .topbarTitle span {
   color: var(--muted);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 .globalSearch input {
@@ -1096,7 +1096,7 @@ body {
   background: #eef7ff;
   color: #1264c8;
   padding: 0 16px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .accountMenu {
@@ -1148,7 +1148,7 @@ body {
   margin-top: 7px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .accountPanel button {
@@ -1159,7 +1159,7 @@ body {
   border-radius: 10px;
   background: #fff;
   color: #526176;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .trackingPage .pager {
@@ -1175,7 +1175,7 @@ body {
 .trackingPage .pager span {
   color: var(--muted);
   font-size: 13px;
-  font-weight: 720;
+  font-weight: 560;
 }
 
 .trackingPage .pager button,
@@ -1187,7 +1187,7 @@ body {
   color: #526176;
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 720;
+  font-weight: 560;
 }
 
 /* Product pass: stock library white terminal + compact calendar. */
@@ -1241,7 +1241,7 @@ body {
   display: block;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .stocksSignalStrip strong {
@@ -1250,7 +1250,7 @@ body {
   color: var(--text);
   font-size: 18px;
   line-height: 1.2;
-  font-weight: 820;
+  font-weight: 620;
 }
 
 .stocksTerminalLayout .screenerTabs {
@@ -1304,7 +1304,7 @@ body {
 .stockPreviewTop span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .stockPreviewTop h2 {
@@ -1312,14 +1312,14 @@ body {
   color: var(--text);
   font-size: 34px;
   line-height: 1;
-  font-weight: 840;
+  font-weight: 620;
 }
 
 .stockPreviewTop p {
   margin: 0;
   color: #6d7b90;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .stockPreviewTop > div:last-child {
@@ -1363,14 +1363,14 @@ body {
 .stockPreviewMetrics dt {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .stockPreviewMetrics dd {
   margin: 5px 0 0;
   color: var(--text);
   font-size: 17px;
-  font-weight: 820;
+  font-weight: 620;
 }
 
 .stockPreviewMetrics dd.long,
@@ -1389,7 +1389,7 @@ body {
   margin: 0 0 10px;
   color: var(--text);
   font-size: 15px;
-  font-weight: 820;
+  font-weight: 620;
 }
 
 .previewBarRow {
@@ -1408,7 +1408,7 @@ body {
 .previewBarRow span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .previewBarRow div {
@@ -1445,13 +1445,13 @@ body {
 .previewFact span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .previewFact strong {
   color: var(--text);
   font-size: 13px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .previewPeerTable th,
@@ -1486,7 +1486,7 @@ body {
 .opinionEmpty {
   padding: 22px;
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 
@@ -1525,7 +1525,7 @@ body {
 .frontDecisionPanel > span {
   color: var(--blue);
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontDecisionPanel h1 {
@@ -1584,7 +1584,7 @@ body {
   margin-bottom: 8px;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .frontMetrics strong {
@@ -1606,7 +1606,7 @@ body {
 .frontPanelHead strong {
   color: var(--text);
   font-size: 17px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontPanelHead button,
@@ -1615,7 +1615,7 @@ body {
   background: transparent;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .frontPriorityPanel {
@@ -1662,7 +1662,7 @@ body {
 .frontPriorityPanel > button em {
   color: var(--blue);
   font-style: normal;
-  font-weight: 850;
+  font-weight: 620;
   text-align: right;
 }
 
@@ -1702,12 +1702,12 @@ body {
 .frontStrengthHead span {
   color: var(--muted);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontStrengthRow > span {
   color: var(--muted);
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontStrengthRow strong {
@@ -1722,7 +1722,7 @@ body {
   margin-top: 3px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 560;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1731,7 +1731,7 @@ body {
 .frontStrengthRow em {
   justify-self: end;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 620;
   white-space: nowrap;
 }
 
@@ -1803,7 +1803,7 @@ body {
 
 .frontCalendarList > button > span {
   color: var(--muted);
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontCalendarList strong {
@@ -1825,7 +1825,7 @@ body {
   color: #526176;
   padding: 6px 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontCalendarList .impactHigh {
@@ -1853,7 +1853,7 @@ body {
 .frontArticleList span {
   color: var(--muted);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .frontStockList button {
@@ -1882,7 +1882,7 @@ body {
 .frontStockList em {
   justify-self: end;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontLockPreview {
@@ -1932,7 +1932,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .frontLockPreview button {
@@ -1942,7 +1942,7 @@ body {
   background: var(--blue);
   color: #fff;
   padding: 0 14px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 @media (max-width: 980px) {
@@ -2110,7 +2110,7 @@ select:focus-visible {
   display: block;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 560;
   letter-spacing: 0;
 }
 
@@ -2138,7 +2138,7 @@ select:focus-visible {
   background: #fff;
   color: #526176;
   padding: 0 14px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .loading {
@@ -2173,7 +2173,7 @@ select:focus-visible {
   color: var(--text);
   font-size: 22px;
   line-height: 1.2;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .authPanel > p {
@@ -2189,13 +2189,13 @@ select:focus-visible {
   gap: 7px;
   color: #334155;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .authPanel small {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .authPanel input {
@@ -2236,7 +2236,7 @@ select:focus-visible {
   background: var(--blue);
   color: #fff;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -2251,14 +2251,14 @@ select:focus-visible {
   color: var(--blue);
   cursor: pointer;
   font-size: 14px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .authError {
   margin: 0;
   color: var(--red);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.5;
 }
 
@@ -2319,7 +2319,7 @@ td.negative,
   cursor: pointer;
   min-height: 32px;
   padding: 0 10px;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 
@@ -2356,7 +2356,7 @@ td.negative,
 .opinionPager span {
   color: var(--muted);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .readerMetaLine {
@@ -2366,7 +2366,7 @@ td.negative,
   margin-bottom: 14px;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .readerMetaLine span {
@@ -2387,7 +2387,7 @@ td.negative,
   display: block;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .marketGrid {
@@ -2488,7 +2488,7 @@ td.negative,
   background: #fff;
   color: #526176;
   padding: 0 14px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .marketLead button:first-child {
@@ -2506,7 +2506,7 @@ td.negative,
 .marketLeaderList span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .marketLead h1 {
@@ -2521,7 +2521,7 @@ td.negative,
   margin: 12px 0 0;
   color: #526176;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 560;
   line-height: 1.65;
 }
 
@@ -2583,7 +2583,7 @@ td.negative,
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .marketFundsTabs {
@@ -2601,7 +2601,7 @@ td.negative,
   background: #fff;
   color: #526176;
   padding: 0 14px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .marketFundsTabs button.active {
@@ -2684,7 +2684,7 @@ td.negative,
   overflow: hidden;
   color: #526176;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2730,7 +2730,7 @@ td.negative,
 .marketHeatTiles span {
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .marketLeaderList button {
@@ -2810,13 +2810,13 @@ td.negative,
 .marketSectorTable th {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .marketSectorTable td {
   color: var(--text);
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .marketSectorTable td strong,
@@ -2828,7 +2828,7 @@ td.negative,
   margin-top: 3px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .marketSectorTable td:nth-child(1) strong,
@@ -2895,7 +2895,7 @@ td.negative,
   margin: 0;
   max-width: none;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -3047,7 +3047,7 @@ td.negative,
 
 .pager span {
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 560;
 }
 
 .comingSoonPage {
@@ -3067,7 +3067,7 @@ td.negative,
 .comingSoonPage span {
   color: var(--blue);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .comingSoonPage h1 {
@@ -3078,17 +3078,17 @@ td.negative,
 
 .impactHigh {
   color: var(--amber);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .impactMedium {
   color: var(--blue);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .impactLow {
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .tablePanel {
@@ -3144,7 +3144,7 @@ td:nth-child(5),
 td:nth-child(6),
 td:nth-child(7) {
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 @media (max-width: 1100px) {
@@ -3250,7 +3250,7 @@ body,
   border-left: 0;
   padding: 0 14px;
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .sideRail nav button.active {
@@ -3269,7 +3269,7 @@ body,
   margin: 0 0 8px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .topbar {
@@ -3300,7 +3300,7 @@ body,
 .topbarTitle span {
   color: var(--muted);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 .globalSearch input {
@@ -3326,7 +3326,7 @@ body,
   background: #eef7ff;
   color: #1264c8;
   padding: 0 16px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 /* Tracking list: compact white table, no data changes. */
@@ -3844,7 +3844,7 @@ body,
   margin: 0;
   color: #172033;
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 520;
   white-space: nowrap;
 }
 
@@ -3963,7 +3963,7 @@ body,
   color: #64748b;
   padding: 0 13px;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
   cursor: pointer;
 }
 
@@ -4050,7 +4050,7 @@ body,
   display: block;
   color: var(--text);
   font-size: 20px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.35;
 }
 
@@ -4153,14 +4153,14 @@ body,
 .frontLeadPanel > span {
   color: var(--blue);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .frontLeadPanel h1 {
   margin: 16px 0 14px;
   color: var(--text);
   font-size: 34px;
-  font-weight: 760;
+  font-weight: 560;
   line-height: 1.22;
 }
 
@@ -4194,7 +4194,7 @@ body,
   color: #1677d2;
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   cursor: pointer;
 }
 
@@ -4235,7 +4235,7 @@ body,
 .frontCalendarEvent strong {
   overflow: hidden;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4248,7 +4248,7 @@ body,
   color: #718198;
   font-size: 12px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .frontCalendarEvent em.impactHigh {
@@ -4279,7 +4279,7 @@ body,
   background: #f8fbff;
   color: #718198;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .frontHomeTable td:nth-child(n + 2),
@@ -4294,7 +4294,7 @@ body,
 
 .frontHomeTable strong {
   color: var(--text);
-  font-weight: 680;
+  font-weight: 560;
 }
 
 .frontHomeTable span {
@@ -5430,7 +5430,7 @@ body,
 .frontLeadPanel h1 {
   margin: 12px 0 10px;
   font-size: 30px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.25;
 }
 
@@ -5771,7 +5771,7 @@ body,
 
 .topbarTitle strong {
   font-size: 18px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .globalSearch input {
@@ -5833,7 +5833,7 @@ body,
 
 .opinionProductFeedHead span {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   color: #52627a;
 }
 
@@ -5867,7 +5867,7 @@ body,
 .opinionProductFeed button strong {
   font-size: 19px;
   line-height: 1.35;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
@@ -5975,7 +5975,7 @@ body,
 .trackingStockHead h1 {
   font-size: 34px;
   line-height: 1.1;
-  font-weight: 680;
+  font-weight: 560;
   color: #111827;
 }
 
@@ -6025,7 +6025,7 @@ body,
 .trackingStockMetrics strong {
   margin-top: 7px;
   font-size: 17px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .trackingStockActions {
@@ -6061,7 +6061,7 @@ body,
   align-items: center;
   border-bottom: 1px solid #e5ecf5;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
@@ -6091,7 +6091,7 @@ body,
 
 .trackingStockPanel td:nth-child(2) b {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .trackingStockPanel td:nth-child(2) span {
@@ -6124,7 +6124,7 @@ body,
 
 .trackingPeerList strong {
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .trackingPeerList small {
@@ -6138,7 +6138,7 @@ body,
 .trackingPeerList span {
   text-align: right;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketPage {
@@ -6175,7 +6175,7 @@ body,
   margin-top: 5px;
   font-size: 20px;
   line-height: 1.35;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
@@ -6214,7 +6214,7 @@ body,
 .marketFundsMetrics strong {
   margin-top: 6px;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketFundsMetrics p {
@@ -6251,14 +6251,14 @@ body,
 .marketSectorCards strong {
   margin-top: 6px;
   font-size: 16px;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
 .marketSectorCards em {
   margin-top: 6px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketSectorCards i,
@@ -6301,7 +6301,7 @@ body,
 
 .marketSectorTable td strong {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketSectorTable tr.selectedRow td {
@@ -6331,7 +6331,7 @@ body,
 .marketHeatTiles strong,
 .marketLeaderList b {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketHeatTiles span {
@@ -6352,7 +6352,7 @@ body,
 
 .marketLeaderList em {
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 /* Stock library + Open reference polish pass. */
@@ -6400,7 +6400,7 @@ body,
   margin-top: 4px;
   font-size: 13px;
   line-height: 1.35;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
@@ -6474,7 +6474,7 @@ body,
   margin-top: 5px;
   font-size: 26px;
   line-height: 1.1;
-  font-weight: 680;
+  font-weight: 560;
   color: #111827;
 }
 
@@ -6491,14 +6491,14 @@ body,
 
 .stockPreviewTop strong {
   font-size: 18px;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
 .stockPreviewTop em {
   margin-top: 5px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .stockPreviewMetrics {
@@ -6517,7 +6517,7 @@ body,
 .stockPreviewMetrics dd {
   margin-top: 5px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .previewBarRow,
@@ -6553,7 +6553,7 @@ body,
 .openHero h1 {
   font-size: 24px;
   line-height: 1.2;
-  font-weight: 680;
+  font-weight: 560;
   color: #111827;
 }
 
@@ -6567,7 +6567,7 @@ body,
 .openNotice {
   color: #718096;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .openNotice {
@@ -6603,7 +6603,7 @@ body,
 .openMonth strong {
   margin-top: 5px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .openMonth em {
@@ -6625,7 +6625,7 @@ body,
 
 .openThemeList strong {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .openTable th,
@@ -6643,7 +6643,7 @@ body,
 
 .openTable td strong {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .openProfitGrid {
@@ -6666,7 +6666,7 @@ body,
 
 .openProfitGrid strong {
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .openRiskText {
@@ -6698,7 +6698,7 @@ body,
 
 .brand strong {
   font-size: 17px;
-  font-weight: 680;
+  font-weight: 560;
 }
 
 .brand small {
@@ -6740,7 +6740,7 @@ body,
 
 .topbarTitle strong {
   font-size: 18px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .globalSearch input {
@@ -6779,7 +6779,7 @@ body,
 
 .authPanel h2 {
   font-size: 22px;
-  font-weight: 680;
+  font-weight: 560;
   color: #111827;
 }
 
@@ -6812,7 +6812,7 @@ body,
   margin-top: 18px;
   border-radius: 10px;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .authSwitch {
@@ -6857,7 +6857,7 @@ body,
   max-width: 760px;
   font-size: clamp(30px, 3vw, 42px);
   line-height: 1.18;
-  font-weight: 680;
+  font-weight: 560;
   color: #111827;
 }
 
@@ -6894,7 +6894,7 @@ body,
 
 .frontPanelHead strong {
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
@@ -6943,7 +6943,7 @@ body,
 
 .frontHomeTable strong {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   color: #172033;
 }
 
@@ -6973,14 +6973,14 @@ body,
 .frontSectorList strong,
 .frontStockList strong {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .frontSectorList b,
 .frontStockList b,
 .frontStockList em {
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .frontSectorList small,
@@ -7089,7 +7089,7 @@ body,
   border-radius: 999px;
   color: #718096;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 560;
   line-height: 1;
   vertical-align: middle;
 }
@@ -7165,7 +7165,7 @@ body,
 .marketHeatTiles strong {
   color: #172033;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketHeatTiles span {
@@ -7742,7 +7742,7 @@ body,
   color: #526176;
   padding: 0 14px;
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 560;
   text-align: left;
   cursor: pointer;
 }
@@ -7793,7 +7793,7 @@ body,
 .fundingScannerTop strong {
   color: #6b7890;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .fundingScannerTop strong.loading {
@@ -7828,7 +7828,7 @@ body,
   gap: 6px;
   color: #66758c;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .fundingScannerControls input,
@@ -7841,7 +7841,7 @@ body,
   background: #f8fbff;
   color: #172033;
   padding: 0 10px;
-  font-weight: 800;
+  font-weight: 600;
   outline: none;
 }
 
@@ -7853,7 +7853,7 @@ body,
   background: #fff;
   color: #526176;
   padding: 0 14px;
-  font-weight: 850;
+  font-weight: 620;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -7899,7 +7899,7 @@ body,
   color: #6b7890;
   font-size: 12px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .fundingScannerStats strong {
@@ -7907,7 +7907,7 @@ body,
   margin: 4px 8px 0 0;
   color: #172033;
   font-size: 18px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .fundingScannerError {
@@ -7917,7 +7917,7 @@ body,
   background: #fff2f4;
   color: #d84a5d;
   padding: 10px 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .fundingScannerTableHead {
@@ -7938,7 +7938,7 @@ body,
 .fundingScannerTableHead span {
   color: #6b7890;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .fundingScannerTable {
@@ -7960,7 +7960,7 @@ body,
   color: #66758c;
   padding: 0 10px;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
   text-align: left;
   white-space: nowrap;
 }
@@ -7971,7 +7971,7 @@ body,
   color: #172033;
   padding: 8px 10px;
   font-size: 13px;
-  font-weight: 780;
+  font-weight: 600;
   vertical-align: middle;
 }
 
@@ -7981,7 +7981,7 @@ body,
   overflow: hidden;
   color: #718198;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -7996,7 +7996,7 @@ body,
   border-radius: 8px;
   padding: 0 8px;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .fundingExchange {
@@ -8036,7 +8036,7 @@ body,
   padding: 10px 12px;
   color: #66758c;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .fundingScannerRisk span {
@@ -8064,7 +8064,7 @@ body,
 .positionSizingHero span {
   color: #6f7f95;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .positionSizingHero h1 {
@@ -8078,7 +8078,7 @@ body,
   margin: 0;
   color: #607086;
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .positionSizingHero > strong {
@@ -8129,7 +8129,7 @@ body,
 .positionFieldGrid span {
   color: #65758c;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .positionFieldGrid input {
@@ -8141,12 +8141,12 @@ body,
   color: #172033;
   padding: 0 12px;
   font-size: 15px;
-  font-weight: 720;
+  font-weight: 560;
 }
 
 .positionFieldGrid input::placeholder {
   color: #a1acba;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .positionSegment,
@@ -8164,7 +8164,7 @@ body,
   background: #fff;
   color: #526176;
   padding: 0 15px;
-  font-weight: 850;
+  font-weight: 620;
   cursor: pointer;
 }
 
@@ -8214,7 +8214,7 @@ body,
   margin: 14px 0 0;
   padding: 9px 12px;
   font-size: 13px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .positionPrimaryButton {
@@ -8249,7 +8249,7 @@ body,
 .positionLivePnl span {
   color: #62728a;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .positionResultHero strong {
@@ -8262,7 +8262,7 @@ body,
   color: #53637a;
   font-size: 14px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .positionMetricGrid {
@@ -8287,7 +8287,7 @@ body,
 .positionMetricGrid span {
   color: #6f7f95;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .positionMetricGrid strong,
@@ -8337,7 +8337,7 @@ body,
   background: #f8fafc;
   color: #718096;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 620;
 }
 
 .positionHistoryTable td strong {
@@ -8430,7 +8430,7 @@ body,
   border-bottom: 1px solid #dbe4ef;
   color: #172033;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   vertical-align: middle;
 }
 
@@ -8440,7 +8440,7 @@ body,
   background: #f8fbff;
   color: #6b7890;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 560;
 }
 
 .marketSectorHeatmap {
@@ -8651,7 +8651,7 @@ body,
   margin: 0 0 6px;
   color: #142033;
   font-size: 24px;
-  font-weight: 680;
+  font-weight: 560;
   letter-spacing: 0;
 }
 
@@ -8710,7 +8710,7 @@ body,
   display: block;
   color: #6b7a90;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .unlockContactMeta strong {
@@ -8728,7 +8728,7 @@ body,
   background: #fff;
   color: #1f7ae0;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 560;
   cursor: pointer;
 }
 
@@ -8757,7 +8757,7 @@ body,
 .onboardingHead span {
   color: #1f7ae0;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 560;
 }
 
 .onboardingHead h2 {
@@ -8765,7 +8765,7 @@ body,
   color: #142033;
   font-size: 28px;
   line-height: 1.2;
-  font-weight: 700;
+  font-weight: 560;
   letter-spacing: 0;
 }
 
@@ -8790,13 +8790,13 @@ body,
   grid-row: span 2;
   color: #1f7ae0;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .onboardingSteps strong {
   color: #142033;
   font-size: 16px;
-  font-weight: 680;
+  font-weight: 560;
 }
 
 .onboardingSteps p {
@@ -8827,7 +8827,7 @@ body,
   background: #1f7ae0;
   color: #fff;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 560;
   cursor: pointer;
 }
 
@@ -8906,7 +8906,7 @@ body,
 
 .marketSectorTable.benchmark td strong,
 .marketVolumePanel td strong {
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketSectorFacts article {
@@ -8920,7 +8920,7 @@ body,
 
 .marketSectorFacts strong {
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .marketLeaderList button {
@@ -8930,7 +8930,7 @@ body,
 .marketLeaderList button b,
 .marketLeaderList button em {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 /* Shared table finish: one visual source for trend direction chips. */
@@ -8976,7 +8976,7 @@ body,
   border-radius: 999px;
   padding: 0 14px;
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1;
 }
 
@@ -9078,7 +9078,7 @@ body,
 .openSectorPie strong {
   color: #172033;
   font-size: 22px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .openSectorLegend {
@@ -9139,7 +9139,7 @@ body,
 .openPositionRow strong {
   color: #172033;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .openPositionRow span {
@@ -9256,7 +9256,7 @@ body,
   color: #344257;
   padding: 0 12px;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 560;
   cursor: pointer;
 }
 
@@ -9268,7 +9268,7 @@ body,
 .openPager span {
   color: #718096;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 @media (max-width: 900px) {
@@ -9321,7 +9321,7 @@ body,
   color: #1677d2;
   padding: 0 14px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   box-shadow: 0 14px 34px rgba(15, 23, 42, .14);
   cursor: pointer;
   transform: translate(-50%, -50%);
@@ -10001,7 +10001,7 @@ body,
   overflow: hidden;
   color: #172033;
   font-size: 16px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10068,7 +10068,7 @@ body,
   border-radius: 999px;
   padding: 0 14px;
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1;
 }
 
@@ -10151,7 +10151,7 @@ body,
   overflow: hidden;
   color: #fff !important;
   font-size: 16px !important;
-  font-weight: 700;
+  font-weight: 560;
   line-height: 1.2 !important;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10162,7 +10162,7 @@ body,
   color: rgba(255, 255, 255, .94) !important;
   font-size: 12px !important;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 560;
   line-height: 1.35 !important;
   opacity: 1;
 }
@@ -10172,7 +10172,7 @@ body,
   overflow: hidden;
   color: rgba(255, 255, 255, .86) !important;
   font-size: 11.5px !important;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.3 !important;
   opacity: 1;
   text-overflow: ellipsis;
