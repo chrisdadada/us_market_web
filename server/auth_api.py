@@ -75,7 +75,7 @@ ALLOWED_UPLOAD_MIMES = {
 PLANS = {"free", "paid", "monthly", "yearly"}
 ROLES = {"user", "admin", "super_admin"}
 LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus", "monthly", "yearly"}
-INTRO_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
+US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
 COURSE_PROGRESS_STATUSES = {"updating", "finished"}
@@ -2266,9 +2266,9 @@ def grant_all_courses(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, 
         target = course_grant_target(conn, user_query)
         if not target:
             raise ValueError("用户不存在")
-        if scope == "intro":
-            placeholders = ",".join("?" for _ in INTRO_COURSE_TITLES)
-            series_rows = conn.execute(f"SELECT id FROM course_series WHERE title IN ({placeholders})", INTRO_COURSE_TITLES).fetchall()
+        if scope in {"us_stock", "intro"}:
+            placeholders = ",".join("?" for _ in US_STOCK_COURSE_TITLES)
+            series_rows = conn.execute(f"SELECT id FROM course_series WHERE title IN ({placeholders})", US_STOCK_COURSE_TITLES).fetchall()
         elif scope == "all":
             series_rows = conn.execute("SELECT id FROM course_series").fetchall()
         else:

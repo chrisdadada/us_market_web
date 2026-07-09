@@ -20,7 +20,7 @@ const planLabels: Record<string, string> = {
   yearly: "年度"
 };
 
-const introCourseTitles = new Set(["美股定投课程", "美股投资框架课"]);
+const usStockCourseTitles = new Set(["美股定投课程", "美股投资框架课"]);
 
 const roleLabels: Record<string, string> = {
   user: "普通用户",
@@ -837,7 +837,7 @@ function UserDetailModal({
   onEditAccount,
   onEditMember,
   onGrantCourses,
-  canGrantIntro
+  canGrantUsStock
 }: {
   user: AdminUser | null;
   events: UserEvent[];
@@ -846,8 +846,8 @@ function UserDetailModal({
   onClose: () => void;
   onEditAccount: () => void;
   onEditMember: () => void;
-  onGrantCourses: (scope: "all" | "intro") => void;
-  canGrantIntro: boolean;
+  onGrantCourses: (scope: "all" | "us_stock") => void;
+  canGrantUsStock: boolean;
 }) {
   if (!user) return null;
   const state = membershipState(user);
@@ -870,7 +870,7 @@ function UserDetailModal({
           </div>
           <div className="userDetailTopActions">
             <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
-            {user.role === "user" && canGrantIntro ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("intro")}>授权入门课程</button> : null}
+            {user.role === "user" && canGrantUsStock ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("us_stock")}>授权美股课程</button> : null}
             {user.role === "user" ? <button type="button" className="ghostButton" onClick={() => onGrantCourses("all")}>授权全部课程</button> : null}
             <button type="button" className="ghostButton" onClick={onEditAccount}>账号操作</button>
             <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
@@ -956,7 +956,7 @@ function UsersPage({
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<"account" | "member">("member");
   const [grantAllOpen, setGrantAllOpen] = useState(false);
-  const [grantScope, setGrantScope] = useState<"all" | "intro">("all");
+  const [grantScope, setGrantScope] = useState<"all" | "us_stock">("all");
   const [grantAllExpiresAt, setGrantAllExpiresAt] = useState(localDateInputValue());
   const [grantAllMessage, setGrantAllMessage] = useState("");
   const [grantAllDateError, setGrantAllDateError] = useState("");
@@ -966,7 +966,7 @@ function UsersPage({
   const normalUsers = users.filter((user) => user.role === "user");
   const today = localDateInputValue();
   const seriesById = useMemo(() => new Map(courseSeries.map((item) => [item.id, item])), [courseSeries]);
-  const introCourseCount = courseSeries.filter((item) => introCourseTitles.has(item.title)).length;
+  const usStockCourseCount = courseSeries.filter((item) => usStockCourseTitles.has(item.title)).length;
   const grantsByUser = useMemo(() => {
     const map = new Map<number, CourseGrant[]>();
     courseGrants.forEach((grant) => {
@@ -1058,7 +1058,7 @@ function UsersPage({
       setGrantAllOpen(false);
       setGrantAllExpiresAt(localDateInputValue());
       await onRefresh();
-      setGrantAllToast({ title: "已授权", detail: `${selected.email} 已开通${grantScope === "intro" ? "入门课程" : "全部课程"}`, tone: "success" });
+      setGrantAllToast({ title: "已授权", detail: `${selected.email} 已开通${grantScope === "us_stock" ? "美股课程" : "全部课程"}`, tone: "success" });
     } catch (err) {
       setGrantAllMessage(err instanceof Error ? err.message : "没有授权成功，请稍后再试");
     } finally {
@@ -1213,20 +1213,20 @@ function UsersPage({
           setGrantAllToast(null);
           setGrantAllOpen(true);
         }}
-        canGrantIntro={introCourseCount > 0}
+        canGrantUsStock={usStockCourseCount > 0}
       />
       <UserEditModal selected={selected} open={editorOpen} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} mode={editorMode} title={editorMode === "member" ? "设置会员" : "账号操作"} />
       {grantAllOpen && selected ? (
         <div className="modalOverlay">
           <form className="adminModal courseModal courseGrantModal" onSubmit={submitGrantAllCourses}>
             <div className="modalHeader">
-              <h2>{grantScope === "intro" ? "授权入门课程" : "授权全部课程"}</h2>
+              <h2>{grantScope === "us_stock" ? "授权美股课程" : "授权全部课程"}</h2>
               <button type="button" onClick={() => setGrantAllOpen(false)}>×</button>
             </div>
             <p className="grantAllSummary">
               <span>用户</span>
               <strong>{selected.email}</strong>
-              <em>{grantScope === "intro" ? `入门课程 ${introCourseCount} 门` : `全部 ${courseSeries.length} 门课程`}</em>
+              <em>{grantScope === "us_stock" ? `美股课程 ${usStockCourseCount} 门` : `全部 ${courseSeries.length} 门课程`}</em>
             </p>
             <label className={grantAllDateError ? "fieldInvalid" : ""}>
               到期日期
@@ -1245,7 +1245,7 @@ function UsersPage({
               <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(180, grantAllExpiresAt)); setGrantAllDateError(""); }}>180天</button>
               <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(365, grantAllExpiresAt)); setGrantAllDateError(""); }}>1年</button>
             </div>
-            <p className="grantAllNote">{grantScope === "intro" ? "包含：美股定投课程、美股投资框架课。" : "已有授权会更新到这个日期。"}</p>
+            <p className="grantAllNote">{grantScope === "us_stock" ? "包含：美股定投课程、美股投资框架课。" : "已有授权会更新到这个日期。"}</p>
             {grantAllMessage ? <p className="inlineMessage error">{grantAllMessage}</p> : null}
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setGrantAllOpen(false)}>取消</button>

@@ -1065,9 +1065,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["series"], [])
 
-    def test_intro_course_bulk_grant_only_grants_intro_titles(self) -> None:
+    def test_us_stock_course_bulk_grant_only_grants_fixed_titles(self) -> None:
         admin = self.login("admin@example.test", "admin-password")
-        user = self.create_user(admin, "intro-course-user@example.test", "free")
+        user = self.create_user(admin, "us-stock-course-user@example.test", "free")
         for title in ["美股定投课程", "美股投资框架课", "滚仓实战系列课"]:
             status, payload = admin.post(
                 "/api/admin/courses",
@@ -1075,7 +1075,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             )
             self.assertEqual(status, 201, payload)
 
-        status, payload = admin.post("/api/admin/courses/grants/all", {"user": user["email"], "expiresAt": "2028-01-01", "scope": "intro"})
+        status, payload = admin.post("/api/admin/courses/grants/all", {"user": user["email"], "expiresAt": "2028-01-01", "scope": "us_stock"})
         self.assertEqual(status, 201, payload)
         self.assertEqual(payload["count"], 2)
         with sqlite3.connect(auth_api.DB_PATH) as conn:
