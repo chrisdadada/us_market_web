@@ -374,8 +374,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .modalPanel.userDetailModal {
-  width: min(1120px, calc(100vw - 56px));
+  width: min(1120px, calc(100% - 56px));
+  min-width: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 .userDetailHead {
@@ -384,6 +386,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   gap: 18px;
   padding: 20px 22px;
   border-bottom: 1px solid #e6ebf2;
+}
+
+.userDetailHead > div:first-child {
+  min-width: 0;
 }
 
 .userDetailHead span,
@@ -405,8 +411,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .userDetailTopActions {
   display: flex;
   align-items: flex-start;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 .userDetailTopActions .primaryButton,
@@ -502,6 +510,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userDetailContent {
   padding: 18px 22px 22px;
+  min-width: 0;
 }
 
 .userSummaryGrid {
@@ -560,7 +569,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userDetailPanels {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
   gap: 16px;
   align-items: start;
 }
@@ -632,12 +641,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userEventList div {
   display: grid;
-  grid-template-columns: 150px minmax(220px, 1fr) minmax(150px, 190px);
+  grid-template-columns: 145px minmax(0, 1fr) minmax(0, 180px);
   gap: 12px;
   align-items: center;
   border: 1px solid #e5ebf3;
   border-radius: 10px;
   padding: 12px 14px;
+  min-width: 0;
 }
 
 .userEventList span,
@@ -651,6 +661,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .userEventList strong {
   color: #182337;
   font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.userEventList em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .userTabActions {
