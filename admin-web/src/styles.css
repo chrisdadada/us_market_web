@@ -832,45 +832,29 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border-color: #b9d8ff;
 }
 
-.tradeNoteEdit {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) 78px;
+.tradeNoteSummary,
+.tradeNoteEmpty {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tradeNoteSummary {
+  color: #344257;
+  font-weight: 500;
+}
+
+.tradeNoteEmpty {
+  color: #9aa7b8;
+  font-weight: 520;
+}
+
+.openHistoryActions {
+  display: flex;
+  justify-content: flex-end;
   gap: 8px;
-  align-items: start;
-}
-
-.tradeNoteEdit textarea {
-  min-height: 54px;
-  min-width: 0;
-  resize: vertical;
-  border: 1px solid #d6dee9;
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: #182337;
-  background: #fff;
-  outline: none;
-  line-height: 1.45;
-}
-
-.tradeNoteEdit textarea:focus {
-  border-color: #1677ff;
-  box-shadow: 0 0 0 3px #dcebff;
-}
-
-.tradeNoteActions {
-  display: grid;
-  gap: 6px;
-  justify-items: start;
-}
-
-.tradeNoteActions span {
-  color: #0f9b72;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.tradeNoteActions span.error {
-  color: #be123c;
 }
 
 .dangerAction {
@@ -1091,7 +1075,20 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 .openHistoryAdminPanel .adminTable {
   min-width: 1080px;
+  table-layout: fixed;
 }
+.openHistoryAdminPanel th,
+.openHistoryAdminPanel td {
+  white-space: nowrap;
+}
+.openTradeDateCol { width: 104px; }
+.openTradeSymbolCol { width: 78px; }
+.openTradeSideCol { width: 78px; }
+.openTradePriceCol { width: 92px; }
+.openTradeQuantityCol { width: 92px; }
+.openTradeMoneyCol { width: 96px; }
+.openTradePnlCol { width: 96px; }
+.openTradeActionCol { width: 126px; }
 .adminPager {
   display: flex;
   align-items: center;
@@ -1120,6 +1117,57 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #718096;
   font-size: 13px;
   font-weight: 600;
+}
+.openTradeNoteModal {
+  width: min(560px, calc(100vw - 72px));
+}
+.openTradeNoteInfo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.openTradeNoteInfo div {
+  min-width: 0;
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.openTradeNoteInfo span,
+.openTradeNoteField span {
+  display: block;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 560;
+}
+.openTradeNoteInfo strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 6px;
+  color: #182337;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.openTradeNoteField {
+  display: grid;
+  gap: 8px;
+}
+.openTradeNoteField textarea {
+  min-height: 132px;
+  resize: vertical;
+  border: 1px solid #d6dee9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #182337;
+  font: inherit;
+  line-height: 1.55;
+  outline: none;
+}
+.openTradeNoteField textarea:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 3px #dcebff;
 }
 .userIdentityCell,
 .lastEventCell {

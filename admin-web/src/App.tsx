@@ -1,5 +1,5 @@
 import { ClipboardEvent, FormEvent, ReactElement, ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { api, AdminMetrics, AdminUser, AuthStatus, CourseGrant, CourseLesson, CourseSeries, MarketOpinion, OpenPortfolioPayload, OpinionStatus, UserEvent } from "./api";
+import { api, AdminMetrics, AdminUser, AuthStatus, CourseGrant, CourseLesson, CourseSeries, MarketOpinion, OpenPortfolioPayload, OpenPortfolioTrade, OpinionStatus, UserEvent } from "./api";
 
 type PageKey = "home" | "users" | "content" | "open" | "courses" | "events" | "admins";
 
@@ -2032,9 +2032,10 @@ function OpenPortfolioPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ text: string; tone: "success" | "error" } | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
-  const [noteStatus, setNoteStatus] = useState<Record<number, { text: string; tone: "success" | "error" }>>({});
+  const [editingTradeId, setEditingTradeId] = useState<number | null>(null);
   const [tradePage, setTradePage] = useState(1);
   const holdings = data?.holdings || [];
+  const editingTrade = data?.trades.find((trade) => trade.id === editingTradeId) || null;
   const selectedHolding = holdings.find((item) => item.symbol === form.symbol);
   const tradeDateAvailableCash = useMemo(() => openAvailableCashAt(data, form.tradeTime), [data, form.tradeTime]);
   const enteredBuyAmount = Number(form.amount || 0);
@@ -2056,6 +2057,16 @@ function OpenPortfolioPage() {
     if (!tradeDateAvailableCash) return;
     setForm({ ...form, amount: String(Math.floor(tradeDateAvailableCash * ratio * 100) / 100) });
   };
+  const openTradeNoteEditor = (trade: OpenPortfolioTrade) => {
+    setNoteDrafts((current) => ({ ...current, [trade.id]: trade.note || "" }));
+    setEditingTradeId(trade.id);
+  };
+  const closeTradeNoteEditor = () => {
+    if (editingTrade) {
+      setNoteDrafts((current) => ({ ...current, [editingTrade.id]: editingTrade.note || "" }));
+    }
+    setEditingTradeId(null);
+  };
 
   async function loadOpenPortfolio() {
     setLoading(true);
@@ -2065,7 +2076,6 @@ function OpenPortfolioPage() {
       setData(payload);
       setTradePage(1);
       setNoteDrafts(Object.fromEntries(payload.trades.map((trade) => [trade.id, trade.note || ""])));
-      setNoteStatus({});
     } catch (err) {
       setToast({ text: err instanceof Error ? err.message : "读取失败", tone: "error" });
     } finally {
@@ -2136,15 +2146,13 @@ function OpenPortfolioPage() {
   async function saveTradeNote(id: number) {
     setSaving(true);
     setToast(null);
-    setNoteStatus((current) => ({ ...current, [id]: { text: "保存中", tone: "success" } }));
     try {
       const result = await api.updateOpenTradeNote(id, noteDrafts[id] || "");
       setData(result);
       setNoteDrafts(Object.fromEntries(result.trades.map((trade) => [trade.id, trade.note || ""])));
-      setNoteStatus((current) => ({ ...current, [id]: { text: "已保存", tone: "success" } }));
+      setEditingTradeId(null);
       setToast({ text: "交易逻辑已保存", tone: "success" });
     } catch (err) {
-      setNoteStatus((current) => ({ ...current, [id]: { text: "保存失败", tone: "error" } }));
       setToast({ text: err instanceof Error ? err.message : "保存交易逻辑失败", tone: "error" });
     } finally {
       setSaving(false);
@@ -2260,6 +2268,17 @@ function OpenPortfolioPage() {
             <span className="tableMuted">第 {tradePage} / {tradeTotalPages} 页</span>
           </div>
           <table className="adminTable">
+            <colgroup>
+              <col className="openTradeDateCol" />
+              <col className="openTradeSymbolCol" />
+              <col className="openTradeSideCol" />
+              <col className="openTradePriceCol" />
+              <col className="openTradeQuantityCol" />
+              <col className="openTradeMoneyCol" />
+              <col className="openTradePnlCol" />
+              <col />
+              <col className="openTradeActionCol" />
+            </colgroup>
             <thead><tr><th>日期</th><th>标的</th><th>方向</th><th>价格</th><th>数量</th><th>金额</th><th>已实现</th><th>交易逻辑</th><th>操作</th></tr></thead>
             <tbody>
               {tradeRows.map((row) => (
@@ -2272,24 +2291,14 @@ function OpenPortfolioPage() {
                   <td>{adminMoney(row.amount)}</td>
                   <td className={row.realizedPnl >= 0 ? "positive" : "dangerText"}>{row.side === "sell" ? signedMoney(row.realizedPnl) : "--"}</td>
                   <td>
-                    <div className="tradeNoteEdit">
-                      <textarea value={noteDrafts[row.id] ?? row.note ?? ""} onChange={(event) => {
-                        setNoteDrafts({ ...noteDrafts, [row.id]: event.target.value });
-                        if (noteStatus[row.id]) {
-                          setNoteStatus((current) => {
-                            const nextStatus = { ...current };
-                            delete nextStatus[row.id];
-                            return nextStatus;
-                          });
-                        }
-                      }} />
-                      <div className="tradeNoteActions">
-                        <button type="button" className="tableAction" disabled={saving || (noteDrafts[row.id] ?? "") === (row.note || "")} onClick={() => saveTradeNote(row.id)}>保存</button>
-                        {noteStatus[row.id] ? <span className={noteStatus[row.id].tone}>{noteStatus[row.id].text}</span> : null}
-                      </div>
+                    {row.note?.trim() ? <span className="tradeNoteSummary" title={row.note.trim()}>{row.note.trim()}</span> : <span className="tradeNoteEmpty">未填写</span>}
+                  </td>
+                  <td>
+                    <div className="openHistoryActions">
+                      <button type="button" className="tableAction" disabled={saving} onClick={() => openTradeNoteEditor(row)}>编辑</button>
+                      <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => removeTrade(row.id)}>删除</button>
                     </div>
                   </td>
-                  <td><button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => removeTrade(row.id)}>删除</button></td>
                 </tr>
               ))}
               {!data?.trades.length ? <tr><td colSpan={9}>暂无交易记录</td></tr> : null}
@@ -2304,6 +2313,31 @@ function OpenPortfolioPage() {
           ) : null}
         </section>
       </div>
+
+      {editingTrade ? (
+        <div className="modalBackdrop modalBackdropTop" role="presentation" onMouseDown={closeTradeNoteEditor}>
+          <form className="modalPanel openTradeNoteModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); void saveTradeNote(editingTrade.id); }}>
+            <div className="modalHeader">
+              <h2>编辑交易逻辑</h2>
+              <button type="button" className="iconButton" onClick={closeTradeNoteEditor}>×</button>
+            </div>
+            <div className="openTradeNoteInfo">
+              <div><span>日期</span><strong>{formatDate(editingTrade.tradeTime)}</strong></div>
+              <div><span>标的</span><strong>{editingTrade.symbol}</strong></div>
+              <div><span>方向</span><strong>{editingTrade.side === "buy" ? "买入" : "卖出"}</strong></div>
+              <div><span>金额</span><strong>{adminMoney(editingTrade.amount)}</strong></div>
+            </div>
+            <label className="openTradeNoteField">
+              <span>交易逻辑</span>
+              <textarea value={noteDrafts[editingTrade.id] ?? editingTrade.note ?? ""} onChange={(event) => setNoteDrafts({ ...noteDrafts, [editingTrade.id]: event.target.value })} autoFocus />
+            </label>
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={closeTradeNoteEditor}>取消</button>
+              <button type="submit" className="primaryButton" disabled={saving || (noteDrafts[editingTrade.id] ?? "") === (editingTrade.note || "")}>{saving ? "保存中" : "保存"}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }
