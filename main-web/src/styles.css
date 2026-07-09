@@ -7198,7 +7198,7 @@ body,
   margin: 0 0 8px;
   color: #172033;
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 560;
   line-height: 1;
 }
 
@@ -7247,7 +7247,7 @@ body,
   background: #fff;
   color: #526176;
   padding: 0 14px;
-  font-weight: 600;
+  font-weight: 520;
   cursor: pointer;
 }
 
@@ -7282,7 +7282,7 @@ body,
   color: #526176;
   padding: 0 13px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 520;
   cursor: pointer;
 }
 
@@ -7353,7 +7353,7 @@ body,
   background: rgba(255, 255, 255, .94);
   padding: 0 10px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 520;
 }
 
 .courseThumb > span.unlocked {
@@ -7372,7 +7372,7 @@ body,
   margin: 0 0 8px;
   color: #172033;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 560;
   line-height: 1.25;
 }
 
@@ -7415,7 +7415,7 @@ body,
   color: #1d2636;
   font-size: 28px;
   line-height: 1;
-  font-weight: 620;
+  font-weight: 560;
 }
 
 .courseDiscountBlock em {
@@ -7453,7 +7453,7 @@ body,
   background: #fff;
   color: #526176;
   padding: 0 14px;
-  font-weight: 600;
+  font-weight: 520;
   cursor: pointer;
 }
 
@@ -7494,7 +7494,7 @@ body,
   margin: 0 0 10px;
   color: #172033;
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 560;
   line-height: 1.15;
 }
 
@@ -7526,7 +7526,7 @@ body,
   color: #607086;
   padding: 0 10px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 520;
 }
 
 .courseDetailText span.unlocked {
@@ -7562,7 +7562,7 @@ body,
 
 .coursePlayerTop strong {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 560;
 }
 
 .coursePlayerTop span {
@@ -7650,7 +7650,7 @@ body,
 .courseLessonList strong {
   color: #172033;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 520;
 }
 
 .courseLessonList .lessonCoverSlot {
@@ -7702,7 +7702,7 @@ body,
   margin: 0;
   color: #172033;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 560;
 }
 
 .courseLockedDetail > p {
@@ -7727,7 +7727,7 @@ body,
   background: #1677ff;
   color: #fff;
   padding: 0 18px;
-  font-weight: 600;
+  font-weight: 520;
   cursor: pointer;
 }
 

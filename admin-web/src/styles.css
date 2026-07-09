@@ -30,28 +30,28 @@ textarea {
 .adminShell { min-height: 100vh; display: grid; grid-template-columns: 248px 1fr; }
 .sidebar { background: #fff; border-right: 1px solid #e4e9f0; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 14px; padding: 0 10px; }
-.brandMark { width: 40px; height: 40px; border-radius: 10px; background: #1677ff; color: #fff; display: grid; place-items: center; font-weight: 800; }
-.brand strong { display: block; font-size: 19px; font-weight: 760; }
+.brandMark { width: 40px; height: 40px; border-radius: 10px; background: #1677ff; color: #fff; display: grid; place-items: center; font-weight: 620; }
+.brand strong { display: block; font-size: 19px; font-weight: 600; }
 .brand span { display: block; margin-top: 4px; color: #718096; font-size: 12px; font-weight: 560; }
 nav { display: grid; gap: 8px; }
-nav button { border: 0; background: transparent; color: #526174; text-align: left; padding: 12px 22px; border-radius: 8px; font-size: 15px; font-weight: 650; cursor: pointer; }
+nav button { border: 0; background: transparent; color: #526174; text-align: left; padding: 12px 22px; border-radius: 8px; font-size: 15px; font-weight: 520; cursor: pointer; }
 nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0 0 #1677ff; }
 .accountBox { margin-top: auto; background: #f8fafd; border: 1px solid #e5ebf3; border-radius: 12px; padding: 18px 20px; overflow: hidden; }
-.accountBox span { display: block; color: #7b8798; font-size: 13px; font-weight: 650; }
+.accountBox span { display: block; color: #7b8798; font-size: 13px; font-weight: 520; }
 .accountBox strong { display: block; margin-top: 8px; color: #182337; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
 
 .mainArea { min-width: 0; }
 .topbar { height: 68px; background: #fff; border-bottom: 1px solid #e4e9f0; display: flex; align-items: center; justify-content: space-between; padding: 0 34px; }
-.topbar h1 { margin: 0; font-size: 23px; font-weight: 720; }
+.topbar h1 { margin: 0; font-size: 23px; font-weight: 600; }
 .topActions { display: flex; gap: 12px; }
-.ghostButton { border: 1px solid #d6dee9; background: #fff; color: #344257; border-radius: 8px; padding: 7px 13px; font-size: 13px; font-weight: 650; cursor: pointer; }
+.ghostButton { border: 1px solid #d6dee9; background: #fff; color: #344257; border-radius: 8px; padding: 7px 13px; font-size: 13px; font-weight: 520; cursor: pointer; }
 .primaryButton, .dangerButton {
   border: 0;
   border-radius: 8px;
   padding: 7px 14px;
   color: #fff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 .primaryButton { background: #1677ff; }
@@ -59,20 +59,20 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .primaryButton:disabled, .dangerButton:disabled, .ghostButton:disabled { opacity: .6; cursor: wait; }
 .pageStack { padding: 32px 34px; display: grid; gap: 20px; }
 .pageTitle { display: flex; justify-content: space-between; align-items: end; }
-.pageTitle span { color: #7b8798; font-size: 12px; font-weight: 650; }
-.pageTitle h1 { margin: 5px 0 0; font-size: 25px; font-weight: 720; }
+.pageTitle span { color: #7b8798; font-size: 12px; font-weight: 520; }
+.pageTitle h1 { margin: 5px 0 0; font-size: 25px; font-weight: 600; }
 .statsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
 .openStatsGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .statCard, .panel { background: #fff; border: 1px solid var(--admin-line); border-radius: var(--admin-card-radius); box-shadow: var(--admin-card-shadow); }
 .statCard { min-height: 98px; padding: 18px 20px; }
-.statCard p { margin: 0; color: #243247; font-size: 14px; font-weight: 650; }
-.statCard strong { display: block; margin-top: 12px; font-size: 26px; font-weight: 700; line-height: 1; }
+.statCard p { margin: 0; color: #243247; font-size: 14px; font-weight: 520; }
+.statCard strong { display: block; margin-top: 12px; font-size: 26px; font-weight: 600; line-height: 1; }
 .statCard span { display: block; margin-top: 9px; color: #718096; font-size: 13px; font-weight: 600; }
 .positive { color: #12b981; }
 .warning { color: #f59e0b; }
 .panel { padding: 22px 24px; }
 .panelHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-.panelHeader h2 { margin: 0; font-size: 20px; font-weight: 720; }
+.panelHeader h2 { margin: 0; font-size: 20px; font-weight: 600; }
 .homeTablePanel {
   overflow: auto;
 }
@@ -82,12 +82,12 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .adminTable td { color: #344257; font-size: var(--admin-table-body-size); font-weight: var(--admin-table-body-weight); }
 .adminTable tbody tr { cursor: default; }
 .adminTable tbody tr.selectedRow { background: #eff6ff; }
-.status { display: inline-flex; align-items: center; border-radius: 999px; background: #f1f5f9; color: #64748b; padding: 3px 9px; font-size: 12px; font-weight: 650; line-height: 1.45; }
+.status { display: inline-flex; align-items: center; border-radius: 999px; background: #f1f5f9; color: #64748b; padding: 3px 9px; font-size: 12px; font-weight: 520; line-height: 1.45; }
 .positiveBg { background: #eafbF4; color: #0f9b72; }
 .warningBg { background: #fff7e6; color: #b7791f; }
 .dangerBg { background: #fff1f2; color: #be123c; }
 .dangerText { color: #be123c; }
-.notice, .contentLoading { margin: 24px 44px 0; border-radius: 12px; padding: 14px 18px; font-weight: 700; }
+.notice, .contentLoading { margin: 24px 44px 0; border-radius: 12px; padding: 14px 18px; font-weight: 600; }
 .notice { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
 .contentLoading { background: #eff6ff; color: #1677ff; border: 1px solid #cfe5ff; }
 .adminToast {
@@ -104,7 +104,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   box-shadow: 0 14px 34px rgba(15, 23, 42, .14);
   padding: 11px 13px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 .adminToast::before {
   content: "✓";
@@ -117,14 +117,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #dcfce7;
   color: #15935f;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 620;
   vertical-align: top;
 }
 .adminToast strong {
   display: inline-block;
   color: #172033;
   font-size: 13px;
-  font-weight: 720;
+  font-weight: 600;
 }
 .adminToast span {
   display: block;
@@ -144,17 +144,17 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #ffe4e6;
   color: #d11b45;
 }
-.emptyPanel { min-height: 280px; display: grid; place-items: center; color: #7b8798; font-weight: 750; }
+.emptyPanel { min-height: 280px; display: grid; place-items: center; color: #7b8798; font-weight: 600; }
 
 .loginPage, .loadingPage { min-height: 100vh; display: grid; place-items: center; background: #f5f7fa; }
 .loginPanel { width: 420px; background: #fff; border: 1px solid #e3e9f1; border-radius: 18px; box-shadow: 0 18px 38px rgba(18, 48, 74, 0.12); padding: 36px; display: grid; gap: 18px; }
 .loginPanel h1 { margin: 0 0 8px; font-size: 28px; }
-.loginPanel label { display: grid; gap: 8px; color: #344257; font-weight: 750; }
+.loginPanel label { display: grid; gap: 8px; color: #344257; font-weight: 600; }
 .loginPanel input { border: 1px solid #d6dee9; border-radius: 10px; padding: 12px 14px; outline: none; }
 .loginPanel input:focus { border-color: #1677ff; box-shadow: 0 0 0 3px #dcebff; }
-.loginPanel button { border: 0; border-radius: 10px; background: #1677ff; color: #fff; padding: 13px 16px; font-weight: 800; cursor: pointer; }
+.loginPanel button { border: 0; border-radius: 10px; background: #1677ff; color: #fff; padding: 13px 16px; font-weight: 620; cursor: pointer; }
 .loginPanel button:disabled { opacity: .65; cursor: wait; }
-.formError { margin: 0; color: #be123c; font-size: 14px; font-weight: 700; }
+.formError { margin: 0; color: #be123c; font-size: 14px; font-weight: 600; }
 
 .toolbarPanel {
   background: #fff;
@@ -192,7 +192,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #405168;
   padding: 0 13px;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 520;
   cursor: pointer;
 }
 .quickFilterBar button.active {
@@ -209,7 +209,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   gap: 6px;
   color: #526174;
   font-size: 12px;
-  font-weight: 680;
+  font-weight: 560;
 }
 .toolbarPanel input,
 .toolbarPanel select,
@@ -281,7 +281,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #182337;
   font-size: 18px;
-  font-weight: 760;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 .userDrawerHead span {
@@ -289,7 +289,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 7px;
   color: #718096;
   font-size: 12px;
-  font-weight: 680;
+  font-weight: 560;
 }
 .userInfoGrid {
   display: grid;
@@ -307,7 +307,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: block;
   color: #718096;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 600;
 }
 .userInfoGrid strong {
   display: block;
@@ -338,7 +338,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #718096;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .userCourseRow {
   display: grid;
@@ -356,7 +356,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .userCourseRow span {
   color: #718096;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .userDrawerActions {
   display: grid;
@@ -397,14 +397,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #718096;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .userDetailHead h2 {
   margin: 5px 0 6px;
   color: #182337;
   font-size: 22px;
-  font-weight: 780;
+  font-weight: 620;
   overflow-wrap: anywhere;
 }
 
@@ -438,7 +438,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #182337;
   font-size: 17px;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .userDetailSide > span {
@@ -446,7 +446,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 7px;
   color: #718096;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .userBadgeRow {
@@ -469,7 +469,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 13px;
   color: #607086;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .userDetailSide dt,
@@ -479,7 +479,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userDetailSide dd {
   color: #182337;
-  font-weight: 850;
+  font-weight: 520;
   text-align: right;
 }
 
@@ -499,7 +499,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #607086;
   padding: 0 14px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -534,7 +534,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #718096;
   font-size: 12px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .userSummaryGrid strong {
@@ -542,7 +542,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 8px 0 4px;
   color: #182337;
   font-size: 16px;
-  font-weight: 760;
+  font-weight: 600;
 }
 
 .userDetailBlock {
@@ -564,7 +564,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #718096;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .userDetailPanels {
@@ -590,7 +590,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 4px;
   color: #718096;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .userAlert {
@@ -619,14 +619,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 5px;
   color: #806020;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .userAlert em {
   color: #806020;
   font-size: 13px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 520;
   text-align: right;
 }
 
@@ -655,7 +655,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #718096;
   font-size: 12px;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .userEventList strong {
@@ -686,7 +686,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 6px 0 0;
   color: #718096;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.5;
 }
 
@@ -698,7 +698,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #607086;
   padding: 12px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .accountDangerBox {
@@ -718,14 +718,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #182337;
   font-size: 15px;
-  font-weight: 850;
+  font-weight: 520;
 }
 
 .settingsBlock p {
   margin: 0;
   color: #718096;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .settingsBlock .passwordResetBox {
@@ -786,7 +786,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #1677ff;
   color: #fff;
   height: 42px;
-  font-weight: 800;
+  font-weight: 620;
   cursor: pointer;
 }
 .editForm button:disabled {
@@ -805,7 +805,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #fff;
   color: #344257;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 620;
   cursor: pointer;
 }
 .quickActions button:disabled {
@@ -819,7 +819,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #1677ff;
   padding: 5px 10px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
   cursor: pointer;
 }
 .tableAction:hover {
@@ -861,7 +861,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .tradeNoteActions span {
   color: #0f9b72;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .tradeNoteActions span.error {
@@ -880,7 +880,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .tableMuted {
   color: #94a3b8;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 600;
 }
 .openTradeWorkspace {
   display: grid;
@@ -912,7 +912,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #fff;
   color: #526174;
   padding: 0 18px;
-  font-weight: 850;
+  font-weight: 520;
   cursor: pointer;
 }
 .tradeSideButtons button.buy.active {
@@ -938,7 +938,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   min-width: 0;
   color: #526174;
   font-size: 12px;
-  font-weight: 680;
+  font-weight: 560;
   white-space: nowrap;
 }
 .openTradeForm .fullField {
@@ -955,7 +955,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   overflow: hidden;
   color: #728096;
   font-style: normal;
-  font-weight: 750;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -981,7 +981,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #fff;
   color: #1677ff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 620;
   cursor: pointer;
 }
 .amountSlider {
@@ -1006,7 +1006,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #fff;
   color: #1677ff;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 620;
   cursor: pointer;
 }
 .tradeSubmit {
@@ -1017,7 +1017,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border: 0;
   border-radius: 8px;
   color: #fff;
-  font-weight: 850;
+  font-weight: 520;
   cursor: pointer;
 }
 .tradeSubmit.buy {
@@ -1041,7 +1041,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #be123c;
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .openCashPanel {
   display: grid;
@@ -1060,7 +1060,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border-bottom: 1px solid #e6ebf2;
   color: #66758a;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 .openCashRows div:last-child {
   border-bottom: 0;
@@ -1068,14 +1068,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .openCashRows strong {
   color: #182337;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .openCashPanel p {
   margin: 0;
   padding: 10px 18px 18px;
   color: #728096;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.65;
 }
 .openAdminGrid {
@@ -1104,7 +1104,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #1677ff;
   padding: 0 14px;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 600;
   cursor: pointer;
 }
 .adminPager button:disabled {
@@ -1114,7 +1114,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .adminPager span {
   color: #718096;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .userIdentityCell,
 .lastEventCell {
@@ -1135,7 +1135,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .lastEventCell span {
   color: #7b8798;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1174,7 +1174,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .eventPersonCell span {
   color: #7b8798;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 .roleBadge {
   display: inline-flex;
@@ -1232,7 +1232,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #182337;
   font-size: 18px;
-  font-weight: 720;
+  font-weight: 600;
 }
 .iconButton {
   width: 32px;
@@ -1284,7 +1284,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 6px;
   color: #7b8798;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .memberSnapshot {
   display: grid;
@@ -1307,7 +1307,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .memberSnapshot span {
   color: #7b8798;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 620;
 }
 .memberSnapshot strong {
   color: #182337;
@@ -1321,7 +1321,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #7b8798;
   font-size: 12px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: 520;
 }
 .memberCell {
   display: grid;
@@ -1331,7 +1331,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .memberCell small {
   color: #7b8798;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 .checkboxLine {
   display: flex !important;
@@ -1352,7 +1352,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #166534;
   padding: 8px 10px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.45;
 }
 .inlineMessage.error {
@@ -1370,7 +1370,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: -2px;
   color: #be123c;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 .auditList {
   display: grid;
@@ -1391,7 +1391,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 5px;
   color: #7b8798;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 .contentLayout {
   display: grid;
@@ -1429,7 +1429,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .contentListMeta span {
   color: #7b8798;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .contentListMeta b {
   color: #1677ff;
@@ -1437,19 +1437,19 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border-radius: 999px;
   padding: 3px 8px;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 520;
 }
 .contentListItem strong {
   color: #182337;
   font-size: 15px;
-  font-weight: 680;
+  font-weight: 560;
   line-height: 1.45;
 }
 .contentListItem p {
   margin: 0;
   color: #526174;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.55;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1465,7 +1465,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 4px 10px;
   font-size: 12px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 620;
 }
 .contentListPager {
   position: sticky;
@@ -1486,7 +1486,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border-radius: 9px;
   background: #fff;
   color: #344257;
-  font-weight: 800;
+  font-weight: 620;
   cursor: pointer;
 }
 .contentListPager button:disabled {
@@ -1496,7 +1496,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .contentListPager span {
   color: #7b8798;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 620;
 }
 .editorPanel {
   position: relative;
@@ -1517,14 +1517,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: block;
   color: #7b8798;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 620;
 }
 .editorMeta strong {
   display: block;
   margin-top: 6px;
   color: #182337;
   font-size: 16px;
-  font-weight: 680;
+  font-weight: 560;
   line-height: 1.45;
 }
 .editorMeta em {
@@ -1536,7 +1536,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 6px 13px;
   font-size: 13px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 520;
 }
 .contentListItem em.publishedState,
 .editorMeta em.publishedState {
@@ -1569,7 +1569,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #1677ff;
   padding: 10px 12px;
   font-size: 14px;
-  font-weight: 780;
+  font-weight: 620;
 }
 .editorNotice.errorNotice {
   border-color: #fecdd3;
@@ -1600,12 +1600,12 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   gap: 3px;
   color: #182337;
   font-size: 13px;
-  font-weight: 680;
+  font-weight: 560;
 }
 .optionLine small {
   color: #7b8798;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .fullLabel textarea,
 .editorPanel textarea {
@@ -1641,7 +1641,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   min-width: 44px;
   height: 36px;
   padding: 0 12px;
-  font-weight: 850;
+  font-weight: 520;
   cursor: pointer;
 }
 .markdownToolbar button:disabled {
@@ -1667,7 +1667,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 12px 14px;
   color: #526174;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 520;
 }
 .markdownPreview article {
   padding: 18px 20px 24px;
@@ -1747,12 +1747,12 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .editorActionState span {
   color: #7b8798;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 600;
 }
 .editorActionState strong {
   color: #182337;
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 520;
 }
 .hiddenFile {
   display: none;
@@ -1770,8 +1770,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   min-width: 320px;
 }
 .eventSummary {
-  color: #182337 !important;
-  font-weight: 760 !important;
+  color: #182337;
+  font-weight: 600;
   line-height: 1.55;
 }
 
@@ -1791,7 +1791,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 0 12px;
   color: #182337;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
   background: #fff;
 }
 
@@ -1819,7 +1819,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   display: block;
   color: #718096;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .courseListStats strong {
@@ -1827,7 +1827,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 6px;
   color: #182337;
   font-size: 18px;
-  font-weight: 780;
+  font-weight: 620;
 }
 
 .courseListTable th,
@@ -1847,7 +1847,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 3px;
   color: #718096;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseTitleCell,
@@ -1858,7 +1858,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseTitleCell strong,
 .courseGrantUserCell strong {
   overflow-wrap: anywhere;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseFixedTag,
@@ -1927,7 +1927,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #182337;
   background: #fff;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseSideList {
@@ -1956,7 +1956,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseSideList strong {
   color: #182337;
   font-size: 14px;
-  font-weight: 680;
+  font-weight: 560;
 }
 
 .courseSideList span {
@@ -1977,7 +1977,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 0 8px;
   font-size: 12px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseSideList em.warningBg {
@@ -2004,7 +2004,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseDetailHero h2 {
   margin: 0 0 5px;
   font-size: 18px;
-  font-weight: 680;
+  font-weight: 560;
 }
 
 .courseDetailHero p {
@@ -2036,7 +2036,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseDetailStats .statCard strong {
   margin-top: 8px;
   font-size: 17px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseTabs {
@@ -2133,7 +2133,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: var(--admin-text);
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseKeyCell {
@@ -2165,9 +2165,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .grantQuickActions {
   display: flex;
   align-items: center;
-}
-
-.grantQuickActions {
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -2178,7 +2175,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   border-radius: 7px;
   background: #fff;
   color: #126bd8;
-  font-weight: 850;
+  font-weight: 520;
   padding: 0 10px;
 }
 
@@ -2266,7 +2263,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #405168;
   padding: 9px 10px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseGrantDrawer .courseGrantDatePreview {
@@ -2291,7 +2288,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   background: #f8fbff;
   color: #728197;
   font-size: 13px;
-  font-weight: 720;
+  font-weight: 600;
   line-height: 1.6;
   padding: 12px;
 }
@@ -2304,14 +2301,14 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseGrantCurrent span {
   color: #718096;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 600;
 }
 
 .courseGrantCurrent strong {
   margin-top: 4px;
   color: #182337;
   font-size: 15px;
-  font-weight: 850;
+  font-weight: 520;
 }
 
 .courseGrantModal .grantAllSummary {
@@ -2324,7 +2321,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 11px 12px;
   color: #182337;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseGrantModal .grantAllSummary span,
@@ -2332,13 +2329,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #718096;
   font-size: 12px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseGrantModal .grantAllSummary strong {
   color: #182337;
   font-size: 14px;
-  font-weight: 720;
+  font-weight: 600;
 }
 
 .courseGrantModal .grantAllNote {
@@ -2348,7 +2345,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 0;
   color: #718096;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
 }
 
 .courseConfirmModal {
@@ -2359,7 +2356,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 16px 0 0;
   color: #526174;
   font-size: 15px;
-  font-weight: 760;
+  font-weight: 600;
   line-height: 1.7;
 }
 
@@ -2395,7 +2392,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseCoverUpload > span {
   color: #526174;
   font-size: 12px;
-  font-weight: 680;
+  font-weight: 560;
 }
 
 .courseCoverUpload > div {
@@ -2421,7 +2418,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   color: #718096;
   object-fit: cover;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .courseCoverUpload section {
@@ -2436,7 +2433,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   overflow: hidden;
   color: #718096;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 520;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
