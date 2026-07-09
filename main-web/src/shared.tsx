@@ -3,13 +3,40 @@ export function isBlankValue(value?: string | number | null) {
   return ["null", "undefined", "none", "nan"].includes(String(value).trim().toLowerCase());
 }
 
+const beijingFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  hour12: false,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit"
+});
+
+function beijingParts(value?: string | null) {
+  const raw = String(value || "").trim();
+  if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw)) return null;
+  const date = new Date(raw.replace(" ", "T").replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = Object.fromEntries(beijingFormatter.formatToParts(date).map((part) => [part.type, part.value]));
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour === "24" ? "00" : parts.hour}:${parts.minute}:${parts.second}`
+  };
+}
+
 export function formatDate(value?: string | null) {
   if (isBlankValue(value)) return "--";
+  const parts = beijingParts(value);
+  if (parts) return parts.date;
   return String(value).slice(0, 10);
 }
 
 export function formatDateTime(value?: string | null) {
   if (isBlankValue(value)) return "--";
+  const parts = beijingParts(value);
+  if (parts) return `${parts.date} ${parts.time}`;
   const text = String(value).replace("T", " ").slice(0, 19);
   if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(text)) return text;
   const dateText = formatDate(value);
@@ -18,6 +45,8 @@ export function formatDateTime(value?: string | null) {
 
 export function formatStoredDateTime(value?: string | null) {
   if (isBlankValue(value)) return "--";
+  const parts = beijingParts(value);
+  if (parts) return `${parts.date} ${parts.time}`;
   const text = String(value).replace("T", " ").slice(0, 19);
   if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(text)) return text;
   if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$/.test(text)) return `${text}:00`;

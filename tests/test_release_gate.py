@@ -646,7 +646,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
     def test_admin_metrics_exclude_admin_activity(self) -> None:
         admin = self.login("admin@example.test", "admin-password")
         self.create_user(admin, "normal@example.test", "free")
+        self.create_user(admin, "quiet@example.test", "free")
         user = self.login("normal@example.test", "user-password")
+        self.login("quiet@example.test", "user-password")
 
         status, payload = admin.post("/api/analytics/event", {"eventType": "nav_click", "eventKey": "stocks", "path": "/?page=stocks"})
         self.assertEqual(status, 201, payload)
@@ -655,11 +657,27 @@ class AuthApiReleaseGateTest(unittest.TestCase):
 
         status, payload = admin.get("/api/admin/metrics")
         self.assertEqual(status, 200, payload)
-        self.assertEqual(payload["users"]["total"], 1)
+        self.assertEqual(payload["users"]["total"], 2)
         self.assertEqual(payload["active"]["d3"], 1)
         self.assertEqual(payload["active"]["d7"], 1)
         self.assertEqual(payload["active"]["d30"], 1)
         self.assertEqual(payload["navClicks"], [{"page": "stocks", "clicks": 1, "users": 1}])
+
+    def test_admin_metrics_retention_uses_beijing_day(self) -> None:
+        admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(admin, "beijing-day@example.test", "free")
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            conn.execute("UPDATE users SET created_at = ? WHERE id = ?", ("2026-07-08T23:30:00+00:00", user["id"]))
+            conn.execute(
+                "INSERT INTO analytics_events (user_id, event_type, event_key, path, created_at) VALUES (?, 'nav_click', 'home', '/', ?)",
+                (user["id"], "2026-07-08T23:45:00+00:00"),
+            )
+
+        status, payload = admin.get("/api/admin/metrics")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["retention"][0]["cohortDay"], "2026-07-09")
+        self.assertEqual(payload["retention"][0]["registered"], 1)
+        self.assertEqual(payload["retention"][0]["retained3d"], 1)
 
     def test_monthly_and_yearly_users_keep_paid_access(self) -> None:
         admin = self.login("admin@example.test", "admin-password")
@@ -882,7 +900,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         )
         self.assertEqual(status, 201, payload)
         series_id = payload["series"]["id"]
-        status, payload = super_admin.post("/api/admin/courses/grants", {"seriesId": series_id, "user": user["email"]})
+        status, payload = super_admin.post("/api/admin/courses/grants", {"seriesId": series_id, "user": user["email"], "expiresAt": "2027-01-01"})
         self.assertEqual(status, 201, payload)
 
         status, payload = super_admin.delete(f"/api/admin/users/{user['id']}")
@@ -990,6 +1008,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(payload["code"], "course_forbidden")
 
         status, payload = admin.post("/api/admin/courses/grants", {"seriesId": series_id, "user": user["uid"]})
+        self.assertEqual(status, 400, payload)
+
+        status, payload = admin.post("/api/admin/courses/grants", {"seriesId": series_id, "user": user["uid"], "expiresAt": "2027-01-01"})
         self.assertEqual(status, 201, payload)
 
         status, payload = client.get("/api/courses")

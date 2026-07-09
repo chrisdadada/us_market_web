@@ -851,6 +851,7 @@ function App() {
     setSelectedCourse("");
     setSelectedSymbolSource("stocks");
     pushRouteState({ page: nextPage });
+    void api.analyticsEvent("nav_click", nextPage).catch(() => {});
     if (pageNeedsBootstrap(nextPage)) void refreshBootstrap();
     if (pageNeedsOpinions(nextPage)) void refreshOpinions();
     if (pageNeedsCalendar(nextPage)) void refreshCalendar();
@@ -1209,6 +1210,7 @@ function AuthModal({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   if (!open) return null;
   const isRegister = mode === "register";
@@ -1217,6 +1219,7 @@ function AuthModal({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setError("");
+    setSuccess("");
     const cleanEmail = email.trim();
     if (!isReset && (!cleanEmail || cleanEmail.length > 254)) {
       setError(mode === "login" ? "账号或密码不正确" : "请输入正确邮箱");
@@ -1249,18 +1252,21 @@ function AuthModal({
     request
       .then((payload) => {
         if (isForgot) {
-          setError((payload as { message?: string }).message || "如果邮箱存在，我们会发送重置链接。");
+          setSuccess((payload as { message?: string }).message || "如果邮箱存在，我们会发送重置链接。");
           return;
         }
         if (isReset) {
           onResetDone();
-          setError("密码已重置，请登录");
+          setSuccess("密码已重置，请登录");
           onMode("login");
           return;
         }
         onDone();
       })
-      .catch((err) => setError(err?.message || (isRegister ? "注册失败" : isReset ? "重置失败" : isForgot ? "发送失败" : "登录失败")))
+      .catch((err) => {
+        setSuccess("");
+        setError(err?.message || (isRegister ? "注册失败" : isReset ? "重置失败" : isForgot ? "发送失败" : "登录失败"));
+      })
       .finally(() => setSubmitting(false));
   };
   const title = isRegister ? "注册账号" : isForgot ? "找回密码" : isReset ? "设置新密码" : "登录账号";
@@ -1284,6 +1290,7 @@ function AuthModal({
 	          </label>
 	        ) : null}
         {error ? <p className="authError">{error}</p> : null}
+        {success ? <p className="authSuccess">{success}</p> : null}
         <button className="authSubmit" type="submit" disabled={submitting}>{submitting ? "处理中" : isForgot ? "发送重置邮件" : isReset ? "确认重置" : isRegister ? "注册" : "登录"}</button>
         {!isRegister && !isForgot && !isReset ? <button className="authSwitch" type="button" onClick={() => onMode("forgot")}>忘记密码？</button> : null}
         <button className="authSwitch" type="button" onClick={() => onMode(isRegister || isForgot || isReset ? "login" : "register")}>
@@ -2980,7 +2987,7 @@ function OpenPortfolioPage() {
               <th>标的</th>
               <th>方向</th>
               <th>价格</th>
-              <th>备注</th>
+              <th>交易逻辑</th>
             </tr>
           </thead>
           <tbody>
@@ -3094,7 +3101,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
         <section className="courseDetailHero">
           <button type="button" className="courseBackButton" onClick={onBack}>返回交易实战课程</button>
           <div className="courseDetailCover">
-            {selected.coverUrl ? <img src={selected.coverUrl} alt="" /> : null}
+            {selected.coverUrl ? <img src={selected.coverUrl} alt="" decoding="async" fetchPriority="high" /> : null}
           </div>
           <div className="courseDetailText">
             <h1>{selected.title}</h1>
@@ -3137,7 +3144,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
               {(selected.lessons || []).map((lesson, index) => (
                 <button key={lesson.id} type="button" className={activeLesson?.id === lesson.id ? "active" : ""} onClick={() => playLesson(lesson.id)}>
                   <b>{index + 1}</b>
-                  <span className="lessonCoverSlot">{lesson.coverUrl ? <img src={lesson.coverUrl} alt="" /> : null}</span>
+                  <span className="lessonCoverSlot">{lesson.coverUrl ? <img src={lesson.coverUrl} alt="" loading="lazy" decoding="async" /> : null}</span>
                   <span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</span>
                   <i>{activeLesson?.id === lesson.id && videoUrl ? "播放中" : "播放"}</i>
                 </button>
@@ -3183,10 +3190,10 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
           </section>
 
           <section className="courseCardGrid">
-            {filteredSeries.map((item) => (
+            {filteredSeries.map((item, index) => (
               <article key={item.id} className={selected?.id === item.id ? "active" : ""}>
                 <div className="courseThumb">
-                  {item.coverUrl ? <img src={item.coverUrl} alt="" /> : null}
+                  {item.coverUrl ? <img src={item.coverUrl} alt="" loading={index < 3 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 3 ? "high" : "auto"} /> : null}
                   <span className={item.progressStatus === "finished" ? "unlocked" : "locked"}>{courseProgressLabel(item.progressStatus)}</span>
                 </div>
                 <section>

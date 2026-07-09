@@ -53,11 +53,12 @@ class OpenPortfolioCashTest(unittest.TestCase):
         self.assertEqual(result["equity"], 10_000_200)
         self.assertEqual(result["holdings"], [{
             "symbol": "ABC",
-            "quantity": 70,
+            "quantity": 70.0,
             "quantityStep": 1.0,
             "avgCost": 10.29,
-            "cost": 720,
+            "cost": 720.0,
             "positionPct": 0.01,
+            "sector": "其他",
         }])
 
         newest, sell, oldest = result["trades"]

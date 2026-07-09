@@ -84,6 +84,7 @@ COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCE
 COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCENT_COS_REGION") or ""
 COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
+COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
 COURSE_VIDEO_UPLOAD_MAX_BYTES = int(os.environ.get("COURSE_VIDEO_UPLOAD_MAX_BYTES", str(5 * 1024 * 1024 * 1024)))
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 REGISTER_RATE_BUCKETS: dict[str, list[float]] = {}
@@ -1260,6 +1261,7 @@ def init_db() -> None:
               series_id INTEGER NOT NULL,
               user_id INTEGER NOT NULL,
               granted_by_user_id INTEGER,
+              expires_at TEXT,
               created_at TEXT NOT NULL,
               UNIQUE(series_id, user_id),
               FOREIGN KEY(series_id) REFERENCES course_series(id),
@@ -1292,6 +1294,9 @@ def init_db() -> None:
             conn.execute("ALTER TABLE course_series ADD COLUMN discount_price TEXT")
         if "discount_label" not in course_series_columns:
             conn.execute("ALTER TABLE course_series ADD COLUMN discount_label TEXT")
+        course_grant_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_grants)").fetchall()}
+        if "expires_at" not in course_grant_columns:
+            conn.execute("ALTER TABLE course_grants ADD COLUMN expires_at TEXT")
         course_lesson_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_lessons)").fetchall()}
         if "cover_url" not in course_lesson_columns:
             conn.execute("ALTER TABLE course_lessons ADD COLUMN cover_url TEXT")
@@ -1646,13 +1651,24 @@ def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, pa
 def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
     users = conn.execute(
         """
+        WITH regular_users AS (
+          SELECT *,
+            CASE WHEN plan IN ('monthly', 'paid', 'yearly')
+              AND (
+                subscription_expires_at IS NULL OR TRIM(subscription_expires_at) = ''
+                OR (LENGTH(TRIM(subscription_expires_at)) <= 10 AND date(subscription_expires_at) >= date('now', '+8 hours'))
+                OR (LENGTH(TRIM(subscription_expires_at)) > 10 AND datetime(subscription_expires_at) >= datetime('now'))
+              )
+            THEN 1 ELSE 0 END AS paid_active
+          FROM users
+          WHERE role = 'user'
+        )
         SELECT
           COUNT(*) AS total,
-          SUM(CASE WHEN role = 'user' AND is_active = 1 THEN 1 ELSE 0 END) AS active_users,
-          SUM(CASE WHEN role = 'user' AND is_active = 1 AND plan IN ('monthly', 'paid') THEN 1 ELSE 0 END) AS monthly_paid,
-          SUM(CASE WHEN role = 'user' AND is_active = 1 AND plan = 'yearly' THEN 1 ELSE 0 END) AS yearly_paid
-        FROM users
-        WHERE role = 'user'
+          SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_users,
+          SUM(CASE WHEN is_active = 1 AND paid_active = 1 AND plan IN ('monthly', 'paid') THEN 1 ELSE 0 END) AS monthly_paid,
+          SUM(CASE WHEN is_active = 1 AND paid_active = 1 AND plan = 'yearly' THEN 1 ELSE 0 END) AS yearly_paid
+        FROM regular_users
         """
     ).fetchone()
     active = conn.execute(
@@ -1662,7 +1678,7 @@ def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
           COUNT(DISTINCT CASE WHEN datetime(a.created_at) >= datetime('now', '-7 days') THEN a.user_id END) AS d7,
           COUNT(DISTINCT CASE WHEN datetime(a.created_at) >= datetime('now', '-30 days') THEN a.user_id END) AS d30
         FROM analytics_events a
-        JOIN users u ON u.id = a.user_id AND u.role = 'user'
+        JOIN users u ON u.id = a.user_id AND u.role = 'user' AND u.is_active = 1
         WHERE a.event_type = 'nav_click'
         """
     ).fetchone()
@@ -1680,15 +1696,15 @@ def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
     retention_rows = conn.execute(
         """
         SELECT
-          date(u.created_at) AS cohortDay,
-          COUNT(*) AS registered,
+          date(datetime(u.created_at, '+8 hours')) AS cohortDay,
+          COUNT(DISTINCT u.id) AS registered,
           COUNT(DISTINCT CASE WHEN datetime(a.created_at) < datetime(u.created_at, '+3 days') THEN u.id END) AS retained3d,
           COUNT(DISTINCT CASE WHEN datetime(a.created_at) < datetime(u.created_at, '+7 days') THEN u.id END) AS retained7d,
           COUNT(DISTINCT CASE WHEN datetime(a.created_at) < datetime(u.created_at, '+30 days') THEN u.id END) AS retained30d
         FROM users u
         LEFT JOIN analytics_events a ON a.user_id = u.id AND a.event_type = 'nav_click' AND datetime(a.created_at) > datetime(u.created_at)
         WHERE u.role = 'user' AND u.is_active = 1
-        GROUP BY date(u.created_at)
+        GROUP BY cohortDay
         ORDER BY cohortDay DESC
         LIMIT 30
         """
@@ -1777,6 +1793,7 @@ def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None
         "status": row["status"],
         "lessonCount": row["lesson_count"] if "lesson_count" in row.keys() else len(lessons or []),
         "grantCount": row["grant_count"] if "grant_count" in row.keys() else grant_count,
+        "expiringCount": row["expiring_count"] if "expiring_count" in row.keys() else 0,
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
         "lessons": lessons or [],
@@ -1804,6 +1821,8 @@ def course_lesson_payload(row: sqlite3.Row, include_key: bool = False) -> dict[s
 
 
 def course_grant_payload(row: sqlite3.Row) -> dict[str, Any]:
+    expires_at = row["expires_at"] if "expires_at" in row.keys() else None
+    active = not expires_at or subscription_is_active(expires_at)
     return {
         "id": row["id"],
         "seriesId": row["series_id"],
@@ -1813,6 +1832,8 @@ def course_grant_payload(row: sqlite3.Row) -> dict[str, Any]:
             "email": row["email"],
             "plan": public_plan(row),
         },
+        "expiresAt": expires_at,
+        "active": active,
         "createdAt": row["created_at"],
     }
 
@@ -1821,7 +1842,12 @@ def course_has_access(conn: sqlite3.Connection, user: sqlite3.Row, series_id: in
     if user["role"] in {"admin", "super_admin"}:
         return True
     return bool(conn.execute(
-        "SELECT 1 FROM course_grants WHERE series_id = ? AND user_id = ?",
+        """
+        SELECT 1
+        FROM course_grants
+        WHERE series_id = ? AND user_id = ?
+          AND (expires_at IS NULL OR expires_at = '' OR date(expires_at) >= date('now'))
+        """,
         (series_id, user["id"]),
     ).fetchone())
 
@@ -1864,7 +1890,8 @@ def signed_course_image_url(value: str) -> str:
     if not key or not key.startswith("course-image/"):
         return raw
     try:
-        return signed_course_cos_url(key, method="get", ttl=COURSE_COS_SIGN_TTL)
+        stable_now = int(time.time() // COURSE_IMAGE_SIGN_TTL * COURSE_IMAGE_SIGN_TTL)
+        return signed_course_cos_url(key, method="get", now=stable_now, ttl=COURSE_IMAGE_SIGN_TTL)
     except Exception:
         try:
             return cos_object_url(key)[0]
@@ -2021,7 +2048,8 @@ def list_admin_courses() -> dict[str, Any]:
             """
             SELECT s.*,
                    COUNT(DISTINCT l.id) AS lesson_count,
-                   COUNT(DISTINCT g.id) AS grant_count
+                   COUNT(DISTINCT CASE WHEN g.expires_at IS NULL OR g.expires_at = '' OR date(g.expires_at) >= date('now') THEN g.id END) AS grant_count,
+                   COUNT(DISTINCT CASE WHEN g.expires_at IS NOT NULL AND g.expires_at != '' AND date(g.expires_at) >= date('now') AND date(g.expires_at) <= date('now', '+7 days') THEN g.id END) AS expiring_count
             FROM course_series s
             LEFT JOIN course_lessons l ON l.series_id = s.id
             LEFT JOIN course_grants g ON g.series_id = s.id
@@ -2170,8 +2198,11 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
 def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
     series_id = int(payload.get("seriesId") or 0)
     user_query = str(payload.get("email") or payload.get("user") or "").strip()
+    expires_at = normalize_expires(payload.get("expiresAt"))
     if series_id <= 0 or not user_query:
         raise ValueError("交易实战课程和用户必填")
+    if not expires_at:
+        raise ValueError("请选择交易实战课程授权到期时间")
     with db() as conn:
         series = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
         target = conn.execute("SELECT * FROM users WHERE email = ? AND role = 'user'", (normalize_email(user_query),)).fetchone()
@@ -2191,10 +2222,14 @@ def grant_course(payload: dict[str, Any], admin: sqlite3.Row) -> dict[str, Any]:
         conn.execute(
             """
             INSERT OR IGNORE INTO course_grants
-            (series_id, user_id, granted_by_user_id, created_at)
-            VALUES (?, ?, ?, ?)
+            (series_id, user_id, granted_by_user_id, expires_at, created_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (series_id, target["id"], admin["id"], timestamp),
+            (series_id, target["id"], admin["id"], expires_at, timestamp),
+        )
+        conn.execute(
+            "UPDATE course_grants SET expires_at = ?, granted_by_user_id = ? WHERE series_id = ? AND user_id = ?",
+            (expires_at, admin["id"], series_id, target["id"]),
         )
         row = conn.execute(
             """
@@ -2243,16 +2278,23 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                 """
             ).fetchall()
         else:
-            grant_rows = conn.execute("SELECT series_id FROM course_grants WHERE user_id = ?", (user["id"],)).fetchall()
+            grant_rows = conn.execute(
+                """
+                SELECT series_id
+                FROM course_grants
+                WHERE user_id = ? AND (expires_at IS NULL OR expires_at = '' OR date(expires_at) >= date('now'))
+                """,
+                (user["id"],),
+            ).fetchall()
             granted_ids = {int(row["series_id"]) for row in grant_rows}
             series_rows = conn.execute(
                 """
                 SELECT s.*,
                        COUNT(l.id) AS lesson_count,
-                       COUNT(g.id) AS grant_count,
+                       COUNT(CASE WHEN g.expires_at IS NULL OR g.expires_at = '' OR date(g.expires_at) >= date('now') THEN g.id END) AS grant_count,
                        CASE WHEN COUNT(g.id) > 0 THEN 1 ELSE 0 END AS unlocked
                 FROM course_series s
-                LEFT JOIN course_grants g ON g.series_id = s.id AND g.user_id = ?
+                LEFT JOIN course_grants g ON g.series_id = s.id AND g.user_id = ? AND (g.expires_at IS NULL OR g.expires_at = '' OR date(g.expires_at) >= date('now'))
                 LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
                 WHERE s.status = 'published'
                 GROUP BY s.id

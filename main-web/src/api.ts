@@ -438,6 +438,8 @@ export const api = {
     }),
   logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST", body: "{}" }),
   markOnboardingSeen: () => request<AuthStatus>("/api/auth/onboarding-seen", { method: "POST", body: "{}" }),
+  analyticsEvent: (eventType: string, eventKey: string, path = window.location.pathname + window.location.search) =>
+    request<{ ok: boolean }>("/api/analytics/event", { method: "POST", body: JSON.stringify({ eventType, eventKey, path }) }),
   bootstrap: (limit = 500, symbols?: string[]) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (symbols?.length) params.set("symbols", symbols.join(","));

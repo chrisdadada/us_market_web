@@ -36,11 +36,19 @@ release gate tests, and package creation pass:
 ./scripts/automated_refresh.sh
 ```
 
-By default it deploys to `https://dev.dongbimao.org` only. For a dry refresh
-that stops before deploy:
+By default it deploys the site build to `https://dev.dongbimao.org` and then
+deploys the rebuilt `data/product.db` to production. The production step is
+data-only and does not promote production site code, admin assets, user data, or
+other modules. For a dry refresh that stops before deploy:
 
 ```bash
 DEPLOY_AFTER_REFRESH=0 ./scripts/automated_refresh.sh
+```
+
+To deploy dev but skip the production product DB update:
+
+```bash
+DEPLOY_PROD_DATA_AFTER_REFRESH=0 ./scripts/automated_refresh.sh
 ```
 
 Production promotion is blocked unless explicitly enabled in the manual command
@@ -51,8 +59,9 @@ MANUAL_PROD_APPROVAL=1 ALLOW_PROD_PROMOTE=1 PROMOTE_PROD_AFTER_DEPLOY=1 ./script
 ```
 
 Do not put prod promotion approval in `~/.dongbimao/refresh.env`. Scheduled
-refresh jobs may deploy dev, but prod updates require the user to manually
-request that specific production update.
+refresh jobs may deploy dev and the production product DB, but production site
+promotion still requires the user to manually request that specific production
+update.
 
 Options flow refresh is part of this automation by default. It uses Polygon REST
 options aggregates, so it intentionally advances slowly to avoid rate limits:

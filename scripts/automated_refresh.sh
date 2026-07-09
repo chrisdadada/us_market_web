@@ -58,6 +58,7 @@ OPTIONS_PHASE="${OPTIONS_PHASE:-core_etf}"
 OPTIONS_MAX_DAYS="${OPTIONS_MAX_DAYS:-1}"
 OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"
 DEPLOY_AFTER_REFRESH="${DEPLOY_AFTER_REFRESH:-1}"
+DEPLOY_PROD_DATA_AFTER_REFRESH="${DEPLOY_PROD_DATA_AFTER_REFRESH:-1}"
 PROMOTE_PROD_AFTER_DEPLOY="${PROMOTE_PROD_AFTER_DEPLOY:-0}"
 MANUAL_PROD_APPROVAL="${REQUESTED_MANUAL_PROD_APPROVAL}"
 if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" && ( "${ALLOW_PROD_PROMOTE:-0}" != "1" || "${MANUAL_PROD_APPROVAL}" != "1" ) ]]; then
@@ -89,6 +90,10 @@ has_successful_log_today() {
       && grep -q -- "--- build deploy package ---" "${candidate}" \
       && grep -q -- "Dev deployed:" "${candidate}" \
       && grep -q -- "=== automated refresh finished" "${candidate}"; then
+      if [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]] \
+        && ! grep -q -- "Prod data deployed without using dev DB." "${candidate}"; then
+        continue
+      fi
       echo "${candidate}"
       return 0
     fi
@@ -126,6 +131,7 @@ echo "START_DATE=${START_DATE}"
 echo "END_DATE=${END_DATE}"
 echo "YEAR_START=${YEAR_START}"
 echo "DEPLOY_AFTER_REFRESH=${DEPLOY_AFTER_REFRESH}"
+echo "DEPLOY_PROD_DATA_AFTER_REFRESH=${DEPLOY_PROD_DATA_AFTER_REFRESH}"
 echo "PROMOTE_PROD_AFTER_DEPLOY=${PROMOTE_PROD_AFTER_DEPLOY}"
 echo "SKIP_IF_SUCCESSFUL_TODAY=${SKIP_IF_SUCCESSFUL_TODAY}"
 echo "REQUIRE_FRESH_ASOF=${REQUIRE_FRESH_ASOF}"
@@ -364,6 +370,9 @@ if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
     run_root "promote latest build to production" \
       bash scripts/promote_prod.sh
 
+    run_root "deploy product DB to production" \
+      env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
+  elif [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]]; then
     run_root "deploy product DB to production" \
       env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
   fi

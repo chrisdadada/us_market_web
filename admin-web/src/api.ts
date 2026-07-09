@@ -91,6 +91,7 @@ export type CourseSeries = {
   status: "published" | "draft";
   lessonCount: number;
   grantCount: number;
+  expiringCount?: number;
   lessons: CourseLesson[];
   createdAt: string;
   updatedAt: string;
@@ -100,6 +101,8 @@ export type CourseGrant = {
   id: number;
   seriesId: number;
   user: { id: number; uid: string; email: string; plan: string };
+  expiresAt?: string | null;
+  active?: boolean;
   createdAt: string;
 };
 
@@ -294,7 +297,7 @@ export const api = {
     request<{ ok: true }>(`/api/admin/courses/lessons/${encodeURIComponent(id)}`, {
       method: "DELETE"
     }),
-  grantCourse: (payload: { seriesId: number; user: string }) =>
+  grantCourse: (payload: { seriesId: number; user: string; expiresAt?: string | null }) =>
     request<{ ok: true; grant: CourseGrant }>("/api/admin/courses/grants", {
       method: "POST",
       body: JSON.stringify(payload)

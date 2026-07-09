@@ -8,6 +8,14 @@ bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 
 It updates recent Polygon daily stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, rebuilds the product DB, and runs the release gate.
 
+After DB-first validation, release gate, product DB coverage, DB-only packaging,
+and dev deployment pass, this automation deploys the rebuilt `data/product.db`
+to production by default. This is a data-only prod update: it does not promote
+production site code, admin assets, user data, or other modules.
+Production data deploys must go through `scripts/deploy_prod_data.sh`, which
+backs up the current prod DB and preserves prod-side runtime tables such as
+content and open-portfolio records.
+
 Restricted Benzinga event feeds are requested through a forward-looking window by default so the product can pick up upcoming earnings dates when the account is entitled to that feed. If the feed returns 403, the refresh logs a warning and keeps the rest of the product data pipeline moving.
 
 Future earnings are populated through `scripts/download_earnings_calendar.py`, which merges Nasdaq's public web calendar endpoint plus every configured API provider into the product DB build input. Optional provider keys are `FMP_API_KEY`, `ALPHA_VANTAGE_API_KEY`/`ALPHAVANTAGE_API_KEY`, and `FINNHUB_API_KEY`. The script logs provider row counts and warns when key watchlist symbols are missing from the forward window. The product builder keeps company earnings separate from macro events.
@@ -23,6 +31,18 @@ SKIP_IF_SUCCESSFUL_TODAY=0 RUN_OPTIONS_FLOW=0 RUN_MINUTE_BARS=0 RUN_REFERENCE=0 
 ```
 
 The refresh fails closed when `REQUIRE_FRESH_ASOF=1`: if the rebuilt product ASOF is older than the latest expected NYSE trading day, it stops before deploy/promote instead of publishing stale data.
+
+To stop before any dev or prod data deploy:
+
+```bash
+DEPLOY_AFTER_REFRESH=0 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+```
+
+To deploy dev but skip the production product DB update:
+
+```bash
+DEPLOY_PROD_DATA_AFTER_REFRESH=0 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
+```
 
 ## Logs
 

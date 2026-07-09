@@ -2262,8 +2262,6 @@ select:focus-visible {
   line-height: 1.5;
 }
 
-
-
 .tagLine {
   display: flex;
   gap: 10px;
@@ -3729,6 +3727,16 @@ body,
   border-radius: 10px;
   background: #fff2f4;
   color: #d94b5f;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.authSuccess {
+  margin: 0;
+  border-radius: 10px;
+  background: #edfdf5;
+  color: #07885f;
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 500;

@@ -1,12 +1,11 @@
 import { ClipboardEvent, FormEvent, ReactElement, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { api, AdminMetrics, AdminUser, AuthStatus, CourseGrant, CourseLesson, CourseSeries, MarketOpinion, OpenPortfolioPayload, OpinionStatus, UserEvent } from "./api";
 
-type PageKey = "home" | "users" | "members" | "content" | "open" | "courses" | "events" | "admins";
+type PageKey = "home" | "users" | "content" | "open" | "courses" | "events" | "admins";
 
 const navItems: Array<{ key: PageKey; label: string }> = [
   { key: "home", label: "首页" },
   { key: "users", label: "用户管理" },
-  { key: "members", label: "会员管理" },
   { key: "content", label: "内容管理" },
   { key: "open", label: "Open 持仓" },
   { key: "courses", label: "交易实战课程管理" },
@@ -38,6 +37,7 @@ const opinionSections = [
 
 const newOpinionId = "__new__";
 const contentPageSize = 12;
+const userPageSize = 20;
 
 const eventActionOptions = [
   { value: "all", label: "全部操作" },
@@ -45,8 +45,33 @@ const eventActionOptions = [
   { value: "update_user", label: "修改用户/会员" }
 ];
 
+const beijingFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  hour12: false,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit"
+});
+
+function beijingParts(value?: string | null) {
+  const raw = String(value || "").trim();
+  if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw)) return null;
+  const date = new Date(raw.replace(" ", "T").replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = Object.fromEntries(beijingFormatter.formatToParts(date).map((part) => [part.type, part.value]));
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour === "24" ? "00" : parts.hour}:${parts.minute}:${parts.second}`
+  };
+}
+
 function formatTime(value?: string | null) {
   if (!value) return "--";
+  const parts = beijingParts(value);
+  if (parts) return `${parts.date} ${parts.time}`;
   const text = value.replace("T", " ").replace(/\.\d+Z?$/, "");
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text} 00:00:00`;
   if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(text)) return `${text}:00`;
@@ -55,6 +80,8 @@ function formatTime(value?: string | null) {
 
 function formatDate(value?: string | null) {
   if (!value) return "--";
+  const parts = beijingParts(value);
+  if (parts) return parts.date;
   return String(value).slice(0, 10);
 }
 
@@ -142,13 +169,21 @@ function dateAfterMonths(months: number, base?: string | null) {
   return start.toISOString().slice(0, 10);
 }
 
+function dateAfterDays(days: number, base?: string | null) {
+  const today = new Date();
+  const current = base ? new Date(base) : today;
+  const start = current > today ? current : today;
+  start.setDate(start.getDate() + days);
+  return start.toISOString().slice(0, 10);
+}
+
 function padTimePart(value: number) {
   return String(value).padStart(2, "0");
 }
 
 function localDateTimeInputValue(value?: string | null) {
   if (value) {
-    const text = value.replace(" ", "T");
+    const text = formatTime(value).replace(" ", "T");
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(text)) return text;
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)) return `${text}:00`;
     if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text}T00:00:00`;
@@ -161,6 +196,10 @@ function localDateInputValue(value?: string | null) {
   if (value) return String(value).slice(0, 10);
   const now = new Date();
   return `${now.getFullYear()}-${padTimePart(now.getMonth() + 1)}-${padTimePart(now.getDate())}`;
+}
+
+function grantExpiryPreset(days: 30 | 180 | 365, base?: string | null) {
+  return days === 365 ? dateAfterMonths(12, base) : dateAfterDays(days, base);
 }
 
 function normalizeDateTimeInput(value: string) {
@@ -228,16 +267,28 @@ function StatCard({ label, value, note, tone }: { label: string; value: string |
 
 const frontPageLabels: Record<string, string> = {
   dashboard: "首页",
+  home: "首页",
   "market-opinion": "美股热点风向标",
+  opinions: "美股热点风向标",
   tracking: "股票机会跟踪榜单",
   stocks: "股票库",
+  calendar: "美股重点财经前瞻",
   events: "美股重点财经前瞻",
   market: "市场与资金",
+  courses: "交易实战课程",
+  open: "Open 持仓参考",
+  position: "以损定仓",
+  funding: "资金费套利扫描",
+  forum: "论坛讨论区",
   options: "期权数据",
   stock: "个股详情",
   subscription: "会员权限",
   watchlist: "关注列表"
 };
+
+function navPageLabel(page: string) {
+  return frontPageLabels[page] || "未命名入口";
+}
 
 function HomePage({ users, events, metrics }: { users: AdminUser[]; events: UserEvent[]; metrics: AdminMetrics | null }) {
   const stats = useMemo(() => {
@@ -289,7 +340,7 @@ function HomePage({ users, events, metrics }: { users: AdminUser[]; events: User
         <table className="adminTable">
           <thead>
             <tr>
-              <th>页面</th>
+              <th>用户点击的位置</th>
               <th>点击次数</th>
               <th>点击用户</th>
               <th>占比</th>
@@ -298,7 +349,7 @@ function HomePage({ users, events, metrics }: { users: AdminUser[]; events: User
           <tbody>
             {metrics?.navClicks.length ? metrics.navClicks.map((row) => (
               <tr key={row.page}>
-                <td>{frontPageLabels[row.page] || row.page}</td>
+                <td title={row.page}>{navPageLabel(row.page)}</td>
                 <td>{row.clicks}</td>
                 <td>{row.users}</td>
                 <td>{stats.navClicks ? `${Math.round((row.clicks / stats.navClicks) * 100)}%` : "--"}</td>
@@ -573,7 +624,7 @@ function UserEditModal({
                 </select>
               </label>
               <label>
-                到期日期
+                自定义到期日期
                 <input
                   type="date"
                   value={form.subscriptionExpiresAt}
@@ -581,18 +632,9 @@ function UserEditModal({
                 />
               </label>
               <div className="quickActions">
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, plan: "monthly", subscriptionExpiresAt: dateAfterMonths(1, form.subscriptionExpiresAt) })}
-                >
-                  续月度
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, plan: "yearly", subscriptionExpiresAt: dateAfterMonths(12, form.subscriptionExpiresAt) })}
-                >
-                  续年度
-                </button>
+                <button type="button" onClick={() => setForm({ ...form, subscriptionExpiresAt: grantExpiryPreset(30, form.subscriptionExpiresAt) })}>30天</button>
+                <button type="button" onClick={() => setForm({ ...form, subscriptionExpiresAt: grantExpiryPreset(180, form.subscriptionExpiresAt) })}>180天</button>
+                <button type="button" onClick={() => setForm({ ...form, subscriptionExpiresAt: grantExpiryPreset(365, form.subscriptionExpiresAt) })}>1年</button>
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, plan: "free", subscriptionExpiresAt: "" })}
@@ -713,6 +755,107 @@ function UserStatusCell({ user }: { user: AdminUser }) {
   return <span className={`status ${user.isActive ? "positiveBg" : "dangerBg"}`}>{user.isActive ? "启用" : "停用"}</span>;
 }
 
+function userDayDistance(value?: string | null) {
+  if (!value) return 9999;
+  const today = new Date(`${localDateInputValue()}T00:00:00`);
+  const day = new Date(`${formatDate(value)}T00:00:00`);
+  if (Number.isNaN(day.getTime())) return 9999;
+  return Math.floor((today.getTime() - day.getTime()) / 86400000);
+}
+
+function UserCourseCell({ grants }: { grants: CourseGrant[] }) {
+  const active = grants.filter((grant) => grant.active !== false);
+  if (!active.length) return <span className="tableMuted">无</span>;
+  const expiring = active.filter((grant) => {
+    const days = daysUntil(grant.expiresAt);
+    return days !== null && days >= 0 && days <= 7;
+  }).length;
+  return <span className={`status ${expiring ? "warningBg" : "positiveBg"}`}>{active.length} 门课程{expiring ? ` / ${expiring} 门将到期` : ""}</span>;
+}
+
+function UserDetailModal({
+  user,
+  events,
+  grants,
+  seriesById,
+  onClose,
+  onEditAccount,
+  onEditMember,
+  onExtendMembership,
+  onOpenCourses
+}: {
+  user: AdminUser | null;
+  events: UserEvent[];
+  grants: CourseGrant[];
+  seriesById: Map<number, CourseSeries>;
+  onClose: () => void;
+  onEditAccount: () => void;
+  onEditMember: () => void;
+  onExtendMembership: (days: 30 | 180 | 365) => void;
+  onOpenCourses: () => void;
+}) {
+  if (!user) return null;
+  const state = membershipState(user);
+  const selectedEvents = events.filter((event) => event.target.id === user.id).slice(0, 5);
+  const activeGrants = grants.filter((grant) => grant.active !== false).slice(0, 5);
+  return (
+    <div className="modalBackdrop" role="presentation" onMouseDown={onClose}>
+      <section className="modalPanel userDetailModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+      <div className="userDrawerHead">
+        <div>
+          <h2>{user.email}</h2>
+          <span>{user.uid} · 注册 {formatTime(user.createdAt)}</span>
+        </div>
+        <button type="button" className="iconButton" onClick={onClose} aria-label="关闭">×</button>
+      </div>
+      <div className="userInfoGrid">
+        <div><span>账号状态</span><strong className={user.isActive ? "positive" : "dangerText"}>{user.isActive ? "启用" : "停用"}</strong></div>
+        <div><span>最后活跃</span><strong>{formatTime(user.lastLoginAt)}</strong></div>
+        <div><span>会员</span><strong className={state.tone || ""}>{state.label}</strong></div>
+        <div><span>会员到期</span><strong>{formatDate(user.subscriptionExpiresAt)}</strong></div>
+      </div>
+      <section className="userDrawerSection">
+        <h3>课程授权</h3>
+        {activeGrants.length ? activeGrants.map((grant) => (
+          <div className="userCourseRow" key={grant.id}>
+            <strong>{seriesById.get(grant.seriesId)?.title || "交易实战课程"}</strong>
+            <span>到期 {formatDate(grant.expiresAt)}</span>
+          </div>
+        )) : <p>暂无课程授权</p>}
+      </section>
+      <section className="userDrawerSection">
+        <h3>会员操作</h3>
+        <div className="userDrawerActions">
+          <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
+          <button type="button" className="ghostButton" onClick={() => onExtendMembership(30)}>延长30天</button>
+          <button type="button" className="ghostButton" onClick={() => onExtendMembership(180)}>延长180天</button>
+          <button type="button" className="ghostButton" onClick={() => onExtendMembership(365)}>延长1年</button>
+        </div>
+      </section>
+      <section className="userDrawerSection">
+        <h3>账号操作</h3>
+        <div className="userDrawerActions">
+          <button type="button" className="ghostButton" onClick={onOpenCourses}>课程授权</button>
+          <button type="button" className="ghostButton" onClick={onEditAccount}>账号设置</button>
+        </div>
+      </section>
+      <section className="userDrawerSection">
+        <h3>最近操作</h3>
+        <div className="auditList compactAuditList">
+          {selectedEvents.length === 0 ? <div><span>暂无记录</span></div> : null}
+          {selectedEvents.map((event) => (
+            <div key={event.id}>
+              <strong>{eventSummary(event)}</strong>
+              <span>{event.actor.email || "--"} · {formatTime(event.createdAt)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      </section>
+    </div>
+  );
+}
+
 function EventPersonCell({ email, label }: { email?: string | null; label?: string }) {
   return (
     <div className="eventPersonCell">
@@ -725,31 +868,63 @@ function EventPersonCell({ email, label }: { email?: string | null; label?: stri
 function UsersPage({
   users,
   events,
+  metrics,
+  courseSeries,
+  courseGrants,
   currentUser,
-  onRefresh
+  onRefresh,
+  onOpenCourses
 }: {
   users: AdminUser[];
   events: UserEvent[];
+  metrics: AdminMetrics | null;
+  courseSeries: CourseSeries[];
+  courseGrants: CourseGrant[];
   currentUser: AuthStatus["user"];
   onRefresh: () => Promise<void>;
+  onOpenCourses: () => void;
 }) {
   const [keyword, setKeyword] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
+  const [activityFilter, setActivityFilter] = useState("all");
+  const [courseFilter, setCourseFilter] = useState("all");
+  const [accountFilter, setAccountFilter] = useState("all");
+  const [pageIndex, setPageIndex] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<"account" | "member">("account");
   const selected = users.find((user) => user.id === selectedId) || null;
-  const lastEventByUser = useMemo(() => {
-    const map = new Map<number, UserEvent>();
-    events.forEach((event) => {
-      const targetId = event.target.id;
-      if (!targetId || map.has(targetId)) return;
-      map.set(targetId, event);
+  const normalUsers = users.filter((user) => user.role === "user");
+  const today = localDateInputValue();
+  const seriesById = useMemo(() => new Map(courseSeries.map((item) => [item.id, item])), [courseSeries]);
+  const grantsByUser = useMemo(() => {
+    const map = new Map<number, CourseGrant[]>();
+    courseGrants.forEach((grant) => {
+      map.set(grant.user.id, [...(map.get(grant.user.id) || []), grant]);
     });
     return map;
-  }, [events]);
+  }, [courseGrants]);
+  const stats = {
+    total: normalUsers.length,
+    today: normalUsers.filter((user) => formatDate(user.createdAt) === today).length,
+    active3: metrics?.active.d3 ?? normalUsers.filter((user) => userDayDistance(user.lastLoginAt) < 3).length,
+    paid: normalUsers.filter((user) => user.hasPaidAccess).length,
+    expiring: normalUsers.filter((user) => {
+      const days = daysUntil(user.subscriptionExpiresAt);
+      return days !== null && days >= 0 && days <= 7;
+    }).length,
+    disabled: normalUsers.filter((user) => !user.isActive).length
+  };
   const filtered = users.filter((user) => {
-    const hitKeyword = !keyword.trim() || user.email.toLowerCase().includes(keyword.trim().toLowerCase());
+    const userGrants = grantsByUser.get(user.id) || [];
+    const hasActiveGrant = userGrants.some((grant) => grant.active !== false);
+    const hasExpiringGrant = userGrants.some((grant) => {
+      const days = daysUntil(grant.expiresAt);
+      return grant.active !== false && days !== null && days >= 0 && days <= 7;
+    });
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    const hitKeyword = !normalizedKeyword || `${user.email} ${user.uid}`.toLowerCase().includes(normalizedKeyword);
     const hitRole = roleFilter === "all" || user.role === roleFilter;
     const hitPlan =
       planFilter === "all" ||
@@ -758,11 +933,60 @@ function UsersPage({
         (planFilter === "expired" && user.subscriptionStatus === "expired") ||
         user.plan === planFilter
       ));
-    return hitKeyword && hitRole && hitPlan;
+    const inactiveDays = userDayDistance(user.lastLoginAt);
+    const hitActivity =
+      activityFilter === "all" ||
+      (activityFilter === "today" && formatDate(user.createdAt) === today) ||
+      (activityFilter === "inactive3" && inactiveDays >= 3) ||
+      (activityFilter === "inactive7" && inactiveDays >= 7) ||
+      (activityFilter === "disabled" && !user.isActive);
+    const hitCourse =
+      courseFilter === "all" ||
+      (courseFilter === "granted" && hasActiveGrant) ||
+      (courseFilter === "expiring" && hasExpiringGrant) ||
+      (courseFilter === "none" && !hasActiveGrant);
+    const hitAccount =
+      accountFilter === "all" ||
+      (accountFilter === "active" && user.isActive) ||
+      (accountFilter === "disabled" && !user.isActive);
+    return hitKeyword && hitRole && hitPlan && hitActivity && hitCourse && hitAccount;
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / userPageSize));
+  const pageRows = filtered.slice((pageIndex - 1) * userPageSize, pageIndex * userPageSize);
+
+  useEffect(() => {
+    setPageIndex(1);
+  }, [accountFilter, activityFilter, courseFilter, keyword, planFilter, roleFilter]);
+
+  useEffect(() => {
+    if (pageIndex > totalPages) setPageIndex(totalPages);
+  }, [pageIndex, totalPages]);
+
+  async function extendMembership(days: 30 | 180 | 365) {
+    if (!selected || selected.role !== "user") return;
+    if (!selected.hasPaidAccess && selected.subscriptionStatus !== "expired") {
+      window.alert("免费用户请先点“设置会员”选择会员类型。");
+      return;
+    }
+    const plan = selected.plan === "free" ? "monthly" : selected.plan;
+    const expiresAt = grantExpiryPreset(days, selected.subscriptionExpiresAt);
+    if (!window.confirm(`确认把 ${selected.email} 的会员延长到 ${expiresAt}？`)) return;
+    try {
+      await api.updateUserPlan({
+        userId: selected.id,
+        role: selected.role,
+        plan,
+        subscriptionExpiresAt: expiresAt,
+        isActive: selected.isActive
+      });
+      await onRefresh();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "延长会员失败");
+    }
+  }
 
   return (
-    <div className="pageStack">
+    <div className="pageStack userPage">
       <div className="pageTitle">
         <div>
           <span>用户管理</span>
@@ -770,10 +994,19 @@ function UsersPage({
         </div>
       </div>
 
+      <div className="statsGrid userStatsGrid">
+        <StatCard label="总用户" value={stats.total} note={`有效 ${normalUsers.filter((user) => user.isActive).length}`} />
+        <StatCard label="今日注册" value={stats.today} note={`列表共 ${filtered.length}`} />
+        <StatCard label="3日活跃" value={stats.active3} note={`7日 ${metrics?.active.d7 ?? "--"} / 30日 ${metrics?.active.d30 ?? "--"}`} tone="positive" />
+        <StatCard label="付费用户" value={stats.paid} note="月度 / 年度" tone="positive" />
+        <StatCard label="即将到期" value={stats.expiring} note="未来 7 天" tone={stats.expiring ? "warning" : ""} />
+        <StatCard label="已停用" value={stats.disabled} note="账号不可用" tone={stats.disabled ? "dangerText" : ""} />
+      </div>
+
       <section className="toolbarPanel userToolbar">
         <label>
           搜索
-          <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="邮箱" />
+          <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="邮箱 / UID" />
         </label>
         <label>
           身份
@@ -795,162 +1028,100 @@ function UsersPage({
             <option value="expired">已过期</option>
           </select>
         </label>
-      </section>
-
-      <div className="memberLayout">
-        <section className="panel tablePanel">
-          <table className="adminTable">
-            <thead>
-              <tr>
-                <th>用户</th>
-                <th>身份</th>
-                <th>会员</th>
-                <th>到期时间</th>
-                <th>最近操作</th>
-                <th>最后登录</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((user) => (
-                <tr key={user.id}>
-                  <td><UserIdentityCell user={user} /></td>
-                  <td><RoleCell user={user} /></td>
-                  <td><MemberCell user={user} /></td>
-                  <td>{user.role === "user" ? formatDate(user.subscriptionExpiresAt) : <span className="tableMuted">--</span>}</td>
-                  <td><LastUserEventCell event={lastEventByUser.get(user.id)} /></td>
-                  <td>{formatTime(user.lastLoginAt)}</td>
-                  <td>
-                    {user.role === "super_admin" ? (
-                      <span className="tableMuted">不可编辑</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="tableAction"
-                        onClick={() => {
-                          setSelectedId(user.id);
-                          setEditorOpen(true);
-                      }}
-                    >
-                        设置账号
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      </div>
-      <UserEditModal selected={selected} open={editorOpen} events={events} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} />
-    </div>
-  );
-}
-
-function MembersPage({
-  users,
-  events,
-  onRefresh
-}: {
-  users: AdminUser[];
-  events: UserEvent[];
-  onRefresh: () => Promise<void>;
-}) {
-  const [keyword, setKeyword] = useState("");
-  const [planFilter, setPlanFilter] = useState("all");
-  const normalUsers = users.filter((user) => user.role === "user");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const selected = normalUsers.find((user) => user.id === selectedId) || null;
-  const lastEventByUser = useMemo(() => {
-    const map = new Map<number, UserEvent>();
-    events.forEach((event) => {
-      const targetId = event.target.id;
-      if (!targetId || map.has(targetId)) return;
-      map.set(targetId, event);
-    });
-    return map;
-  }, [events]);
-
-  const filtered = normalUsers.filter((user) => {
-    const hitKeyword = !keyword.trim() || user.email.toLowerCase().includes(keyword.trim().toLowerCase());
-    const hitPlan =
-      planFilter === "all" ||
-      (planFilter === "paid" && user.hasPaidAccess) ||
-      (planFilter === "expired" && user.subscriptionStatus === "expired") ||
-      user.plan === planFilter;
-    return hitKeyword && hitPlan;
-  });
-
-  return (
-    <div className="pageStack">
-      <div className="pageTitle">
-        <div>
-          <span>会员管理</span>
-          <h1>用户会员</h1>
-        </div>
-      </div>
-
-      <section className="toolbarPanel">
         <label>
-          搜索
-          <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="邮箱" />
+          活跃
+          <select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value)}>
+            <option value="all">全部活跃</option>
+            <option value="today">今日注册</option>
+            <option value="inactive3">3日未活跃</option>
+            <option value="inactive7">7日未活跃</option>
+            <option value="disabled">已停用</option>
+          </select>
         </label>
         <label>
-          会员
-          <select value={planFilter} onChange={(event) => setPlanFilter(event.target.value)}>
-            <option value="all">全部</option>
-            <option value="paid">付费会员</option>
-            <option value="monthly">月度</option>
-            <option value="yearly">年度</option>
-            <option value="free">免费</option>
-            <option value="expired">已过期</option>
+          课程授权
+          <select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}>
+            <option value="all">全部课程</option>
+            <option value="granted">已授权课程</option>
+            <option value="expiring">课程将到期</option>
+            <option value="none">无课程授权</option>
+          </select>
+        </label>
+        <label>
+          账号
+          <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value)}>
+            <option value="all">全部账号</option>
+            <option value="active">启用</option>
+            <option value="disabled">停用</option>
           </select>
         </label>
       </section>
 
-      <div className="memberLayout">
-        <section className="panel tablePanel">
+      <section className="quickFilterBar">
+        <button type="button" className={planFilter === "all" && activityFilter === "all" && courseFilter === "all" && accountFilter === "all" ? "active" : ""} onClick={() => { setPlanFilter("all"); setActivityFilter("all"); setCourseFilter("all"); setAccountFilter("all"); }}>全部用户</button>
+        <button type="button" className={planFilter === "paid" ? "active" : ""} onClick={() => setPlanFilter("paid")}>付费会员</button>
+        <button type="button" className={planFilter === "expired" ? "active" : ""} onClick={() => setPlanFilter("expired")}>已过期</button>
+        <button type="button" className={activityFilter === "today" ? "active" : ""} onClick={() => setActivityFilter("today")}>今日注册</button>
+        <button type="button" className={activityFilter === "inactive3" ? "active" : ""} onClick={() => setActivityFilter("inactive3")}>3日未活跃</button>
+        <button type="button" className={courseFilter === "granted" ? "active" : ""} onClick={() => setCourseFilter("granted")}>有课程授权</button>
+      </section>
+
+      <section className="panel tablePanel">
           <table className="adminTable">
             <thead>
               <tr>
                 <th>用户</th>
+                <th>注册时间</th>
+                <th>最后活跃</th>
                 <th>会员</th>
-                <th>到期时间</th>
-                <th>状态</th>
-                <th>最近操作</th>
-                <th>最后登录</th>
+                <th>课程授权</th>
+                <th>账号</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((user) => (
-                <tr key={user.id}>
+              {pageRows.map((user) => (
+                <tr key={user.id} className={selectedId === user.id ? "selectedRow" : ""}>
                   <td><UserIdentityCell user={user} /></td>
-                  <td><MemberCell user={user} /></td>
-                  <td>{formatDate(user.subscriptionExpiresAt)}</td>
-                  <td><UserStatusCell user={user} /></td>
-                  <td><LastUserEventCell event={lastEventByUser.get(user.id)} /></td>
+                  <td>{formatTime(user.createdAt)}</td>
                   <td>{formatTime(user.lastLoginAt)}</td>
+                  <td><MemberCell user={user} /></td>
+                  <td><UserCourseCell grants={grantsByUser.get(user.id) || []} /></td>
+                  <td><UserStatusCell user={user} /></td>
                   <td>
-                    <button
-                      type="button"
-                      className="tableAction"
-                      onClick={() => {
-                        setSelectedId(user.id);
-                        setEditorOpen(true);
-                      }}
-                    >
-                      设置会员
-                    </button>
+                    <button type="button" className="tableAction" onClick={() => setSelectedId(user.id)}>查看</button>
                   </td>
                 </tr>
               ))}
+              {!filtered.length ? <tr><td colSpan={7}>暂无用户</td></tr> : null}
             </tbody>
           </table>
-        </section>
-      </div>
-      <UserEditModal selected={selected} open={editorOpen} events={events} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} title="会员设置" mode="member" />
+          {filtered.length > userPageSize ? (
+            <div className="adminPager">
+              <button type="button" disabled={pageIndex <= 1} onClick={() => setPageIndex((page) => Math.max(1, page - 1))}>上一页</button>
+              <span>第 {pageIndex} / {totalPages} 页 · 共 {filtered.length} 个用户</span>
+              <button type="button" disabled={pageIndex >= totalPages} onClick={() => setPageIndex((page) => Math.min(totalPages, page + 1))}>下一页</button>
+            </div>
+          ) : null}
+      </section>
+      <UserDetailModal
+        user={selected}
+        events={events}
+        grants={selected ? grantsByUser.get(selected.id) || [] : []}
+        seriesById={seriesById}
+        onClose={() => setSelectedId(null)}
+        onEditAccount={() => {
+          setEditorMode("account");
+          setEditorOpen(true);
+        }}
+        onEditMember={() => {
+          setEditorMode("member");
+          setEditorOpen(true);
+        }}
+        onExtendMembership={extendMembership}
+        onOpenCourses={onOpenCourses}
+      />
+      <UserEditModal selected={selected} open={editorOpen} events={events} currentUser={currentUser} onRefresh={onRefresh} onClose={() => setEditorOpen(false)} mode={editorMode} title={editorMode === "member" ? "会员设置" : "账号设置"} />
     </div>
   );
 }
@@ -990,7 +1161,14 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [seriesOpen, setSeriesOpen] = useState(false);
   const [lessonOpen, setLessonOpen] = useState(false);
+  const [courseView, setCourseView] = useState<"list" | "detail">("list");
+  const [courseTab, setCourseTab] = useState<"basic" | "lessons" | "grants">("basic");
+  const [grantOpen, setGrantOpen] = useState(false);
   const [grantUser, setGrantUser] = useState("");
+  const [grantExpiresAt, setGrantExpiresAt] = useState("");
+  const [courseQuery, setCourseQuery] = useState("");
+  const [courseStatus, setCourseStatus] = useState("all");
+  const [courseProgress, setCourseProgress] = useState("all");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -1002,6 +1180,13 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const selected = series.find((item) => item.id === selectedId) || series[0] || null;
   const selectedGrants = selected ? grants.filter((grant) => grant.seriesId === selected.id) : [];
   const grantableUsers = users.filter((user) => user.role === "user");
+  const visibleSeries = series.filter((item) => {
+    const query = courseQuery.trim().toLowerCase();
+    if (query && !`${item.title} ${item.slug}`.toLowerCase().includes(query)) return false;
+    if (courseStatus !== "all" && item.status !== courseStatus) return false;
+    if (courseProgress !== "all" && item.progressStatus !== courseProgress) return false;
+    return true;
+  });
 
   async function loadCourses() {
     setError("");
@@ -1075,8 +1260,10 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setSaving(true);
     setError("");
     try {
-      await api.grantCourse({ seriesId: selected.id, user: grantUser });
+      await api.grantCourse({ seriesId: selected.id, user: grantUser, expiresAt: grantExpiresAt || null });
       setGrantUser("");
+      setGrantExpiresAt("");
+      setGrantOpen(false);
       await loadCourses();
     } catch (err) {
       setError(err instanceof Error ? err.message : "授权失败");
@@ -1233,6 +1420,26 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setLessonOpen(true);
   }
 
+  function openCourse(item: CourseSeries) {
+    setSelectedId(item.id);
+    setCourseView("detail");
+    setCourseTab("basic");
+  }
+
+  function openGrantDrawer(grant?: CourseGrant) {
+    setGrantUser(grant ? grant.user.uid : "");
+    setGrantExpiresAt(grant?.expiresAt ? formatDate(grant.expiresAt) : grantExpiryPreset(365));
+    setGrantOpen(true);
+  }
+
+  function grantState(grant: CourseGrant) {
+    if (!grant.expiresAt) return { label: "待改1年", className: "warningBg" };
+    const days = daysUntil(grant.expiresAt);
+    if (days !== null && days < 0) return { label: "已过期", className: "dangerBg" };
+    if (days !== null && days <= 7) return { label: "快到期", className: "warningBg" };
+    return { label: "有效", className: "positiveBg" };
+  }
+
   return (
     <div className="pageStack">
       <div className="pageTitle">
@@ -1246,90 +1453,94 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       {error ? <div className="notice inlineNotice">{error}</div> : null}
       {loading ? <div className="contentLoading inlineNotice">交易实战课程刷新中</div> : null}
 
-      <div className="courseAdminLayout">
-        <section className="panel tablePanel">
+      <div className="statsGrid courseStatsGrid">
+        <StatCard label="课程系列" value={series.length} />
+        <StatCard label="已上架视频" value={series.reduce((sum, item) => sum + (item.status === "published" ? item.lessonCount : 0), 0)} />
+        <StatCard label="有效授权" value={series.reduce((sum, item) => sum + (item.grantCount || 0), 0)} tone="positive" />
+        <StatCard label="7天内到期" value={series.reduce((sum, item) => sum + (item.expiringCount || 0), 0)} />
+      </div>
+
+      {courseView === "list" ? (
+        <section className="panel tablePanel courseListPanel">
           <div className="panelHeader">
-            <h2>交易实战课程系列</h2>
+            <h2>课程列表</h2>
+            <button type="button" className="tableAction">导出授权</button>
+          </div>
+          <div className="courseListFilters">
+            <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索课程名称" />
+            <select value={courseStatus} onChange={(event) => setCourseStatus(event.target.value)}>
+              <option value="all">全部状态</option>
+              <option value="published">上架</option>
+              <option value="draft">草稿</option>
+            </select>
+            <select value={courseProgress} onChange={(event) => setCourseProgress(event.target.value)}>
+              <option value="all">全部进度</option>
+              <option value="updating">更新中</option>
+              <option value="finished">已完结</option>
+            </select>
           </div>
           <table className="adminTable">
-            <thead>
-              <tr>
-                <th>系列</th>
-                <th>优先级</th>
-                <th>视频</th>
-                <th>授权</th>
-                <th>展示</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
+            <thead><tr><th>课程</th><th>状态</th><th>进度</th><th>视频</th><th>有效授权</th><th>即将到期</th><th>更新时间</th><th>操作</th></tr></thead>
             <tbody>
-              {series.map((item) => (
-                <tr key={item.id} className={selected?.id === item.id ? "selectedRow" : ""} onClick={() => setSelectedId(item.id)}>
-                  <td><strong>{item.title}</strong><small>{item.slug}</small></td>
-                  <td>{item.sortOrder}</td>
+              {visibleSeries.map((item) => (
+                <tr key={item.id}>
+                  <td><strong>{item.title}</strong><small>优先级 {item.sortOrder} · {item.originalPrice || "--"} / {item.discountPrice || "--"}</small></td>
+                  <td><span className={`status ${item.status === "published" ? "positiveBg" : ""}`}>{item.status === "published" ? "上架" : "草稿"}</span></td>
+                  <td><span className={`status ${item.progressStatus === "finished" ? "positiveBg" : "warningBg"}`}>{item.progressStatus === "finished" ? "已完结" : "更新中"}</span></td>
                   <td>{item.lessonCount}</td>
                   <td>{item.grantCount}</td>
-                  <td><span className={`status ${item.progressStatus === "finished" ? "positiveBg" : ""}`}>{item.progressStatus === "finished" ? "已完结" : "更新中"}</span></td>
-                  <td><span className={`status ${item.status === "published" ? "positiveBg" : ""}`}>{item.status === "published" ? "上架" : "草稿"}</span></td>
+                  <td>{item.expiringCount || 0}</td>
+                  <td>{formatTime(item.updatedAt)}</td>
                   <td>
-                    <button
-                      type="button"
-                      className="tableAction"
-                      disabled={saving}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openEditSeries(item);
-                      }}
-                    >
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      className="tableAction dangerAction"
-                      disabled={saving}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void deleteSeries(item);
-                      }}
-                    >
-                      删除
-                    </button>
+                    <button type="button" className="tableAction" onClick={() => openCourse(item)}>进入详情</button>
+                    <button type="button" className="tableAction" onClick={() => openEditSeries(item)}>编辑</button>
                   </td>
                 </tr>
               ))}
-              {!series.length && !loading ? <tr><td colSpan={6}>暂无交易实战课程</td></tr> : null}
+              {!visibleSeries.length && !loading ? <tr><td colSpan={8}>暂无交易实战课程</td></tr> : null}
             </tbody>
           </table>
         </section>
-
-        <section className="panel courseDetailPanel">
-          <div className="panelHeader">
-            <h2>{selected?.title || "交易实战课程详情"}</h2>
-            <button
-              type="button"
-              className="tableAction"
-              disabled={!selected}
-              onClick={() => {
-                openNewLesson();
-              }}
-            >
-              添加视频
-            </button>
+      ) : selected ? (
+        <section className="panel courseDetailPage">
+          <div className="courseBreadcrumb">
+            <button type="button" onClick={() => setCourseView("list")}>交易实战课程</button>
+            <span>/</span>
+            <strong>{selected.title}</strong>
           </div>
-          {selected ? (
-            <>
+          <div className="courseDetailHero">
+            <div className="courseHeroCover">{selected.coverUrl ? <img src={selected.coverUrl} alt="" /> : null}</div>
+            <div>
+              <h2>{selected.title}</h2>
+              <p>{selected.status === "published" ? "已上架" : "草稿"} · {selected.progressStatus === "finished" ? "已完结" : "更新中"} · {selected.lessonCount} 节视频 · {selected.grantCount} 个有效授权 · {selected.expiringCount || 0} 个 7 天内到期</p>
+            </div>
+            <div>
+              <button type="button" className="tableAction" onClick={() => openEditSeries(selected)}>编辑课程</button>
+              <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => deleteSeries(selected)}>删除</button>
+            </div>
+          </div>
+          <div className="courseTabs">
+            <button type="button" className={courseTab === "basic" ? "active" : ""} onClick={() => setCourseTab("basic")}>基本信息</button>
+            <button type="button" className={courseTab === "lessons" ? "active" : ""} onClick={() => setCourseTab("lessons")}>视频目录</button>
+            <button type="button" className={courseTab === "grants" ? "active" : ""} onClick={() => setCourseTab("grants")}>授权用户</button>
+          </div>
+
+          {courseTab === "basic" ? (
+            <div className="courseBasicGrid">
+              <div><span>课程状态</span><strong>{selected.status === "published" ? "上架" : "草稿"}</strong></div>
+              <div><span>课程进度</span><strong>{selected.progressStatus === "finished" ? "已完结" : "更新中"}</strong></div>
+              <div><span>价格</span><strong>{selected.originalPrice || "--"} / {selected.discountPrice || "--"}</strong></div>
+              <div><span>折扣文案</span><strong>{selected.discountLabel || "--"}</strong></div>
+              <section><span>转化文案</span><p>{selected.summary || "--"}</p></section>
+              <section><span>课程介绍</span><p>{selected.intro || "--"}</p></section>
+            </div>
+          ) : null}
+
+          {courseTab === "lessons" ? (
+            <div>
+              <div className="courseTabActions"><button type="button" className="primaryButton" onClick={openNewLesson}>添加视频</button></div>
               <table className="adminTable">
-                <thead>
-                  <tr>
-                    <th>优先级</th>
-                    <th>封面</th>
-                    <th>视频</th>
-                    <th>COS Key</th>
-                    <th>状态</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>顺序</th><th>封面</th><th>视频标题</th><th>COS Key</th><th>状态</th><th>操作</th></tr></thead>
                 <tbody>
                   {(selected.lessons || []).map((lesson) => (
                     <tr key={lesson.id}>
@@ -1337,7 +1548,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                       <td>{lesson.coverUrl ? <img className="lessonCoverThumb" src={lesson.coverUrl} alt="" /> : "--"}</td>
                       <td>{lesson.title}</td>
                       <td className="courseKeyCell">{lesson.videoKey || "--"}</td>
-                      <td><span className={`status ${lesson.status === "published" ? "positiveBg" : ""}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
+                      <td><span className={`status ${lesson.status === "published" ? "positiveBg" : "warningBg"}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
                       <td>
                         <button type="button" className="tableAction" disabled={saving} onClick={() => openEditLesson(lesson)}>编辑</button>
                         <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => deleteLesson(lesson)}>删除</button>
@@ -1347,35 +1558,65 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   {!selected.lessons?.length ? <tr><td colSpan={6}>暂无视频</td></tr> : null}
                 </tbody>
               </table>
+            </div>
+          ) : null}
 
-              <form className="courseGrantForm" onSubmit={submitGrant}>
-                <label>
-                  授权用户
-                  <input list="courseGrantUsers" value={grantUser} onChange={(event) => setGrantUser(event.target.value)} placeholder="邮箱或 UID" />
-                </label>
-                <datalist id="courseGrantUsers">
-                  {grantableUsers.map((user) => (
-                    <option key={user.id} value={user.uid}>{user.email}</option>
-                  ))}
-                </datalist>
-                <button type="submit" className="primaryButton" disabled={saving || !grantUser.trim()}>保存授权</button>
-              </form>
-              <div className="courseGrantList">
-                {selectedGrants.map((grant) => (
-                  <div key={grant.id}>
-                    <strong>{grant.user.email}</strong>
-                    <span>{grant.user.uid}</span>
-                    <button type="button" className="tableAction" disabled={saving} onClick={() => revokeGrant(grant.id)}>取消</button>
-                  </div>
-                ))}
-                {!selectedGrants.length ? <p>暂无授权用户</p> : null}
-              </div>
-            </>
-          ) : (
-            <div className="emptyPanel">请选择交易实战课程</div>
-          )}
+          {courseTab === "grants" ? (
+            <div>
+              <div className="courseTabActions"><button type="button" className="primaryButton" onClick={() => openGrantDrawer()}>新增授权</button></div>
+              <table className="adminTable">
+                <thead><tr><th>用户</th><th>授权时间</th><th>到期时间</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody>
+                  {selectedGrants.map((grant) => {
+                    const state = grantState(grant);
+                    return (
+                      <tr key={grant.id}>
+                        <td><strong>{grant.user.email}</strong><small>{grant.user.uid}</small></td>
+                        <td>{formatDate(grant.createdAt)}</td>
+                        <td>{grant.expiresAt ? formatDate(grant.expiresAt) : "待改为1年"}</td>
+                        <td><span className={`status ${state.className}`}>{state.label}</span></td>
+                        <td>
+                          <button type="button" className="tableAction" disabled={saving} onClick={() => openGrantDrawer(grant)}>改到期</button>
+                          <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => revokeGrant(grant.id)}>取消</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!selectedGrants.length ? <tr><td colSpan={5}>暂无授权用户</td></tr> : null}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </section>
-      </div>
+      ) : null}
+
+      {grantOpen && selected ? (
+        <div className="courseGrantDrawer">
+          <form onSubmit={submitGrant}>
+            <div className="drawerHeader">
+              <h2>{grantUser ? "修改授权" : "新增授权"}</h2>
+              <button type="button" onClick={() => setGrantOpen(false)}>×</button>
+            </div>
+            <label>用户<input list="courseGrantUsers" value={grantUser} onChange={(event) => setGrantUser(event.target.value)} placeholder="邮箱或 UID" /></label>
+            <datalist id="courseGrantUsers">
+              {grantableUsers.map((user) => (
+                <option key={user.id} value={user.uid}>{user.email}</option>
+              ))}
+            </datalist>
+            <label>自定义到期日期<input type="date" value={grantExpiresAt} onChange={(event) => setGrantExpiresAt(event.target.value)} required /></label>
+            <div className="grantQuickActions">
+              <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(30, grantExpiresAt))}>30天</button>
+              <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(180, grantExpiresAt))}>180天</button>
+              <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(365, grantExpiresAt))}>1年</button>
+            </div>
+            <p>到期后前台还会展示课程介绍，但用户不能播放视频。</p>
+            <div className="drawerActions">
+              <button type="button" className="ghostButton" onClick={() => setGrantOpen(false)}>取消</button>
+              <button type="submit" className="primaryButton" disabled={saving || !grantUser.trim()}>{saving ? "保存中" : "保存授权"}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       {seriesOpen ? (
         <div className="modalOverlay">
@@ -1606,10 +1847,10 @@ function OpenPortfolioPage() {
       setData(result);
       setNoteDrafts(Object.fromEntries(result.trades.map((trade) => [trade.id, trade.note || ""])));
       setNoteStatus((current) => ({ ...current, [id]: { text: "已保存", tone: "success" } }));
-      setToast({ text: "备注已保存", tone: "success" });
+      setToast({ text: "交易逻辑已保存", tone: "success" });
     } catch (err) {
       setNoteStatus((current) => ({ ...current, [id]: { text: "保存失败", tone: "error" } }));
-      setToast({ text: err instanceof Error ? err.message : "保存备注失败", tone: "error" });
+      setToast({ text: err instanceof Error ? err.message : "保存交易逻辑失败", tone: "error" });
     } finally {
       setSaving(false);
     }
@@ -1679,7 +1920,7 @@ function OpenPortfolioPage() {
                 </div>
               </label>
             )}
-            <label className="fullField">备注<input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
+            <label className="fullField">交易逻辑<input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} /></label>
             {buyAmountTooHigh ? <div className="openTradeInlineError">{form.symbol.trim().toUpperCase() || "标的"} 买入金额超过所选日期可用资金</div> : null}
             <button className={`tradeSubmit ${form.side}`} type="submit" disabled={saving}>{saving ? "保存中" : form.side === "buy" ? "确认买入" : "确认卖出"}</button>
           </form>
@@ -1724,7 +1965,7 @@ function OpenPortfolioPage() {
             <span className="tableMuted">第 {tradePage} / {tradeTotalPages} 页</span>
           </div>
           <table className="adminTable">
-            <thead><tr><th>日期</th><th>标的</th><th>方向</th><th>价格</th><th>数量</th><th>金额</th><th>已实现</th><th>备注</th><th>操作</th></tr></thead>
+            <thead><tr><th>日期</th><th>标的</th><th>方向</th><th>价格</th><th>数量</th><th>金额</th><th>已实现</th><th>交易逻辑</th><th>操作</th></tr></thead>
             <tbody>
               {tradeRows.map((row) => (
                 <tr key={row.id}>
@@ -1780,7 +2021,7 @@ function EventsPage({ events }: { events: UserEvent[] }) {
   const filtered = useMemo(() => {
     const query = keyword.trim().toLowerCase();
     return events.filter((event) => {
-      const day = (event.createdAt || "").slice(0, 10);
+      const day = formatDate(event.createdAt);
       const hitAction = action === "all" || event.action === action;
       const hitFrom = !dateFrom || day >= dateFrom;
       const hitTo = !dateTo || day <= dateTo;
@@ -2612,6 +2853,8 @@ export function App() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [courseSeries, setCourseSeries] = useState<CourseSeries[]>([]);
+  const [courseGrants, setCourseGrants] = useState<CourseGrant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -2619,10 +2862,12 @@ export function App() {
     setError("");
     setLoading(true);
     try {
-      const [userPayload, eventPayload, metricsPayload] = await Promise.all([api.users(), api.events(), api.metrics()]);
+      const [userPayload, eventPayload, metricsPayload, coursePayload] = await Promise.all([api.users(), api.events(), api.metrics(), api.courses()]);
       setUsers(userPayload.users || []);
       setEvents(eventPayload.rows || []);
       setMetrics(metricsPayload);
+      setCourseSeries(coursePayload.series || []);
+      setCourseGrants(coursePayload.grants || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "读取失败");
     } finally {
@@ -2706,8 +2951,7 @@ export function App() {
         {error ? <div className="notice">{error}</div> : null}
         {loading ? <div className="contentLoading">刷新数据中</div> : null}
         {page === "home" ? <HomePage users={users} events={events} metrics={metrics} /> : null}
-        {page === "users" ? <UsersPage users={users} events={events} currentUser={auth.user} onRefresh={loadData} /> : null}
-        {page === "members" ? <MembersPage users={users} events={events} onRefresh={loadData} /> : null}
+        {page === "users" ? <UsersPage users={users} events={events} metrics={metrics} courseSeries={courseSeries} courseGrants={courseGrants} currentUser={auth.user} onRefresh={loadData} onOpenCourses={() => setPage("courses")} /> : null}
         {page === "content" ? <ContentPage /> : null}
         {page === "open" ? <OpenPortfolioPage /> : null}
         {page === "courses" ? <CoursesPage users={users} /> : null}

@@ -45,6 +45,47 @@ with sqlite3.connect(next_db) as conn:
         """)
     except sqlite3.OperationalError:
         pass
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS main.open_portfolio_trades (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              trade_time TEXT NOT NULL,
+              symbol TEXT NOT NULL,
+              side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
+              price REAL NOT NULL CHECK (price > 0),
+              position_pct REAL NOT NULL CHECK (position_pct > 0),
+              trade_amount REAL,
+              trade_quantity REAL,
+              note TEXT,
+              created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS main.open_portfolio_symbol_rules (
+              symbol TEXT PRIMARY KEY,
+              asset_type TEXT NOT NULL,
+              quantity_step TEXT NOT NULL,
+              min_quantity TEXT,
+              source TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("DELETE FROM main.open_portfolio_trades")
+        conn.execute("DELETE FROM main.open_portfolio_symbol_rules")
+        conn.execute("""
+            INSERT INTO main.open_portfolio_trades
+            (id, trade_time, symbol, side, price, position_pct, trade_amount, trade_quantity, note, created_at)
+            SELECT id, trade_time, symbol, side, price, position_pct, trade_amount, trade_quantity, note, created_at
+            FROM old.open_portfolio_trades
+        """)
+        conn.execute("""
+            INSERT INTO main.open_portfolio_symbol_rules
+            (symbol, asset_type, quantity_step, min_quantity, source, updated_at)
+            SELECT symbol, asset_type, quantity_step, min_quantity, source, updated_at
+            FROM old.open_portfolio_symbol_rules
+        """)
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.execute("DETACH DATABASE old")
 PY
