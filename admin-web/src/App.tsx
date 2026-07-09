@@ -531,6 +531,7 @@ function UserEditModal({
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const isProtectedSuperAdmin = selected?.role === "super_admin";
   const selectedState = selected ? membershipState(selected) : null;
   const canEditRole = mode === "account";
@@ -548,7 +549,8 @@ function UserEditModal({
     });
     setMessage("");
     setNewPassword("");
-  }, [selected?.id]);
+    setDeleteConfirmOpen(false);
+  }, [selected?.id, open]);
 
   async function savePlan(event: React.FormEvent) {
     event.preventDefault();
@@ -605,12 +607,12 @@ function UserEditModal({
 
   async function deleteUser() {
     if (!selected) return;
-    if (!window.confirm(`确认删除 ${selected.email}？删除后无法恢复。`)) return;
     setDeleting(true);
     setMessage("");
     try {
       await api.deleteUser(selected.id);
       await onRefresh();
+      setDeleteConfirmOpen(false);
       onClose();
     } catch (err) {
       setMessageTone("error");
@@ -759,8 +761,8 @@ function UserEditModal({
                 <section className="settingsBlock dangerZone">
                   <h3>危险操作</h3>
                   <p>删除后账号、权限和操作记录都无法恢复。</p>
-                  <button type="button" className="dangerButton" disabled={deleting} onClick={deleteUser}>
-                    {deleting ? "删除中" : "删除用户"}
+                  <button type="button" className="dangerButton" disabled={deleting} onClick={() => setDeleteConfirmOpen(true)}>
+                    删除用户
                   </button>
                 </section>
               ) : null}
@@ -775,6 +777,25 @@ function UserEditModal({
           ) : null}
         </form>
       </section>
+      {deleteConfirmOpen ? (
+        <div className="modalBackdrop modalBackdropTop accountDeleteBackdrop" role="presentation" onMouseDown={(event) => { event.stopPropagation(); setDeleteConfirmOpen(false); }}>
+          <section className="modalPanel accountDeleteConfirmModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modalHeader">
+              <h2>删除用户</h2>
+              <button type="button" className="iconButton" onClick={() => setDeleteConfirmOpen(false)}>×</button>
+            </div>
+            <div className="selectedUser">
+              <strong>{selected.email}</strong>
+              <span>{selected.uid}</span>
+            </div>
+            <p className="accountDeleteCopy">删除后账号、权限和操作记录都无法恢复。</p>
+            <div className="modalActions">
+              <button type="button" className="ghostButton" onClick={() => setDeleteConfirmOpen(false)}>取消</button>
+              <button type="button" className="dangerButton" disabled={deleting} onClick={() => void deleteUser()}>{deleting ? "删除中" : "确认删除"}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -687,6 +687,18 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   width: min(560px, calc(100vw - 72px));
 }
 
+.accountDeleteConfirmModal {
+  width: min(500px, calc(100vw - 72px));
+}
+
+.accountDeleteCopy {
+  margin: 14px 0 16px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 520;
+  line-height: 1.6;
+}
+
 .modalHeader p {
   margin: 6px 0 0;
   color: #718096;
@@ -784,19 +796,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .editForm {
   display: grid;
   gap: 16px;
-}
-.editForm button {
-  border: 0;
-  border-radius: 10px;
-  background: #1677ff;
-  color: #fff;
-  height: 42px;
-  font-weight: 620;
-  cursor: pointer;
-}
-.editForm button:disabled {
-  opacity: .65;
-  cursor: wait;
 }
 .quickActions {
   display: grid;
@@ -1276,6 +1275,10 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .modalBackdropTop {
   z-index: 70;
+}
+
+.accountDeleteBackdrop {
+  z-index: 90;
 }
 
 .modalPanel {
