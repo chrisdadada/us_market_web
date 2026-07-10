@@ -61,19 +61,19 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .pageStack { padding: 32px 34px; display: grid; gap: 20px; }
 .pageTitle { display: flex; justify-content: space-between; align-items: end; }
 .pageTitle span { color: #7b8798; font-size: 12px; font-weight: 520; }
-.pageTitle h1 { margin: 5px 0 0; font-size: 25px; font-weight: 600; }
+.pageTitle h1 { margin: 5px 0 0; font-size: 23px; font-weight: 560; }
 .statsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
 .openStatsGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .statCard, .panel { background: #fff; border: 1px solid var(--admin-line); border-radius: var(--admin-card-radius); box-shadow: var(--admin-card-shadow); }
 .statCard { min-height: 98px; padding: 18px 20px; }
-.statCard p { margin: 0; color: #243247; font-size: 14px; font-weight: 520; }
-.statCard strong { display: block; margin-top: 12px; font-size: 26px; font-weight: 600; line-height: 1; }
-.statCard span { display: block; margin-top: 9px; color: #718096; font-size: 13px; font-weight: 600; }
+.statCard p { margin: 0; color: #526174; font-size: 13px; font-weight: 520; }
+.statCard strong { display: block; margin-top: 11px; font-size: 24px; font-weight: 560; line-height: 1; }
+.statCard span { display: block; margin-top: 8px; color: #718096; font-size: 12px; font-weight: 520; }
 .positive { color: #12b981; }
 .warning { color: #f59e0b; }
 .panel { padding: 22px 24px; }
 .panelHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-.panelHeader h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.panelHeader h2 { margin: 0; font-size: 18px; font-weight: 560; }
 .homeTablePanel {
   overflow: auto;
 }
