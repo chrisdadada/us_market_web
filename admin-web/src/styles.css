@@ -95,6 +95,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-style: normal;
   font-weight: 520;
 }
+.homeSummary span { display: block; }
 .homeSummary strong { display: inline-block; margin-top: 9px; font-size: 26px; font-weight: 560; line-height: 1; }
 .homeSummary em { margin-left: 16px; }
 .homeActivityPanel,

@@ -3331,7 +3331,8 @@ function actionLabel(action: string) {
     update_user: "修改用户/会员",
     reset_password: "账号操作",
     grant_course: "课程授权",
-    revoke_course: "取消课程授权"
+    revoke_course: "取消课程授权",
+    delete_user: "删除用户"
   };
   return labels[action] || action;
 }
