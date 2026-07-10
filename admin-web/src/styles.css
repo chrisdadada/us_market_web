@@ -1965,7 +1965,28 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .courseGrantUserCell small {
+  display: block;
+  margin-top: 4px;
+  color: #8a97a8;
+  font-size: 12px;
+  font-weight: 520;
   overflow-wrap: anywhere;
+}
+
+.courseGrantDateCell {
+  display: grid;
+  gap: 4px;
+}
+
+.courseGrantDateCell span {
+  color: #344257;
+  font-weight: 520;
+}
+
+.courseGrantDateCell small {
+  color: #8a97a8;
+  font-size: 12px;
+  font-weight: 520;
 }
 
 .courseActionCell {

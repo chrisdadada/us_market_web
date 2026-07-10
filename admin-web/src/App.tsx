@@ -1862,24 +1862,23 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                 <button type="button" className="primaryButton" onClick={() => openGrantModal()}>新增授权</button>
               </div>
               <table className="adminTable">
-                <thead><tr><th>用户</th><th>授权时间</th><th>到期时间</th><th>状态</th><th>操作</th></tr></thead>
+                <thead><tr><th>用户</th><th>授权</th><th>状态</th><th>操作</th></tr></thead>
                 <tbody>
                   {grantRows.map((grant) => {
                     const state = grantState(grant);
                     return (
                       <tr key={grant.id}>
                         <td><div className="courseGrantUserCell"><strong>{grant.user.email}</strong><small>{grant.user.uid}</small></div></td>
-                        <td>{formatDate(grant.createdAt)}</td>
-                        <td>{grant.expiresAt ? formatDate(grant.expiresAt) : "待改为1年"}</td>
+                        <td><div className="courseGrantDateCell"><span>{formatDate(grant.createdAt)}</span><small>到期 {grant.expiresAt ? formatDate(grant.expiresAt) : "待改为1年"}</small></div></td>
                         <td><span className={`status ${state.className}`}>{state.label}</span></td>
-                        <td>
+                        <td className="courseActionCell">
                           <button type="button" className="tableAction" disabled={saving} onClick={() => openGrantModal(grant)}>改到期</button>
                           <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "grant", id: grant.id })}>取消</button>
                         </td>
                       </tr>
                     );
                   })}
-                  {!filteredGrants.length ? <tr><td colSpan={5}>暂无授权用户</td></tr> : null}
+                  {!filteredGrants.length ? <tr><td colSpan={4}>暂无授权用户</td></tr> : null}
                 </tbody>
               </table>
               {filteredGrants.length > courseGrantPageSize ? (
