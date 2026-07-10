@@ -325,199 +325,212 @@ function navPageLabel(page: string) {
   return frontPageLabels[page] || "未命名入口";
 }
 
-function HomePage({ users, events, metrics }: { users: AdminUser[]; events: UserEvent[]; metrics: AdminMetrics | null }) {
+type MetricsTab = "nav" | "retention";
+type MetricsRange = "7" | "30" | "90" | "all" | "custom";
+
+type UserActivityGroup = {
+  userId: number;
+  email: string;
+  events: UserEvent[];
+};
+
+function groupUserActivities(events: UserEvent[]) {
+  const groups: UserActivityGroup[] = [];
+  [...events]
+    .filter((event) => event.target.id && event.target.email)
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .forEach((event) => {
+      const previous = groups[groups.length - 1];
+      const previousTime = previous ? Date.parse(previous.events[previous.events.length - 1].createdAt) : 0;
+      const eventTime = Date.parse(event.createdAt);
+      if (previous && previous.userId === event.target.id && previousTime - eventTime <= 5 * 60 * 1000) {
+        previous.events.push(event);
+        return;
+      }
+      groups.push({ userId: event.target.id as number, email: event.target.email as string, events: [event] });
+    });
+  return groups.slice(0, 5);
+}
+
+function activityTime(group: UserActivityGroup) {
+  const latest = formatTime(group.events[0].createdAt);
+  const earliest = formatTime(group.events[group.events.length - 1].createdAt);
+  if (latest === earliest) return latest;
+  return `${earliest.slice(0, 10)} ${earliest.slice(11)} - ${latest.slice(11)}`;
+}
+
+function MetricsRangeControls({
+  range,
+  dateFrom,
+  dateTo,
+  onRangeChange,
+  onDateChange
+}: {
+  range: MetricsRange;
+  dateFrom: string;
+  dateTo: string;
+  onRangeChange: (range: MetricsRange) => void;
+  onDateChange: (dateFrom: string, dateTo: string) => void;
+}) {
+  return (
+    <div className="metricsRangeControls">
+      {(["7", "30", "90", "all"] as MetricsRange[]).map((value) => (
+        <button type="button" className={range === value ? "active" : ""} key={value} onClick={() => onRangeChange(value)}>
+          {value === "all" ? "累计" : `${value} 天`}
+        </button>
+      ))}
+      {range === "custom" ? (
+        <div className="metricsDateRange">
+          <input aria-label="开始日期" type="date" value={dateFrom} onChange={(event) => onDateChange(event.target.value, dateTo)} />
+          <span>至</span>
+          <input aria-label="结束日期" type="date" value={dateTo} onChange={(event) => onDateChange(dateFrom, event.target.value)} />
+        </div>
+      ) : (
+        <button type="button" onClick={() => onRangeChange("custom")}>选择日期</button>
+      )}
+    </div>
+  );
+}
+
+function HomePage({
+  users,
+  events,
+  metrics,
+  onOpenUser,
+  onOpenUsers
+}: {
+  users: AdminUser[];
+  events: UserEvent[];
+  metrics: AdminMetrics | null;
+  onOpenUser: (userId: number) => void;
+  onOpenUsers: () => void;
+}) {
+  const [tab, setTab] = useState<MetricsTab>("nav");
+  const [navRange, setNavRange] = useState<MetricsRange>("30");
+  const [retentionRange, setRetentionRange] = useState<MetricsRange>("30");
+  const [navDateFrom, setNavDateFrom] = useState("");
+  const [navDateTo, setNavDateTo] = useState("");
+  const [retentionDateFrom, setRetentionDateFrom] = useState("");
+  const [retentionDateTo, setRetentionDateTo] = useState("");
+  const [filteredMetrics, setFilteredMetrics] = useState<AdminMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState("");
   const stats = useMemo(() => {
     const normalUsers = users.filter((user) => user.role === "user");
     const paidUsers = normalUsers.filter((user) => user.hasPaidAccess);
     const monthly = normalUsers.filter((user) => user.plan === "monthly" && user.hasPaidAccess).length;
     const yearly = normalUsers.filter((user) => user.plan === "yearly" && user.hasPaidAccess).length;
-    const navClicks = metrics?.navClicks.reduce((sum, row) => sum + row.clicks, 0) || 0;
     const metricPaid = metrics ? metrics.users.monthlyPaid + metrics.users.yearlyPaid : null;
     return {
       total: metrics?.users.total ?? normalUsers.length,
-      active: metrics?.users.active ?? normalUsers.filter((user) => user.isActive).length,
       paid: metricPaid ?? paidUsers.length,
       monthly: metrics?.users.monthlyPaid ?? monthly,
       yearly: metrics?.users.yearlyPaid ?? yearly,
       active3: metrics?.active.d3 ?? 0,
       active7: metrics?.active.d7 ?? 0,
-      active30: metrics?.active.d30 ?? 0,
-      navClicks
+      active30: metrics?.active.d30 ?? 0
     };
   }, [metrics, users]);
+  const activityGroups = useMemo(() => groupUserActivities(events), [events]);
+  const customRangeReady =
+    (navRange !== "custom" || (navDateFrom && navDateTo)) &&
+    (retentionRange !== "custom" || (retentionDateFrom && retentionDateTo));
+  const visibleMetrics = filteredMetrics || metrics;
 
-  const recentUsers = users
-    .filter((user) => user.role === "user")
-    .slice()
-    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
-    .slice(0, 5);
-  const expiringMembers = users
-    .filter((user) => {
-      const days = daysUntil(user.subscriptionExpiresAt);
-      return user.role === "user" && user.isActive && user.hasPaidAccess && days !== null && days >= 0 && days <= 7;
-    })
-    .slice()
-    .sort((a, b) => String(a.subscriptionExpiresAt || "").localeCompare(String(b.subscriptionExpiresAt || "")))
-    .slice(0, 8);
+  useEffect(() => {
+    if (!customRangeReady) {
+      setMetricsLoading(false);
+      return;
+    }
+    const isDefault = navRange === "30" && retentionRange === "30";
+    if (isDefault) {
+      setFilteredMetrics(null);
+      setMetricsError("");
+      return;
+    }
+    let cancelled = false;
+    setMetricsLoading(true);
+    setMetricsError("");
+    api.metrics({ navRange, navDateFrom, navDateTo, retentionRange, retentionDateFrom, retentionDateTo })
+      .then((payload) => {
+        if (!cancelled) setFilteredMetrics(payload);
+      })
+      .catch((error) => {
+        if (!cancelled) setMetricsError(error instanceof Error ? error.message : "读取统计失败");
+      })
+      .finally(() => {
+        if (!cancelled) setMetricsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customRangeReady, navDateFrom, navDateTo, navRange, retentionDateFrom, retentionDateTo, retentionRange]);
+
+  const activeRange = tab === "nav" ? navRange : retentionRange;
+  const activeDateFrom = tab === "nav" ? navDateFrom : retentionDateFrom;
+  const activeDateTo = tab === "nav" ? navDateTo : retentionDateTo;
+  const activeCustomReady = activeRange !== "custom" || (activeDateFrom && activeDateTo);
+
+  function setActiveRange(nextRange: MetricsRange) {
+    if (tab === "nav") setNavRange(nextRange);
+    else setRetentionRange(nextRange);
+  }
+
+  function setActiveDates(dateFrom: string, dateTo: string) {
+    if (tab === "nav") {
+      setNavDateFrom(dateFrom);
+      setNavDateTo(dateTo);
+      setNavRange("custom");
+    } else {
+      setRetentionDateFrom(dateFrom);
+      setRetentionDateTo(dateTo);
+      setRetentionRange("custom");
+    }
+  }
 
   return (
     <div className="pageStack">
-      <div className="pageTitle">
-        <div>
-          <span>数据概览</span>
-          <h1>用户与会员</h1>
-        </div>
-      </div>
-
-      <div className="statsGrid">
-        <StatCard label="注册用户" value={stats.total} note={`有效 ${stats.active}`} />
-        <StatCard label="付费用户" value={stats.paid} note={`月度 ${stats.monthly} / 年度 ${stats.yearly}`} tone="positive" />
-        <StatCard label="3日活跃" value={stats.active3} note={`7日 ${stats.active7} / 30日 ${stats.active30}`} />
-        <StatCard label="导航点击" value={stats.navClicks} note={`30日活跃 ${stats.active30}`} />
-      </div>
-
-      <section className="panel homeTablePanel">
-        <div className="panelHeader">
-          <h2>导航点击率</h2>
-        </div>
-        <table className="adminTable">
-          <thead>
-            <tr>
-              <th>用户点击的位置</th>
-              <th>点击次数</th>
-              <th>点击用户</th>
-              <th>占比</th>
-            </tr>
-          </thead>
-          <tbody>
-            {metrics?.navClicks.length ? metrics.navClicks.map((row) => (
-              <tr key={row.page}>
-                <td title={row.page}>{navPageLabel(row.page)}</td>
-                <td>{row.clicks}</td>
-                <td>{row.users}</td>
-                <td>{stats.navClicks ? `${Math.round((row.clicks / stats.navClicks) * 100)}%` : "--"}</td>
-              </tr>
-            )) : (
-              <tr><td colSpan={4}>暂无数据</td></tr>
-            )}
-          </tbody>
-        </table>
+      <section className="panel homeSummary">
+        <div><span>用户</span><strong>{stats.total}</strong></div>
+        <div><span>有效会员</span><strong>{stats.paid}</strong><em>月度 {stats.monthly} · 年度 {stats.yearly}</em></div>
+        <div><span>近 3 日访问用户</span><strong>{stats.active3}</strong><em>7 日 {stats.active7} · 30 日 {stats.active30}</em></div>
       </section>
 
-      <section className="panel homeTablePanel">
-        <div className="panelHeader">
-          <h2>用户留存</h2>
-        </div>
-        <table className="adminTable">
-          <thead>
-            <tr>
-              <th>注册日期</th>
-              <th>注册用户</th>
-              <th>3日</th>
-              <th>7日</th>
-              <th>30日</th>
-            </tr>
-          </thead>
+      <section className="panel homeActivityPanel">
+        <div className="panelHeader"><h2>用户动态</h2><button type="button" className="textButton" onClick={onOpenUsers}>全部用户</button></div>
+        <table className="adminTable homeActivityTable">
+          <thead><tr><th>时间</th><th>用户</th><th>记录</th><th>操作人</th></tr></thead>
           <tbody>
-            {metrics?.retention.length ? metrics.retention.map((row) => (
-              <tr key={row.cohortDay}>
-                <td>{row.cohortDay}</td>
-                <td>{row.registered}</td>
-                <td>{row.registered ? `${Math.round((row.retained3d / row.registered) * 100)}%` : "--"}</td>
-                <td>{row.registered ? `${Math.round((row.retained7d / row.registered) * 100)}%` : "--"}</td>
-                <td>{row.registered ? `${Math.round((row.retained30d / row.registered) * 100)}%` : "--"}</td>
-              </tr>
-            )) : (
-              <tr><td colSpan={5}>暂无数据</td></tr>
-            )}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="panel homeTablePanel">
-        <div className="panelHeader">
-          <h2>会员即将到期</h2>
-        </div>
-        <table className="adminTable">
-          <thead>
-            <tr>
-              <th>用户</th>
-              <th>会员</th>
-              <th>到期时间</th>
-              <th>剩余</th>
-              <th>最后登录</th>
-            </tr>
-          </thead>
-          <tbody>
-            {expiringMembers.map((user) => {
-              const days = daysUntil(user.subscriptionExpiresAt);
-              return (
-                <tr key={user.id}>
-                  <td><UserIdentityCell user={user} /></td>
-                  <td><MemberCell user={user} /></td>
-                  <td>{formatDate(user.subscriptionExpiresAt)}</td>
-                  <td><span className="status warningBg">{days === 0 ? "今天到期" : `${days} 天后`}</span></td>
-                  <td>{formatTime(user.lastLoginAt)}</td>
-                </tr>
-              );
+            {activityGroups.map((group) => {
+              const actions = [...group.events].reverse().map((event) => actionLabel(event.action)).filter((value, index, values) => values.indexOf(value) === index);
+              const actors = [...group.events].reverse().map((event) => event.actor.email || "用户本人").filter((value, index, values) => values.indexOf(value) === index);
+              return <tr key={`${group.userId}-${group.events[0].id}`} tabIndex={0} onClick={() => onOpenUser(group.userId)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onOpenUser(group.userId); }}><td>{activityTime(group)}</td><td className="homeUserLink">{group.email}</td><td>{actions.join("、")}</td><td>{actors.join("、")}</td></tr>;
             })}
-            {!expiringMembers.length ? <tr><td colSpan={5}>暂无即将到期会员</td></tr> : null}
+            {!activityGroups.length ? <tr><td colSpan={4}>暂无用户动态</td></tr> : null}
           </tbody>
         </table>
       </section>
 
-      <section className="panel homeTablePanel">
-        <div className="panelHeader">
-          <h2>最近注册</h2>
+      <section className="panel homeMetricsPanel">
+        <div className="homeMetricsHeader">
+          <div className="homeMetricsTabs">
+            <button type="button" className={tab === "nav" ? "active" : ""} onClick={() => setTab("nav")}>访问页面</button>
+            <button type="button" className={tab === "retention" ? "active" : ""} onClick={() => setTab("retention")}>注册留存</button>
+          </div>
+          <MetricsRangeControls range={activeRange} dateFrom={activeDateFrom} dateTo={activeDateTo} onRangeChange={setActiveRange} onDateChange={setActiveDates} />
         </div>
+        {metricsError ? <p className="homeMetricsError">{metricsError}</p> : null}
+        {metricsLoading ? <p className="homeMetricsLoading">正在更新</p> : null}
         <table className="adminTable">
           <thead>
-            <tr>
-              <th>用户</th>
-              <th>会员</th>
-              <th>到期时间</th>
-              <th>状态</th>
-              <th>最后登录</th>
-            </tr>
+            {tab === "nav" ? <tr><th>页面</th><th>点击次数</th><th>点击用户</th></tr> : <tr><th>注册日期</th><th>注册用户</th><th>3 日</th><th>7 日</th><th>30 日</th></tr>}
           </thead>
           <tbody>
-            {recentUsers.map((user) => (
-              <tr key={user.id}>
-                <td><UserIdentityCell user={user} /></td>
-                <td><MemberCell user={user} /></td>
-                <td>{formatDate(user.subscriptionExpiresAt)}</td>
-                <td><UserStatusCell user={user} /></td>
-                <td>{formatTime(user.lastLoginAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="panel homeTablePanel">
-        <div className="panelHeader">
-          <h2>最近操作记录</h2>
-        </div>
-        <table className="adminTable eventsTable">
-          <thead>
-            <tr>
-              <th>时间</th>
-              <th>动作</th>
-              <th>变更内容</th>
-              <th>操作人</th>
-              <th>目标用户</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.slice(0, 10).map((event) => (
-              <tr key={event.id}>
-                <td>{formatTime(event.createdAt)}</td>
-                <td><span className="status positiveBg">{actionLabel(event.action)}</span></td>
-                <td className="eventSummary"><LastUserEventCell event={event} /></td>
-                <td><EventPersonCell email={event.actor.email} label={event.actor.role ? roleLabels[event.actor.role] || event.actor.role : ""} /></td>
-                <td><EventPersonCell email={event.target.email} /></td>
-              </tr>
-            ))}
+            {!activeCustomReady ? <tr><td colSpan={tab === "nav" ? 3 : 5}>请选择开始和结束日期</td></tr> : null}
+            {activeCustomReady && tab === "nav" && visibleMetrics?.navClicks.slice(0, 5).map((row) => <tr key={row.page}><td>{navPageLabel(row.page)}</td><td>{row.clicks}</td><td>{row.users}</td></tr>)}
+            {activeCustomReady && tab === "retention" && visibleMetrics?.retention.map((row) => <tr key={row.cohortDay}><td>{row.cohortDay}</td><td>{row.registered}</td><td>{row.registered ? `${Math.round((row.retained3d / row.registered) * 100)}%` : "--"}</td><td>{row.registered ? `${Math.round((row.retained7d / row.registered) * 100)}%` : "--"}</td><td>{row.registered ? `${Math.round((row.retained30d / row.registered) * 100)}%` : "--"}</td></tr>)}
+            {activeCustomReady && tab === "nav" && !visibleMetrics?.navClicks.length ? <tr><td colSpan={3}>暂无数据</td></tr> : null}
+            {activeCustomReady && tab === "retention" && !visibleMetrics?.retention.length ? <tr><td colSpan={5}>暂无数据</td></tr> : null}
           </tbody>
         </table>
       </section>
@@ -986,7 +999,9 @@ function UsersPage({
   courseSeries,
   courseGrants,
   currentUser,
-  onRefresh
+  onRefresh,
+  selectedUserId,
+  onSelectedUserOpened
 }: {
   users: AdminUser[];
   events: UserEvent[];
@@ -995,6 +1010,8 @@ function UsersPage({
   courseGrants: CourseGrant[];
   currentUser: AuthStatus["user"];
   onRefresh: () => Promise<void>;
+  selectedUserId?: number | null;
+  onSelectedUserOpened?: () => void;
 }) {
   const [keyword, setKeyword] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -1087,6 +1104,12 @@ function UsersPage({
     const timer = window.setTimeout(() => setGrantAllToast(null), 2600);
     return () => window.clearTimeout(timer);
   }, [grantAllToast]);
+
+  useEffect(() => {
+    if (!selectedUserId) return;
+    setSelectedId(selectedUserId);
+    onSelectedUserOpened?.();
+  }, [onSelectedUserOpened, selectedUserId]);
 
   function setGrantAllPreset(days: 30 | 180 | 365) {
     setGrantAllExpiresAt(grantExpiryPreset(days, grantAllExpiresAt));
@@ -3348,6 +3371,7 @@ export function App() {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [courseSeries, setCourseSeries] = useState<CourseSeries[]>([]);
   const [courseGrants, setCourseGrants] = useState<CourseGrant[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -3402,10 +3426,7 @@ export function App() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brandMark">懂</div>
-          <div>
-            <strong>懂币猫后台</strong>
-            <span>Admin Console</span>
-          </div>
+          <strong>懂币猫后台</strong>
         </div>
         <nav>
           {navItems.map((item) => (
@@ -3427,7 +3448,7 @@ export function App() {
 
       <section className="mainArea">
         <header className="topbar">
-          <h1>{pageLabel}</h1>
+          {page === "home" ? <span /> : <h1>{pageLabel}</h1>}
           <div className="topActions">
             <button
               type="button"
@@ -3443,8 +3464,8 @@ export function App() {
         </header>
         {error ? <div className="notice">{error}</div> : null}
         {loading ? <div className="contentLoading">刷新数据中</div> : null}
-        {page === "home" ? <HomePage users={users} events={events} metrics={metrics} /> : null}
-        {page === "users" ? <UsersPage users={users} events={events} metrics={metrics} courseSeries={courseSeries} courseGrants={courseGrants} currentUser={auth.user} onRefresh={loadData} /> : null}
+        {page === "home" ? <HomePage users={users} events={events} metrics={metrics} onOpenUser={(userId) => { setSelectedUserId(userId); setPage("users"); }} onOpenUsers={() => setPage("users")} /> : null}
+        {page === "users" ? <UsersPage users={users} events={events} metrics={metrics} courseSeries={courseSeries} courseGrants={courseGrants} currentUser={auth.user} onRefresh={loadData} selectedUserId={selectedUserId} onSelectedUserOpened={() => setSelectedUserId(null)} /> : null}
         {page === "content" ? <ContentPage /> : null}
         {page === "open" ? <OpenPortfolioPage /> : null}
         {page === "courses" ? <CoursesPage users={users} /> : null}

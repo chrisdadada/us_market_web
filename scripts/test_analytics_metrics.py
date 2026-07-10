@@ -2,11 +2,13 @@
 import json
 import os
 import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
 import time
 import urllib.request
+from datetime import datetime, timedelta, timezone
 
 
 def free_port() -> int:
@@ -58,6 +60,20 @@ def main() -> int:
             assert metrics["active"]["d3"] == 1, metrics
             assert len(metrics["navClicks"]) == 1, metrics
             assert metrics["navClicks"][0]["page"] == "dashboard", metrics
+            old_time = (datetime.now(timezone.utc) - timedelta(days=100)).isoformat()
+            old_day = datetime.fromisoformat(old_time).astimezone(timezone(timedelta(hours=8))).date().isoformat()
+            with sqlite3.connect(env["APP_DB"]) as conn:
+                user_id = conn.execute("SELECT id FROM users WHERE email = ?", ("user@example.com",)).fetchone()[0]
+                conn.execute(
+                    "INSERT INTO analytics_events (user_id, event_type, event_key, path, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (user_id, "nav_click", "legacy", "/", old_time),
+                )
+            _, recent_metrics, _ = request(base, "/api/admin/metrics?navRange=7", cookie=admin_cookie)
+            assert [row["page"] for row in recent_metrics["navClicks"]] == ["dashboard"], recent_metrics
+            _, all_metrics, _ = request(base, "/api/admin/metrics?navRange=all", cookie=admin_cookie)
+            assert {row["page"] for row in all_metrics["navClicks"]} == {"dashboard", "legacy"}, all_metrics
+            _, custom_metrics, _ = request(base, f"/api/admin/metrics?navRange=custom&navDateFrom={old_day}&navDateTo={old_day}", cookie=admin_cookie)
+            assert [row["page"] for row in custom_metrics["navClicks"]] == ["legacy"], custom_metrics
         finally:
             proc.terminate()
             proc.wait(timeout=5)

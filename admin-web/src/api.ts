@@ -29,6 +29,15 @@ export type AdminMetrics = {
   retention: Array<{ cohortDay: string; registered: number; retained3d: number; retained7d: number; retained30d: number }>;
 };
 
+export type AdminMetricsOptions = {
+  navRange?: "7" | "30" | "90" | "all" | "custom";
+  navDateFrom?: string;
+  navDateTo?: string;
+  retentionRange?: "7" | "30" | "90" | "all" | "custom";
+  retentionDateFrom?: string;
+  retentionDateTo?: string;
+};
+
 export type OpinionStatus = "published" | "draft";
 
 export type MarketOpinion = {
@@ -187,7 +196,14 @@ export const api = {
       users: AdminUser[];
       summary: { total: number; active: number; paid: number; admin: number };
     }>("/api/admin/users"),
-  metrics: () => request<AdminMetrics>("/api/admin/metrics"),
+  metrics: (options: AdminMetricsOptions = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(options).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    const query = params.toString();
+    return request<AdminMetrics>(`/api/admin/metrics${query ? `?${query}` : ""}`);
+  },
   openPortfolio: () => request<OpenPortfolioPayload>("/api/admin/open-portfolio"),
   saveOpenTrade: (payload: { tradeTime: string; symbol: string; side: "buy" | "sell"; price: number; amount?: number; quantity?: number; note?: string }) =>
     request<{ ok: true } & OpenPortfolioPayload>("/api/admin/open-portfolio/trades", {

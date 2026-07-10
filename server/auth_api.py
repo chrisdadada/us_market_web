@@ -1640,7 +1640,34 @@ def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, pa
         conn.execute("UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?", (timestamp, timestamp, user["id"]))
 
 
-def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
+def analytics_range_clause(
+    params: dict[str, list[str]],
+    *,
+    prefix: str,
+    column: str,
+) -> tuple[str, list[str]]:
+    range_key = f"{prefix}Range"
+    selected = str(params.get(range_key, ["30"])[0]).strip()
+    if selected in {"7", "30", "90"}:
+        return f"datetime({column}) >= datetime('now', ?)", [f"-{selected} days"]
+    if selected == "all":
+        return "", []
+    if selected == "custom":
+        date_from = str(params.get(f"{prefix}DateFrom", [""])[0]).strip()
+        date_to = str(params.get(f"{prefix}DateTo", [""])[0]).strip()
+        try:
+            start = date.fromisoformat(date_from).isoformat()
+            end = date.fromisoformat(date_to).isoformat()
+        except ValueError as exc:
+            raise ValueError("请选择完整的日期范围") from exc
+        if start > end:
+            raise ValueError("开始日期不能晚于结束日期")
+        return f"date(datetime({column}, '+8 hours')) BETWEEN ? AND ?", [start, end]
+    return "datetime({}) >= datetime('now', '-30 days')".format(column), []
+
+
+def admin_metrics_payload(conn: sqlite3.Connection, params: dict[str, list[str]] | None = None) -> dict[str, Any]:
+    params = params or {}
     users = conn.execute(
         """
         WITH regular_users AS (
@@ -1674,19 +1701,24 @@ def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
         WHERE a.event_type = 'nav_click'
         """
     ).fetchone()
+    nav_clause, nav_values = analytics_range_clause(params, prefix="nav", column="a.created_at")
+    nav_where = "AND " + nav_clause if nav_clause else ""
     nav_rows = conn.execute(
-        """
+        f"""
         SELECT a.event_key, COUNT(*) AS clicks, COUNT(DISTINCT a.user_id) AS users
         FROM analytics_events a
         JOIN users u ON u.id = a.user_id AND u.role = 'user'
-        WHERE a.event_type = 'nav_click' AND datetime(a.created_at) >= datetime('now', '-30 days')
+        WHERE a.event_type = 'nav_click' {nav_where}
         GROUP BY a.event_key
         ORDER BY clicks DESC
         LIMIT 30
-        """
+        """,
+        nav_values,
     ).fetchall()
+    retention_clause, retention_values = analytics_range_clause(params, prefix="retention", column="u.created_at")
+    retention_where = "AND " + retention_clause if retention_clause else ""
     retention_rows = conn.execute(
-        """
+        f"""
         SELECT
           date(datetime(u.created_at, '+8 hours')) AS cohortDay,
           COUNT(DISTINCT u.id) AS registered,
@@ -1695,11 +1727,12 @@ def admin_metrics_payload(conn: sqlite3.Connection) -> dict[str, Any]:
           COUNT(DISTINCT CASE WHEN datetime(a.created_at) < datetime(u.created_at, '+30 days') THEN u.id END) AS retained30d
         FROM users u
         LEFT JOIN analytics_events a ON a.user_id = u.id AND a.event_type = 'nav_click' AND datetime(a.created_at) > datetime(u.created_at)
-        WHERE u.role = 'user' AND u.is_active = 1
+        WHERE u.role = 'user' AND u.is_active = 1 {retention_where}
         GROUP BY cohortDay
         ORDER BY cohortDay DESC
         LIMIT 30
-        """
+        """,
+        retention_values,
     ).fetchall()
     return {
         "users": {
@@ -3405,8 +3438,12 @@ class Handler(BaseHTTPRequestHandler):
             user = self.require_admin()
             if not user:
                 return
+            params = parse_qs(parsed.query)
             with db() as conn:
-                self.send_json(admin_metrics_payload(conn))
+                try:
+                    self.send_json(admin_metrics_payload(conn, params))
+                except ValueError as exc:
+                    self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
 
         if parsed.path == "/api/admin/user-events":
