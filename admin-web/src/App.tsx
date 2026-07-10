@@ -1826,14 +1826,13 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             <div>
               <div className="courseTabActions"><button type="button" className="primaryButton" onClick={openNewLesson}>添加视频</button></div>
               <table className="adminTable">
-                <thead><tr><th>顺序</th><th>封面</th><th>视频标题</th><th>视频文件路径</th><th>状态</th><th>操作</th></tr></thead>
+                <thead><tr><th>顺序</th><th>封面</th><th>视频</th><th>状态</th><th>操作</th></tr></thead>
                 <tbody>
                   {(selected.lessons || []).map((lesson) => (
                     <tr key={lesson.id}>
                       <td>{lesson.sortOrder}</td>
                       <td>{lesson.coverUrl ? <img className="lessonCoverThumb" src={lesson.coverUrl} alt="" /> : "--"}</td>
-                      <td>{lesson.title}</td>
-                      <td className="courseKeyCell">{lesson.videoKey || "--"}</td>
+                      <td><div className="courseLessonCell"><strong>{lesson.title}</strong><small>{lesson.videoKey || "未填写视频文件路径"}</small></div></td>
                       <td><span className={`status ${lesson.status === "published" ? "positiveBg" : "warningBg"}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
                       <td>
                         <button type="button" className="tableAction" disabled={saving} onClick={() => openEditLesson(lesson)}>编辑</button>
@@ -1841,7 +1840,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                       </td>
                     </tr>
                   ))}
-                  {!selected.lessons?.length ? <tr><td colSpan={6}>暂无视频</td></tr> : null}
+                  {!selected.lessons?.length ? <tr><td colSpan={5}>暂无视频</td></tr> : null}
                 </tbody>
               </table>
             </div>

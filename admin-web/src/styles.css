@@ -2199,12 +2199,29 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-weight: 520;
 }
 
-.courseKeyCell {
-  max-width: 260px;
+.courseLessonCell {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.courseLessonCell strong,
+.courseLessonCell small {
   overflow: hidden;
-  color: #64748b !important;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.courseLessonCell strong {
+  color: #182337;
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.courseLessonCell small {
+  color: #8a97a8;
+  font-size: 12px;
+  font-weight: 520;
 }
 
 .lessonCoverThumb {
