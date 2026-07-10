@@ -216,6 +216,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .toolbarPanel select,
 .editForm input,
 .editForm select,
+.editForm textarea,
 .editorPanel input,
 .editorPanel select,
 .editorPanel textarea,
@@ -234,6 +235,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .toolbarPanel select:focus,
 .editForm input:focus,
 .editForm select:focus,
+.editForm textarea:focus,
 .editorPanel input:focus,
 .editorPanel select:focus,
 .editorPanel textarea:focus,
@@ -1694,6 +1696,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-weight: 600;
 }
 .fullLabel textarea,
+.editForm textarea,
 .editorPanel textarea {
   height: auto;
   padding: 12px 14px;
@@ -2307,7 +2310,32 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .courseModalBody {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
+}
+
+.courseFormSection {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #e6ebf2;
+  padding-top: 14px;
+}
+
+.courseFormSection:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.courseFormSection h3 {
+  margin: 0;
+  color: #182337;
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.courseFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .courseGrantModal {

@@ -1938,36 +1938,54 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <button type="button" onClick={() => setSeriesOpen(false)} aria-label="关闭">×</button>
             </div>
             <div className="editForm courseModalBody">
-              <label>课程名称<input value={seriesForm.title} onChange={(event) => setSeriesForm({ ...seriesForm, title: event.target.value })} placeholder="例如 财报季交易框架" /></label>
-              <label>优先级<input type="number" min="1" value={seriesForm.sortOrder} onChange={(event) => setSeriesForm({ ...seriesForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
-              <label>展示状态<select value={seriesForm.progressStatus} onChange={(event) => setSeriesForm({ ...seriesForm, progressStatus: event.target.value as CourseSeries["progressStatus"] })}><option value="updating">更新中</option><option value="finished">已完结</option></select></label>
-              <label>上架状态<select value={seriesForm.status} onChange={(event) => setSeriesForm({ ...seriesForm, status: event.target.value as CourseSeries["status"] })}><option value="draft">草稿</option><option value="published">上架</option></select></label>
-              <label>原价($)<input value={seriesForm.originalPrice} onChange={(event) => setSeriesForm({ ...seriesForm, originalPrice: event.target.value })} placeholder="99" /></label>
-              <label>折扣价($)<input value={seriesForm.discountPrice} onChange={(event) => setSeriesForm({ ...seriesForm, discountPrice: event.target.value })} placeholder="9.9" /></label>
-              <label>折扣文案<input value={seriesForm.discountLabel} onChange={(event) => setSeriesForm({ ...seriesForm, discountLabel: event.target.value })} placeholder="限时体验价" /></label>
-              <label className="fullField">转化文案<textarea rows={4} value={seriesForm.summary} onChange={(event) => setSeriesForm({ ...seriesForm, summary: event.target.value })} placeholder="用于课程卡片和详情顶部" /></label>
-              <label className="fullField">课程介绍<textarea rows={5} value={seriesForm.intro} onChange={(event) => setSeriesForm({ ...seriesForm, intro: event.target.value })} placeholder={"用于详情页下方介绍，支持 Markdown，例如：\n1. 第一条说明\n2. 第二条说明"} /></label>
-              <div className="fullField courseCoverUpload">
-                <span>封面图</span>
-                <div>
-                  {seriesForm.coverUrl ? <img src={seriesForm.coverUrl} alt="" /> : <em>未上传</em>}
-                  <section>
-                    <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => coverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
-                    <small>{seriesForm.coverUrl || "支持 PNG、JPG、WebP、GIF"}</small>
-                  </section>
+              <section className="courseFormSection">
+                <h3>基础信息</h3>
+                <div className="courseFormGrid">
+                  <label>课程名称<input value={seriesForm.title} onChange={(event) => setSeriesForm({ ...seriesForm, title: event.target.value })} placeholder="例如 财报季交易框架" /></label>
+                  <label>优先级<input type="number" min="1" value={seriesForm.sortOrder} onChange={(event) => setSeriesForm({ ...seriesForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
+                  <label>展示状态<select value={seriesForm.progressStatus} onChange={(event) => setSeriesForm({ ...seriesForm, progressStatus: event.target.value as CourseSeries["progressStatus"] })}><option value="updating">更新中</option><option value="finished">已完结</option></select></label>
+                  <label>上架状态<select value={seriesForm.status} onChange={(event) => setSeriesForm({ ...seriesForm, status: event.target.value as CourseSeries["status"] })}><option value="draft">草稿</option><option value="published">上架</option></select></label>
                 </div>
-                <input
-                  ref={coverFileRef}
-                  className="hiddenFile"
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void uploadCover(file);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </div>
+              </section>
+              <section className="courseFormSection">
+                <h3>价格</h3>
+                <div className="courseFormGrid">
+                  <label>原价($)<input value={seriesForm.originalPrice} onChange={(event) => setSeriesForm({ ...seriesForm, originalPrice: event.target.value })} placeholder="99" /></label>
+                  <label>折扣价($)<input value={seriesForm.discountPrice} onChange={(event) => setSeriesForm({ ...seriesForm, discountPrice: event.target.value })} placeholder="9.9" /></label>
+                  <label className="fullField">折扣文案<input value={seriesForm.discountLabel} onChange={(event) => setSeriesForm({ ...seriesForm, discountLabel: event.target.value })} placeholder="限时体验价" /></label>
+                </div>
+              </section>
+              <section className="courseFormSection">
+                <h3>展示文案</h3>
+                <div className="courseFormGrid">
+                  <label className="fullField">转化文案<textarea rows={4} value={seriesForm.summary} onChange={(event) => setSeriesForm({ ...seriesForm, summary: event.target.value })} placeholder="用于课程卡片和详情顶部" /></label>
+                  <label className="fullField">课程介绍<textarea rows={5} value={seriesForm.intro} onChange={(event) => setSeriesForm({ ...seriesForm, intro: event.target.value })} placeholder={"用于详情页下方介绍，支持 Markdown，例如：\n1. 第一条说明\n2. 第二条说明"} /></label>
+                </div>
+              </section>
+              <section className="courseFormSection">
+                <h3>封面</h3>
+                <div className="courseCoverUpload">
+                  <span>封面图</span>
+                  <div>
+                    {seriesForm.coverUrl ? <img src={seriesForm.coverUrl} alt="" /> : <em>未上传</em>}
+                    <section>
+                      <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => coverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
+                      <small>{seriesForm.coverUrl || "支持 PNG、JPG、WebP、GIF"}</small>
+                    </section>
+                  </div>
+                  <input
+                    ref={coverFileRef}
+                    className="hiddenFile"
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void uploadCover(file);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </div>
+              </section>
             </div>
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setSeriesOpen(false)}>取消</button>
@@ -1985,47 +2003,58 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <button type="button" onClick={() => setLessonOpen(false)} aria-label="关闭">×</button>
             </div>
             <div className="editForm courseModalBody">
-              <label>视频标题<input value={lessonForm.title} onChange={(event) => setLessonForm({ ...lessonForm, title: event.target.value })} placeholder="例如 01 交易实战课程框架" /></label>
-              <label>优先级<input type="number" min="1" value={lessonForm.sortOrder} onChange={(event) => setLessonForm({ ...lessonForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
-              <label>状态<select value={lessonForm.status} onChange={(event) => setLessonForm({ ...lessonForm, status: event.target.value as CourseLesson["status"] })}><option value="published">上架</option><option value="draft">草稿</option></select></label>
-              <div className="fullField courseCoverUpload">
-                <span>单节封面图</span>
-                <div>
-                  {lessonForm.coverUrl ? <img src={lessonForm.coverUrl} alt="" /> : <em>未上传</em>}
-                  <section>
-                    <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => lessonCoverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
-                    <small>{lessonForm.coverUrl || "支持 PNG、JPG、WebP、GIF"}</small>
-                  </section>
+              <section className="courseFormSection">
+                <h3>基础信息</h3>
+                <div className="courseFormGrid">
+                  <label>视频标题<input value={lessonForm.title} onChange={(event) => setLessonForm({ ...lessonForm, title: event.target.value })} placeholder="例如 01 交易实战课程框架" /></label>
+                  <label>优先级<input type="number" min="1" value={lessonForm.sortOrder} onChange={(event) => setLessonForm({ ...lessonForm, sortOrder: event.target.value })} placeholder="留空自动，数字越大越前" /></label>
+                  <label>状态<select value={lessonForm.status} onChange={(event) => setLessonForm({ ...lessonForm, status: event.target.value as CourseLesson["status"] })}><option value="published">上架</option><option value="draft">草稿</option></select></label>
                 </div>
-                <input
-                  ref={lessonCoverFileRef}
-                  className="hiddenFile"
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void uploadLessonCover(file);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </div>
-              <div className="fullField courseVideoUpload">
-                <button type="button" className="ghostButton" disabled={videoUploading} onClick={() => videoFileRef.current?.click()}>{videoUploading ? "上传中" : "上传视频"}</button>
-                <span>{videoUploading ? `上传中 ${videoUploadProgress}%` : lessonForm.videoKey || "上传成功后会自动保存，也可以手动填写视频文件路径"}</span>
-                {videoUploading ? <progress value={videoUploadProgress} max={100} /> : null}
-                <input
-                  ref={videoFileRef}
-                  className="hiddenFile"
-                  type="file"
-                  accept="video/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void uploadLessonVideo(file);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </div>
-              <label className="fullField">视频文件路径<input value={lessonForm.videoKey} onChange={(event) => setLessonForm({ ...lessonForm, videoKey: event.target.value })} placeholder="courses/earnings/lesson-01.mp4" /></label>
+              </section>
+              <section className="courseFormSection">
+                <h3>封面</h3>
+                <div className="courseCoverUpload">
+                  <span>单节封面图</span>
+                  <div>
+                    {lessonForm.coverUrl ? <img src={lessonForm.coverUrl} alt="" /> : <em>未上传</em>}
+                    <section>
+                      <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => lessonCoverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
+                      <small>{lessonForm.coverUrl || "支持 PNG、JPG、WebP、GIF"}</small>
+                    </section>
+                  </div>
+                  <input
+                    ref={lessonCoverFileRef}
+                    className="hiddenFile"
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void uploadLessonCover(file);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </div>
+              </section>
+              <section className="courseFormSection">
+                <h3>视频文件</h3>
+                <div className="courseVideoUpload">
+                  <button type="button" className="ghostButton" disabled={videoUploading} onClick={() => videoFileRef.current?.click()}>{videoUploading ? "上传中" : "上传视频"}</button>
+                  <span>{videoUploading ? `上传中 ${videoUploadProgress}%` : lessonForm.videoKey || "上传成功后会自动保存，也可以手动填写视频文件路径"}</span>
+                  {videoUploading ? <progress value={videoUploadProgress} max={100} /> : null}
+                  <input
+                    ref={videoFileRef}
+                    className="hiddenFile"
+                    type="file"
+                    accept="video/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void uploadLessonVideo(file);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </div>
+                <label>视频文件路径<input value={lessonForm.videoKey} onChange={(event) => setLessonForm({ ...lessonForm, videoKey: event.target.value })} placeholder="courses/earnings/lesson-01.mp4" /></label>
+              </section>
             </div>
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setLessonOpen(false)}>取消</button>
