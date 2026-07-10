@@ -67,6 +67,32 @@ def main() -> int:
             )
             assert status == 200, payload
             assert "mg_session=" in cookie, cookie
+
+            proc.terminate()
+            proc.wait(timeout=5)
+            env["SUPER_ADMIN_PASSWORD"] = "replacement-password"
+            proc = subprocess.Popen([sys.executable, "server/auth_api.py"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            for _ in range(50):
+                try:
+                    urllib.request.urlopen(base + "/api/auth/status", timeout=1).close()
+                    break
+                except Exception:
+                    time.sleep(0.1)
+            else:
+                raise AssertionError("server did not restart")
+
+            status, payload, _ = post(
+                base,
+                "/api/auth/login",
+                {"email": "admin@example.com", "password": "admin-password", "adminOnly": True},
+            )
+            assert status == 200, payload
+            status, _, _ = post(
+                base,
+                "/api/auth/login",
+                {"email": "admin@example.com", "password": "replacement-password", "adminOnly": True},
+            )
+            assert status == 401, status
         finally:
             proc.terminate()
             proc.wait(timeout=5)

@@ -9,6 +9,11 @@ REMOTE_DB="/tmp/dongbimao-product-new.db"
 cd "$(dirname "$0")/.."
 mkdir -p "$(dirname "${BUILD_DB}")"
 
+if [ "${ALLOW_OPEN_PORTFOLIO_DATA_DEPLOY:-0}" != "1" ]; then
+  echo "ERROR: prod product DB deployment requires explicit approval for Open holding data" >&2
+  exit 1
+fi
+
 if [ "${SKIP_PRODUCT_DB_BUILD:-0}" != "1" ]; then
   "${PY}" scripts/build_product_db.py --output "${BUILD_DB}"
   "${PY}" scripts/update_macro_calendar_results.py --db "${BUILD_DB}"

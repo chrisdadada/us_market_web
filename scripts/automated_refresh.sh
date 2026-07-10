@@ -369,12 +369,15 @@ if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
     run_root "promote latest build to production" \
       bash scripts/promote_prod.sh
+  fi
 
-    run_root "deploy product DB to production" \
-      env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
-  elif [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]]; then
-    run_root "deploy product DB to production" \
-      env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
+  if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" || "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]]; then
+    if [[ "${ALLOW_OPEN_PORTFOLIO_DATA_DEPLOY:-0}" == "1" ]]; then
+      run_root "deploy product DB to production" \
+        env ALLOW_OPEN_PORTFOLIO_DATA_DEPLOY=1 SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
+    else
+      echo "Skipping prod product DB deployment: Open holding data needs explicit approval."
+    fi
   fi
 fi
 

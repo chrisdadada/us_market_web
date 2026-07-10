@@ -1303,19 +1303,9 @@ def init_db() -> None:
             conn.execute("ALTER TABLE course_lessons ADD COLUMN cover_url TEXT")
         if SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD:
             existing = conn.execute("SELECT id FROM users WHERE email = ?", (SUPER_ADMIN_EMAIL,)).fetchone()
-            salt, password_hash = hash_password(SUPER_ADMIN_PASSWORD)
-            timestamp = now_iso()
-            if existing:
-                conn.execute(
-                    """
-                    UPDATE users
-                    SET password_hash = ?, salt = ?, role = 'super_admin', plan = 'paid',
-                        is_active = 1, updated_at = ?, password_changed_at = COALESCE(password_changed_at, ?)
-                    WHERE email = ?
-                    """,
-                    (password_hash, salt, timestamp, timestamp, SUPER_ADMIN_EMAIL),
-                )
-            else:
+            if not existing:
+                salt, password_hash = hash_password(SUPER_ADMIN_PASSWORD)
+                timestamp = now_iso()
                 conn.execute(
                     """
                     INSERT INTO users
