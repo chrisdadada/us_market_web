@@ -72,6 +72,8 @@ with sqlite3.connect(next_db) as conn:
         """)
         conn.execute("DELETE FROM main.open_portfolio_trades")
         conn.execute("DELETE FROM main.open_portfolio_symbol_rules")
+        open_trade_count = conn.execute("SELECT COUNT(*) FROM old.open_portfolio_trades").fetchone()[0]
+        open_rule_count = conn.execute("SELECT COUNT(*) FROM old.open_portfolio_symbol_rules").fetchone()[0]
         conn.execute("""
             INSERT INTO main.open_portfolio_trades
             (id, trade_time, symbol, side, price, position_pct, trade_amount, trade_quantity, note, created_at)
@@ -84,8 +86,12 @@ with sqlite3.connect(next_db) as conn:
             SELECT symbol, asset_type, quantity_step, min_quantity, source, updated_at
             FROM old.open_portfolio_symbol_rules
         """)
-    except sqlite3.OperationalError:
-        pass
+        copied_trade_count = conn.execute("SELECT COUNT(*) FROM main.open_portfolio_trades").fetchone()[0]
+        copied_rule_count = conn.execute("SELECT COUNT(*) FROM main.open_portfolio_symbol_rules").fetchone()[0]
+        if copied_trade_count != open_trade_count or copied_rule_count != open_rule_count:
+            raise RuntimeError("open portfolio preservation count mismatch")
+    except sqlite3.OperationalError as exc:
+        raise RuntimeError("open portfolio preservation failed") from exc
     conn.commit()
     conn.execute("DETACH DATABASE old")
 PY
