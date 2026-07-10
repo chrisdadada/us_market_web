@@ -2099,32 +2099,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #64748b;
   font-size: 12px;
-  font-weight: 560;
-}
-
-.courseDetailStats {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  gap: 10px;
-  padding: 14px 16px;
-}
-
-.courseDetailStats .statCard {
-  min-height: 74px;
-  padding: 12px;
-  box-shadow: none;
-  border-radius: 8px;
-}
-
-.courseDetailStats .statCard p {
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.courseDetailStats .statCard strong {
-  margin-top: 8px;
-  font-size: 17px;
   font-weight: 520;
+  line-height: 1.6;
 }
 
 .courseTabs {
@@ -2162,14 +2138,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseBasicGrid div,
 .courseBasicGrid section {
-  border: 1px solid #e3e9f1;
-  border-radius: 8px;
-  padding: 12px;
+  border-top: 1px solid #e6ebf2;
+  padding: 12px 0 0;
 }
 
 .courseBasicGrid section {
   grid-column: span 2;
-  min-height: 128px;
+  min-height: 110px;
 }
 
 .courseBasicGrid span {
@@ -2190,7 +2165,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .courseBasicGrid strong {
-  font-weight: 620;
+  font-weight: 560;
 }
 
 .courseBasicGrid p {

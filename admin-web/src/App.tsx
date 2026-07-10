@@ -1795,18 +1795,15 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             <div className="courseDetailHero">
               <div>
                 <h2>{selected.title}</h2>
-                <p>{selected.status === "published" ? "上架" : "草稿"} · {selected.progressStatus === "finished" ? "已完结" : "更新中"} · {selected.lessonCount} 节视频 · 最近更新 {formatTime(selected.updatedAt)}</p>
+                <p>
+                  {selected.status === "published" ? "上架" : "草稿"} · {selected.progressStatus === "finished" ? "已完结" : "更新中"} · {selected.lessonCount} 节视频 · {selected.grantCount} 个授权 · 最近更新 {formatTime(selected.updatedAt)}
+                  {selected.expiringCount ? ` · ${selected.expiringCount} 个快到期` : ""}
+                </p>
               </div>
               <div>
                 <button type="button" className="tableAction" onClick={() => openEditSeries(selected)}>编辑课程</button>
                 <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "series", id: selected.id })}>删除课程</button>
               </div>
-            </div>
-            <div className="statsGrid courseDetailStats">
-              <StatCard label="视频" value={selected.lessonCount} />
-              <StatCard label="有效授权" value={selected.grantCount} tone="positive" />
-              <StatCard label="7天内到期" value={selected.expiringCount || 0} />
-              <StatCard label="状态" value={selected.status === "published" ? "上架" : "草稿"} />
             </div>
             <div className="courseTabs">
               <button type="button" className={courseTab === "basic" ? "active" : ""} onClick={() => setCourseTab("basic")}>基本信息</button>
@@ -1816,10 +1813,10 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
 
           {courseTab === "basic" ? (
             <div className="courseBasicGrid">
-              <div><span>课程状态</span><strong>{selected.status === "published" ? "上架" : "草稿"}</strong></div>
-              <div><span>课程进度</span><strong>{selected.progressStatus === "finished" ? "已完结" : "更新中"}</strong></div>
+              <div><span>上架状态</span><strong>{selected.status === "published" ? "上架" : "草稿"}</strong></div>
+              <div><span>更新进度</span><strong>{selected.progressStatus === "finished" ? "已完结" : "更新中"}</strong></div>
               <div><span>价格</span><strong>{coursePrice(selected)}</strong></div>
-              <div><span>折扣文案</span><strong>{selected.discountLabel || "--"}</strong></div>
+              <div><span>折扣</span><strong>{selected.discountLabel || "--"}</strong></div>
               <section><span>转化文案</span><p>{selected.summary || "--"}</p></section>
               <section><span>课程介绍</span><p>{selected.intro || "--"}</p></section>
             </div>
