@@ -123,6 +123,17 @@ function AdminToast({ toast }: { toast: AdminToastPayload }) {
   );
 }
 
+type AdminInlineMessagePayload = { detail: string; tone?: "success" | "error" } | null;
+
+function AdminInlineMessage({ message }: { message: AdminInlineMessagePayload }) {
+  if (!message) return null;
+  return (
+    <p className={`inlineMessage ${message.tone === "error" ? "error" : ""}`} role={message.tone === "error" ? "alert" : "status"}>
+      {message.detail}
+    </p>
+  );
+}
+
 function openAvailableCashAt(data: OpenPortfolioPayload | null, tradeDate?: string) {
   if (!data) return null;
   const target = formatDate(tradeDate);
@@ -780,7 +791,7 @@ function UserEditModal({
               ) : null}
             </>
           ) : null}
-          {message ? <p className={`inlineMessage ${messageTone}`}>{message}</p> : null}
+          <AdminInlineMessage message={message ? { detail: message, tone: messageTone } : null} />
           {mode === "member" ? (
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={onClose}>取消</button>
@@ -1077,6 +1088,12 @@ function UsersPage({
     return () => window.clearTimeout(timer);
   }, [grantAllToast]);
 
+  function setGrantAllPreset(days: 30 | 180 | 365) {
+    setGrantAllExpiresAt(grantExpiryPreset(days, grantAllExpiresAt));
+    setGrantAllDateError("");
+    setGrantAllMessage("");
+  }
+
   async function submitGrantAllCourses(event: FormEvent) {
     event.preventDefault();
     if (!selected) return;
@@ -1271,17 +1288,18 @@ function UsersPage({
                 onChange={(event) => {
                   setGrantAllExpiresAt(event.target.value);
                   setGrantAllDateError("");
+                  setGrantAllMessage("");
                 }}
               />
               {grantAllDateError ? <small className="fieldError">{grantAllDateError}</small> : null}
             </label>
             <div className="grantQuickActions">
-              <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(30, grantAllExpiresAt)); setGrantAllDateError(""); }}>30天</button>
-              <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(180, grantAllExpiresAt)); setGrantAllDateError(""); }}>180天</button>
-              <button type="button" onClick={() => { setGrantAllExpiresAt(grantExpiryPreset(365, grantAllExpiresAt)); setGrantAllDateError(""); }}>1年</button>
+              <button type="button" onClick={() => setGrantAllPreset(30)}>30天</button>
+              <button type="button" onClick={() => setGrantAllPreset(180)}>180天</button>
+              <button type="button" onClick={() => setGrantAllPreset(365)}>1年</button>
             </div>
             <p className="grantAllNote">{grantScope === "us_stock" ? "包含：美股定投课程、美股投资框架课。" : "已有授权会更新到这个日期。"}</p>
-            {grantAllMessage ? <p className="inlineMessage error">{grantAllMessage}</p> : null}
+            <AdminInlineMessage message={grantAllMessage ? { detail: grantAllMessage, tone: "error" } : null} />
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setGrantAllOpen(false)}>取消</button>
               <button type="submit" className="primaryButton" disabled={grantAllSaving}>{grantAllSaving ? "授权中" : "确认授权"}</button>
