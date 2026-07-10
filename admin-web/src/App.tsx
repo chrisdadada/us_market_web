@@ -805,7 +805,7 @@ function UserEditModal({
           <section className="modalPanel accountDeleteConfirmModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modalHeader">
               <h2>删除用户</h2>
-              <button type="button" className="iconButton" onClick={() => setDeleteConfirmOpen(false)}>×</button>
+              <button type="button" className="iconButton" onClick={() => setDeleteConfirmOpen(false)} aria-label="关闭">×</button>
             </div>
             <div className="selectedUser">
               <strong>{selected.email}</strong>
@@ -1273,7 +1273,7 @@ function UsersPage({
           <form className="adminModal courseModal courseGrantModal" onSubmit={submitGrantAllCourses}>
             <div className="modalHeader">
               <h2>{grantScope === "us_stock" ? "授权美股课程" : "授权全部课程"}</h2>
-              <button type="button" onClick={() => setGrantAllOpen(false)}>×</button>
+              <button type="button" onClick={() => setGrantAllOpen(false)} aria-label="关闭">×</button>
             </div>
             <p className="grantAllSummary">
               <span>用户</span>
@@ -1829,7 +1829,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             <div>
               <div className="courseTabActions"><button type="button" className="primaryButton" onClick={openNewLesson}>添加视频</button></div>
               <table className="adminTable">
-                <thead><tr><th>顺序</th><th>封面</th><th>视频标题</th><th>COS Key</th><th>状态</th><th>操作</th></tr></thead>
+                <thead><tr><th>顺序</th><th>封面</th><th>视频标题</th><th>视频文件路径</th><th>状态</th><th>操作</th></tr></thead>
                 <tbody>
                   {(selected.lessons || []).map((lesson) => (
                     <tr key={lesson.id}>
@@ -1904,7 +1904,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
           <form className="adminModal courseModal courseGrantModal courseGrantDrawer" onSubmit={submitGrant}>
             <div className="modalHeader">
               <h2>{grantUser ? "修改授权" : "新增授权"}</h2>
-              <button type="button" onClick={() => setGrantOpen(false)}>×</button>
+              <button type="button" onClick={() => setGrantOpen(false)} aria-label="关闭">×</button>
             </div>
             <div className="courseGrantCurrent"><span>当前课程</span><strong>{selected.title}</strong></div>
             <label>用户<input list="courseGrantUsers" value={grantUser} onChange={(event) => setGrantUser(event.target.value)} placeholder="邮箱或 UID" /></label>
@@ -1935,7 +1935,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
           <form className="adminModal courseModal" onSubmit={submitSeries}>
             <div className="modalHeader">
               <h2>{seriesForm.id ? "编辑课程" : "新建课程"}</h2>
-              <button type="button" onClick={() => setSeriesOpen(false)}>×</button>
+              <button type="button" onClick={() => setSeriesOpen(false)} aria-label="关闭">×</button>
             </div>
             <div className="editForm courseModalBody">
               <label>课程名称<input value={seriesForm.title} onChange={(event) => setSeriesForm({ ...seriesForm, title: event.target.value })} placeholder="例如 财报季交易框架" /></label>
@@ -1982,7 +1982,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
           <form className="adminModal courseModal" onSubmit={submitLesson}>
             <div className="modalHeader">
               <h2>{lessonForm.id ? "编辑视频" : "添加视频"}</h2>
-              <button type="button" onClick={() => setLessonOpen(false)}>×</button>
+              <button type="button" onClick={() => setLessonOpen(false)} aria-label="关闭">×</button>
             </div>
             <div className="editForm courseModalBody">
               <label>视频标题<input value={lessonForm.title} onChange={(event) => setLessonForm({ ...lessonForm, title: event.target.value })} placeholder="例如 01 交易实战课程框架" /></label>
@@ -1994,7 +1994,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   {lessonForm.coverUrl ? <img src={lessonForm.coverUrl} alt="" /> : <em>未上传</em>}
                   <section>
                     <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => lessonCoverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
-                    <small>{lessonForm.coverUrl || "支持 PNG、JPG、WebP、GIF，上传到 COS"}</small>
+                    <small>{lessonForm.coverUrl || "支持 PNG、JPG、WebP、GIF"}</small>
                   </section>
                 </div>
                 <input
@@ -2011,7 +2011,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               </div>
               <div className="fullField courseVideoUpload">
                 <button type="button" className="ghostButton" disabled={videoUploading} onClick={() => videoFileRef.current?.click()}>{videoUploading ? "上传中" : "上传视频"}</button>
-                <span>{videoUploading ? `上传中 ${videoUploadProgress}%` : lessonForm.videoKey || "上传成功后自动保存视频，也可以手工粘贴 COS Key"}</span>
+                <span>{videoUploading ? `上传中 ${videoUploadProgress}%` : lessonForm.videoKey || "上传成功后会自动保存，也可以手动填写视频文件路径"}</span>
                 {videoUploading ? <progress value={videoUploadProgress} max={100} /> : null}
                 <input
                   ref={videoFileRef}
@@ -2025,7 +2025,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   }}
                 />
               </div>
-              <label className="fullField">COS Key<input value={lessonForm.videoKey} onChange={(event) => setLessonForm({ ...lessonForm, videoKey: event.target.value })} placeholder="courses/earnings/lesson-01.mp4" /></label>
+              <label className="fullField">视频文件路径<input value={lessonForm.videoKey} onChange={(event) => setLessonForm({ ...lessonForm, videoKey: event.target.value })} placeholder="courses/earnings/lesson-01.mp4" /></label>
             </div>
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setLessonOpen(false)}>取消</button>
@@ -2040,7 +2040,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
           <div className="adminModal courseConfirmModal">
             <div className="modalHeader">
               <h2>{confirmAction.kind === "grant" ? "取消授权" : "删除确认"}</h2>
-              <button type="button" onClick={() => setConfirmAction(null)}>×</button>
+              <button type="button" onClick={() => setConfirmAction(null)} aria-label="关闭">×</button>
             </div>
             <p>
               {confirmAction.kind === "series" && confirmSeries ? `确认删除课程「${confirmSeries.title}」？这会同时删除该课程下的视频和授权。` : null}
@@ -2363,7 +2363,7 @@ function OpenPortfolioPage() {
           <form className="modalPanel openTradeNoteModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); void saveTradeNote(editingTrade.id); }}>
             <div className="modalHeader">
               <h2>编辑交易逻辑</h2>
-              <button type="button" className="iconButton" onClick={closeTradeNoteEditor}>×</button>
+              <button type="button" className="iconButton" onClick={closeTradeNoteEditor} aria-label="关闭">×</button>
             </div>
             <div className="openTradeNoteInfo">
               <div><span>日期</span><strong>{formatDate(editingTrade.tradeTime)}</strong></div>
@@ -2388,7 +2388,7 @@ function OpenPortfolioPage() {
           <section className="modalPanel openTradeDeleteModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modalHeader">
               <h2>删除交易记录</h2>
-              <button type="button" className="iconButton" onClick={() => setDeleteTradeId(null)}>×</button>
+              <button type="button" className="iconButton" onClick={() => setDeleteTradeId(null)} aria-label="关闭">×</button>
             </div>
             <div className="openTradeNoteInfo">
               <div><span>日期</span><strong>{formatDate(deleteTrade.tradeTime)}</strong></div>
@@ -3242,7 +3242,7 @@ function ContentPage() {
           <section className="modalPanel contentConfirmModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modalHeader">
               <h2>放弃未保存修改</h2>
-              <button type="button" className="iconButton" onClick={closeDiscardConfirm}>×</button>
+              <button type="button" className="iconButton" onClick={closeDiscardConfirm} aria-label="关闭">×</button>
             </div>
             <p className="contentConfirmCopy">当前内容还没保存，继续操作会丢失这些修改。</p>
             <div className="modalActions">
@@ -3258,7 +3258,7 @@ function ContentPage() {
           <section className="modalPanel contentConfirmModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modalHeader">
               <h2>删除内容</h2>
-              <button type="button" className="iconButton" onClick={() => setDeleteConfirmOpen(false)}>×</button>
+              <button type="button" className="iconButton" onClick={() => setDeleteConfirmOpen(false)} aria-label="关闭">×</button>
             </div>
             <div className="selectedUser contentDeleteSummary">
               <strong>{form.title || "未命名内容"}</strong>
