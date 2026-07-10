@@ -263,11 +263,11 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   box-shadow: var(--admin-card-shadow);
 }
 .contentToolbar {
-  grid-template-columns: 180px 140px 150px 150px minmax(220px, 1fr) 130px 76px 96px;
+  grid-template-columns: repeat(4, minmax(105px, 1fr)) minmax(160px, 1.75fr) 100px 70px 92px;
   align-items: end;
 }
 .eventsToolbar {
-  grid-template-columns: 220px 170px 170px minmax(320px, 1fr) 110px;
+  grid-template-columns: 160px 135px 135px minmax(200px, 1fr) 64px;
   align-items: end;
 }
 .userToolbar {
@@ -1112,21 +1112,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .lastEventCell {
   max-width: 360px;
 }
-.eventsTable th:nth-child(1),
-.eventsTable td:nth-child(1) {
-  width: 190px;
-  white-space: nowrap;
-}
-.eventsTable th:nth-child(2),
-.eventsTable td:nth-child(2) {
-  width: 150px;
-}
-.eventsTable th:nth-child(4),
-.eventsTable th:nth-child(5),
-.eventsTable td:nth-child(4),
-.eventsTable td:nth-child(5) {
-  width: 240px;
-}
 .eventPersonCell {
   display: grid;
   gap: 5px;
@@ -1734,15 +1719,25 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 .eventsTable th:first-child,
 .eventsTable td:first-child {
-  width: 190px;
+  width: 18%;
+  white-space: nowrap;
 }
 .eventsTable th:nth-child(2),
 .eventsTable td:nth-child(2) {
-  width: 180px;
+  width: 14%;
 }
 .eventsTable th:nth-child(3),
 .eventsTable td:nth-child(3) {
-  min-width: 320px;
+  width: 28%;
+}
+.eventsTable th:nth-child(4),
+.eventsTable td:nth-child(4),
+.eventsTable th:nth-child(5),
+.eventsTable td:nth-child(5) {
+  width: 20%;
+}
+.eventsTable {
+  table-layout: fixed;
 }
 .eventSummary {
   color: #182337;
