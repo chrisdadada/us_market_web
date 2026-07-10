@@ -1784,8 +1784,10 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                 >
                   <strong>{item.title}{isUsStockCourse(item) ? <span className="courseFixedTag">美股课程</span> : null}</strong>
                   <span>{item.status === "published" ? "上架" : "草稿"} · {item.progressStatus === "finished" ? "已完结" : "更新中"} · {item.lessonCount} 节视频</span>
-                  <em>{item.grantCount} 授权</em>
-                  {item.expiringCount ? <em className="warningBg">{item.expiringCount} 快到期</em> : null}
+                  <div className="courseSideMeta">
+                    <em>{item.grantCount} 授权</em>
+                    {item.expiringCount ? <em className="warningBg">{item.expiringCount} 快到期</em> : null}
+                  </div>
                 </button>
               ))}
               {!visibleSeries.length ? <p>暂无课程</p> : null}

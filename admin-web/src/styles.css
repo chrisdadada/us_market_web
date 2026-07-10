@@ -2072,14 +2072,21 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 6px;
   color: #718096;
   font-size: 12px;
-  font-weight: 560;
+  font-weight: 520;
+}
+
+.courseSideMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .courseSideList em {
   display: inline-flex;
   align-items: center;
   height: 22px;
-  margin: 8px 6px 0 0;
+  margin: 0;
   border-radius: 999px;
   background: #f1f5f9;
   color: #64748b;
