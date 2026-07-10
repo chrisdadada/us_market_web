@@ -263,7 +263,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   box-shadow: var(--admin-card-shadow);
 }
 .contentToolbar {
-  grid-template-columns: 190px 150px 160px 160px minmax(240px, 1fr) 150px 100px;
+  grid-template-columns: 180px 140px 150px 150px minmax(220px, 1fr) 130px 76px 96px;
   align-items: end;
 }
 .eventsToolbar {
@@ -271,30 +271,8 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   align-items: end;
 }
 .userToolbar {
-  grid-template-columns: minmax(240px, 1fr) 135px 145px 145px 155px 130px;
+  grid-template-columns: minmax(260px, 1fr) 150px 170px 130px;
   align-items: end;
-}
-.quickFilterBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: -8px;
-}
-.quickFilterBar button {
-  height: 31px;
-  border: 1px solid #d6dee9;
-  border-radius: 999px;
-  background: #fff;
-  color: #405168;
-  padding: 0 13px;
-  font-size: 12px;
-  font-weight: 520;
-  cursor: pointer;
-}
-.quickFilterBar button.active {
-  border-color: #1677ff;
-  background: #1677ff;
-  color: #fff;
 }
 .toolbarPanel label,
 .editForm label,
@@ -346,9 +324,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
-.userPage .pageTitle h1 {
-  font-size: 22px;
-}
 .userStatsGrid .statCard {
   min-height: 88px;
   padding: 15px 16px;
@@ -364,119 +339,22 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin-top: 8px;
   font-size: 12px;
 }
-.userDetailModal {
-  width: min(720px, calc(100vw - 72px));
-}
-.userDrawerHead {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  border-bottom: 1px solid #e6ebf2;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-}
-.userDrawerHead h2 {
-  margin: 0;
-  color: #182337;
-  font-size: 18px;
-  font-weight: 560;
-  overflow-wrap: anywhere;
-}
-.userDrawerHead span {
-  display: block;
-  margin-top: 7px;
-  color: #718096;
-  font-size: 12px;
-  font-weight: 520;
-}
-.userInfoGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-.userInfoGrid div {
-  min-width: 0;
-  border: 1px solid #e5ebf3;
-  border-radius: 10px;
-  background: #f8fafd;
-  padding: 12px;
-}
-.userInfoGrid span {
-  display: block;
-  color: #718096;
-  font-size: 12px;
-  font-weight: 520;
-}
-.userInfoGrid strong {
-  display: block;
-  margin-top: 8px;
-  color: #182337;
-  font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.userInfoGrid strong.positive {
-  color: #12b981;
-}
-.userInfoGrid strong.dangerText {
-  color: #be123c;
-}
-.userDrawerSection {
-  border-top: 1px solid #e6ebf2;
-  margin-top: 16px;
-  padding-top: 16px;
-}
-.userDrawerSection h3 {
-  margin: 0 0 12px;
-  color: #182337;
-  font-size: 15px;
-  font-weight: 560;
-}
-.userDrawerSection p {
-  margin: 0;
-  color: #718096;
-  font-size: 13px;
-  font-weight: 520;
-}
-.userCourseRow {
-  display: grid;
-  gap: 5px;
-  border-top: 1px solid #edf2f7;
-  padding: 11px 0;
-}
-.userCourseRow:first-of-type {
-  border-top: 0;
-}
-.userCourseRow strong {
-  color: #182337;
-  font-size: 14px;
-}
-.userCourseRow span {
-  color: #718096;
-  font-size: 12px;
-  font-weight: 520;
-}
-.userDrawerActions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-.userDrawerActions .ghostButton,
-.userDrawerActions .primaryButton {
-  width: 100%;
-  height: 34px;
-  padding: 0 12px;
-}
-.compactAuditList div {
-  padding: 11px 0;
-}
-
 .modalPanel.userDetailModal {
-  width: min(1120px, calc(100% - 56px));
+  width: min(880px, 100vw);
+  height: 100vh;
+  max-height: 100vh;
   min-width: 0;
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
   padding: 0;
   overflow-x: hidden;
+}
+
+.modalBackdrop.userDetailBackdrop {
+  place-items: stretch end;
+  padding: 0;
 }
 
 .userDetailHead {
@@ -522,91 +400,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   padding: 0 12px;
 }
 
-.userDetailLayout {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  min-height: 560px;
-}
-
-.userDetailSide {
-  border-right: 1px solid #e6ebf2;
-  padding: 20px;
-}
-
-.userDetailSide h3 {
-  margin: 0;
-  color: #182337;
-  font-size: 17px;
-  font-weight: 560;
-}
-
-.userDetailSide > span {
-  display: block;
-  margin-top: 7px;
-  color: #718096;
-  font-size: 13px;
-  font-weight: 520;
-}
-
-.userBadgeRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 18px 0;
-}
-
-.userDetailSide dl {
-  margin: 0;
-  border-top: 1px solid #e6ebf2;
-}
-
-.userDetailSide dl div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 13px;
-  margin-top: 13px;
-  color: #607086;
-  font-size: 13px;
-  font-weight: 520;
-}
-
-.userDetailSide dt,
-.userDetailSide dd {
-  margin: 0;
-}
-
-.userDetailSide dd {
-  color: #182337;
-  font-weight: 520;
-  text-align: right;
-}
-
-.userDetailTabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 18px;
-  border-bottom: 1px solid #e6ebf2;
-  background: #f8fafc;
-}
-
-.userDetailTabs button {
-  height: 42px;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  background: transparent;
-  color: #607086;
-  padding: 0 14px;
-  font-size: 14px;
-  font-weight: 520;
-  cursor: pointer;
-}
-
-.userDetailTabs button.active {
-  color: #1677ff;
-  border-bottom-color: #1677ff;
-}
-
 .userDetailContent {
   padding: 18px 22px 22px;
   min-width: 0;
@@ -614,7 +407,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userSummaryGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -669,7 +462,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .userDetailPanels {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -880,7 +673,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 @media (max-width: 980px) {
-  .userDetailLayout,
   .userDetailPanels,
   .userSummaryGrid {
     grid-template-columns: 1fr;
@@ -889,11 +681,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   .userDetailHead,
   .userDetailTopActions {
     flex-wrap: wrap;
-  }
-
-  .userDetailSide {
-    border-right: 0;
-    border-bottom: 1px solid #e6ebf2;
   }
 
   .userEventList div {

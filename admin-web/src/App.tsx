@@ -862,12 +862,12 @@ function UserIdentityCell({ user }: { user: AdminUser }) {
   );
 }
 
-function LastUserEventCell({ event }: { event?: UserEvent }) {
+function LastUserEventCell({ event, compact = false }: { event?: UserEvent; compact?: boolean }) {
   if (!event) return <span className="tableMuted">暂无操作</span>;
   return (
     <div className="lastEventCell">
       <strong>{eventSummary(event)}</strong>
-      <span>{event.actor.email || "--"} · {formatTime(event.createdAt)}</span>
+      {!compact ? <span>{event.actor.email || "用户本人"} · {formatTime(event.createdAt)}</span> : null}
     </div>
   );
 }
@@ -926,13 +926,12 @@ function UserDetailModal({
   const membershipDays = daysUntil(user.subscriptionExpiresAt);
   const hasMemberAlert = membershipDays !== null && user.hasPaidAccess && membershipDays >= 0 && membershipDays <= 7;
   return (
-    <div className="modalBackdrop" role="presentation" onMouseDown={onClose}>
+    <div className="modalBackdrop userDetailBackdrop" role="presentation" onMouseDown={onClose}>
       <section className="modalPanel userDetailModal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <div className="userDetailHead">
           <div>
-            <span>用户管理 / 用户详情</span>
             <h2>{user.email}</h2>
-            <p>{user.uid} · 注册 {formatTime(user.createdAt)}</p>
+            <p>{user.uid} · 注册于 {formatTime(user.createdAt)}</p>
           </div>
           <div className="userDetailTopActions">
             <button type="button" className="primaryButton" onClick={onEditMember}>设置会员</button>
@@ -951,7 +950,7 @@ function UserDetailModal({
           </div>
           <div className="userDetailPanels">
             <section className="userDetailBlock">
-              <h3>权益</h3>
+              <h3>会员与课程</h3>
               <table className="adminTable">
                 <thead><tr><th>类型</th><th>状态</th><th>到期时间</th></tr></thead>
                 <tbody>
@@ -959,7 +958,6 @@ function UserDetailModal({
                   <tr><td>交易实战课程<small>课程播放权限</small></td><td>{activeGrants.length ? <span className="status positiveBg">{activeGrants.length} 门有效</span> : <span className="tableMuted">无授权</span>}</td><td>{expiringGrants.length ? `${formatDate(expiringGrants[0].expiresAt)} 等` : "--"}</td></tr>
                 </tbody>
               </table>
-              <p>会员和课程是两套权限：会员到期不影响未到期课程，课程到期也不改变会员。</p>
             </section>
             <section className="userDetailBlock">
               <h3>需要注意</h3>
@@ -1016,9 +1014,7 @@ function UsersPage({
   onSelectedUserOpened?: () => void;
 }) {
   const [keyword, setKeyword] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
-  const [activityFilter, setActivityFilter] = useState("all");
   const [courseFilter, setCourseFilter] = useState("all");
   const [accountFilter, setAccountFilter] = useState("all");
   const [pageIndex, setPageIndex] = useState(1);
@@ -1055,7 +1051,7 @@ function UsersPage({
     }).length,
     disabled: normalUsers.filter((user) => !user.isActive).length
   };
-  const filtered = users.filter((user) => {
+  const filtered = normalUsers.filter((user) => {
     const userGrants = grantsByUser.get(user.id) || [];
     const hasActiveGrant = userGrants.some((grant) => grant.active !== false);
     const hasExpiringGrant = userGrants.some((grant) => {
@@ -1064,21 +1060,11 @@ function UsersPage({
     });
     const normalizedKeyword = keyword.trim().toLowerCase();
     const hitKeyword = !normalizedKeyword || `${user.email} ${user.uid}`.toLowerCase().includes(normalizedKeyword);
-    const hitRole = roleFilter === "all" || user.role === roleFilter;
     const hitPlan =
       planFilter === "all" ||
-      (user.role === "user" && (
-        (planFilter === "paid" && user.hasPaidAccess) ||
-        (planFilter === "expired" && user.subscriptionStatus === "expired") ||
-        user.plan === planFilter
-      ));
-    const inactiveDays = userDayDistance(user.lastLoginAt);
-    const hitActivity =
-      activityFilter === "all" ||
-      (activityFilter === "today" && formatDate(user.createdAt) === today) ||
-      (activityFilter === "inactive3" && inactiveDays >= 3) ||
-      (activityFilter === "inactive7" && inactiveDays >= 7) ||
-      (activityFilter === "disabled" && !user.isActive);
+      ((planFilter === "paid" && user.hasPaidAccess) ||
+      (planFilter === "expired" && user.subscriptionStatus === "expired") ||
+      user.plan === planFilter);
     const hitCourse =
       courseFilter === "all" ||
       (courseFilter === "granted" && hasActiveGrant) ||
@@ -1088,14 +1074,14 @@ function UsersPage({
       accountFilter === "all" ||
       (accountFilter === "active" && user.isActive) ||
       (accountFilter === "disabled" && !user.isActive);
-    return hitKeyword && hitRole && hitPlan && hitActivity && hitCourse && hitAccount;
+    return hitKeyword && hitPlan && hitCourse && hitAccount;
   });
   const totalPages = Math.max(1, Math.ceil(filtered.length / userPageSize));
   const pageRows = filtered.slice((pageIndex - 1) * userPageSize, pageIndex * userPageSize);
 
   useEffect(() => {
     setPageIndex(1);
-  }, [accountFilter, activityFilter, courseFilter, keyword, planFilter, roleFilter]);
+  }, [accountFilter, courseFilter, keyword, planFilter]);
 
   useEffect(() => {
     if (pageIndex > totalPages) setPageIndex(totalPages);
@@ -1150,12 +1136,6 @@ function UsersPage({
 
   return (
     <div className="pageStack userPage">
-      <div className="pageTitle">
-        <div>
-          <span>用户管理</span>
-          <h1>用户列表</h1>
-        </div>
-      </div>
       <AdminToast toast={grantAllToast} />
 
       <div className="statsGrid userStatsGrid">
@@ -1173,15 +1153,6 @@ function UsersPage({
           <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="邮箱 / UID" />
         </label>
         <label>
-          身份
-          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
-            <option value="all">全部身份</option>
-            <option value="user">普通用户</option>
-            <option value="admin">管理员</option>
-            <option value="super_admin">超级管理员</option>
-          </select>
-        </label>
-        <label>
           会员
           <select value={planFilter} onChange={(event) => setPlanFilter(event.target.value)}>
             <option value="all">全部会员</option>
@@ -1190,16 +1161,6 @@ function UsersPage({
             <option value="yearly">年度</option>
             <option value="free">免费</option>
             <option value="expired">已过期</option>
-          </select>
-        </label>
-        <label>
-          活跃
-          <select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value)}>
-            <option value="all">全部活跃</option>
-            <option value="today">今日注册</option>
-            <option value="inactive3">3日未活跃</option>
-            <option value="inactive7">7日未活跃</option>
-            <option value="disabled">已停用</option>
           </select>
         </label>
         <label>
@@ -1219,15 +1180,6 @@ function UsersPage({
             <option value="disabled">停用</option>
           </select>
         </label>
-      </section>
-
-      <section className="quickFilterBar">
-        <button type="button" className={planFilter === "all" && activityFilter === "all" && courseFilter === "all" && accountFilter === "all" ? "active" : ""} onClick={() => { setPlanFilter("all"); setActivityFilter("all"); setCourseFilter("all"); setAccountFilter("all"); }}>全部用户</button>
-        <button type="button" className={planFilter === "paid" ? "active" : ""} onClick={() => setPlanFilter("paid")}>付费会员</button>
-        <button type="button" className={planFilter === "expired" ? "active" : ""} onClick={() => setPlanFilter("expired")}>已过期</button>
-        <button type="button" className={activityFilter === "today" ? "active" : ""} onClick={() => setActivityFilter("today")}>今日注册</button>
-        <button type="button" className={activityFilter === "inactive3" ? "active" : ""} onClick={() => setActivityFilter("inactive3")}>3日未活跃</button>
-        <button type="button" className={courseFilter === "granted" ? "active" : ""} onClick={() => setCourseFilter("granted")}>有课程授权</button>
       </section>
 
       <section className="panel tablePanel">
@@ -1773,7 +1725,6 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   <td>{formatTime(item.updatedAt)}</td>
                   <td className="courseActionCell">
                     <button type="button" className="tableAction" onClick={() => openCourse(item)}>进入详情</button>
-                    <button type="button" className="tableAction" onClick={() => openEditSeries(item)}>编辑</button>
                   </td>
                 </tr>
               ))}
@@ -2492,13 +2443,6 @@ function EventsPage({ events }: { events: UserEvent[] }) {
 
   return (
     <div className="pageStack">
-      <div className="pageTitle">
-        <div>
-          <span>后台</span>
-          <h1>操作记录</h1>
-        </div>
-      </div>
-
       <section className="toolbarPanel eventsToolbar">
         <label>
           操作类型
@@ -2542,8 +2486,8 @@ function EventsPage({ events }: { events: UserEvent[] }) {
                 <tr key={event.id}>
                   <td>{formatTime(event.createdAt)}</td>
                   <td><span className="status positiveBg">{actionLabel(event.action)}</span></td>
-                  <td className="eventSummary"><LastUserEventCell event={event} /></td>
-                  <td><EventPersonCell email={event.actor.email} label={event.actor.role ? roleLabels[event.actor.role] || event.actor.role : ""} /></td>
+                  <td className="eventSummary"><LastUserEventCell event={event} compact /></td>
+                  <td><EventPersonCell email={event.actor.email || "用户本人"} label={event.actor.role ? roleLabels[event.actor.role] || event.actor.role : ""} /></td>
                   <td><EventPersonCell email={event.target.email} /></td>
                 </tr>
               ))}
@@ -2570,13 +2514,6 @@ function AdminsPage({
 
   return (
     <div className="pageStack">
-      <div className="pageTitle">
-        <div>
-          <span>后台</span>
-          <h1>管理员权限</h1>
-        </div>
-      </div>
-
       <section className="panel">
         <div className="panelHeader">
           <h2>管理员账号</h2>
@@ -2622,8 +2559,8 @@ function AdminsPage({
               <tr key={event.id}>
                 <td>{formatTime(event.createdAt)}</td>
                 <td><span className="status positiveBg">{actionLabel(event.action)}</span></td>
-                <td className="eventSummary"><LastUserEventCell event={event} /></td>
-                <td><EventPersonCell email={event.actor.email} label={event.actor.role ? roleLabels[event.actor.role] || event.actor.role : ""} /></td>
+                <td className="eventSummary"><LastUserEventCell event={event} compact /></td>
+                <td><EventPersonCell email={event.actor.email || "用户本人"} label={event.actor.role ? roleLabels[event.actor.role] || event.actor.role : ""} /></td>
                 <td><EventPersonCell email={event.target.email} /></td>
               </tr>
             ))}
@@ -3078,14 +3015,6 @@ function ContentPage() {
 
   return (
     <div className="pageStack">
-      <div className="pageTitle">
-        <div>
-          <span>内容管理</span>
-          <h1>美股热点风向标</h1>
-        </div>
-        <button type="button" className="primaryButton" onClick={createNew}>新建内容</button>
-      </div>
-
       <section className="toolbarPanel contentToolbar">
         <label>
           栏目
@@ -3125,6 +3054,7 @@ function ContentPage() {
           </select>
         </label>
         <button type="button" className="ghostButton" onClick={clearFilters}>清空</button>
+        <button type="button" className="primaryButton" onClick={createNew}>新建内容</button>
       </section>
 
       <div className="contentLayout">
