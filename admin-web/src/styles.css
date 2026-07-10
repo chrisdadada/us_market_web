@@ -101,14 +101,18 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .homeActivityPanel,
 .homeMetricsPanel { overflow: auto; }
 .homeActivityPanel .panelHeader { margin-bottom: 12px; }
+.homeActivityTable { table-layout: fixed; }
 .homeActivityTable tbody tr { cursor: pointer; }
 .homeActivityTable tbody tr:hover { background: #f8fbff; }
 .homeActivityTable th:first-child,
-.homeActivityTable td:first-child { width: 236px; }
+.homeActivityTable td:first-child { width: 24%; }
 .homeActivityTable th:nth-child(2),
-.homeActivityTable td:nth-child(2) { width: 382px; }
+.homeActivityTable td:nth-child(2) { width: 31%; }
+.homeActivityTable th:nth-child(3),
+.homeActivityTable td:nth-child(3) { width: 25%; }
 .homeActivityTable th:last-child,
-.homeActivityTable td:last-child { width: 320px; }
+.homeActivityTable td:last-child { width: 20%; }
+.homeActivityTable td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .homeUserLink { color: #1677ff !important; }
 .textButton {
   border: 0;

@@ -504,7 +504,9 @@ function HomePage({
             {activityGroups.map((group) => {
               const actions = [...group.events].reverse().map((event) => actionLabel(event.action)).filter((value, index, values) => values.indexOf(value) === index);
               const actors = [...group.events].reverse().map((event) => event.actor.email || "用户本人").filter((value, index, values) => values.indexOf(value) === index);
-              return <tr key={`${group.userId}-${group.events[0].id}`} tabIndex={0} onClick={() => onOpenUser(group.userId)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onOpenUser(group.userId); }}><td>{activityTime(group)}</td><td className="homeUserLink">{group.email}</td><td>{actions.join("、")}</td><td>{actors.join("、")}</td></tr>;
+              const actionText = actions.join("、");
+              const actorText = actors.join("、");
+              return <tr key={`${group.userId}-${group.events[0].id}`} tabIndex={0} onClick={() => onOpenUser(group.userId)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onOpenUser(group.userId); }}><td title={activityTime(group)}>{activityTime(group)}</td><td className="homeUserLink" title={group.email}>{group.email}</td><td title={actionText}>{actionText}</td><td title={actorText}>{actorText}</td></tr>;
             })}
             {!activityGroups.length ? <tr><td colSpan={4}>暂无用户动态</td></tr> : null}
           </tbody>
