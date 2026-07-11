@@ -3159,14 +3159,10 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
 
   return (
     <div className="coursesPage">
-      <section className="coursesTopbar">
-        <h1>{courseView === "mine" ? "我的课程" : "更多课程"}</h1>
-        <div>
-          <span>{visibleSeries.length} 门课程</span>
-          {courseView === "mine" && lockedSeries.length ? <button type="button" onClick={() => setCourseView("more")}>更多课程 {lockedSeries.length}</button> : null}
-          {courseView === "more" && unlockedSeries.length ? <button type="button" onClick={() => setCourseView("mine")}>返回我的课程</button> : null}
-        </div>
-      </section>
+      <nav className="courseTabs" aria-label="课程分类">
+        {unlockedSeries.length ? <button type="button" className={courseView === "mine" ? "active" : ""} onClick={() => setCourseView("mine")}>我的课程</button> : null}
+        {lockedSeries.length ? <button type="button" className={courseView === "more" ? "active" : ""} onClick={() => setCourseView("more")}>更多课程</button> : null}
+      </nav>
 
       {error ? <div className="courseError"><span>{error}</span><button type="button" onClick={() => setLoadVersion((version) => version + 1)}>重新加载</button></div> : null}
       {!error && !series.length ? <section className="coursesEmpty">暂无课程</section> : null}
@@ -3176,10 +3172,22 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
             {visibleSeries.map((item, index) => {
               const lessonCount = item.lessonCount || item.lessons?.length || 0;
               return (
-              <article key={item.id}>
-                <div className={`courseThumb ${item.unlocked ? "unlocked" : "locked"}`}>
+              <article
+                key={item.id}
+                className="courseCatalogCard"
+                role="button"
+                tabIndex={0}
+                aria-label={`${item.unlocked ? "进入" : "查看"}${item.title}`}
+                onClick={() => onCourse(String(item.id))}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onCourse(String(item.id));
+                  }
+                }}
+              >
+                <div className="courseThumb">
                   {item.coverUrl ? <img src={item.coverUrl} alt="" loading={index < 4 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 4 ? "high" : "auto"} /> : null}
-                  {item.unlocked ? <span className="courseGrantedBadge">已授权</span> : null}
                 </div>
                 <section>
                   <h2>{item.title}</h2>
@@ -3187,7 +3195,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                   <div className="courseCardMeta">{lessonCount ? <><span>{lessonCount} 节视频</span><span>{courseProgressLabel(item.progressStatus)}</span></> : null}</div>
                   <footer>
                     {item.unlocked ? <em>{courseGrantText(item)}</em> : courseDiscountBlock(item)}
-                    <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>{item.unlocked ? "进入课程" : "查看详情"}</button>
+                    <span className="courseCardArrow" aria-hidden="true">→</span>
                   </footer>
                 </section>
               </article>

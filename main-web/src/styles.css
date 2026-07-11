@@ -7188,40 +7188,38 @@ body,
   padding: 18px 32px 42px;
 }
 
-.coursesTopbar {
+.courseTabs {
+  min-height: 43px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
+  align-items: flex-start;
+  gap: 26px;
+  border-bottom: 1px solid #dfe6ef;
 }
 
-.coursesTopbar h1 {
-  margin: 0;
-  color: #172033;
-  font-size: 22px;
-  font-weight: 560;
-  line-height: 1;
-}
-
-.coursesTopbar > div {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.coursesTopbar span {
-  color: #718096;
-  font-size: 12px;
-}
-
-.coursesTopbar button {
-  height: 32px;
-  border: 1px solid #d8e2ef;
-  border-radius: 6px;
-  background: #fff;
-  color: #526176;
-  padding: 0 12px;
+.courseTabs button {
+  position: relative;
+  border: 0;
+  background: transparent;
+  color: #66758a;
+  padding: 0 0 14px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
+}
+
+.courseTabs button.active {
+  color: #172033;
+  font-weight: 560;
+}
+
+.courseTabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: #1677ff;
 }
 
 .coursesEmpty,
@@ -7294,6 +7292,18 @@ body,
   flex-direction: column;
 }
 
+.courseCatalogCard {
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.courseCatalogCard:hover,
+.courseCatalogCard:focus-visible {
+  border-color: #c7d6e8;
+  box-shadow: 0 7px 20px rgba(15, 23, 42, .06);
+  outline: 0;
+}
+
 .courseThumb {
   position: relative;
   aspect-ratio: 1.9 / 1;
@@ -7305,60 +7315,6 @@ body,
   height: 100%;
   display: block;
   object-fit: cover;
-}
-
-.courseThumb.unlocked::after,
-.courseThumb.locked::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .96);
-  box-shadow: 0 1px 4px rgba(23, 32, 51, .16);
-}
-
-.courseThumb.unlocked::before {
-  content: "";
-  position: absolute;
-  left: 23px;
-  bottom: 21px;
-  z-index: 1;
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 8px solid #1677ff;
-}
-
-.courseThumb.locked::before {
-  content: "";
-  position: absolute;
-  left: 22px;
-  bottom: 21px;
-  z-index: 1;
-  width: 12px;
-  height: 14px;
-  border: 2px solid #526176;
-  border-radius: 6px 6px 2px 2px;
-  background: linear-gradient(to bottom, transparent 0 5px, #526176 5px 100%);
-}
-
-.courseGrantedBadge {
-  position: absolute;
-  right: 9px;
-  top: 9px;
-  height: 23px;
-  display: flex;
-  align-items: center;
-  border-radius: 5px;
-  background: rgba(233, 248, 242, .96);
-  color: #0f9f72;
-  padding: 0 8px;
-  font-size: 12px;
-  font-weight: 520;
 }
 
 .courseCardGrid section {
@@ -7487,21 +7443,23 @@ body,
   font-weight: 500;
 }
 
-.courseCardGrid button {
-  height: 32px;
+.courseCardArrow {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
   border: 1px solid #d8e2ef;
-  border-radius: 6px;
+  border-radius: 50%;
   background: #fff;
   color: #526176;
-  padding: 0 12px;
-  font-weight: 520;
-  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
 }
 
-.courseCardGrid button.primary {
-  border-color: #1677ff;
-  background: #1677ff;
-  color: #fff;
+.courseCatalogCard:hover .courseCardArrow,
+.courseCatalogCard:focus-visible .courseCardArrow {
+  border-color: #9fc3f7;
+  color: #1677ff;
 }
 
 .courseDetailHero {
@@ -8418,17 +8376,6 @@ body,
 }
 
 @media (max-width: 640px) {
-  .coursesTopbar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .coursesTopbar > div {
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .courseThumb {
     aspect-ratio: 16 / 9;
   }
