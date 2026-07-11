@@ -3025,7 +3025,7 @@ function OpenPortfolioPage() {
 function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
   const [series, setSeries] = useState<CourseSeries[]>([]);
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
-  const [courseTab, setCourseTab] = useState<"all" | "unlocked" | "locked">("all");
+  const [courseTab, setCourseTab] = useState<"all" | CourseSeries["progressStatus"]>("all");
   const [courseQuery, setCourseQuery] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(true);
@@ -3035,12 +3035,13 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const filteredSeries = useMemo(() => {
     const query = courseQuery.trim().toLowerCase();
-    return series.filter((item) => {
-      if (courseTab === "unlocked" && !item.unlocked) return false;
-      if (courseTab === "locked" && item.unlocked) return false;
-      if (!query) return true;
-      return `${item.title} ${item.summary} ${item.intro}`.toLowerCase().includes(query);
-    });
+    return [...series]
+      .filter((item) => {
+        if (courseTab !== "all" && item.progressStatus !== courseTab) return false;
+        if (!query) return true;
+        return `${item.title} ${item.summary} ${item.intro}`.toLowerCase().includes(query);
+      })
+      .sort((left, right) => Number(Boolean(right.unlocked)) - Number(Boolean(left.unlocked)) || left.sortOrder - right.sortOrder);
   }, [courseQuery, courseTab, series]);
 
   useEffect(() => {
@@ -3169,7 +3170,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
           <h1>交易实战课程</h1>
         </div>
         <form className="courseSearch" onSubmit={submitCourseSearch}>
-          <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索交易实战课程" />
+          <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索课程" />
         </form>
       </section>
 
@@ -3181,18 +3182,17 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
           <section className="courseToolbar">
             <div>
               <button type="button" className={courseTab === "all" ? "active" : ""} onClick={() => setCourseTab("all")}>全部</button>
-              <button type="button" className={courseTab === "unlocked" ? "active" : ""} onClick={() => setCourseTab("unlocked")}>已解锁</button>
-              <button type="button" className={courseTab === "locked" ? "active" : ""} onClick={() => setCourseTab("locked")}>待开通</button>
+              <button type="button" className={courseTab === "updating" ? "active" : ""} onClick={() => setCourseTab("updating")}>更新中</button>
+              <button type="button" className={courseTab === "finished" ? "active" : ""} onClick={() => setCourseTab("finished")}>已完结</button>
             </div>
-            <span>{filteredSeries.length} 个系列</span>
           </section>
 
           <section className="courseCardGrid">
             {filteredSeries.map((item, index) => (
-              <article key={item.id} className={selected?.id === item.id ? "active" : ""}>
+              <article key={item.id}>
                 <div className="courseThumb">
                   {item.coverUrl ? <img src={item.coverUrl} alt="" loading={index < 3 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 3 ? "high" : "auto"} /> : null}
-                  <span className={item.progressStatus === "finished" ? "unlocked" : "locked"}>{courseProgressLabel(item.progressStatus)}</span>
+                  {item.unlocked ? <span>已授权</span> : null}
                 </div>
                 <section>
                   <h2>{item.title}</h2>
@@ -3200,13 +3200,13 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
                   {courseDiscountBlock(item)}
                   <div className="courseCardMeta"><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{courseProgressLabel(item.progressStatus)}</span></div>
                   <footer>
-                    <em>{courseGrantText(item)}</em>
-                    <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>{item.unlocked ? "继续学习" : "查看详情"}</button>
+                    <em>{item.unlocked ? courseGrantText(item) : ""}</em>
+                    <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>{item.unlocked ? "进入课程" : "查看详情"}</button>
                   </footer>
                 </section>
               </article>
             ))}
-            {!filteredSeries.length ? <div className="coursesEmpty">暂无匹配交易实战课程</div> : null}
+            {!filteredSeries.length ? <div className="coursesEmpty">没有找到相关课程</div> : null}
           </section>
         </>
       ) : null}

@@ -7232,7 +7232,7 @@ body,
   min-height: 42px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0;
   border-width: 0 0 1px;
   border-radius: 0;
@@ -7245,27 +7245,20 @@ body,
 }
 
 .courseToolbar button {
-  height: 34px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
+  height: 30px;
+  border: 1px solid #d8e2ef;
+  border-radius: 6px;
+  background: #fff;
   color: #526176;
-  padding: 0 14px;
+  padding: 0 11px;
   font-weight: 520;
   cursor: pointer;
 }
 
 .courseToolbar button.active {
-  border-bottom-color: #1677ff;
-  background: transparent;
+  border-color: #b8d5ff;
+  background: #edf5ff;
   color: #1677ff;
-}
-
-.courseToolbar span {
-  color: #718096;
-  font-size: 12px;
-  font-weight: 500;
 }
 
 .courseError {
@@ -7301,18 +7294,18 @@ body,
 
 .courseCardGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.courseCardGrid article.active {
-  border-color: #9cc8ff;
-  box-shadow: 0 0 0 3px #e8f2ff;
+.courseCardGrid article {
+  min-height: 142px;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
 }
 
 .courseThumb {
   position: relative;
-  aspect-ratio: 16 / 9;
   background: radial-gradient(circle at 26% 24%, rgba(72, 220, 204, .85), transparent 26%), linear-gradient(135deg, #0d637a, #19405a);
 }
 
@@ -7326,10 +7319,10 @@ body,
 .courseThumb::after {
   content: "";
   position: absolute;
-  left: 20px;
-  bottom: 20px;
-  width: 42px;
-  height: 42px;
+  left: 10px;
+  bottom: 10px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: rgba(255, 255, 255, .96);
 }
@@ -7337,40 +7330,36 @@ body,
 .courseThumb::before {
   content: "";
   position: absolute;
-  left: 37px;
-  bottom: 33px;
+  left: 20px;
+  bottom: 17px;
   z-index: 1;
   width: 0;
   height: 0;
-  border-top: 8px solid transparent;
-  border-bottom: 8px solid transparent;
-  border-left: 13px solid #1677ff;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid #1677ff;
 }
 
 .courseThumb > span {
   position: absolute;
-  right: 14px;
-  top: 14px;
-  height: 26px;
+  right: 9px;
+  top: 9px;
+  height: 23px;
   display: flex;
   align-items: center;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .94);
-  padding: 0 10px;
+  border-radius: 5px;
+  background: rgba(233, 248, 242, .96);
+  color: #0f9f72;
+  padding: 0 8px;
   font-size: 12px;
   font-weight: 520;
 }
 
-.courseThumb > span.unlocked {
-  color: #0f9f72;
-}
-
-.courseThumb > span.locked {
-  color: #b7791f;
-}
-
 .courseCardGrid section {
-  padding: 16px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
 }
 
 .courseCardGrid h2 {
@@ -7382,8 +7371,8 @@ body,
 }
 
 .courseCardGrid p {
-  height: 42px;
-  margin: 0 0 10px;
+  max-height: 40px;
+  margin: 0 0 8px;
   color: #526176;
   font-size: 13px;
   font-weight: 400;
@@ -7401,11 +7390,11 @@ body,
 
 .courseCardGrid section > div:not(.courseDiscountBlock) {
   justify-content: flex-start;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 .courseDiscountBlock {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 
 .courseDiscountBlock p {
@@ -7451,13 +7440,33 @@ body,
   font-weight: 500;
 }
 
+.courseCardGrid footer {
+  margin-top: auto;
+}
+
+.courseCardGrid .courseDiscountBlock strong {
+  font-size: 17px;
+}
+
+.courseCardGrid .courseDiscountBlock em {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.courseCardGrid .courseDiscountBlock span {
+  height: 21px;
+  border-radius: 5px;
+  padding: 0 7px;
+  font-weight: 500;
+}
+
 .courseCardGrid button {
-  height: 36px;
+  height: 32px;
   border: 1px solid #d8e2ef;
-  border-radius: 8px;
+  border-radius: 6px;
   background: #fff;
   color: #526176;
-  padding: 0 14px;
+  padding: 0 12px;
   font-weight: 520;
   cursor: pointer;
 }
@@ -8387,6 +8396,25 @@ body,
   .positionSizingHero > strong {
     min-width: 0;
     text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .coursesTopbar {
+    gap: 12px;
+  }
+
+  .courseCardGrid article {
+    grid-template-columns: 1fr;
+  }
+
+  .courseThumb {
+    aspect-ratio: 16 / 9;
+  }
+
+  .courseToolbar {
+    justify-content: flex-start;
+    overflow-x: auto;
   }
 }
 
