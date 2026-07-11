@@ -1052,7 +1052,7 @@ function App() {
             {page === "position" ? <PositionSizingPage /> : null}
             {page === "funding" ? <FundingArbitragePage isAdmin={Boolean(auth?.entitlements?.admin)} /> : null}
             {page === "forum" ? <ComingSoonPage title="论坛讨论区" /> : null}
-            {page === "courses" ? <CoursesPage courseId={selectedCourse} onCourse={selectCourse} onBack={clearCourse} onUnlock={requestUnlock} /> : null}
+            {page === "courses" ? <CoursesPage viewerKey={auth?.user?.id || 0} courseId={selectedCourse} onCourse={selectCourse} onBack={clearCourse} onUnlock={requestUnlock} /> : null}
           </GatedPage>
         ) : null}
         <AuthModal
@@ -3022,7 +3022,7 @@ function OpenPortfolioPage() {
   );
 }
 
-function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
+function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { viewerKey: number; courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
   const [series, setSeries] = useState<CourseSeries[]>([]);
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [courseView, setCourseView] = useState<"mine" | "more">("mine");
@@ -3057,7 +3057,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     return () => {
       cancelled = true;
     };
-  }, [loadVersion]);
+  }, [loadVersion, viewerKey]);
 
   async function playLesson(lessonId: number) {
     setPlaying(true);
