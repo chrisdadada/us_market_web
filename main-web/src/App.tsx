@@ -3025,33 +3025,28 @@ function OpenPortfolioPage() {
 function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
   const [series, setSeries] = useState<CourseSeries[]>([]);
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
-  const [courseTab, setCourseTab] = useState<"all" | CourseSeries["progressStatus"]>("all");
-  const [courseQuery, setCourseQuery] = useState("");
+  const [courseView, setCourseView] = useState<"mine" | "more">("mine");
+  const [loadVersion, setLoadVersion] = useState(0);
   const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState("");
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
-  const filteredSeries = useMemo(() => {
-    const query = courseQuery.trim().toLowerCase();
-    return [...series]
-      .filter((item) => {
-        if (courseTab !== "all" && item.progressStatus !== courseTab) return false;
-        if (!query) return true;
-        return `${item.title} ${item.summary} ${item.intro}`.toLowerCase().includes(query);
-      })
-      .sort((left, right) => Number(Boolean(right.unlocked)) - Number(Boolean(left.unlocked)) || left.sortOrder - right.sortOrder);
-  }, [courseQuery, courseTab, series]);
+  const unlockedSeries = useMemo(() => series.filter((item) => item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
+  const lockedSeries = useMemo(() => series.filter((item) => !item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
+  const visibleSeries = courseView === "mine" ? unlockedSeries : lockedSeries;
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError("");
     api.courses()
       .then((payload) => {
         if (cancelled) return;
         const rows = payload.series || [];
         setSeries(rows);
+        setCourseView(rows.some((item) => item.unlocked) ? "mine" : "more");
       })
       .catch((err) => {
         if (!cancelled) setError("课程暂时加载失败，请稍后刷新");
@@ -3062,7 +3057,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadVersion]);
 
   async function playLesson(lessonId: number) {
     setPlaying(true);
@@ -3078,10 +3073,6 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     }
   }
 
-  function submitCourseSearch(event: FormEvent) {
-    event.preventDefault();
-  }
-
   useEffect(() => {
     setVideoUrl("");
     setError("");
@@ -3094,7 +3085,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     if (!selected) {
       return (
         <div className="coursesPage">
-          <button type="button" className="courseBackButton" onClick={onBack}>返回交易实战课程</button>
+          <button type="button" className="courseBackButton" onClick={onBack}>返回课程</button>
           <section className="coursesEmpty">交易实战课程不存在</section>
         </div>
       );
@@ -3105,7 +3096,7 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
 
     return (
       <div className="coursesPage">
-        <button type="button" className="courseBackButton" onClick={onBack}>返回课程</button>
+        <button type="button" className="courseBackButton" onClick={onBack}>{selected.unlocked ? "返回我的课程" : "返回更多课程"}</button>
 
         {selected.unlocked ? (
           <>
@@ -3144,18 +3135,21 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
               <div className="courseDetailCover">{selected.coverUrl ? <img src={selected.coverUrl} alt="" decoding="async" fetchPriority="high" /> : null}</div>
               <div className="courseDetailText">
                 <h1>{selected.title}</h1>
-                <div className="courseMetaPills"><span className="locked">待开通</span><span>{courseProgressLabel(selected.progressStatus)}</span><span>{lessonCount} 节视频</span></div>
+                <div className="courseMetaPills"><span>{lessonCount ? `${lessonCount} 节视频` : "即将上线"}</span>{lessonCount ? <span>{courseProgressLabel(selected.progressStatus)}</span> : null}</div>
                 <div className="courseSummaryRich articleProse">{richCourseSummary(selected.summary, `${lessonCount} 节视频`)}</div>
                 {courseDiscountBlock(selected, "courseDiscountBlock detailDiscount")}
+                <button type="button" className="courseDetailUnlock" onClick={onUnlock}>联系开通</button>
               </div>
             </section>
-            <section className="courseLockedDetail">
-              <div className="courseLockedContent">
-                {courseIntro ? <><h2>课程介绍</h2><div className="courseSummaryRich articleProse">{richCourseSummary(courseIntro, "")}</div></> : null}
+            <section className="courseDetailBody">
+              <article className="courseIntroPanel">
+                <h2>课程介绍</h2>
+                <div className="courseSummaryRich articleProse">{richCourseSummary(courseIntro, selected.summary)}</div>
+              </article>
+              <aside className="courseOutlinePanel">
                 <h2>课程目录</h2>
-                <div className="courseLockedLessons">{selected.lessons.map((lesson, index) => <div key={lesson.id}><span>{String(index + 1).padStart(2, "0")}</span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</div>)}</div>
-              </div>
-              <aside><strong>这门课程暂未开通</strong><span>开通后可以观看全部课时。</span><button type="button" onClick={onUnlock}>联系开通</button></aside>
+                {selected.lessons.length ? <div className="courseLockedLessons">{selected.lessons.map((lesson, index) => <div key={lesson.id}><span>{String(index + 1).padStart(2, "0")}</span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</div>)}</div> : <p>即将上线</p>}
+              </aside>
             </section>
           </>
         )}
@@ -3166,49 +3160,41 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
   return (
     <div className="coursesPage">
       <section className="coursesTopbar">
+        <h1>{courseView === "mine" ? "我的课程" : "更多课程"}</h1>
         <div>
-          <h1>交易实战课程</h1>
+          <span>{visibleSeries.length} 门课程</span>
+          {courseView === "mine" && lockedSeries.length ? <button type="button" onClick={() => setCourseView("more")}>更多课程 {lockedSeries.length}</button> : null}
+          {courseView === "more" && unlockedSeries.length ? <button type="button" onClick={() => setCourseView("mine")}>返回我的课程</button> : null}
         </div>
-        <form className="courseSearch" onSubmit={submitCourseSearch}>
-          <input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="搜索课程" />
-        </form>
       </section>
 
-      {error ? <p className="courseError">{error}</p> : null}
-      {!error && !series.length ? <section className="coursesEmpty">暂无交易实战课程</section> : null}
+      {error ? <div className="courseError"><span>{error}</span><button type="button" onClick={() => setLoadVersion((version) => version + 1)}>重新加载</button></div> : null}
+      {!error && !series.length ? <section className="coursesEmpty">暂无课程</section> : null}
 
       {series.length ? (
-        <>
-          <section className="courseToolbar">
-            <div>
-              <button type="button" className={courseTab === "all" ? "active" : ""} onClick={() => setCourseTab("all")}>全部</button>
-              <button type="button" className={courseTab === "updating" ? "active" : ""} onClick={() => setCourseTab("updating")}>更新中</button>
-              <button type="button" className={courseTab === "finished" ? "active" : ""} onClick={() => setCourseTab("finished")}>已完结</button>
-            </div>
-          </section>
-
           <section className="courseCardGrid">
-            {filteredSeries.map((item, index) => (
+            {visibleSeries.map((item, index) => {
+              const lessonCount = item.lessonCount || item.lessons?.length || 0;
+              return (
               <article key={item.id}>
                 <div className="courseThumb">
-                  {item.coverUrl ? <img src={item.coverUrl} alt="" loading={index < 3 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 3 ? "high" : "auto"} /> : null}
+                  {item.coverUrl ? <img src={item.coverUrl} alt="" loading={index < 4 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 4 ? "high" : "auto"} /> : null}
                   {item.unlocked ? <span>已授权</span> : null}
                 </div>
                 <section>
                   <h2>{item.title}</h2>
-                  <p>{compactText(item.summary, 82) || `${item.lessons?.length || 0} 节视频`}</p>
-                  {courseDiscountBlock(item)}
-                  <div className="courseCardMeta"><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{courseProgressLabel(item.progressStatus)}</span></div>
+                  <p>{compactText(item.summary, 82) || (lessonCount ? `${lessonCount} 节视频` : "即将上线")}</p>
+                  <div className="courseCardMeta"><span>{lessonCount ? `${lessonCount} 节视频` : "即将上线"}</span>{lessonCount ? <span>{courseProgressLabel(item.progressStatus)}</span> : null}</div>
+                  {!item.unlocked ? courseDiscountBlock(item) : null}
                   <footer>
                     <em>{item.unlocked ? courseGrantText(item) : ""}</em>
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>{item.unlocked ? "进入课程" : "查看详情"}</button>
                   </footer>
                 </section>
               </article>
-            ))}
-            {!filteredSeries.length ? <div className="coursesEmpty">没有找到相关课程</div> : null}
+              );
+            })}
           </section>
-        </>
       ) : null}
     </div>
   );
