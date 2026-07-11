@@ -1325,6 +1325,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const [lessonOpen, setLessonOpen] = useState(false);
   const [courseView, setCourseView] = useState<"list" | "detail">("list");
   const [courseTab, setCourseTab] = useState<"basic" | "lessons" | "grants">("basic");
+  const [courseMoreOpen, setCourseMoreOpen] = useState(false);
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantUser, setGrantUser] = useState("");
   const [grantExpiresAt, setGrantExpiresAt] = useState("");
@@ -1642,6 +1643,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setSelectedId(item.id);
     setCourseView("detail");
     setCourseTab("basic");
+    setCourseMoreOpen(false);
   }
 
   function openGrantModal(grant?: CourseGrant) {
@@ -1778,14 +1780,17 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   {selected.expiringCount ? ` · ${selected.expiringCount} 个快到期` : ""}
                 </p>
               </div>
-              <div>
+              <div className="courseDetailActions">
                 <button type="button" className="tableAction" onClick={() => openEditSeries(selected)}>编辑课程</button>
-                <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "series", id: selected.id })}>删除课程</button>
+                <div className="courseDetailMenu">
+                  <button type="button" className="iconButton" aria-label="更多操作" onClick={() => setCourseMoreOpen((open) => !open)}>···</button>
+                  {courseMoreOpen ? <button type="button" className="courseMenuDanger" disabled={saving} onClick={() => { setCourseMoreOpen(false); setConfirmAction({ kind: "series", id: selected.id }); }}>删除课程</button> : null}
+                </div>
               </div>
             </div>
             <div className="courseTabs">
-              <button type="button" className={courseTab === "basic" ? "active" : ""} onClick={() => setCourseTab("basic")}>基本信息</button>
-              <button type="button" className={courseTab === "lessons" ? "active" : ""} onClick={() => setCourseTab("lessons")}>视频目录</button>
+              <button type="button" className={courseTab === "basic" ? "active" : ""} onClick={() => setCourseTab("basic")}>课程信息</button>
+              <button type="button" className={courseTab === "lessons" ? "active" : ""} onClick={() => setCourseTab("lessons")}>课时目录</button>
               <button type="button" className={courseTab === "grants" ? "active" : ""} onClick={() => setCourseTab("grants")}>授权用户</button>
             </div>
 
@@ -1793,24 +1798,25 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
             <div className="courseBasicGrid">
               <div><span>上架状态</span><strong>{selected.status === "published" ? "上架" : "草稿"}</strong></div>
               <div><span>更新进度</span><strong>{selected.progressStatus === "finished" ? "已完结" : "更新中"}</strong></div>
-              <div><span>价格</span><strong>{coursePrice(selected)}</strong></div>
-              <div><span>折扣</span><strong>{selected.discountLabel || "--"}</strong></div>
-              <section><span>转化文案</span><p>{selected.summary || "--"}</p></section>
-              <section><span>课程介绍</span><p>{selected.intro || "--"}</p></section>
+              <div><span>课时数量</span><strong>{selected.lessonCount} 节视频</strong></div>
+              <div><span>有效授权</span><strong>{selected.grantCount} 人</strong></div>
+              {selected.originalPrice || selected.discountPrice ? <div><span>价格</span><strong>{coursePrice(selected)}</strong></div> : null}
+              {selected.discountLabel ? <div><span>折扣</span><strong>{selected.discountLabel}</strong></div> : null}
+              {selected.summary ? <section><span>课程摘要</span><p>{selected.summary}</p></section> : null}
+              {selected.intro ? <section><span>课程介绍</span><p>{selected.intro}</p></section> : null}
             </div>
           ) : null}
 
           {courseTab === "lessons" ? (
             <div>
               <div className="courseTabActions"><button type="button" className="primaryButton" onClick={openNewLesson}>添加视频</button></div>
-              <table className="adminTable">
-                <thead><tr><th>顺序</th><th>封面</th><th>视频</th><th>状态</th><th>操作</th></tr></thead>
+              <table className="adminTable courseLessonsTable">
+                <thead><tr><th>顺序</th><th>视频</th><th>状态</th><th>操作</th></tr></thead>
                 <tbody>
                   {(selected.lessons || []).map((lesson) => (
                     <tr key={lesson.id}>
                       <td>{lesson.sortOrder}</td>
-                      <td>{lesson.coverUrl ? <img className="lessonCoverThumb" src={lesson.coverUrl} alt="" /> : "--"}</td>
-                      <td><div className="courseLessonCell"><strong>{lesson.title}</strong><small>{lesson.videoKey || "未填写视频文件路径"}</small></div></td>
+                      <td><div className="courseLessonCell"><strong>{lesson.title}</strong><small>{lesson.videoKey ? "已上传视频" : "未上传视频"}</small></div></td>
                       <td><span className={`status ${lesson.status === "published" ? "positiveBg" : "warningBg"}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
                       <td>
                         <button type="button" className="tableAction" disabled={saving} onClick={() => openEditLesson(lesson)}>编辑</button>
@@ -1818,7 +1824,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                       </td>
                     </tr>
                   ))}
-                  {!selected.lessons?.length ? <tr><td colSpan={5}>暂无视频</td></tr> : null}
+                  {!selected.lessons?.length ? <tr><td colSpan={4}>暂无视频</td></tr> : null}
                 </tbody>
               </table>
             </div>
@@ -1839,16 +1845,16 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                 </div>
                 <button type="button" className="primaryButton" onClick={() => openGrantModal()}>新增授权</button>
               </div>
-              <table className="adminTable">
-                <thead><tr><th>用户</th><th>授权</th><th>状态</th><th>操作</th></tr></thead>
+              <table className="adminTable courseGrantsTable">
+                <thead><tr><th>用户</th><th>状态</th><th>到期日期</th><th>操作</th></tr></thead>
                 <tbody>
                   {grantRows.map((grant) => {
                     const state = grantState(grant);
                     return (
                       <tr key={grant.id}>
                         <td><div className="courseGrantUserCell"><strong>{grant.user.email}</strong><small>{grant.user.uid}</small></div></td>
-                        <td><div className="courseGrantDateCell"><span>{formatDate(grant.createdAt)}</span><small>到期 {grant.expiresAt ? formatDate(grant.expiresAt) : "待改为1年"}</small></div></td>
                         <td><span className={`status ${state.className}`}>{state.label}</span></td>
+                        <td>{grant.expiresAt ? formatDate(grant.expiresAt) : "未设置"}</td>
                         <td className="courseActionCell">
                           <button type="button" className="tableAction" disabled={saving} onClick={() => openGrantModal(grant)}>改到期</button>
                           <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "grant", id: grant.id })}>取消</button>
@@ -1894,7 +1900,6 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <button type="button" onClick={() => setGrantExpiresAt(grantExpiryPreset(365, grantExpiresAt))}>1年</button>
               <button type="button" onClick={() => setGrantExpiresAt("")}>清空</button>
             </div>
-            <p>会员是否到期，不影响这门课程的播放权限。</p>
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setGrantOpen(false)}>取消</button>
               <button type="submit" className="primaryButton" disabled={saving || !grantUser.trim()}>{saving ? "保存中" : "保存授权"}</button>
@@ -1904,8 +1909,8 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       ) : null}
 
       {seriesOpen ? (
-        <div className="modalOverlay">
-          <form className="adminModal courseModal" onSubmit={submitSeries}>
+        <div className="modalOverlay courseDrawerOverlay">
+          <form className="adminModal courseModal courseEditDrawer" onSubmit={submitSeries}>
             <div className="modalHeader">
               <h2>{seriesForm.id ? "编辑课程" : "新建课程"}</h2>
               <button type="button" onClick={() => setSeriesOpen(false)} aria-label="关闭">×</button>
@@ -1969,8 +1974,8 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       ) : null}
 
       {lessonOpen && selected ? (
-        <div className="modalOverlay">
-          <form className="adminModal courseModal" onSubmit={submitLesson}>
+        <div className="modalOverlay courseDrawerOverlay">
+          <form className="adminModal courseModal courseEditDrawer" onSubmit={submitLesson}>
             <div className="modalHeader">
               <h2>{lessonForm.id ? "编辑视频" : "添加视频"}</h2>
               <button type="button" onClick={() => setLessonOpen(false)} aria-label="关闭">×</button>

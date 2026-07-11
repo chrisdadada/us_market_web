@@ -1854,22 +1854,6 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   overflow-wrap: anywhere;
 }
 
-.courseGrantDateCell {
-  display: grid;
-  gap: 4px;
-}
-
-.courseGrantDateCell span {
-  color: #344257;
-  font-weight: 520;
-}
-
-.courseGrantDateCell small {
-  color: #8a97a8;
-  font-size: 12px;
-  font-weight: 520;
-}
-
 .courseActionCell {
   white-space: nowrap;
 }
@@ -1880,7 +1864,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseManageLayout {
   display: grid;
-  grid-template-columns: 330px minmax(0, 1fr);
+  grid-template-columns: 290px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -1946,7 +1930,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseSideList strong {
   color: #182337;
   font-size: 14px;
-  font-weight: 560;
+  font-weight: 520;
 }
 
 .courseSideList span {
@@ -1994,13 +1978,13 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: start;
-  padding: 14px 16px;
+  padding: 18px 20px;
   border-bottom: 1px solid #e6ebf2;
 }
 
 .courseDetailHero h2 {
   margin: 0 0 5px;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 560;
 }
 
@@ -2008,7 +1992,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 0;
   color: #64748b;
   font-size: 12px;
-  font-weight: 520;
+  font-weight: 400;
   line-height: 1.6;
 }
 
@@ -2069,16 +2053,17 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 7px 0 0;
   color: #182337;
   font-size: 14px;
-  font-weight: 560;
+  font-weight: 400;
   line-height: 1.65;
 }
 
 .courseBasicGrid strong {
-  font-weight: 560;
+  font-weight: 520;
 }
 
 .courseBasicGrid p {
-  font-weight: 520;
+  color: #435168;
+  font-weight: 400;
 }
 
 .courseTabActions {
@@ -2124,7 +2109,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 .courseLessonCell strong {
   color: #182337;
   font-size: 13px;
-  font-weight: 560;
+  font-weight: 520;
 }
 
 .courseLessonCell small {
@@ -2133,12 +2118,61 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   font-weight: 520;
 }
 
-.lessonCoverThumb {
-  width: 88px;
-  height: 48px;
-  display: block;
+.courseDetailActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.courseDetailMenu {
+  position: relative;
+}
+
+.courseDetailMenu .iconButton {
+  font-size: 16px;
+}
+
+.courseMenuDanger {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  z-index: 2;
+  width: 92px;
+  height: 32px;
+  border: 1px solid #fecdd3;
   border-radius: 7px;
-  object-fit: cover;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .12);
+  color: #d11b45;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.courseLessonsTable th:first-child,
+.courseLessonsTable td:first-child {
+  width: 90px;
+}
+
+.courseLessonsTable th:nth-child(3),
+.courseLessonsTable td:nth-child(3) {
+  width: 120px;
+}
+
+.courseLessonsTable th:last-child,
+.courseLessonsTable td:last-child,
+.courseGrantsTable th:last-child,
+.courseGrantsTable td:last-child {
+  width: 150px;
+}
+
+.courseGrantsTable th:nth-child(2),
+.courseGrantsTable td:nth-child(2) {
+  width: 120px;
+}
+
+.courseGrantsTable th:nth-child(3),
+.courseGrantsTable td:nth-child(3) {
+  width: 160px;
 }
 
 .passwordResetBox {
@@ -2196,6 +2230,30 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 
 .courseDrawerOverlay .adminModal {
   max-height: calc(100vh - 120px);
+}
+
+.courseEditDrawer {
+  align-self: start;
+  width: min(620px, calc(100vw - 72px));
+  padding: 0;
+  overflow: hidden auto;
+}
+
+.courseEditDrawer .modalHeader {
+  margin: 0;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.courseEditDrawer .editForm {
+  padding: 18px;
+}
+
+.courseEditDrawer .modalActions {
+  margin: 0;
+  padding: 14px 18px;
+  border-top: 1px solid #e6ebf2;
+  background: #fbfcfe;
 }
 
 .modalHeader button {
@@ -2370,7 +2428,7 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
   margin: 16px 0 0;
   color: #526174;
   font-size: 15px;
-  font-weight: 520;
+  font-weight: 400;
   line-height: 1.7;
 }
 
