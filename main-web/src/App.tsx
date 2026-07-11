@@ -3100,71 +3100,63 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
     }
 
     const courseIntro = selected.intro || selected.summary;
+    const lessonCount = selected.lessonCount || selected.lessons?.length || 0;
 
     return (
       <div className="coursesPage">
-        <section className="courseDetailHero">
-          <button type="button" className="courseBackButton" onClick={onBack}>返回交易实战课程</button>
-          <div className="courseDetailCover">
-            {selected.coverUrl ? <img src={selected.coverUrl} alt="" decoding="async" fetchPriority="high" /> : null}
-          </div>
-          <div className="courseDetailText">
-            <h1>{selected.title}</h1>
-            <div className="courseSummaryRich articleProse">
-              {richCourseSummary(selected.summary, `${selected.lessonCount || selected.lessons?.length || 0} 节视频`)}
-            </div>
-            {courseDiscountBlock(selected, "courseDiscountBlock detailDiscount")}
-            <div className="courseMetaPills">
-              <span className={selected.unlocked ? "unlocked" : "locked"}>{selected.unlocked ? "已解锁" : "待开通"}</span>
-              {selected.unlocked && selected.grantExpiresAt ? <span>授权到期：{formatDate(selected.grantExpiresAt)}</span> : null}
-              <span>{courseProgressLabel(selected.progressStatus)}</span>
-              <span>{selected.lessonCount || selected.lessons?.length || 0} 节视频</span>
-              {activeLesson ? <span>当前播放：{activeLesson.title}</span> : null}
-            </div>
-          </div>
-        </section>
+        <button type="button" className="courseBackButton" onClick={onBack}>返回课程</button>
 
         {selected.unlocked ? (
-          <section className="coursePlayLayout">
-            <article className="coursePlayer">
-              <div className="coursePlayerTop">
-                <strong>{activeLesson?.title || selected.title}</strong>
-                <span>{selected.title}</span>
-              </div>
-              <div className="courseVideoBox">
-                {videoUrl ? (
-                  <video key={videoUrl} src={videoUrl} controls controlsList="nodownload" />
-                ) : (
-                  <button type="button" disabled={!activeLesson || playing} onClick={() => activeLesson && playLesson(activeLesson.id)}>
-                    <span />
-                  </button>
-                )}
-              </div>
-            </article>
+          <>
+            <section className="courseLearningHead">
+              <div><h1>{selected.title}</h1><span>当前课时：{activeLesson?.title || "请选择课时"}</span></div>
+              {selected.grantExpiresAt ? <em>授权到期 {formatDate(selected.grantExpiresAt)}</em> : <em>已授权</em>}
+            </section>
+            <section className="coursePlayLayout">
+              <article className="coursePlayer">
+                <div className="courseVideoBox">
+                  {videoUrl ? (
+                    <video key={videoUrl} src={videoUrl} controls controlsList="nodownload" />
+                  ) : (
+                    <button type="button" disabled={!activeLesson || playing} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
+                      <span />
+                    </button>
+                  )}
+                </div>
+              </article>
 
-            <aside className="courseLessonList">
-              <div className="panelHead">
-                <strong>交易实战课程目录</strong>
-                <span>{selected.lessons?.length || 0} 节</span>
-              </div>
-              {(selected.lessons || []).map((lesson, index) => (
-                <button key={lesson.id} type="button" className={activeLesson?.id === lesson.id ? "active" : ""} onClick={() => playLesson(lesson.id)}>
-                  <b>{index + 1}</b>
-                  <span className="lessonCoverSlot">{lesson.coverUrl ? <img src={lesson.coverUrl} alt="" loading="lazy" decoding="async" /> : null}</span>
-                  <span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</span>
-                  <i>{activeLesson?.id === lesson.id && videoUrl ? "播放中" : "播放"}</i>
-                </button>
-              ))}
-            </aside>
-          </section>
+              <aside className="courseLessonList">
+                <div className="panelHead"><strong>课程目录 · {lessonCount} 节</strong><span>{courseProgressLabel(selected.progressStatus)}</span></div>
+                {(selected.lessons || []).map((lesson, index) => (
+                  <button key={lesson.id} type="button" className={activeLesson?.id === lesson.id ? "active" : ""} onClick={() => playLesson(lesson.id)}>
+                    <b>{index + 1}</b>
+                    <span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</span>
+                    <i>{activeLesson?.id === lesson.id && videoUrl ? "播放中" : "播放"}</i>
+                  </button>
+                ))}
+              </aside>
+            </section>
+          </>
         ) : (
-          <section className="courseLockedDetail">
-            <h2>{selected.title}</h2>
-            <div className="courseSummaryRich articleProse">
-              {richCourseSummary(courseIntro, "交易实战课程暂未开通权限。")}
-            </div>
-            <button type="button" onClick={onUnlock}>联系开通</button>
-          </section>
+          <>
+            <section className="courseDetailHero">
+              <div className="courseDetailCover">{selected.coverUrl ? <img src={selected.coverUrl} alt="" decoding="async" fetchPriority="high" /> : null}</div>
+              <div className="courseDetailText">
+                <h1>{selected.title}</h1>
+                <div className="courseMetaPills"><span className="locked">待开通</span><span>{courseProgressLabel(selected.progressStatus)}</span><span>{lessonCount} 节视频</span></div>
+                <div className="courseSummaryRich articleProse">{richCourseSummary(selected.summary, `${lessonCount} 节视频`)}</div>
+                {courseDiscountBlock(selected, "courseDiscountBlock detailDiscount")}
+              </div>
+            </section>
+            <section className="courseLockedDetail">
+              <div className="courseLockedContent">
+                {courseIntro ? <><h2>课程介绍</h2><div className="courseSummaryRich articleProse">{richCourseSummary(courseIntro, "")}</div></> : null}
+                <h2>课程目录</h2>
+                <div className="courseLockedLessons">{selected.lessons.map((lesson, index) => <div key={lesson.id}><span>{String(index + 1).padStart(2, "0")}</span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</div>)}</div>
+              </div>
+              <aside><strong>这门课程暂未开通</strong><span>开通后可以观看全部课时。</span><button type="button" onClick={onUnlock}>联系开通</button></aside>
+            </section>
+          </>
         )}
       </div>
     );
@@ -3206,12 +3198,10 @@ function CoursesPage({ courseId, onCourse, onBack, onUnlock }: { courseId: strin
                   <h2>{item.title}</h2>
                   <p>{compactText(item.summary, 82) || `${item.lessons?.length || 0} 节视频`}</p>
                   {courseDiscountBlock(item)}
-                  <div><span>{item.lessonCount || item.lessons?.length || 0} 节视频 ·</span><span>{item.unlocked ? "可学习" : "交易实战课程介绍"}</span></div>
+                  <div className="courseCardMeta"><span>{item.lessonCount || item.lessons?.length || 0} 节视频</span><span>{courseProgressLabel(item.progressStatus)}</span></div>
                   <footer>
-                    <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>
-                      {item.unlocked ? "开始学习" : "查看详情"}
-                    </button>
                     <em>{courseGrantText(item)}</em>
+                    <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>{item.unlocked ? "继续学习" : "查看详情"}</button>
                   </footer>
                 </section>
               </article>

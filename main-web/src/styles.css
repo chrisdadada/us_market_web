@@ -7196,9 +7196,9 @@ body,
 }
 
 .coursesTopbar h1 {
-  margin: 0 0 8px;
+  margin: 0;
   color: #172033;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 560;
   line-height: 1;
 }
@@ -7229,11 +7229,14 @@ body,
 }
 
 .courseToolbar {
-  min-height: 58px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .courseToolbar div {
@@ -7243,9 +7246,10 @@ body,
 
 .courseToolbar button {
   height: 34px;
-  border: 1px solid #d8e2ef;
-  border-radius: 8px;
-  background: #fff;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
   color: #526176;
   padding: 0 14px;
   font-weight: 520;
@@ -7253,9 +7257,9 @@ body,
 }
 
 .courseToolbar button.active {
-  border-color: #9cc8ff;
-  background: #edf6ff;
-  color: #1264c8;
+  border-bottom-color: #1677ff;
+  background: transparent;
+  color: #1677ff;
 }
 
 .courseToolbar span {
@@ -7372,9 +7376,9 @@ body,
 .courseCardGrid h2 {
   margin: 0 0 8px;
   color: #172033;
-  font-size: 18px;
-  font-weight: 560;
-  line-height: 1.25;
+  font-size: 16px;
+  font-weight: 520;
+  line-height: 1.45;
 }
 
 .courseCardGrid p {
@@ -7466,14 +7470,10 @@ body,
 
 .courseDetailHero {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+  gap: 26px;
   align-items: center;
-  padding: 16px;
-}
-
-.courseDetailHero .courseBackButton {
-  grid-column: 1 / -1;
+  padding: 24px;
 }
 
 .courseDetailCover {
@@ -7494,14 +7494,14 @@ body,
 .courseDetailText h1 {
   margin: 0 0 10px;
   color: #172033;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 560;
   line-height: 1.15;
 }
 
 .courseSummaryRich {
   max-width: 760px;
-  margin: 0 0 16px;
+  margin: 16px 0;
 }
 
 .detailDiscount {
@@ -7543,33 +7543,13 @@ body,
 .coursePlayLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 14px;
+  gap: 0;
   align-items: start;
 }
 
 .coursePlayer {
   background: #0b0f17;
-}
-
-.coursePlayerTop {
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
-  padding: 0 16px;
-  color: #fff;
-}
-
-.coursePlayerTop strong {
-  font-size: 16px;
-  font-weight: 560;
-}
-
-.coursePlayerTop span {
-  color: #9aa7b8;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: var(--front-card-radius) 0 0 var(--front-card-radius);
 }
 
 .courseVideoBox {
@@ -7612,7 +7592,7 @@ body,
   width: 100%;
   min-height: 66px;
   display: grid;
-  grid-template-columns: 28px 64px minmax(0, 1fr) 48px;
+  grid-template-columns: 28px minmax(0, 1fr) 48px;
   gap: 10px;
   align-items: center;
   border: 0;
@@ -7654,27 +7634,11 @@ body,
   font-weight: 520;
 }
 
-.courseLessonList .lessonCoverSlot {
-  width: 64px;
-  height: 38px;
-  display: block;
-  overflow: hidden;
-  border-radius: 6px;
-  background: #eef3f8;
-}
-
-.courseLessonList .lessonCoverSlot img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-
-.courseLessonList button > span:not(.lessonCoverSlot) {
+.courseLessonList button > span {
   min-width: 0;
 }
 
-.courseLessonList button > span:not(.lessonCoverSlot) strong {
+.courseLessonList button > span strong {
   overflow: visible;
   white-space: normal;
   text-overflow: clip;
@@ -7690,34 +7654,23 @@ body,
 }
 
 .courseLockedDetail {
-  min-height: 260px;
   display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 12px;
-  padding: 32px;
-  text-align: center;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 30px;
+  padding: 24px;
+  text-align: left;
 }
 
 .courseLockedDetail h2 {
-  margin: 0;
+  margin: 0 0 12px;
   color: #172033;
-  font-size: 22px;
-  font-weight: 560;
-}
-
-.courseLockedDetail > p {
-  max-width: 520px;
-  margin: 0;
-  color: #607086;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.65;
+  font-size: 15px;
+  font-weight: 520;
 }
 
 .courseLockedDetail .courseSummaryRich {
-  max-width: 620px;
-  margin: 0;
+  max-width: 760px;
+  margin: 0 0 20px;
   text-align: left;
 }
 
@@ -7731,6 +7684,30 @@ body,
   font-weight: 520;
   cursor: pointer;
 }
+
+.courseLockedDetail aside {
+  align-self: start;
+  display: grid;
+  gap: 8px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 16px;
+}
+
+.courseLockedDetail aside strong { font-weight: 520; }
+.courseLockedDetail aside span { color: #718096; font-size: 12px; }
+.courseLockedDetail aside button { width: max-content; margin-top: 4px; }
+.courseLockedLessons { border-top: 1px solid #e8edf3; }
+.courseLockedLessons div { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; padding: 11px 0; border-bottom: 1px solid #edf1f5; color: #526174; }
+.courseLockedLessons strong { font-weight: 400; }
+.courseLockedLessons em { color: #718096; font-size: 12px; font-style: normal; }
+
+.courseLearningHead { display: flex; align-items: end; justify-content: space-between; gap: 18px; }
+.courseLearningHead h1 { margin: 0 0 6px; color: #172033; font-size: 20px; font-weight: 560; }
+.courseLearningHead span,
+.courseLearningHead em { color: #718096; font-size: 12px; font-style: normal; font-weight: 400; }
+.courseLessonList { border-radius: 0 var(--front-card-radius) var(--front-card-radius) 0; }
 
 .navToolGroup button {
   display: flex;
@@ -8384,8 +8361,19 @@ body,
   .coursesTopbar,
   .courseCardGrid,
   .courseDetailHero,
-  .coursePlayLayout {
+  .coursePlayLayout,
+  .courseLockedDetail {
     grid-template-columns: 1fr;
+  }
+
+  .courseLearningHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .coursePlayer,
+  .courseLessonList {
+    border-radius: var(--front-card-radius);
   }
 
   .coursesPage {
