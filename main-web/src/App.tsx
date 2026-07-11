@@ -3177,17 +3177,16 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
               const lessonCount = item.lessonCount || item.lessons?.length || 0;
               return (
               <article key={item.id}>
-                <div className="courseThumb">
+                <div className={`courseThumb ${item.unlocked ? "unlocked" : "locked"}`}>
                   {item.coverUrl ? <img src={item.coverUrl} alt="" loading={index < 4 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 4 ? "high" : "auto"} /> : null}
-                  {item.unlocked ? <span>已授权</span> : null}
+                  {item.unlocked ? <span className="courseGrantedBadge">已授权</span> : null}
                 </div>
                 <section>
                   <h2>{item.title}</h2>
                   <p>{compactText(item.summary, 82) || (lessonCount ? `${lessonCount} 节视频` : "即将上线")}</p>
-                  <div className="courseCardMeta"><span>{lessonCount ? `${lessonCount} 节视频` : "即将上线"}</span>{lessonCount ? <span>{courseProgressLabel(item.progressStatus)}</span> : null}</div>
-                  {!item.unlocked ? courseDiscountBlock(item) : null}
+                  <div className="courseCardMeta">{lessonCount ? <><span>{lessonCount} 节视频</span><span>{courseProgressLabel(item.progressStatus)}</span></> : null}</div>
                   <footer>
-                    <em>{item.unlocked ? courseGrantText(item) : ""}</em>
+                    {item.unlocked ? <em>{courseGrantText(item)}</em> : courseDiscountBlock(item)}
                     <button type="button" className={item.unlocked ? "primary" : ""} onClick={() => onCourse(String(item.id))}>{item.unlocked ? "进入课程" : "查看详情"}</button>
                   </footer>
                 </section>

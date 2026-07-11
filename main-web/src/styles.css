@@ -1945,12 +1945,6 @@ body {
   font-weight: 620;
 }
 
-@media (max-width: 1180px) {
-  .courseCardGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 980px) {
   .terminalShell {
     grid-template-columns: 1fr;
@@ -7291,7 +7285,7 @@ body,
 
 .courseCardGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -7302,7 +7296,7 @@ body,
 
 .courseThumb {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 1.9 / 1;
   background: radial-gradient(circle at 26% 24%, rgba(72, 220, 204, .85), transparent 26%), linear-gradient(135deg, #0d637a, #19405a);
 }
 
@@ -7313,22 +7307,23 @@ body,
   object-fit: cover;
 }
 
-.courseThumb::after {
+.courseThumb.unlocked::after,
+.courseThumb.locked::after {
   content: "";
   position: absolute;
-  left: 10px;
-  bottom: 10px;
-  width: 24px;
-  height: 24px;
+  left: 12px;
+  bottom: 12px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: rgba(255, 255, 255, .96);
 }
 
-.courseThumb::before {
+.courseThumb.unlocked::before {
   content: "";
   position: absolute;
-  left: 20px;
-  bottom: 17px;
+  left: 23px;
+  bottom: 21px;
   z-index: 1;
   width: 0;
   height: 0;
@@ -7337,7 +7332,20 @@ body,
   border-left: 8px solid #1677ff;
 }
 
-.courseThumb > span {
+.courseThumb.locked::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  bottom: 20px;
+  z-index: 1;
+  width: 10px;
+  height: 11px;
+  border: 1.5px solid #65758a;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(to bottom, transparent 0 4px, #65758a 4px 100%);
+}
+
+.courseGrantedBadge {
   position: absolute;
   right: 9px;
   top: 9px;
@@ -7353,24 +7361,30 @@ body,
 }
 
 .courseCardGrid section {
-  min-height: 178px;
+  min-height: 168px;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 40px 38px 18px 32px;
+  column-gap: 12px;
+  row-gap: 7px;
   padding: 14px 16px;
 }
 
 .courseCardGrid h2 {
-  margin: 0 0 8px;
+  grid-column: 1 / -1;
+  margin: 0;
   color: #172033;
   font-size: 15px;
   font-weight: 520;
   line-height: 1.45;
+  overflow: hidden;
 }
 
 .courseCardGrid p {
-  height: 42px;
-  margin: 0 0 8px;
+  grid-column: 1 / -1;
+  height: 38px;
+  margin: 0;
   color: #526176;
   font-size: 13px;
   font-weight: 400;
@@ -7378,7 +7392,6 @@ body,
   overflow: hidden;
 }
 
-.courseCardGrid section > div:not(.courseDiscountBlock),
 .courseCardGrid footer {
   display: flex;
   align-items: center;
@@ -7386,9 +7399,18 @@ body,
   gap: 12px;
 }
 
-.courseCardGrid section > div:not(.courseDiscountBlock) {
+.courseCardMeta {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   justify-content: flex-start;
-  margin: 2px 0 8px;
+  margin: 0;
+}
+
+.courseCardMeta span + span::before {
+  content: "·";
+  margin-right: 8px;
 }
 
 .courseDiscountBlock {
@@ -7430,7 +7452,7 @@ body,
   font-weight: 560;
 }
 
-.courseCardGrid section > div:not(.courseDiscountBlock) span,
+.courseCardMeta span,
 .courseCardGrid footer em {
   color: #718096;
   font-size: 12px;
@@ -7439,19 +7461,25 @@ body,
 }
 
 .courseCardGrid footer {
-  margin-top: auto;
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
-.courseCardGrid .courseDiscountBlock strong {
+.courseCardGrid footer .courseDiscountBlock {
+  margin: 0;
+}
+
+.courseCardGrid footer .courseDiscountBlock strong {
   font-size: 17px;
+  font-weight: 400;
 }
 
-.courseCardGrid .courseDiscountBlock em {
+.courseCardGrid footer .courseDiscountBlock em {
   font-size: 12px;
   font-weight: 400;
 }
 
-.courseCardGrid .courseDiscountBlock span {
+.courseCardGrid footer .courseDiscountBlock span {
   height: 21px;
   border-radius: 5px;
   padding: 0 7px;
@@ -8343,6 +8371,12 @@ body,
   color: #172033;
 }
 
+@media (max-width: 1180px) {
+  .courseCardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 980px) {
   .positionSizingPage {
     padding: 8px 18px 34px;
@@ -8352,7 +8386,6 @@ body,
   .positionSizingGrid,
   .positionFieldGrid,
   .positionMetricGrid,
-  .courseCardGrid,
   .courseDetailHero,
   .courseDetailBody,
   .coursePlayLayout {
@@ -8397,6 +8430,10 @@ body,
 
   .courseThumb {
     aspect-ratio: 16 / 9;
+  }
+
+  .courseCardGrid {
+    grid-template-columns: 1fr;
   }
 }
 
