@@ -3149,7 +3149,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
               </article>
               <aside className="courseOutlinePanel">
                 <h2>课程目录</h2>
-                {selected.lessons.length ? <div className="courseLockedLessons">{selected.lessons.map((lesson, index) => <div key={lesson.id}><span>{index + 1}</span><strong>{lesson.title}</strong><em>开通后播放</em></div>)}</div> : <p>即将上线</p>}
+                {selected.lessons.length ? <div className="courseLockedLessons">{selected.lessons.map((lesson, index) => <div key={lesson.id}><span>{index + 1}</span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</div>)}</div> : <p>即将上线</p>}
               </aside>
             </section>
           </>
