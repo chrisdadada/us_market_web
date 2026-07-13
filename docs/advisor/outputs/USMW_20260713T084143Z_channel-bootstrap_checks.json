@@ -1,0 +1,42 @@
+{
+  "projectId": "us-market-web",
+  "decision": "USMW_20260713T084143Z_channel-bootstrap_decision.md",
+  "status": "PASS",
+  "checkedAt": "2026-07-13T08:41:43Z",
+  "checks": [
+    {
+      "name": "project_identity",
+      "status": "PASS",
+      "evidence": "package.json name is us-market-web"
+    },
+    {
+      "name": "project_goal_source",
+      "status": "PASS",
+      "evidence": "docs/product.md and docs/architecture.md"
+    },
+    {
+      "name": "existing_decision_chain",
+      "status": "PASS",
+      "evidence": "No prior project-specific complete decision/checks chain was found; this artifact is an explicit bootstrap, not inherited state."
+    },
+    {
+      "name": "bridge_build",
+      "status": "PASS",
+      "evidence": "npm run build completed in BRIDGE_ROOT with Node v22.23.1"
+    },
+    {
+      "name": "mcp_sources",
+      "status": "PASS",
+      "source": "none",
+      "readScope": "none",
+      "timeBoundary": "not applicable",
+      "permission": "not applicable"
+    }
+  ],
+  "sourceHashesBeforeChannelRules": {
+    "AGENTS.md": "582614893b9731333561da7f762d2227732afab2e595482d58f0fcb6d3673a42",
+    "docs/product.md": "0d98cd7954dbead517ff830b0ab8b8ea7ecd1f5d39ede8f598b59eda453d347f",
+    "docs/architecture.md": "5172218ed2d3f46626b3cda1f58c1b9138c30ec77f4eb5cb46f0bce74f65a8e1",
+    "package.json": "b1c8a4450301ef600cced42fca8e2c9f718b0d282105a070a830e5dda0520d73"
+  }
+}

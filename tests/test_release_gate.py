@@ -1100,10 +1100,10 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             "section": "weekly",
             "title": "草稿标题",
             "tradeDate": "2026-06-18",
-            "summary": "",
+            "summary": "公开摘要",
             "symbols": "SPY, QQQ",
             "topics": "FOMC",
-            "highlights": "",
+            "highlights": "正文要点",
             "body": "",
             "status": "draft",
         }
@@ -1133,7 +1133,32 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["rows"][0]["id"], item_id)
         self.assertEqual(payload["rows"][0]["tradeDate"], "2026-06-18 00:00:00")
-        self.assertEqual(payload["rows"][0]["body"], "正式正文")
+        self.assertEqual(payload["rows"][0]["summary"], "公开摘要")
+        self.assertEqual(payload["rows"][0]["body"], "")
+        self.assertEqual(payload["rows"][0]["highlights"], [])
+
+        self.create_user(admin, "free-opinions@example.test", "free")
+        self.create_user(admin, "monthly-opinions@example.test", "monthly")
+        self.create_user(admin, "yearly-opinions@example.test", "yearly")
+        self.create_user(admin, "expired-opinions@example.test", "monthly", expires_at="2000-01-01")
+
+        for email in ["free-opinions@example.test", "expired-opinions@example.test"]:
+            status, payload = self.login(email, "user-password").get("/api/product/opinions")
+            self.assertEqual(status, 200, payload)
+            self.assertEqual(payload["rows"][0]["summary"], "公开摘要")
+            self.assertEqual(payload["rows"][0]["body"], "")
+            self.assertEqual(payload["rows"][0]["highlights"], [])
+
+        paid_clients = [
+            admin,
+            self.login("monthly-opinions@example.test", "user-password"),
+            self.login("yearly-opinions@example.test", "user-password"),
+        ]
+        for client in paid_clients:
+            status, payload = client.get("/api/product/opinions")
+            self.assertEqual(status, 200, payload)
+            self.assertEqual(payload["rows"][0]["body"], "正式正文")
+            self.assertEqual(payload["rows"][0]["highlights"], ["正文要点"])
 
         status, payload = admin.delete(f"/api/admin/opinions/{item_id}")
         self.assertEqual(status, 200, payload)
@@ -1217,6 +1242,10 @@ class AuthApiReleaseGateTest(unittest.TestCase):
 
         public = self.client()
         status, payload = public.get("/api/product/opinions")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"][0]["body"], "")
+
+        status, payload = admin.get("/api/product/opinions")
         self.assertEqual(status, 200, payload)
         self.assertIn(f"![chart]({image_url})", payload["rows"][0]["body"])
 

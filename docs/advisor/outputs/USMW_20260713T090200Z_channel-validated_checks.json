@@ -1,0 +1,58 @@
+{
+  "projectId": "us-market-web",
+  "decision": "USMW_20260713T090200Z_channel-validated_decision.md",
+  "status": "PASS",
+  "checkedAt": "2026-07-13T09:02:00Z",
+  "checks": [
+    {
+      "name": "archive_latest_order_and_identity",
+      "status": "PASS",
+      "evidence": "archive was written before atomic latest update; archive and latest are byte-identical",
+      "sha256": "b43d96616b1bf105a632aeb834c6a6ee68cd90bb9b3b39712539d28a0ca250a2"
+    },
+    {
+      "name": "state_consistency",
+      "status": "PASS",
+      "evidence": "state reviewedArtifact and hashes match latest and authoritative decision/checks",
+      "sha256": "2c8315817f5f0cbe546f2ff8bcbdc623e1dbd5774a92f37a5f64197e3507a4c3"
+    },
+    {
+      "name": "response_contract_self_test",
+      "status": "PASS",
+      "evidence": "exact six-section order, exact first evidence item, invalid output rejection, and deterministic filename tie-break"
+    },
+    {
+      "name": "unchanged_no_op",
+      "status": "PASS",
+      "evidence": "normal rerun returned unchanged"
+    },
+    {
+      "name": "concurrent_lock",
+      "status": "PASS",
+      "evidence": "forced run with existing advisor.lock exited non-zero and did not change latest/state"
+    },
+    {
+      "name": "artifact_exclusions",
+      "status": "PASS",
+      "evidence": "AppleDouble and temporary files did not change latest selection"
+    },
+    {
+      "name": "sensitive_pattern_scan",
+      "status": "PASS",
+      "evidence": "no key/password/email/user/Open portfolio table pattern found in the successful archive"
+    },
+    {
+      "name": "advisor_script",
+      "status": "PASS",
+      "sha256": "62c4abfb10f0519aa769134ebc8d9f6441c08d3dd1c95b31fbc959aed2107970"
+    },
+    {
+      "name": "mcp_sources",
+      "status": "PASS",
+      "source": "none",
+      "readScope": "none",
+      "timeBoundary": "not applicable",
+      "permission": "not applicable"
+    }
+  ]
+}

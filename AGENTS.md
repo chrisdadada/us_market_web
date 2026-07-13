@@ -128,3 +128,38 @@
 - 不要把详情页和列表页做成同一种排版；详情页要服务阅读，列表页要服务扫描和选择。
 - 不要为了“丰富”把同一批内容在首页、栏目页、卡片区重复展示；同一信息只保留一个最有价值的位置。
 - 每次交付前先自检：前后台是否混用、是否有解释性废话、是否展示了内部信息、是否有无依据数据、是否重复表达、是否符合用户已确认导航。
+
+## GPT + Codex 独立协作通道
+
+本节只适用于 `us-market-web`，不得读取、继承或写入其他项目的目标、状态、产物和下一步。
+
+### 固定变量
+
+- `PROJECT_ID=us-market-web`
+- `PROJECT_GOAL=把懂币猫建设成面向中文美股用户、前后台边界清楚、数据有据、权限可靠、可安全持续迭代的投资信息产品。`
+- `PROJECT_ROOT=/Users/linlifu/Documents/New project`
+- `ADVISOR_WORKSPACE=/Users/linlifu/Documents/New project`
+- `OUTPUTS_DIR=/Users/linlifu/Documents/New project/docs/advisor/outputs`
+- `AGENTS_FILE=/Users/linlifu/Documents/New project/AGENTS.md`
+- `ARTIFACT_PREFIX=USMW_`
+- `ARTIFACT_GLOB=USMW_[0-9]{8}T[0-9]{6}Z_*_decision.md`
+- `BRIDGE_ROOT=/Volumes/SSD 500G/quant_research/devspace_bridge/devspace`
+- `STATE_ROOT=/Users/linlifu/.local/share/devspace/advisor-inbox`
+- `ADVISOR_COMMAND=advisor:us-market-web`
+- `HEARTBEAT_ID=us-market-web-gpt`
+
+### 授权矩阵
+
+- `ALLOWED_LOCAL_SCOPE`：读取和修改本项目源码、测试、项目文档和 `docs/advisor/outputs`；读写 `STATE_ROOT/us-market-web`；运行本地构建、测试、静态检查和不改变外部状态的 dev-safe 验证。
+- `SEPARATE_AUTH_SCOPE`：production 代码发布、production 数据部署、生产用户/权限/内容数据写入、`Open 持仓`任何写入/迁移/重算/导入/恢复/替换、外部发布、付费服务、交易、broker、密钥或权限变更，以及任何扩大当前项目边界的动作。
+- `CONSERVATIVE_DEFAULT`：证据不足、状态不一致、advisor 不可用或授权不清时立即停止并冻结真实失败；不得猜测续跑，不得修改 production 或 `Open 持仓`数据。
+
+### 决策链规则
+
+- 完整 decision 文件名必须匹配 `ARTIFACT_GLOB`，同 stem 必须有 `<stem>_checks.json`。
+- decision 可以记录 `PASS`、`FAILURE`、`BLOCKED` 或 `ACTIVE`；真实失败不得被筛掉或改写成成功。
+- AppleDouble、临时文件和不完整文件不是权威 decision。
+- 最新 decision 按 mtime 选择；mtime 相同时按完整文件名确定性倒序选择。
+- GPT 只能通过 Codex SDK `read_only` 模式审阅并输出六部分：`REVIEWED EVIDENCE`、`GOAL GAP`、`BOTTLENECK`、`ROUTE OPTIONS`、`RECOMMENDED ONE STEP`、`ADVERSARIAL CHECK`。
+- GPT 建议不是授权。Codex 必须独立标记确认、修正或否决，并以本项目证据为准。
+- MCP 仅作为证据入口。使用时必须在 checks 中记录来源、读取范围、时间边界和读写权限；返回值必须落入可审计检查，写入型 MCP 仍需单独授权。

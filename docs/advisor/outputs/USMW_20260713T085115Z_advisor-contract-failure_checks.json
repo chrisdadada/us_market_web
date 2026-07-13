@@ -1,0 +1,37 @@
+{
+  "projectId": "us-market-web",
+  "decision": "USMW_20260713T085115Z_advisor-contract-failure_decision.md",
+  "status": "FAILURE",
+  "checkedAt": "2026-07-13T08:51:15Z",
+  "checks": [
+    {
+      "name": "formal_advisor_run",
+      "status": "FAILURE",
+      "evidence": "Advisor did not name the exact reviewed artifact; fail closed."
+    },
+    {
+      "name": "failure_frozen",
+      "status": "PASS",
+      "evidence": "/Users/linlifu/.local/share/devspace/advisor-inbox/us-market-web/archive/2026-07-13T08-49-36.177Z_2ed536a1-e417-4b9c-8f82-9d1ac6923b1d_failure.json",
+      "sha256": "a3960fe82936c0ad4518635789a623bcd026b8dc14f0298087b4cf9465baf284"
+    },
+    {
+      "name": "authoritative_state_not_advanced",
+      "status": "PASS",
+      "evidence": "latest.json and state.json are absent"
+    },
+    {
+      "name": "lock_cleanup",
+      "status": "PASS",
+      "evidence": "advisor.lock is absent after failure"
+    },
+    {
+      "name": "mcp_sources",
+      "status": "PASS",
+      "source": "none",
+      "readScope": "none",
+      "timeBoundary": "not applicable",
+      "permission": "not applicable"
+    }
+  ]
+}

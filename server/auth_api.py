@@ -3225,7 +3225,13 @@ class Handler(BaseHTTPRequestHandler):
         limit = int_param(params, "limit", 50, maximum=200)
         offset = int_param(params, "offset", 0, minimum=0, maximum=10000)
         section = str(params.get("section", [""])[0]).strip()
-        self.send_json(query_market_opinions(include_drafts=False, section=section, limit=limit, offset=offset))
+        payload = query_market_opinions(include_drafts=False, section=section, limit=limit, offset=offset)
+        if not entitlements(self.current_user())["paid"]:
+            payload["rows"] = [
+                {**item, "body": "", "highlights": []}
+                for item in payload["rows"]
+            ]
+        self.send_json(payload)
 
     def current_user(self) -> sqlite3.Row | None:
         cookie = SimpleCookie(self.headers.get("Cookie"))

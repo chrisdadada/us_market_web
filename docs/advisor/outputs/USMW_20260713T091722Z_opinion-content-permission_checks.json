@@ -1,0 +1,62 @@
+{
+  "projectId": "us-market-web",
+  "decision": "USMW_20260713T091722Z_opinion-content-permission_decision.md",
+  "status": "PASS",
+  "checkedAt": "2026-07-13T09:17:22Z",
+  "checks": [
+    {
+      "name": "advisor_evidence",
+      "status": "PASS",
+      "evidence": "latest/state reviewed USMW_20260713T090200Z_channel-validated_decision.md before Codex adjudication"
+    },
+    {
+      "name": "anonymous_free_expired_preview_only",
+      "status": "PASS",
+      "evidence": "release-gate assertions preserve summary and remove body/highlights"
+    },
+    {
+      "name": "monthly_yearly_admin_full_content",
+      "status": "PASS",
+      "evidence": "release-gate assertions preserve complete body/highlights for every current paid access class"
+    },
+    {
+      "name": "uploaded_body_not_public",
+      "status": "PASS",
+      "evidence": "anonymous opinion payload omits uploaded image markdown while administrator payload retains it"
+    },
+    {
+      "name": "release_gate",
+      "status": "PASS",
+      "evidence": "conda run -n quant python -m unittest tests.test_release_gate: 34 tests passed",
+      "residual": "the existing suite emitted unclosed SQLite ResourceWarning messages"
+    },
+    {
+      "name": "project_check",
+      "status": "PASS",
+      "evidence": "npm run check completed main-web build, admin-web build, TypeScript checks, and Python compilation"
+    },
+    {
+      "name": "server_source",
+      "status": "PASS",
+      "sha256": "eb526b316166e9abb21e9a2e6c74d2a84bfd3418941f50424f62388d421d6604"
+    },
+    {
+      "name": "release_gate_source",
+      "status": "PASS",
+      "sha256": "1fa035469c927240f6a02e057423105a970e22b2e27138b61ab3381bfbb9c463"
+    },
+    {
+      "name": "scope_guard",
+      "status": "PASS",
+      "evidence": "no production deployment, product database write, or Open portfolio read/write was performed"
+    },
+    {
+      "name": "mcp_sources",
+      "status": "PASS",
+      "source": "none",
+      "readScope": "none",
+      "timeBoundary": "not applicable",
+      "permission": "not applicable"
+    }
+  ]
+}
