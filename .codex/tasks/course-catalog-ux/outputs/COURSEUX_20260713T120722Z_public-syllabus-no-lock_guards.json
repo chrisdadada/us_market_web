@@ -1,0 +1,28 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T120722Z_public-syllabus-no-lock_decision.md",
+  "status": "PASS",
+  "createdAt": "2026-07-13T12:07:22Z",
+  "guards": [
+    {
+      "name": "design_before_code",
+      "status": "ENFORCED",
+      "rule": "Product source remains read-only until the user confirms the revised high-fidelity proposal."
+    },
+    {
+      "name": "permission_boundary",
+      "status": "ENFORCED",
+      "rule": "Locked users may view course and directory; playback remains unavailable."
+    },
+    {
+      "name": "task_local_only",
+      "status": "ENFORCED",
+      "rule": "This turn writes only task-local mockups and output artifacts."
+    },
+    {
+      "name": "separate_authorization",
+      "status": "ENFORCED",
+      "rule": "Deployment, backend/API/database, payment, production data, and Open portfolio actions require separate same-turn authorization."
+    }
+  ]
+}

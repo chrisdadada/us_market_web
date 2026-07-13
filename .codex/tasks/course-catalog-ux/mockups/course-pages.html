@@ -27,7 +27,7 @@
     .brand { font-size: 16px; font-weight: 600; }
     .topnav { display: flex; align-items: center; gap: 24px; color: #65748a; font-size: 13px; }
     .topnav span:last-child { color: #172033; }
-    .workspace { max-width: 1320px; margin: 0 auto; padding: 22px 24px 48px; overflow: hidden; }
+    .workspace { max-width: 1180px; margin: 0 auto; padding: 22px 24px 48px; overflow: hidden; }
     .page-heading { margin: 0 0 18px; font-size: 21px; line-height: 1.4; font-weight: 600; }
     .screen { display: none; }
     .screen.active { display: block; }
@@ -69,9 +69,7 @@
     .price { display: flex; align-items: baseline; gap: 7px; min-width: 0; color: #263247; font-size: 17px; font-weight: 450; }
     .price del { color: #929dad; font-size: 12px; font-weight: 400; }
     .price small { border-radius: 4px; background: #fff2ef; color: #c44634; padding: 3px 6px; font-size: 11px; font-weight: 450; }
-    .access { display: inline-flex; align-items: center; gap: 7px; color: #6d7c90; font-size: 12px; }
-    .lock { position: relative; width: 12px; height: 10px; border-radius: 2px; background: #91a0b3; }
-    .lock::before { content: ""; position: absolute; left: 2px; top: -6px; width: 8px; height: 8px; border: 2px solid #91a0b3; border-bottom: 0; border-radius: 8px 8px 0 0; }
+    .access { display: inline-flex; align-items: center; color: #7a8798; font-size: 12px; }
     .arrow { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #d8e2ef; border-radius: 50%; color: #526176; font-size: 15px; }
     .back { width: max-content; display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #5f6e82; padding: 0; margin-bottom: 14px; font-size: 13px; }
     .detail-hero, .panel, .player, .lesson-list { border: 1px solid #dfe7f2; border-radius: 8px; background: #fff; box-shadow: 0 3px 12px rgba(15, 23, 42, .035); }
@@ -86,7 +84,7 @@
     .detail-price small { border-radius: 4px; background: #fff2ef; color: #c44634; padding: 3px 7px; font-size: 11px; }
     .primary { height: 34px; border: 1px solid #1677ff; border-radius: 6px; background: #1677ff; color: #fff; padding: 0 15px; font-size: 13px; font-weight: 520; }
     .permission-note { display: inline-flex; align-items: center; gap: 7px; margin-left: 12px; color: #778599; font-size: 12px; }
-    .detail-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; margin-top: 14px; }
+    .detail-body { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
     .panel { padding: 20px 22px; }
     .panel h3 { margin: 0 0 14px; font-size: 16px; font-weight: 560; }
     .panel p { margin: 0; color: #4f5e72; font-size: 14px; line-height: 1.85; }
@@ -94,6 +92,8 @@
     .syllabus div { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; border-top: 1px solid #edf1f5; padding: 11px 0; color: #526176; font-size: 13px; }
     .syllabus b { font-weight: 450; }
     .syllabus small { color: #8793a4; }
+    .lesson-state { color: #9aa6b6; font-size: 12px; }
+    .soft-badge { display: inline-flex; align-items: center; height: 22px; border-radius: 999px; background: #f3f6fa; color: #6f7e92; padding: 0 8px; font-size: 12px; }
     .learning-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 12px; }
     .learning-head h2 { margin: 0 0 5px; font-size: 20px; font-weight: 580; }
     .learning-head span, .learning-head em { color: #768397; font-size: 12px; font-style: normal; }
@@ -148,7 +148,7 @@
       <div class="course-grid">
         <article class="course-card"><div class="cover a"></div><div class="card-body"><h2>交易体系搭建+止盈止损实战系列课</h2><p>从真实交易流程出发，建立能执行的交易体系。</p><div class="meta"><span>11 节视频</span><span>已完结</span></div><div class="card-foot"><span class="price">$699</span><span class="arrow">→</span></div></div></article>
         <article class="course-card"><div class="cover b"></div><div class="card-body"><h2>小资金做大系列课</h2><p>从小资金到高收益，建立更清晰的交易计划。</p><div class="meta"><span>1 节视频</span><span>更新中</span></div><div class="card-foot"><span class="price">$899</span><span class="arrow">→</span></div></div></article>
-        <article class="course-card"><div class="cover c"></div><div class="card-body"><h2>懂币猫独家策略教学</h2><p>用实盘流程拆解每一次趋势交易决策。</p><div class="meta"><span>5 节视频</span><span>更新中</span></div><div class="card-foot"><span class="access"><i class="lock"></i>需开通</span><span class="arrow">→</span></div></div></article>
+        <article class="course-card"><div class="cover c"></div><div class="card-body"><h2>懂币猫独家策略教学</h2><p>用实盘流程拆解每一次趋势交易决策。</p><div class="meta"><span>5 节视频</span><span>更新中</span></div><div class="card-foot"><span class="access">查看目录</span><span class="arrow">→</span></div></div></article>
         <article class="course-card"><div class="cover d"></div><div class="card-body"><h2>关键行情分析课</h2><p>从盘面信息中识别关键机会与风险。</p><div class="meta"><span>7 节视频</span><span>更新中</span></div><div class="card-foot"><span class="price">$99</span><span class="arrow">→</span></div></div></article>
         <article class="course-card"><div class="cover e"></div><div class="card-body"><h2>滚仓实战系列课</h2><p>学习试仓、加仓和滚动加仓的实盘方法。</p><div class="meta"><span>2 节视频</span><span>已完结</span></div><div class="card-foot"><span class="price">$199</span><span class="arrow">→</span></div></div></article>
         <article class="course-card"><div class="cover f"></div><div class="card-body"><h2>美股定投课程</h2><p>课程内容即将上线。</p><div class="meta"><span>即将上线</span></div><div class="card-foot"><span class="price">$9.9 <del>$99</del><small>限时体验价</small></span><span class="arrow">→</span></div></div></article>
@@ -159,11 +159,11 @@
       <button class="back">← 返回更多课程</button>
       <section class="detail-hero">
         <div class="detail-cover"><div class="cover a"></div></div>
-        <div class="detail-copy"><h2>交易体系搭建+止盈止损实战系列课</h2><div class="meta"><span>11 节视频</span><span>已完结</span></div><p>从真实交易流程出发，学习如何制定交易计划、设置止损、分批止盈和控制仓位，建立一套能执行的交易体系。</p><div class="detail-price">$699</div><button class="primary">联系开通</button><span class="permission-note"><i class="lock"></i>开通后可学习全部课时</span></div>
+        <div class="detail-copy"><h2>交易体系搭建+止盈止损实战系列课</h2><div class="meta"><span>11 节视频</span><span>已完结</span></div><p>从真实交易流程出发，学习如何制定交易计划、设置止损、分批止盈和控制仓位，建立一套能执行的交易体系。</p><div class="detail-price">$699</div><button class="primary">联系开通</button><span class="permission-note">开通后可播放完整视频</span></div>
       </section>
       <div class="detail-body">
         <article class="panel"><h3>课程介绍</h3><p>课程围绕交易者最核心的问题展开：如何发现机会、制定计划、建仓、加仓、止损、止盈和复盘，帮助交易者建立固定的入场、风控和复盘规则。</p></article>
-        <aside class="panel"><h3>课程目录</h3><div class="syllabus"><div><span><i class="lock"></i></span><b>开通后查看完整目录</b><small>共 11 节</small></div></div></aside>
+        <aside class="panel"><h3>课程目录</h3><div class="syllabus"><div><span>1</span><b>第 1 节</b><small class="lesson-state">开通后播放</small></div><div><span>2</span><b>第 2 节</b><small class="lesson-state">开通后播放</small></div><div><span>3</span><b>第 3 节</b><small class="lesson-state">开通后播放</small></div><div><span>4</span><b>第 4 节</b><small class="lesson-state">开通后播放</small></div><div><span>5</span><b>第 5 节</b><small class="soft-badge">共 11 节</small></div></div></aside>
       </div>
     </section>
 

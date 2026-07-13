@@ -1,0 +1,42 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T120722Z_public-syllabus-no-lock_decision.md",
+  "status": "PASS",
+  "createdAt": "2026-07-13T12:07:22Z",
+  "checks": [
+    {
+      "name": "no_lock_icon",
+      "status": "PASS",
+      "evidence": "The mockup no longer defines or renders the old CSS lock icon."
+    },
+    {
+      "name": "public_syllabus",
+      "status": "PASS",
+      "evidence": "Locked detail shows visible lesson rows and uses playback-limited labels."
+    },
+    {
+      "name": "screenshots_refreshed",
+      "status": "PASS",
+      "evidence": "All six course mockup screenshots were regenerated after the change."
+    },
+    {
+      "name": "product_source_unchanged",
+      "status": "PASS",
+      "evidence": "No main-web/backend/database/deployment/Open portfolio files were edited."
+    }
+  ],
+  "artifacts": {
+    "mockupHtml": {
+      "path": ".codex/tasks/course-catalog-ux/mockups/course-pages.html",
+      "sha256": "2d36f49a029558089af6101a4a015a6de0a02b6b170b9d0b1a2a2a66f92979a9"
+    },
+    "screenshots": {
+      "course-catalog-desktop.png": "da290a5aba4de95b290fd9adc5293c8246a3b7bed5c8e22c4b950c0c96ecc303",
+      "course-detail-desktop.png": "08efcac7ed12670d47685d177a82402666598403a5f429f658b94b806c12ab23",
+      "course-learning-desktop.png": "fa4d652b6062e90bc2dafb2cdad4ac4f4bc75add51022be2718adccdd8ba9941",
+      "course-catalog-mobile.png": "8b064db65b1f0d2f0d232e5fb0b92b40f58571a057b377c46cab5c42d56d80e1",
+      "course-detail-mobile.png": "5ae48dbe1159a9e566ac0798c304972e1484ffa0dbb735aec4b47aa1079614c1",
+      "course-learning-mobile.png": "d241cf89f070713b4b03b99afb95b2cf2b1b662b1d275a0b1828b97271ed99e4"
+    }
+  }
+}
