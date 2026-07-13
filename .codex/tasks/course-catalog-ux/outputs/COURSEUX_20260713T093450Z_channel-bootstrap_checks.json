@@ -1,0 +1,59 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T093450Z_channel-bootstrap_decision.md",
+  "status": "PASS",
+  "checkedAt": "2026-07-13T09:34:50Z",
+  "sourceScope": [
+    "current-thread course screenshots",
+    "repository AGENTS.md read-only",
+    "docs/product.md read-only",
+    "main-web/src/App.tsx read-only before design approval",
+    "main-web/src/styles.css read-only before design approval",
+    "main-web/src/api.ts read-only before design approval",
+    "two declared bridge reference files read-only"
+  ],
+  "checks": [
+    {
+      "name": "task_goal_source",
+      "status": "PASS",
+      "evidence": "goal is limited to the current thread's repeatedly requested course catalog/detail/learning UX work"
+    },
+    {
+      "name": "current_catalog_source",
+      "status": "PASS",
+      "sha256": "5b098e0f426cb2069e3efd061113be1358de111e57b2c549ba7fe9a58a0af8b8"
+    },
+    {
+      "name": "current_catalog_styles",
+      "status": "PASS",
+      "sha256": "75b02be430ca95d609a3ba9952c9d0c49381504af0b5450a349d3b992ffd8d80"
+    },
+    {
+      "name": "current_api_types",
+      "status": "PASS",
+      "sha256": "ac7f49e5d7b44818beb383b218f00436459ca239361fa89ee3299f1853367b50"
+    },
+    {
+      "name": "product_rules",
+      "status": "PASS",
+      "sha256": "0d98cd7954dbead517ff830b0ab8b8ea7ecd1f5d39ede8f598b59eda453d347f"
+    },
+    {
+      "name": "current_thread_screenshot",
+      "status": "PASS",
+      "sha256": "1d8d1ab7245c9aa3cd6d5a9adf1e61f6a913ec37d71f1654fc16f9ab83d3c74f"
+    },
+    {
+      "name": "reference_pa_script",
+      "status": "PASS",
+      "permission": "read-only mechanism reference",
+      "sha256": "31542f4ac245e7175f11fc20c13786e4d2e55f020b4e3f5ef454c93df7fc613d"
+    },
+    {
+      "name": "reference_bridge_package",
+      "status": "PASS",
+      "permission": "read-only mechanism reference",
+      "sha256": "aad6d909b08d2518f6c3cbef8643e3574b4d826c1515dd47ad49618b39e94077"
+    }
+  ]
+}

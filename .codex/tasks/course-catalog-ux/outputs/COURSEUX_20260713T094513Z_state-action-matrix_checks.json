@@ -1,0 +1,69 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T094513Z_state-action-matrix_decision.md",
+  "status": "PASS",
+  "checkedAt": "2026-07-13T09:45:13Z",
+  "checks": [
+    {
+      "name": "gpt_review_state",
+      "status": "PASS",
+      "evidence": "archive/latest/state are byte-identical and review COURSEUX_20260713T093450Z_channel-bootstrap_decision.md"
+    },
+    {
+      "name": "access_semantics",
+      "status": "PASS",
+      "evidence": "unlocked is used only as course access; payment and membership are not inferred"
+    },
+    {
+      "name": "progress_semantics",
+      "status": "PASS",
+      "evidence": "progressStatus accepts only updating or finished and is not presented as user learning progress"
+    },
+    {
+      "name": "real_field_only",
+      "status": "PASS",
+      "evidence": "matrix uses only CourseSeries and CourseLesson fields present in main-web/src/api.ts"
+    },
+    {
+      "name": "single_primary_action",
+      "status": "PASS",
+      "evidence": "every page state has one primary action and explicitly excludes unsupported actions"
+    },
+    {
+      "name": "source_unchanged",
+      "status": "PASS",
+      "evidence": "main-web source was read only; no product code or data was modified"
+    },
+    {
+      "name": "state_action_matrix",
+      "status": "PASS",
+      "sha256": "a36679cdd2aea7d655063477e2478566a7bae60ed9e4976baa2c50d80b83a8ab"
+    },
+    {
+      "name": "guards",
+      "status": "PASS",
+      "sha256": "a8a8cf08429b8d476ec26c4e49fb917610550131d9c4c6c1a8ca004cefe69080"
+    },
+    {
+      "name": "task_advisor_contract",
+      "status": "PASS",
+      "evidence": "syntax check and four deterministic self-tests passed",
+      "sha256": "9a50792af8530ebd413a010677005e733597a173351f5ad0c8a53e6a10b6c79a"
+    },
+    {
+      "name": "unchanged_no_op",
+      "status": "PASS",
+      "evidence": "normal rerun returned unchanged without invoking GPT"
+    },
+    {
+      "name": "concurrent_lock",
+      "status": "PASS",
+      "evidence": "forced run with advisor.lock exited non-zero and left latest/state hash fe80dbdda7bebdf0b30ed5c17bcde741e7bd50f916af75c37b9ef3823fa184d3 unchanged"
+    },
+    {
+      "name": "task_rules",
+      "status": "PASS",
+      "sha256": "462ccb4282ed5af8c3df1752eac81ef47faf8f220c0556b2371455d5b3f15579"
+    }
+  ]
+}

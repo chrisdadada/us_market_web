@@ -1,0 +1,14 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T094513Z_state-action-matrix_decision.md",
+  "status": "ACTIVE",
+  "guards": [
+    "Do not represent progressStatus as user learning progress.",
+    "Do not equate unlocked with membership, payment, or purchase.",
+    "Do not invent continue-learning, completion percentage, payment, renewal, or countdown fields.",
+    "Do not modify frontend source until the user confirms all required high-fidelity screens.",
+    "Do not modify navigation, backend, API contracts, databases, production, deployment, or Open portfolio state.",
+    "No heartbeat is enabled for this task.",
+    "State or hash mismatch fails closed."
+  ]
+}

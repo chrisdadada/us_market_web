@@ -1,0 +1,14 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T093450Z_channel-bootstrap_decision.md",
+  "status": "ACTIVE",
+  "guards": [
+    "Only task-local files and state may be written before design approval.",
+    "Repository AGENTS.md, root package.json, bridge package.json, and reference scripts are read-only.",
+    "The retired us-market-web advisor state and docs/advisor artifacts are not authority for this task.",
+    "No heartbeat is enabled for this task.",
+    "No frontend code changes are allowed until the high-fidelity design is confirmed by the user.",
+    "No deployment, backend, database, production, external, or Open portfolio action is allowed.",
+    "Missing evidence or state inconsistency fails closed."
+  ]
+}
