@@ -1,0 +1,33 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T114742Z_high-fidelity-collaboration_decision.md",
+  "status": "PASS",
+  "createdAt": "2026-07-13T11:47:42Z",
+  "guards": [
+    {
+      "name": "design_before_code",
+      "status": "ENFORCED",
+      "rule": "Product source remains read-only until the user confirms the high-fidelity proposal."
+    },
+    {
+      "name": "no_fake_course_data",
+      "status": "ENFORCED",
+      "rule": "The mockup must not invent learning progress, payment flow, current lesson persistence, or purchase state."
+    },
+    {
+      "name": "task_local_only",
+      "status": "ENFORCED",
+      "rule": "Writes are limited to .codex/tasks/course-catalog-ux mockups/outputs and advisor state."
+    },
+    {
+      "name": "open_portfolio_protected",
+      "status": "ENFORCED",
+      "rule": "Open portfolio data and production runtime data are not read, written, migrated, recalculated, copied, or deployed."
+    },
+    {
+      "name": "separate_authorization",
+      "status": "ENFORCED",
+      "rule": "Any dev/prod deployment, backend/API/database change, payment work, external publishing, or production-data action requires separate same-turn authorization."
+    }
+  ]
+}

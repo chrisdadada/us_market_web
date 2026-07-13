@@ -1,0 +1,47 @@
+{
+  "taskId": "course-catalog-ux",
+  "decision": "COURSEUX_20260713T114742Z_high-fidelity-collaboration_decision.md",
+  "status": "PASS",
+  "createdAt": "2026-07-13T11:47:42Z",
+  "checks": [
+    {
+      "name": "direct_gpt_plugin_plan",
+      "status": "FAIL_RECORDED",
+      "evidence": "gpt_product_plan returned OPENAI_API_KEY is not configured; no authority was granted by that tool."
+    },
+    {
+      "name": "direct_gpt_plugin_review",
+      "status": "FAIL_RECORDED",
+      "evidence": "gpt_product_review returned OPENAI_API_KEY is not configured; no authority was granted by that tool."
+    },
+    {
+      "name": "browser_screenshots",
+      "status": "PASS",
+      "evidence": "Six task-local screenshots exist for catalog/detail/learning desktop and mobile states."
+    },
+    {
+      "name": "codex_visual_correction",
+      "status": "PASS",
+      "evidence": "Mobile catalog source-card body text was removed from cover crop by changing mobile cover scale to .64."
+    },
+    {
+      "name": "product_source_unchanged",
+      "status": "PASS",
+      "evidence": "No main-web/backend/database/deploy/Open portfolio files were edited by this high-fidelity step."
+    }
+  ],
+  "artifacts": {
+    "mockupHtml": {
+      "path": ".codex/tasks/course-catalog-ux/mockups/course-pages.html",
+      "sha256": "07f4d8a46907548bfed19102c15a5403f47dbaf93eb46599a5a7f598e2ac0fe6"
+    },
+    "screenshots": {
+      "course-catalog-desktop.png": "eb682eee981b9ec70386f70ebbe3a44e5a2e17d5adaae9c9e0b053e366d36758",
+      "course-detail-desktop.png": "1dda2fc8226b04c31d5c228816598b2bda5b014e9eee1a7f8a28c3a718f2ee96",
+      "course-learning-desktop.png": "6bc7916886ad83b753cfc5f7c55ef05b8ac643e2b476ca0f5e72db1269fc6876",
+      "course-catalog-mobile.png": "fd87e44215d6d23d5cabff51d684e0ff7f78c2feed37652acd09069fc6c2e19c",
+      "course-detail-mobile.png": "37382cdc4a2f656489a08328583cec0e50722d190aeff93b4206d6bf72489a57",
+      "course-learning-mobile.png": "8833bc640691392abe1efd53d06292829aec02aff2aae4ba86a15aad2f7800be"
+    }
+  }
+}
