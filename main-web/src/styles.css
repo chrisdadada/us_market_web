@@ -7443,6 +7443,13 @@ body,
   font-weight: 500;
 }
 
+.courseCatalogActionText {
+  color: #718096;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+}
+
 .courseCardArrow {
   width: 30px;
   height: 30px;
@@ -7537,9 +7544,18 @@ body,
   cursor: pointer;
 }
 
+.courseDetailNote {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 12px;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .courseDetailBody {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 350px;
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 
@@ -7682,7 +7698,7 @@ body,
 .courseLockedLessons { border-top: 1px solid #e8edf3; }
 .courseLockedLessons div { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; padding: 11px 0; border-bottom: 1px solid #edf1f5; color: #526174; }
 .courseLockedLessons strong { font-weight: 400; }
-.courseLockedLessons em { color: #718096; font-size: 12px; font-style: normal; }
+.courseLockedLessons em { color: #9aa6b6; font-size: 12px; font-style: normal; white-space: nowrap; }
 
 .courseLearningHead { display: flex; align-items: end; justify-content: space-between; gap: 18px; }
 .courseLearningHead h1 { margin: 0 0 6px; color: #172033; font-size: 20px; font-weight: 560; }

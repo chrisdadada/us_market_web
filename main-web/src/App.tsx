@@ -3139,6 +3139,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                 <div className="courseSummaryRich articleProse">{richCourseSummary(selected.summary, `${lessonCount} 节视频`)}</div>
                 {courseDiscountBlock(selected, "courseDiscountBlock detailDiscount")}
                 <button type="button" className="courseDetailUnlock" onClick={onUnlock}>联系开通</button>
+                <span className="courseDetailNote">开通后可播放完整视频</span>
               </div>
             </section>
             <section className="courseDetailBody">
@@ -3148,7 +3149,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
               </article>
               <aside className="courseOutlinePanel">
                 <h2>课程目录</h2>
-                {selected.lessons.length ? <div className="courseLockedLessons">{selected.lessons.map((lesson, index) => <div key={lesson.id}><span>{String(index + 1).padStart(2, "0")}</span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</div>)}</div> : <p>即将上线</p>}
+                {selected.lessons.length ? <div className="courseLockedLessons">{selected.lessons.map((lesson, index) => <div key={lesson.id}><span>{index + 1}</span><strong>{lesson.title}</strong><em>开通后播放</em></div>)}</div> : <p>即将上线</p>}
               </aside>
             </section>
           </>
@@ -3194,7 +3195,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                   <p>{compactText(item.summary, 82) || (lessonCount ? `${lessonCount} 节视频` : "即将上线")}</p>
                   <div className="courseCardMeta">{lessonCount ? <><span>{lessonCount} 节视频</span><span>{courseProgressLabel(item.progressStatus)}</span></> : null}</div>
                   <footer>
-                    {item.unlocked ? <em>{courseGrantText(item)}</em> : courseDiscountBlock(item)}
+                    {item.unlocked ? <em>{courseGrantText(item)}</em> : courseDiscountBlock(item) || <span className="courseCatalogActionText">查看目录</span>}
                     <span className="courseCardArrow" aria-hidden="true">→</span>
                   </footer>
                 </section>
