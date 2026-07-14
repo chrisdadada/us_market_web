@@ -10172,11 +10172,22 @@ body,
 
 .marketSectorHeatmap button.heatSmall {
   min-height: 0 !important;
-  padding: 10px 12px !important;
+  padding: 8px 10px !important;
+}
+
+.marketSectorHeatmap button.heatLabelOnly {
+  justify-content: flex-start;
+  padding: 7px 8px !important;
+}
+
+.marketSectorHeatmap button.heatBlank {
+  padding: 0 !important;
+  gap: 0;
 }
 
 .marketSectorHeatmap button strong {
   overflow: hidden;
+  max-width: 100%;
   color: #fff !important;
   font-size: 16px !important;
   font-weight: 560;
@@ -10185,19 +10196,37 @@ body,
   white-space: nowrap;
 }
 
+.marketSectorHeatmap button.heatCompact strong {
+  font-size: 14px !important;
+}
+
+.marketSectorHeatmap button.heatLabelOnly strong {
+  font-size: 11.5px !important;
+  line-height: 1.15 !important;
+}
+
 .marketSectorHeatmap button em,
 .marketSectorHeatmap button span {
+  overflow: hidden;
+  max-width: 100%;
   color: rgba(255, 255, 255, .94) !important;
   font-size: 12px !important;
   font-style: normal;
   font-weight: 560;
   line-height: 1.35 !important;
   opacity: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketSectorHeatmap button.heatCompact em {
+  font-size: 11px !important;
 }
 
 .marketSectorHeatmap button small {
   margin-top: auto;
   overflow: hidden;
+  max-width: 100%;
   color: rgba(255, 255, 255, .86) !important;
   font-size: 11.5px !important;
   font-weight: 520;

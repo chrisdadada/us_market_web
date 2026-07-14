@@ -1949,6 +1949,13 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
         sector,
         style,
         sizeClass: area > 1500 ? "heatLarge" : area > 650 ? "heatMedium" : "heatSmall",
+        contentClass: area > 1100 && rect.w >= 18 && rect.h >= 18
+          ? "heatFull"
+          : area > 420 && rect.w >= 12 && rect.h >= 12
+            ? "heatCompact"
+            : area > 160 && rect.w >= 9 && rect.h >= 9
+              ? "heatLabelOnly"
+              : "heatBlank",
         strengthClass: ratio > 0.58 || Math.abs(sectorChange(sector)) >= 2 ? "heatStrong" : ratio > 0.25 || Math.abs(sectorChange(sector)) >= 0.8 ? "heatMid" : "heatSoft"
       };
     });
@@ -2018,15 +2025,16 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
                     <button
                       type="button"
                       key={sector.sector}
-                      className={`${sectorFlowTone(sector)} ${tile.sizeClass} ${tile.strengthClass} ${sector.sector === selected?.sector ? "selected" : ""}`}
+                      className={`${sectorFlowTone(sector)} ${tile.sizeClass} ${tile.contentClass} ${tile.strengthClass} ${sector.sector === selected?.sector ? "selected" : ""}`}
                       style={tile.style}
                       aria-label={`${sector.sector} ${signed(sectorChange(sector))} ${money(sector.netFlowProxy)}`}
+                      title={`${sector.sector} ${signed(sectorChange(sector))} ${money(sector.netFlowProxy)}`}
                       onClick={() => setSelectedSector(sector.sector)}
                     >
-                      <strong>{sector.sector}</strong>
-                      <em>{signed(sectorChange(sector))}</em>
-                      {tile.sizeClass !== "heatSmall" ? <span>{money(sector.netFlowProxy)}</span> : null}
-                      {tile.sizeClass === "heatLarge" ? <small>{leaders}</small> : null}
+                      {tile.contentClass !== "heatBlank" ? <strong>{sector.sector}</strong> : null}
+                      {tile.contentClass === "heatCompact" || tile.contentClass === "heatFull" ? <em>{signed(sectorChange(sector))}</em> : null}
+                      {tile.contentClass === "heatFull" ? <span>{money(sector.netFlowProxy)}</span> : null}
+                      {tile.contentClass === "heatFull" ? <small>{leaders}</small> : null}
                     </button>
                   );
                 })}
