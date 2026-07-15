@@ -3201,7 +3201,14 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                 <section>
                   <h2>{item.title}</h2>
                   <p>{compactText(item.summary, 82) || (lessonCount ? `${lessonCount} 节视频` : "即将上线")}</p>
-                  <div className="courseCardMeta">{lessonCount ? <><span>{lessonCount} 节视频</span><span>{courseProgressLabel(item.progressStatus)}</span></> : null}</div>
+                  <div className="courseCardMeta">
+                    {lessonCount ? (
+                      <>
+                        <span>{lessonCount} 节视频</span>
+                        <span className={`courseStatusBadge ${item.progressStatus === "finished" ? "finished" : "updating"}`}>{courseProgressLabel(item.progressStatus)}</span>
+                      </>
+                    ) : null}
+                  </div>
                   <footer>
                     {item.unlocked ? <em>{courseGrantText(item)}</em> : courseDiscountBlock(item) || <span className="courseCatalogActionText">查看目录</span>}
                     <span className="courseCardArrow" aria-hidden="true">→</span>

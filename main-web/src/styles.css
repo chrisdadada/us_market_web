@@ -7370,6 +7370,11 @@ body,
   margin-right: 8px;
 }
 
+.courseCardMeta span + .courseStatusBadge::before {
+  content: none;
+  margin-right: 0;
+}
+
 .courseDiscountBlock {
   margin: 0 0 8px;
 }
@@ -7415,6 +7420,28 @@ body,
   font-size: 12px;
   font-style: normal;
   font-weight: 500;
+}
+
+.courseCardMeta .courseStatusBadge {
+  height: 23px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 5px;
+  padding: 0 8px;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.courseCardMeta .courseStatusBadge.updating {
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.courseCardMeta .courseStatusBadge.finished {
+  border: 1px solid #bbf7d0;
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .courseCardGrid footer {
