@@ -27,6 +27,24 @@ textarea {
   font: inherit;
 }
 
+input[type="date"] {
+  color-scheme: light;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: .78;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+input[type="date"]:hover::-webkit-calendar-picker-indicator,
+input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  background: #eef5ff;
+}
+
 .adminShell { min-height: 100vh; display: grid; grid-template-columns: 248px 1fr; }
 .sidebar { background: #fff; border-right: 1px solid #e4e9f0; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 14px; padding: 0 10px; }

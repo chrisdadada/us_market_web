@@ -2239,7 +2239,7 @@ function OpenPortfolioPage() {
             </div>
           </div>
           <form className={`openTradeForm ${form.side === "sell" ? "sellForm" : ""}`} onSubmit={submit}>
-            <label>日期<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="YYYY-MM-DD" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} /></label>
+            <label>日期<input type="date" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} required /></label>
             <label>标的{form.side === "sell" ? (
               <select value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })}>
                 <option value="">选择持仓</option>
