@@ -270,6 +270,7 @@ function DatePickerInput({
         pattern="\d{4}-\d{2}-\d{2}"
         placeholder="YYYY-MM-DD"
         value={value}
+        onClick={openPicker}
         onChange={(event) => onChange(event.target.value)}
         required={required}
       />
