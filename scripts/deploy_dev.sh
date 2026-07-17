@@ -36,7 +36,7 @@ COPYFILE_DISABLE=1 tar \
   --exclude='dongbimao-site.tar.gz' \
   --exclude='__pycache__' \
   -czf "${ARCHIVE}" \
-  index.html admin.html styles.css app.js assets data/product.db server scripts admin-web/dist main-web/dist
+  index.html admin.html styles.css app.js assets server scripts admin-web/dist main-web/dist
 
 rsync --partial "${ARCHIVE}" "${SERVER}:${REMOTE_ARCHIVE}"
 
