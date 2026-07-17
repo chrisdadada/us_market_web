@@ -233,6 +233,60 @@ function isLocalDateInputValue(value: string) {
   return date.getFullYear() === year && date.getMonth() + 1 === month && date.getDate() === day;
 }
 
+function DatePickerInput({
+  value,
+  onChange,
+  required = false,
+  pickerLabel = "选择日期"
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  pickerLabel?: string;
+}) {
+  const pickerRef = useRef<HTMLInputElement>(null);
+
+  function openPicker() {
+    const picker = pickerRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (!picker) return;
+    picker.focus();
+    if (picker.showPicker) {
+      try {
+        picker.showPicker();
+        return;
+      } catch {
+        // Fall back to the native click below.
+      }
+    }
+    picker.click();
+  }
+
+  return (
+    <div className="datePickerInput">
+      <input
+        className="datePickerText"
+        type="text"
+        inputMode="numeric"
+        pattern="\d{4}-\d{2}-\d{2}"
+        placeholder="YYYY-MM-DD"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+      />
+      <button type="button" className="datePickerButton" onClick={openPicker} aria-label={pickerLabel} />
+      <input
+        ref={pickerRef}
+        className="datePickerNative"
+        type="date"
+        value={isLocalDateInputValue(value) ? value : ""}
+        onChange={(event) => onChange(event.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
+
 function grantExpiryPreset(days: 30 | 180 | 365, base?: string | null) {
   return days === 365 ? dateAfterMonths(12, base) : dateAfterDays(days, base);
 }
@@ -2239,7 +2293,7 @@ function OpenPortfolioPage() {
             </div>
           </div>
           <form className={`openTradeForm ${form.side === "sell" ? "sellForm" : ""}`} onSubmit={submit}>
-            <label>日期<input type="date" value={form.tradeTime} onChange={(event) => setForm({ ...form, tradeTime: event.target.value })} required /></label>
+            <label>日期<DatePickerInput value={form.tradeTime} onChange={(tradeTime) => setForm({ ...form, tradeTime })} required pickerLabel="选择交易日期" /></label>
             <label>标的{form.side === "sell" ? (
               <select value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })}>
                 <option value="">选择持仓</option>
