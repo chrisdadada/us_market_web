@@ -45,8 +45,8 @@ old_db = "/opt/dongbimao-dev/data/product.db"
 
 def table_exists(conn, schema, name):
     return conn.execute(
-        f"SELECT 1 FROM {schema}.sqlite_master WHERE type = 'table' AND name = ?",
-        (name,),
+        f"SELECT 1 FROM {schema}.sqlite_master WHERE type = ? AND name = ?",
+        ("table", name),
     ).fetchone() is not None
 
 
