@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260709-product1" />
+    <link rel="stylesheet" href="./styles.css?v=20260721-market-tools1" />
   </head>
   <body>
     <div class="app-shell">
@@ -304,12 +304,10 @@
           </section>
         </section>
 
-        <section class="page-view" data-view="risk">
-          <div class="page-heading page-heading-simple">
+        <section class="page-view market-temperature-workspace" data-view="risk">
+          <div class="page-heading page-heading-simple market-tool-heading">
             <div>
-              <p class="eyebrow">市场温度</p>
               <h1>市场温度计</h1>
-              <p class="subtitle">用波动率、利率、通胀、美元和原油环境判断当前复盘强度，以及哪些线索需要降级观察。</p>
             </div>
             <div class="source">
               <span>更新至</span>
@@ -320,15 +318,18 @@
           <div class="risk-dashboard">
             <section class="temperature-hero">
               <div class="temperature-copy">
-                <span>当前市场温度</span>
+                <span>今日判断</span>
                 <h2 id="temperatureTitle">偏冷，先防守</h2>
                 <p id="temperatureSummary">风险信号增多，先控制观察节奏和回撤。</p>
                 <div class="temperature-actions">
+                  <span>今日重点</span>
                   <strong id="temperatureAction">降低观察频率</strong>
-                  <span>辅助判断</span>
                 </div>
               </div>
               <div class="thermometer-card" aria-label="市场温度分数">
+                <span>当前市场温度</span>
+                <div class="temperature-score-line"><strong id="temperatureScore">49</strong><em>/ 100</em></div>
+                <b id="temperatureStateTag">等待数据</b>
                 <div class="thermometer-scale">
                   <i id="temperatureNeedle" style="left: 49%"></i>
                 </div>
@@ -337,8 +338,13 @@
                   <span>观察</span>
                   <span>偏强</span>
                 </div>
-                <strong id="temperatureScore">49</strong>
-                <p id="temperatureScoreLabel">满分 100，越高代表市场越友好。</p>
+                <p class="visually-hidden" id="temperatureScoreLabel">满分 100，越高代表市场越友好。</p>
+              </div>
+              <div class="temperature-driver-panel">
+                <span>主要影响</span>
+                <div class="temperature-driver-list" id="temperatureDriverList">
+                  <div><strong>等待数据</strong><b>--</b><small>--</small></div>
+                </div>
               </div>
             </section>
 
@@ -407,11 +413,12 @@
 
             <section class="macro-pressure-panel" data-lockable-module="macro-pressure">
               <div class="section-title">
-                <div>
-                  <span>因子读数表</span>
-                  <h2>压力来源、读数和变化</h2>
+                <div><h2>市场压力因子</h2></div>
+                <div class="market-tool-tabs" role="tablist" aria-label="市场压力因子视图">
+                  <button class="is-active" type="button" data-temperature-view="key" aria-selected="true">关键指标</button>
+                  <button type="button" data-temperature-view="all" aria-selected="false">全部指标</button>
+                  <button type="button" data-temperature-view="charts" aria-selected="false">指标走势</button>
                 </div>
-                <p id="macroPressureSummary">读取最新宏观数据后，会按指标、当前读数、压力位置和资产影响排序。</p>
               </div>
               <div class="macro-pressure-table-wrap">
                 <table class="macro-pressure-table data-table">
@@ -419,32 +426,28 @@
                     <tr>
                       <th>因子</th>
                       <th>当前读数</th>
-                      <th>压力位置</th>
                       <th>变化</th>
-                      <th>影响资产</th>
-                      <th>复盘动作</th>
+                      <th>压力</th>
+                      <th>主要影响</th>
                     </tr>
                   </thead>
                   <tbody id="macroPressureGrid">
-                    <tr><td colspan="6">等待宏观压力数据。</td></tr>
+                    <tr><td colspan="5">等待宏观压力数据。</td></tr>
                   </tbody>
                 </table>
               </div>
             </section>
 
-            <section class="macro-series-panel" data-lockable-module="macro-series" aria-label="宏观指标历史走势图">
+            <section class="macro-series-panel" data-lockable-module="macro-series" aria-label="宏观指标历史走势图" hidden>
               <div class="section-title">
-                <div>
-                  <span>指标走势</span>
-                  <h2>宏观指标历史走势</h2>
-                </div>
+                <div><h2>指标走势</h2></div>
                 <div class="macro-series-range" role="group" aria-label="选择指标走势时间范围">
                   <button class="is-active" type="button" data-macro-series-range="1y" aria-pressed="true">1年</button>
                   <button type="button" data-macro-series-range="3y" aria-pressed="false">3年</button>
                   <button type="button" data-macro-series-range="5y" aria-pressed="false">5年</button>
                 </div>
               </div>
-              <p class="macro-series-summary" id="macroSeriesSummary">等待历史数据</p>
+              <p class="visually-hidden" id="macroSeriesSummary">等待历史数据</p>
               <div class="macro-series-grid" id="macroSeriesGrid">
                 <article class="macro-series-empty">
                   <span>等待历史数据</span>
@@ -966,13 +969,10 @@
           </section>
         </section>
 
-        <section class="page-view workspace-page evidence-workspace" data-view="strength">
-          <span class="visually-hidden">股票机会跟踪榜单</span>
-          <div class="page-heading workspace-header">
+        <section class="page-view market-strength-workspace" data-view="strength">
+          <div class="page-heading market-tool-heading">
             <div>
-              <p class="eyebrow">股票机会跟踪榜单</p>
-              <h1>股票机会跟踪榜单</h1>
-              <p class="subtitle">先按懂币猫重点标的池跟踪趋势、成交额和回踩承接，减少新手在几千只股票里乱翻。</p>
+              <h1>全市场强弱</h1>
             </div>
             <div class="source source-chip">
               <span>扫描日期</span>
@@ -982,23 +982,36 @@
 
           <section class="strength-overview metric-row" aria-label="强弱扫描摘要">
             <article class="metric-cell">
-              <span>跟踪池</span>
+              <span>市场中位强度</span>
               <strong id="strengthUniverse">--</strong>
+              <p id="strengthUniverseNote">--</p>
             </article>
             <article class="metric-cell">
-              <span>重点观察</span>
+              <span>领先板块</span>
               <strong id="strengthLeader">--</strong>
+              <p id="strengthLeaderNote">--</p>
             </article>
             <article class="metric-cell">
-              <span>风险回避</span>
-              <strong id="strengthWeakest">--</strong>
-              <p>走势明显落后，先降低观察优先级。</p>
-            </article>
-            <article class="metric-cell">
-              <span>别急着追</span>
+              <span>偏热标的</span>
               <strong id="strengthCrowdingCount">--</strong>
-              <p>短线已经偏热，等分歧或回踩后再复盘。</p>
+              <p>等分歧或回踩</p>
             </article>
+            <article class="metric-cell">
+              <span>落后板块</span>
+              <strong id="strengthWeakest">--</strong>
+              <p id="strengthWeakestNote">--</p>
+            </article>
+          </section>
+
+          <section class="strength-sector-board">
+            <div>
+              <header><h2>行业强弱</h2><span>近20日相对大盘</span></header>
+              <div class="strength-sector-list" id="strengthSectorList"><p>等待数据</p></div>
+            </div>
+            <div>
+              <header><h2>今日先看</h2><span>按强弱与热度</span></header>
+              <div class="strength-watch-summary" id="strengthWatchSummary"><p>等待数据</p></div>
+            </div>
           </section>
 
           <section class="product-insight-grid evidence-note-row" id="strengthInsightGrid" aria-label="强弱观察说明">
@@ -1063,8 +1076,8 @@
             <section class="strength-panel desk-panel" data-module="strength-lists">
               <div class="panel-head desk-panel-header">
                 <div class="board-tabs segmented-tabs" aria-label="强弱榜单切换">
-                  <button class="board-tab strength-tab is-active" type="button" data-strength-bucket="strongest">全部跟踪</button>
-                  <button class="board-tab strength-tab" type="button" data-strength-bucket="watchlist">等回踩</button>
+                  <button class="board-tab strength-tab is-active" type="button" data-strength-bucket="strongest">值得观察</button>
+                  <button class="board-tab strength-tab" type="button" data-strength-bucket="watchlist">强但偏热</button>
                   <button class="board-tab strength-tab" type="button" data-strength-bucket="weakest">风险回避</button>
                 </div>
                 <div class="summary" id="strengthResultSummary">--</div>
@@ -1073,18 +1086,21 @@
               <div class="strength-toolbar filter-bar">
                 <label class="search-box">
                   <span>搜索</span>
-                  <input id="strengthSearchInput" type="search" placeholder="代码、公司名或标签" />
+                  <input id="strengthSearchInput" type="search" placeholder="搜索代码或公司名" />
                 </label>
                 <label class="select-box">
-                  <span>标签</span>
-                  <select id="strengthLabelFilter">
-                    <option value="all">全部标签</option>
+                  <span>板块</span>
+                  <select id="strengthSectorFilter">
+                    <option value="all">全部板块</option>
                   </select>
                 </label>
                 <label class="select-box">
-                  <span>入选原因</span>
-                  <select id="strengthFactorFilter">
-                    <option value="all">全部原因</option>
+                  <span>热度</span>
+                  <select id="strengthHeatFilter">
+                    <option value="all">全部热度</option>
+                    <option value="normal">不过热</option>
+                    <option value="rising">热度上升</option>
+                    <option value="hot">偏热</option>
                   </select>
                 </label>
                 <button class="ghost-action filter-clear-action" type="button" data-strength-clear>清除筛选</button>
@@ -1095,14 +1111,13 @@
                   <thead>
                     <tr>
                       <th>排名</th>
-                      <th>在榜时间</th>
                       <th>股票</th>
-                      <th>结论 / 下一步</th>
-                      <th>相对表现</th>
-                      <th>近期表现</th>
-                      <th>位置</th>
-                      <th>高热度风险</th>
-                      <th>流动性</th>
+                      <th>板块</th>
+                      <th>近20日</th>
+                      <th>相对大盘</th>
+                      <th>成交热度</th>
+                      <th>状态</th>
+                      <th>观察建议</th>
                     </tr>
                   </thead>
                   <tbody id="strengthBody"></tbody>
@@ -2821,6 +2836,6 @@
       </section>
     </div>
 
-          <script src="./app.js?v=20260709-product1"></script>
+          <script src="./app.js?v=20260721-market-tools1"></script>
   </body>
 </html>

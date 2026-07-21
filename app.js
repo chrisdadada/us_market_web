@@ -51,12 +51,13 @@ const state = {
   sectorFlow: null,
   strengthBucket: "strongest",
   strengthQuery: "",
-  strengthLabelFilter: "all",
-  strengthFactorFilter: "all",
+  strengthSectorFilter: "all",
+  strengthHeatFilter: "all",
   earningsQuality: null,
   marketTemperature: null,
   macroSeries: null,
   macroSeriesRange: "1y",
+  temperatureView: "key",
   indexValuation: null,
   optionsFlow: null,
   valuationIndex: "QQQ",
@@ -588,6 +589,14 @@ const loadProductMarketOpinion = () => {
 };
 
 const lazyDatasets = {
+  marketTemperature: {
+    url: `${PRODUCT_API_BASE}/raw/market-temperature`,
+    render: (payload) => renderMarketTemperature(payload),
+  },
+  strength: {
+    url: `${PRODUCT_API_BASE}/raw/strength-scanner`,
+    render: (payload) => renderStrengthScanner(payload),
+  },
   macroSeries: {
     url: `${PRODUCT_API_BASE}/raw/macro-series`,
     render: (payload) => renderMacroSeries(payload),
@@ -640,8 +649,10 @@ const loadLazyDataset = async (key) => {
 };
 
 const ensurePageData = (page) => {
+  if (pageAccessRules[page] && !hasPageAccess(page)) return Promise.resolve([]);
   const jobs = [];
-  if (page === "risk") jobs.push(loadLazyDataset("macroSeries"));
+  if (page === "risk") jobs.push(loadLazyDataset("marketTemperature"), loadLazyDataset("macroSeries"));
+  if (page === "strength") jobs.push(loadLazyDataset("strength"));
   if (page === "valuation") jobs.push(loadLazyDataset("indexValuation"));
   if (page === "options") jobs.push(loadLazyDataset("optionsFlow"));
   if (page === "signals" || page === "tracking") jobs.push(loadSignals());
@@ -795,7 +806,7 @@ const roleLabel = (role) => {
   return "普通用户";
 };
 
-const superAdminToolPages = new Set(["risk", "strength", "valuation", "mag7", "options", "signals", "stock-events", "earnings", "watchlist"]);
+const superAdminToolPages = new Set(["valuation", "mag7", "options", "signals", "stock-events", "earnings", "watchlist"]);
 
 const planLabel = (plan) => {
   if (plan === "monthly") return "月度";
@@ -1251,6 +1262,10 @@ const renderAuthState = () => {
   renderStrengthPremiumSections();
   renderSubscriptionState();
   renderMembershipGates();
+  const activePage = document.querySelector(".page-view.is-active")?.dataset.view;
+  if (activePage && (!pageAccessRules[activePage] || hasPageAccess(activePage))) {
+    ensurePageData(activePage);
+  }
   if (!authenticated) {
     button.textContent = "登录";
     return;
@@ -8688,7 +8703,7 @@ const marketIndicatorTip = (indicator) => {
   return indicator?.explain || "这个指标会影响市场风险偏好，用来辅助判断市场环境是偏积极、中性还是偏防守。";
 };
 
-const macroPressureKeys = ["dgs10", "dgs30", "dtwexbgs", "dcoilwtico", "cpiaucsl"];
+const macroPressureKeys = ["vixcls", "dgs10", "dgs30", "dtwexbgs", "dcoilwtico", "dcoilbrenteu", "cpiaucsl"];
 
 const macroImpactCopy = (indicator) => {
   const key = String(indicator?.key || "").toLowerCase();
@@ -8769,7 +8784,9 @@ const macroPressureRows = (indicators = []) => {
     const existing = byKey.get(row.key);
     byKey.set(row.key, existing ? { ...row, ...existing, points: row.points, percentiles: row.percentiles, bands: row.bands, percentile: row.percentile, unit: row.unit || existing.unit } : row);
   });
-  return macroPressureKeys.map((key) => byKey.get(key)).filter(Boolean);
+  const primaryRows = macroPressureKeys.map((key) => byKey.get(key)).filter(Boolean);
+  const primaryKeys = new Set(primaryRows.map((item) => item.key));
+  return [...primaryRows, ...[...byKey.values()].filter((item) => !primaryKeys.has(item.key))];
 };
 
 const getMacroIndicator = (key) =>
@@ -9042,10 +9059,26 @@ const clearMacroPoolFilter = () => {
   renderTable();
 };
 
+const renderTemperatureWorkspaceView = () => {
+  const factorPanel = document.querySelector('[data-view="risk"] .macro-pressure-panel');
+  const chartsPanel = document.querySelector('[data-view="risk"] .macro-series-panel');
+  const showCharts = state.temperatureView === "charts";
+  if (factorPanel) factorPanel.hidden = showCharts;
+  if (chartsPanel) chartsPanel.hidden = !showCharts;
+  document.querySelectorAll("[data-temperature-view]").forEach((button) => {
+    const active = button.dataset.temperatureView === state.temperatureView;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+};
+
 const renderMacroPressure = (indicators) => {
   const grid = document.querySelector("#macroPressureGrid");
   if (!grid) return;
-  const macroRows = macroPressureRows(indicators);
+  const allRows = macroPressureRows(indicators);
+  const macroRows = state.temperatureView === "all"
+    ? allRows
+    : allRows.filter((item) => macroPressureKeys.includes(normalizeMacroIndicatorKey(item)));
   const pressureCount = macroRows.filter((item) => item.status === "watch").length;
   const neutralCount = macroRows.filter((item) => item.status === "neutral").length;
   setText(
@@ -9066,23 +9099,16 @@ const renderMacroPressure = (indicators) => {
               <strong>${escapeHtml(indicator.value || "--")}</strong>
               <span>前值 ${escapeHtml(indicator.previous || "--")}</span>
             </td>
-            <td>
-              <div class="macro-pressure-rank ${signalClass(indicator.status)}">
-                <b>${escapeHtml(indicator.level || "--")}</b>
-                ${macroPressureSparkline(indicator)}
-              </div>
-            </td>
             <td><em class="${indicatorChangeMetaClass(indicator.change)}">${escapeHtml(indicatorChangeMetaLabel(indicator.change))}</em></td>
+            <td><b class="temperature-pressure-badge ${signalClass(indicator.status)}">${escapeHtml(indicator.level || "--")}</b></td>
             <td>${escapeHtml(macroFactorAffectedAssets(indicator))}</td>
-            <td>${escapeHtml(macroFactorAction(indicator))}</td>
           </tr>
         `)
         .join("")
     : `
-      <tr><td colspan="6">宏观压力数据生成前，页面保持可用。</td></tr>
+      <tr><td colspan="5">暂无可用指标</td></tr>
     `;
-  renderMacroStockPools();
-  renderMacroMonitor();
+  renderTemperatureWorkspaceView();
 };
 
 const macroSeriesOrder = ["vixcls", "dgs10", "dgs30", "dtwexbgs", "dcoilwtico", "dcoilbrenteu", "cpiaucsl"];
@@ -9937,24 +9963,43 @@ const normalizeTemperaturePayload = (payload) => {
   };
 };
 
+const temperatureDecisionSummary = (indicators) => {
+  const high = indicators.filter((item) => item.status === "watch").slice(0, 3).map((item) => item.name);
+  const stable = indicators.filter((item) => item.status === "positive").slice(0, 2).map((item) => item.name);
+  const parts = [];
+  if (high.length) parts.push(`压力较高：${high.join("、")}`);
+  if (stable.length) parts.push(`相对稳定：${stable.join("、")}`);
+  return parts.join("；") || "当前指标整体处于中性区间。";
+};
+
+const renderTemperatureDrivers = (indicators) => {
+  const list = document.querySelector("#temperatureDriverList");
+  if (!list) return;
+  const rank = { watch: 0, neutral: 1, positive: 2 };
+  const rows = [...indicators]
+    .sort((a, b) => (rank[a.status] ?? 1) - (rank[b.status] ?? 1))
+    .slice(0, 4);
+  list.innerHTML = rows.length
+    ? rows.map((item) => `
+        <div class="${signalClass(item.status)}">
+          <strong>${escapeHtml(item.name)}</strong>
+          <b>${escapeHtml(item.level || "--")}</b>
+          <small>${escapeHtml(item.value || "--")}</small>
+        </div>
+      `).join("")
+    : "<p>暂无可用指标</p>";
+};
+
 const renderMarketTemperature = (payload) => {
-  state.marketTemperature = payload;
   const normalized = normalizeTemperaturePayload(payload);
-  state.marketTemperature = { ...(payload || {}), ...normalized };
+  state.marketTemperature = payload ? { ...payload, ...normalized } : null;
   const overall = normalized.overall || {};
   const score = Number.isFinite(Number(overall.score)) ? Math.max(0, Math.min(100, Number(overall.score))) : 50;
   const label = overall.label || "等待数据";
   const summary = overall.summary || "市场温度数据暂时不可用，先按观察环境处理，避免因为缺少数据而做激进决定。";
   const action = overall.action || "先观察，等数据更新";
   const className = temperatureClassFromScore(score);
-  const position = score >= 70 ? "70%-85%" : score >= 50 ? "45%-65%" : "20%-40%";
-
-  const readableConclusion =
-    score >= 70
-      ? "结论：市场环境偏友好，强势股和事件共振线索的复盘优先级更高。"
-      : score >= 50
-        ? "结论：市场环境中性，先保持观察，等价格和成交额确认。"
-        : "结论：市场环境偏防守，高波动线索降级观察。";
+  const indicators = normalized.indicators;
 
   setText("#temperatureAsOf", normalized.asOf || "--");
   setText("#marketRegimeLabel", label);
@@ -9962,19 +10007,18 @@ const renderMarketTemperature = (payload) => {
   setText("#dashboardTemperatureScore", String(score));
   setText("#dashboardTemperatureLabel", label);
   setText("#dashboardTemperatureCopy", summary);
-  setText("#temperatureTitle", label === "等待数据" ? "等待温度数据" : `${score}分 · ${label}环境`);
-  setText("#temperatureSummary", readableConclusion);
-  setText("#temperatureAction", `观察重点：${action}`);
+  setText("#temperatureTitle", label === "等待数据" ? "等待温度数据" : `市场环境${label}`);
+  setText("#temperatureSummary", temperatureDecisionSummary(indicators));
+  setText("#temperatureAction", action);
   setText("#temperatureScore", String(score));
+  setText("#temperatureStateTag", label);
   setText("#temperatureScoreLabel", `${label}环境。满分 100，分数越高，说明市场环境越偏积极。`);
-  setText("#dashboardRiskBudget", position);
   setText("#dashboardRiskNote", summary);
-  setText("#riskBudgetValue", position);
-  setText("#riskBudgetNote", `当前观察强度参考 ${position}，其余留给确认后的线索。`);
-  setText("#riskRegimeValue", label);
-  setText("#riskRegimeNote", readableConclusion.replace(/^结论：/, ""));
-  setText("#riskActionValue", action);
-  setText("#riskActionNote", "先用温度判断复盘强度，再查看强弱榜和事件观察里的具体线索。");
+  const stateTag = document.querySelector("#temperatureStateTag");
+  if (stateTag) {
+    stateTag.classList.remove("is-positive", "is-neutral", "is-watch");
+    stateTag.classList.add(score >= 70 ? "is-positive" : score >= 50 ? "is-neutral" : "is-watch");
+  }
 
   const needle = document.querySelector("#temperatureNeedle");
   if (needle) needle.style.left = `${score}%`;
@@ -9983,7 +10027,7 @@ const renderMarketTemperature = (payload) => {
     item.classList.add(className);
   });
 
-  const indicators = normalized.indicators;
+  renderTemperatureDrivers(indicators);
   renderMacroPressure(indicators);
   const grid = document.querySelector("#riskSignalGrid");
   if (grid) {
@@ -10002,20 +10046,7 @@ const renderMarketTemperature = (payload) => {
       : '<tr><td colspan="4">温度数据生成前，页面保持可用，不影响其他工具。</td></tr>';
   }
 
-  const ruleTimeline = document.querySelector("#riskRuleTimeline");
-  if (ruleTimeline) {
-    ruleTimeline.innerHTML = temperatureWatchPlan(score, label, position)
-      .map(
-        ([title, note, done], index) => `
-          <div class="${done ? "is-done" : ""}">
-            <span>${String(index + 1).padStart(2, "0")}</span>
-            <strong>${escapeHtml(title)}</strong>
-            <p>${escapeHtml(note)}</p>
-          </div>
-        `,
-      )
-      .join("");
-  }
+  renderTemperatureWorkspaceView();
   renderDashboardFocus();
 };
 
@@ -10081,24 +10112,48 @@ const trackedStrengthRows = () =>
     };
   });
 
+const strengthScannerRows = () =>
+  (Array.isArray(state.strength?.rows) ? state.strength.rows : []).map((row, index) => ({
+    ...row,
+    rank: Number(row.rank || index + 1),
+    symbol: normalizeStockSymbol(row.symbol),
+    name: row.name || row.company || row.symbol || "--",
+    sectorProxy: row.sectorProxy || row.sector || "--",
+    periods: row.periods || {},
+    relative: row.relative || {},
+    crowding: row.crowding || { score: 0, volumeRatio: "--" },
+  }));
+
+const strengthRowBucket = (row) => {
+  const score = Number(row?.score || 0);
+  const heat = Number(row?.crowding?.score || 0);
+  if (score >= 75 && heat < 72) return "strongest";
+  if (score >= 75 && heat >= 72) return "watchlist";
+  if (score < 55) return "weakest";
+  return "other";
+};
+
+const strengthHeatBucket = (row) => {
+  const heat = Number(row?.crowding?.score || 0);
+  if (heat >= 72) return "hot";
+  if (heat >= 52) return "rising";
+  return "normal";
+};
+
 const getStrengthRows = () => {
   if (!state.strength || !Array.isArray(state.strength.rows)) return [];
   const query = state.strengthQuery.trim().toLowerCase();
-  return trackedStrengthRows().filter((row) => {
-    const matchesBucket =
-      state.strengthBucket === "strongest" ||
-      (state.strengthBucket === "watchlist" && Number(row.crowding?.score || 0) >= 72) ||
-      (state.strengthBucket === "weakest" && Number(row.score || 0) < 55);
+  return strengthScannerRows().filter((row) => {
+    const matchesBucket = strengthRowBucket(row) === state.strengthBucket;
     const matchesQuery =
       !query ||
       row.symbol.toLowerCase().includes(query) ||
       row.name.toLowerCase().includes(query) ||
-      row.label.includes(query) ||
-      row.primaryFactor.includes(query) ||
-      row.sectorProxy.includes(query);
-    const matchesLabel = state.strengthLabelFilter === "all" || row.label === state.strengthLabelFilter;
-    const matchesFactor = state.strengthFactorFilter === "all" || row.primaryFactor === state.strengthFactorFilter;
-    return matchesBucket && matchesQuery && matchesLabel && matchesFactor;
+      String(row.label || "").toLowerCase().includes(query) ||
+      String(row.sectorProxy || "").toLowerCase().includes(query);
+    const matchesSector = state.strengthSectorFilter === "all" || row.sectorProxy === state.strengthSectorFilter;
+    const matchesHeat = state.strengthHeatFilter === "all" || strengthHeatBucket(row) === state.strengthHeatFilter;
+    return matchesBucket && matchesQuery && matchesSector && matchesHeat;
   });
 };
 
@@ -10110,10 +10165,11 @@ const scoreClass = (score) => {
 
 const strengthStateLabel = (row) => {
   if (!row) return "--";
-  if (row.bucket === "weakest") return "偏弱";
-  if (row.bucket === "watchlist") return row.crowding && row.crowding.score >= 72 ? "偏热" : "观察";
-  if (row.crowding && row.crowding.score >= 72) return "强但热";
-  return "领先";
+  const bucket = strengthRowBucket(row);
+  if (bucket === "weakest") return "风险回避";
+  if (bucket === "watchlist") return "强但偏热";
+  if (bucket === "strongest") return "值得观察";
+  return row.label || "中性";
 };
 
 const crowdingLabel = (score) => {
@@ -10133,14 +10189,11 @@ const breakoutLabel = (row) => {
 
 const renderStrengthFilterOptions = () => {
   if (!state.strength || !Array.isArray(state.strength.rows)) return;
-  const labelSelect = document.querySelector("#strengthLabelFilter");
-  const factorSelect = document.querySelector("#strengthFactorFilter");
-  if (!labelSelect || !factorSelect) return;
-  const rows = trackedStrengthRows();
-  const labels = Array.from(new Set(rows.map((row) => row.label))).sort((a, b) => a.localeCompare(b, "zh-CN"));
-  const factors = Array.from(new Set(rows.map((row) => row.primaryFactor))).sort((a, b) => a.localeCompare(b, "zh-CN"));
-  labelSelect.innerHTML = '<option value="all">全部标签</option>' + labels.map((label) => `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`).join("");
-  factorSelect.innerHTML = '<option value="all">全部原因</option>' + factors.map((factor) => `<option value="${escapeHtml(factor)}">${escapeHtml(factor)}</option>`).join("");
+  const sectorSelect = document.querySelector("#strengthSectorFilter");
+  if (!sectorSelect) return;
+  const sectors = Array.from(new Set(strengthScannerRows().map((row) => row.sectorProxy).filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+  sectorSelect.innerHTML = '<option value="all">全部板块</option>' + sectors.map((sector) => `<option value="${escapeHtml(sector)}">${escapeHtml(sector)}</option>`).join("");
+  sectorSelect.value = sectors.includes(state.strengthSectorFilter) ? state.strengthSectorFilter : "all";
 };
 
 const renderStrengthHero = (row) => {
@@ -10262,21 +10315,60 @@ const renderStrengthInsightGrid = () => {
   `;
 };
 
+const renderStrengthSectorBoard = (strength) => {
+  const sectorList = document.querySelector("#strengthSectorList");
+  const watchSummary = document.querySelector("#strengthWatchSummary");
+  if (!sectorList || !watchSummary) return;
+  const themes = strength?.themes || {};
+  const sectors = [
+    ...(Array.isArray(themes.leaders) ? themes.leaders.slice(0, 3) : []),
+    ...(Array.isArray(themes.risk) ? themes.risk.slice(0, 3) : []),
+  ];
+  const maxAbs = Math.max(1, ...sectors.map((item) => Math.abs(parseSignedPercent(item.vsMarket))));
+  sectorList.innerHTML = sectors.length
+    ? sectors.map((item) => {
+        const value = parseSignedPercent(item.vsMarket);
+        const positive = value >= 0;
+        const width = Math.max(4, Math.min(48, (Math.abs(value) / maxAbs) * 48));
+        return `
+          <div class="strength-sector-row ${positive ? "is-positive" : "is-negative"}">
+            <b>${escapeHtml(item.name || "--")}</b>
+            <span><i style="width:${width.toFixed(1)}%"></i></span>
+            <em>${escapeHtml(item.vsMarket || "--")}</em>
+          </div>
+        `;
+      }).join("")
+    : "<p>暂无行业强弱数据</p>";
+
+  const rows = strengthScannerRows();
+  const symbols = (bucket, limit = 3) => rows.filter((row) => strengthRowBucket(row) === bucket).slice(0, limit).map((row) => row.symbol).join(" / ") || "--";
+  watchSummary.innerHTML = `
+    <div><span>强势但不过热</span><strong>${escapeHtml(symbols("strongest"))}</strong></div>
+    <div><span>强势但偏热</span><strong>${escapeHtml(symbols("watchlist"))}</strong></div>
+    <div><span>降低优先级</span><strong>${escapeHtml(symbols("weakest", 1))}</strong></div>
+  `;
+};
+
 const renderStrengthScanner = (strength) => {
   if (!strength) return;
   state.strength = strength;
   const summary = strength.summary || {};
-  const universe = strength.universe || {};
-  const rows = trackedStrengthRows();
-  const strongest = rows[0];
+  const rows = strengthScannerRows();
+  const strongest = rows.find((row) => strengthRowBucket(row) === "strongest") || rows[0];
+  const leadTheme = strength.themes?.leaders?.[0];
+  const weakTheme = strength.themes?.risk?.[0];
 
   setText("#strengthAsOf", strength.asOf);
-  setText("#strengthUniverse", `${STRENGTH_TRACK_SYMBOLS.length}只`);
-  setText("#strengthLeader", strongest?.symbol || "--");
-  setText("#strengthWeakest", summary.weakest || "--");
+  setText("#strengthUniverse", summary.medianScore == null ? "--" : String(summary.medianScore));
+  setText("#strengthUniverseNote", summary.medianScore == null ? "--" : "整体分化");
+  setText("#strengthLeader", leadTheme?.name || summary.leader || "--");
+  setText("#strengthLeaderNote", leadTheme?.return20d ? `近20日 ${leadTheme.return20d}` : "--");
+  setText("#strengthWeakest", weakTheme?.name || summary.weakest || "--");
+  setText("#strengthWeakestNote", weakTheme?.return20d ? `近20日 ${weakTheme.return20d}` : "--");
   setText("#strengthCrowdingCount", summary.hotCrowdingCount == null ? "--" : `${summary.hotCrowdingCount}只`);
   renderStrengthHero(strongest);
   renderStrengthThemes(strength.themes);
+  renderStrengthSectorBoard(strength);
   renderStrengthFilterOptions();
   renderStrengthInsightGrid();
 
@@ -10324,55 +10416,32 @@ const renderStrengthTable = () => {
   const body = document.querySelector("#strengthBody");
   const summary = document.querySelector("#strengthResultSummary");
   if (!body || !summary) return;
-  const bucketLabel = state.strengthBucket === "strongest" ? "全部跟踪" : state.strengthBucket === "weakest" ? "风险回避" : "等回踩";
+  const bucketLabel = state.strengthBucket === "strongest" ? "值得观察" : state.strengthBucket === "weakest" ? "风险回避" : "强但偏热";
   summary.textContent = `${bucketLabel} · ${rows.length} 只股票`;
 
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="9">没有符合条件的股票</td></tr>';
+    body.innerHTML = '<tr><td colspan="8">没有符合条件的股票</td></tr>';
     return;
   }
 
   body.innerHTML = rows
     .map(
       (row) => `
-        <tr>
+        <tr data-stock-open="${escapeHtml(row.symbol)}" tabindex="0">
           <td class="rank-cell">${row.rank}</td>
-          <td class="on-board-cell">
-            <strong>${escapeHtml(row.onBoard ? row.onBoard.label : "今日新上榜")}</strong>
-            <span>${escapeHtml(row.onBoard && row.onBoard.firstSeen ? `本轮 ${row.onBoard.firstSeen}` : "")}</span>
-          </td>
           <td class="symbol-cell">
             <strong>${escapeHtml(row.symbol)}</strong>
             <span>${escapeHtml(row.name)}</span>
-            <div class="inline-action-row">
-              <button class="inline-stock-link" type="button" data-stock-open="${escapeHtml(row.symbol)}">完整画像</button>
-              <button class="inline-stock-link" type="button" data-watchlist-toggle="${escapeHtml(row.symbol)}" data-watchlist-source="强弱榜">${isInWatchlist(row.symbol) ? "已加入" : "加入自选"}</button>
-            </div>
           </td>
-          <td class="strength-action-cell">
-            <strong>${escapeHtml(row.label)}</strong>
-            <span>${escapeHtml(row.action)}</span>
+          <td>${escapeHtml(row.sectorProxy || "--")}</td>
+          <td class="strength-number ${parseSignedPercent(row.periods["20d"]) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(row.periods["20d"] || "--")}</td>
+          <td class="strength-number ${parseSignedPercent(row.relative.spy) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(row.relative.spy || "--")}</td>
+          <td class="strength-number">${escapeHtml(row.crowding.volumeRatio || "--")}</td>
+          <td class="strength-state-cell ${strengthRowBucket(row) === "weakest" ? "is-negative" : strengthRowBucket(row) === "watchlist" ? "is-watch" : "is-positive"}">
+            <strong>${escapeHtml(row.label || strengthStateLabel(row))}</strong>
+            <span>强度 ${escapeHtml(String(row.score ?? "--"))}</span>
           </td>
-          <td class="strength-mini-metrics">
-            <span>大盘 ${escapeHtml(row.relative.spy)}</span>
-            <span>纳指 ${escapeHtml(row.relative.qqq)}</span>
-            <span>行业 ${escapeHtml(row.relative.sector)}</span>
-          </td>
-          <td class="strength-mini-metrics">
-            <span>1D ${escapeHtml(row.periods["1d"])}</span>
-            <span>5D ${escapeHtml(row.periods["5d"])}</span>
-            <span>20D ${escapeHtml(row.periods["20d"])}</span>
-            <span>63D ${escapeHtml(row.periods["63d"])}</span>
-          </td>
-          <td class="strength-mini-metrics">
-            <strong>${escapeHtml(breakoutLabel(row))}</strong>
-            <span>${escapeHtml(row.primaryFactor)}</span>
-          </td>
-          <td class="strength-mini-metrics">
-            <strong>${escapeHtml(crowdingLabel(row.crowding.score))}</strong>
-            <span>成交额 ${escapeHtml(row.crowding.volumeRatio)}</span>
-          </td>
-          <td>${escapeHtml(row.liquidity)}</td>
+          <td class="strength-advice-cell">${escapeHtml(row.action || "继续观察")}</td>
         </tr>
       `,
     )
@@ -12433,6 +12502,18 @@ const bindEvents = () => {
       renderMarketVisualBoard();
       return;
     }
+    const temperatureView = event.target.closest("[data-temperature-view]");
+    if (temperatureView) {
+      event.preventDefault();
+      state.temperatureView = temperatureView.dataset.temperatureView || "key";
+      renderTemperatureWorkspaceView();
+      if (state.temperatureView === "charts") {
+        loadLazyDataset("macroSeries").then(() => renderMacroSeries(state.macroSeries));
+      } else {
+        renderMacroPressure(state.marketTemperature?.indicators || []);
+      }
+      return;
+    }
     const macroSeriesRange = event.target.closest("[data-macro-series-range]");
     if (macroSeriesRange) {
       event.preventDefault();
@@ -12819,7 +12900,7 @@ const bindEvents = () => {
         item.classList.toggle("is-active", item === tab);
         item.setAttribute("aria-pressed", item === tab ? "true" : "false");
       });
-      const leader = state.strength && state.strength.rows.find((row) => row.bucket === state.strengthBucket);
+      const leader = strengthScannerRows().find((row) => strengthRowBucket(row) === state.strengthBucket);
       renderStrengthHero(leader);
       renderStrengthTable();
     });
@@ -12831,29 +12912,29 @@ const bindEvents = () => {
     renderStrengthTable();
   });
 
-  const strengthLabelFilter = document.querySelector("#strengthLabelFilter");
-  if (strengthLabelFilter) strengthLabelFilter.addEventListener("change", (event) => {
-    state.strengthLabelFilter = event.target.value;
+  const strengthSectorFilter = document.querySelector("#strengthSectorFilter");
+  if (strengthSectorFilter) strengthSectorFilter.addEventListener("change", (event) => {
+    state.strengthSectorFilter = event.target.value;
     renderStrengthTable();
   });
 
-  const strengthFactorFilter = document.querySelector("#strengthFactorFilter");
-  if (strengthFactorFilter) strengthFactorFilter.addEventListener("change", (event) => {
-    state.strengthFactorFilter = event.target.value;
+  const strengthHeatFilter = document.querySelector("#strengthHeatFilter");
+  if (strengthHeatFilter) strengthHeatFilter.addEventListener("change", (event) => {
+    state.strengthHeatFilter = event.target.value;
     renderStrengthTable();
   });
 
   const strengthClear = document.querySelector("[data-strength-clear]");
   if (strengthClear) strengthClear.addEventListener("click", () => {
     state.strengthQuery = "";
-    state.strengthLabelFilter = "all";
-    state.strengthFactorFilter = "all";
+    state.strengthSectorFilter = "all";
+    state.strengthHeatFilter = "all";
     const search = document.querySelector("#strengthSearchInput");
-    const label = document.querySelector("#strengthLabelFilter");
-    const factor = document.querySelector("#strengthFactorFilter");
+    const sector = document.querySelector("#strengthSectorFilter");
+    const heat = document.querySelector("#strengthHeatFilter");
     if (search) search.value = "";
-    if (label) label.value = "all";
-    if (factor) factor.value = "all";
+    if (sector) sector.value = "all";
+    if (heat) heat.value = "all";
     renderStrengthTable();
   });
 
@@ -13060,6 +13141,11 @@ const bindEvents = () => {
     if (stockSortColumn && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
       setStocksSort(stockSortColumn.dataset.sortColumn);
+    }
+    const stockOpenRow = event.target.closest?.("tr[data-stock-open]");
+    if (stockOpenRow && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      openStockHub(stockOpenRow.dataset.stockOpen);
     }
   });
 };

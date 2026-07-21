@@ -75,6 +75,8 @@ ALLOWED_UPLOAD_MIMES = {
 PLANS = {"free", "paid", "monthly", "yearly"}
 ROLES = {"user", "admin", "super_admin"}
 LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus", "monthly", "yearly"}
+REGISTERED_DATASETS = {"market-temperature", "macro-series"}
+PAID_DATASETS = {"strength-scanner", "strength-review"}
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
@@ -891,6 +893,8 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     meta = product_dataset_meta(conn)
     core_raw = product_raw_payload(conn, "core-signals")
     strength_raw = product_raw_payload(conn, "strength-scanner")
+    strength_review_raw = product_raw_payload(conn, "strength-review")
+    market_temperature_raw = product_raw_payload(conn, "market-temperature")
     sector_flow_raw = product_raw_payload(conn, "sector-flow")
     generated_at = meta.get("generatedAt")
 
@@ -915,6 +919,8 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
         "movers": movers,
         "core": core_raw,
         "strength": strength_raw,
+        "strengthReview": strength_review_raw,
+        "marketTemperature": market_temperature_raw,
         "sectorFlow": sector_flow_raw,
     }
 
@@ -2811,6 +2817,8 @@ class Handler(BaseHTTPRequestHandler):
         if not name.replace("-", "").replace("_", "").isalnum():
             self.send_json({"error": "数据集名称不正确"}, HTTPStatus.BAD_REQUEST)
             return
+        if not self.require_dataset_access(name):
+            return
         try:
             with product_db() as conn:
                 if name == "health":
@@ -2843,13 +2851,22 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts) >= 3 and parts[2] == "bootstrap":
                     board_limit = int_param(params, "limit", 500, maximum=500)
                     symbols = market_opinion_list(params.get("symbols", [""])[0], upper=True)
-                    self.send_json(product_bootstrap_payload(conn, board_limit, symbols))
+                    payload = product_bootstrap_payload(conn, board_limit, symbols)
+                    user = self.current_user()
+                    if not user:
+                        payload["marketTemperature"] = None
+                    if not user or not entitlements(user)["paid"]:
+                        payload["strength"] = None
+                        payload["strengthReview"] = None
+                    self.send_json(payload)
                     return
 
                 if len(parts) >= 4 and parts[2] == "raw":
                     name = parts[3]
                     if not re.fullmatch(r"[a-z0-9-]+", name):
                         self.send_json({"error": "数据集名称不正确"}, HTTPStatus.BAD_REQUEST)
+                        return
+                    if not self.require_dataset_access(name):
                         return
                     payload = product_raw_payload(conn, name)
                     if payload is None:
@@ -2901,6 +2918,11 @@ class Handler(BaseHTTPRequestHandler):
         sector = str(params.get("sector", [""])[0]).strip()
         cap = str(params.get("cap", [""])[0]).strip().lower()
         preset = str(params.get("preset", [""])[0]).strip().lower()
+        user = self.current_user()
+        can_view_strength = bool(user and entitlements(user)["paid"])
+        if preset == "strength" and not can_view_strength:
+            self.send_json({"error": "月度或年度会员可查看", "code": "membership_required"}, HTTPStatus.FORBIDDEN)
+            return
         sort_key = str(params.get("sort", ["dollarVolume"])[0] or "dollarVolume").strip()
         sort_dir = str(params.get("dir", ["desc"])[0] or "desc").strip().lower()
         if sort_dir not in {"asc", "desc"}:
@@ -3009,9 +3031,14 @@ class Handler(BaseHTTPRequestHandler):
             """,
             (*values, query, f"{query}%", limit, offset),
         ).fetchall()
+        payload_rows = [product_stock_library_payload(row) for row in rows]
+        if not can_view_strength:
+            for payload in payload_rows:
+                payload.pop("strengthLabel", None)
+                payload.pop("strengthScore", None)
         self.send_json(
             {
-                "rows": [product_stock_library_payload(row) for row in rows],
+                "rows": payload_rows,
                 "total": total,
                 "limit": limit,
                 "offset": offset,
@@ -3090,7 +3117,9 @@ class Handler(BaseHTTPRequestHandler):
             """,
             (target,),
         ).fetchall()
-        strength = conn.execute("SELECT * FROM strength_rows WHERE symbol = ?", (target,)).fetchone()
+        user = self.current_user()
+        can_view_strength = bool(user and entitlements(user)["paid"])
+        strength = conn.execute("SELECT * FROM strength_rows WHERE symbol = ?", (target,)).fetchone() if can_view_strength else None
         self.send_json(
             {
                 "profile": product_symbol_payload(profile),
@@ -3283,6 +3312,18 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": "无管理员权限", "code": "forbidden"}, HTTPStatus.FORBIDDEN)
             return None
         return user
+
+    def require_dataset_access(self, name: str) -> bool:
+        if name not in REGISTERED_DATASETS and name not in PAID_DATASETS:
+            return True
+        user = self.current_user()
+        if not user:
+            self.send_json({"error": "请先登录", "code": "unauthenticated"}, HTTPStatus.UNAUTHORIZED)
+            return False
+        if name in PAID_DATASETS and not entitlements(user)["paid"]:
+            self.send_json({"error": "月度或年度会员可查看", "code": "membership_required"}, HTTPStatus.FORBIDDEN)
+            return False
+        return True
 
     def do_GET(self) -> None:
         if self.path == "/api/health":

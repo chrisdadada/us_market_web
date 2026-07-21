@@ -24649,3 +24649,965 @@ body .market-workspace .flows-sector-list i {
     grid-row: auto !important;
   }
 }
+
+/* Market temperature and full-market strength workspaces. */
+body .market-temperature-workspace,
+body .market-strength-workspace {
+  color: #172033 !important;
+  background: #f3f6fa !important;
+}
+
+body .market-temperature-workspace[hidden],
+body .market-strength-workspace[hidden],
+body .market-temperature-workspace [hidden],
+body .market-strength-workspace [hidden] {
+  display: none !important;
+}
+
+body .market-temperature-workspace .market-tool-heading,
+body .market-strength-workspace .market-tool-heading {
+  min-height: 54px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  padding: 2px 0 12px;
+}
+
+body .market-temperature-workspace .market-tool-heading h1,
+body .market-strength-workspace .market-tool-heading h1 {
+  color: #172033;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+body .market-temperature-workspace .market-tool-heading .source,
+body .market-strength-workspace .market-tool-heading .source {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  border: 0;
+  background: transparent !important;
+  color: #718096 !important;
+  font-size: 12px;
+  padding: 0;
+}
+
+body .market-temperature-workspace .market-tool-heading .source strong,
+body .market-strength-workspace .market-tool-heading .source strong {
+  color: #44536a !important;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body :is(.market-temperature-workspace, .market-strength-workspace).is-membership-gated {
+  min-height: 520px;
+}
+
+body :is(.market-temperature-workspace, .market-strength-workspace) > .membership-gate-overlay {
+  gap: 8px;
+  max-width: 480px;
+  margin: 12px 0;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
+  color: #172033;
+  padding: 20px;
+}
+
+body :is(.market-temperature-workspace, .market-strength-workspace) > .membership-gate-overlay span {
+  color: #1769d2;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+body :is(.market-temperature-workspace, .market-strength-workspace) > .membership-gate-overlay strong {
+  color: #172033;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+body :is(.market-temperature-workspace, .market-strength-workspace) > .membership-gate-overlay p {
+  color: #65748a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+body .market-temperature-workspace :is(
+  .macro-monitor-board,
+  .risk-scoreboard,
+  .macro-stock-panel,
+  .risk-action-panel,
+  .model-card,
+  .temperature-reminder
+),
+body .market-strength-workspace :is(
+  #strengthInsightGrid,
+  .strength-leader-panel,
+  .strength-theme-section,
+  .strength-side
+) {
+  display: none !important;
+}
+
+body .market-temperature-workspace .risk-dashboard,
+body .market-strength-workspace .strength-layout {
+  display: grid;
+  gap: 12px;
+}
+
+body .market-temperature-workspace .temperature-hero {
+  display: grid;
+  grid-template-columns: 240px minmax(300px, 1fr) minmax(280px, 380px);
+  grid-template-areas: "score decision drivers";
+  min-height: 210px;
+  overflow: hidden;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  background: #fff !important;
+  box-shadow: 0 4px 14px rgba(31, 45, 61, 0.04);
+}
+
+body .market-temperature-workspace .temperature-copy,
+body .market-temperature-workspace .thermometer-card,
+body .market-temperature-workspace .temperature-driver-panel {
+  min-width: 0;
+  border: 0;
+  background: #fff;
+  padding: 20px;
+}
+
+body .market-temperature-workspace .thermometer-card {
+  grid-area: score;
+  align-content: start;
+  border-right: 1px solid #e3e9f1;
+}
+
+body .market-temperature-workspace .temperature-copy {
+  grid-area: decision;
+  border-right: 1px solid #e3e9f1;
+}
+
+body .market-temperature-workspace .temperature-driver-panel {
+  grid-area: drivers;
+}
+
+body .market-temperature-workspace :is(.temperature-copy, .thermometer-card, .temperature-driver-panel) > span {
+  display: block;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body .market-temperature-workspace .temperature-copy h2 {
+  margin: 10px 0 0;
+  color: #172033;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+body .market-temperature-workspace .temperature-copy > p {
+  max-width: 620px;
+  margin: 8px 0 0;
+  color: #526176;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+body .market-temperature-workspace .temperature-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+body .market-temperature-workspace .temperature-actions span,
+body .market-temperature-workspace .temperature-actions strong {
+  min-height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+}
+
+body .market-temperature-workspace .temperature-actions span {
+  color: #718096;
+  font-weight: 600;
+}
+
+body .market-temperature-workspace .temperature-actions strong {
+  color: #1769d2;
+  font-weight: 700;
+}
+
+body .market-temperature-workspace .temperature-score-line {
+  display: flex;
+  align-items: baseline;
+  margin-top: 8px;
+}
+
+body .market-temperature-workspace .temperature-score-line strong {
+  margin: 0;
+  color: #172033;
+  font-size: 46px;
+  font-weight: 720;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+body .market-temperature-workspace .temperature-score-line em {
+  margin-left: 4px;
+  color: #8a98aa;
+  font-size: 13px;
+  font-style: normal;
+}
+
+body .market-temperature-workspace #temperatureStateTag {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  border-radius: 4px;
+  background: #fff4d6;
+  color: #936400;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 7px;
+}
+
+body .market-temperature-workspace #temperatureStateTag.is-positive {
+  background: #e5f7ef;
+  color: #087a52;
+}
+
+body .market-temperature-workspace #temperatureStateTag.is-watch {
+  background: #fff0f1;
+  color: #c02f43;
+}
+
+body .market-temperature-workspace .thermometer-scale {
+  height: 8px;
+  margin-top: 22px;
+  background: linear-gradient(90deg, #d33d52 0 35%, #e7b63a 35% 65%, #079568 65% 100%);
+}
+
+body .market-temperature-workspace .thermometer-scale i {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  background: #172033;
+}
+
+body .market-temperature-workspace .thermometer-labels {
+  margin-top: 7px;
+}
+
+body .market-temperature-workspace .thermometer-labels span {
+  color: #8a98aa;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+body .market-temperature-workspace .temperature-driver-list {
+  display: grid;
+  gap: 0;
+  margin-top: 8px;
+}
+
+body .market-temperature-workspace .temperature-driver-list > div {
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto;
+  gap: 2px 12px;
+  align-items: center;
+  min-height: 48px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+body .market-temperature-workspace .temperature-driver-list > div:last-child {
+  border-bottom: 0;
+}
+
+body .market-temperature-workspace .temperature-driver-list strong,
+body .market-temperature-workspace .temperature-driver-list b {
+  color: #26344a;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+body .market-temperature-workspace .temperature-driver-list b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+body .market-temperature-workspace .temperature-driver-list small {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: #7a889b;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .market-temperature-workspace .macro-pressure-panel,
+body .market-temperature-workspace .macro-series-panel,
+body .market-strength-workspace .strength-panel,
+body .market-strength-workspace .strength-sector-board {
+  overflow: hidden;
+  border: 1px solid #dce4ee !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+body .market-temperature-workspace .section-title,
+body .market-strength-workspace .panel-head {
+  min-height: 52px;
+  align-items: center;
+  border-bottom: 1px solid #e3e9f1;
+  background: #fff;
+  padding: 10px 14px;
+}
+
+body .market-temperature-workspace .section-title h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+body .market-temperature-workspace .market-tool-tabs,
+body .market-temperature-workspace .macro-series-range,
+body .market-strength-workspace .board-tabs {
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid #dce4ee;
+  border-radius: 6px;
+  background: #f5f7fa;
+  padding: 2px;
+}
+
+body .market-temperature-workspace :is(.market-tool-tabs, .macro-series-range) button,
+body .market-strength-workspace .strength-tab {
+  min-height: 30px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #65748a;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+}
+
+body .market-temperature-workspace :is(.market-tool-tabs, .macro-series-range) button.is-active,
+body .market-strength-workspace .strength-tab.is-active {
+  background: #fff;
+  color: #1769d2;
+  box-shadow: 0 1px 3px rgba(31, 45, 61, 0.12);
+}
+
+body .market-temperature-workspace .macro-pressure-table-wrap,
+body .market-strength-workspace .table-wrap {
+  overflow: auto;
+  border: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+body .market-temperature-workspace .macro-pressure-table {
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+body .market-temperature-workspace .macro-pressure-table th,
+body .market-temperature-workspace .macro-pressure-table td,
+body .market-strength-workspace .strength-table th,
+body .market-strength-workspace .strength-table td {
+  height: 44px;
+  border-bottom: 1px solid #edf1f5;
+  background: #fff;
+  color: #35445a;
+  font-size: 12px;
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+body .market-temperature-workspace .macro-pressure-table th,
+body .market-strength-workspace .strength-table th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  background: #f7f9fb !important;
+  color: #718096 !important;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+body .market-temperature-workspace .macro-pressure-table strong {
+  color: #243248;
+  font-weight: 700;
+}
+
+body .market-temperature-workspace .macro-pressure-table span {
+  color: #8a98aa;
+}
+
+body .market-temperature-workspace .macro-pressure-table em {
+  color: #526176;
+}
+
+body .market-temperature-workspace .macro-pressure-rank b {
+  color: #35445a;
+}
+
+body .market-temperature-workspace .macro-pressure-rank.is-watch b {
+  color: #c02f43;
+}
+
+body .market-temperature-workspace .macro-pressure-rank.is-positive b {
+  color: #087a52;
+}
+
+body .market-temperature-workspace .macro-pressure-rank.is-neutral b {
+  color: #936400;
+}
+
+body .market-temperature-workspace .macro-series-panel {
+  max-height: none;
+  overflow: hidden;
+}
+
+body .market-temperature-workspace .macro-series-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+}
+
+body .market-temperature-workspace .macro-series-card {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 190px;
+  border: 0;
+  border-right: 1px solid #edf1f5;
+  border-bottom: 1px solid #edf1f5;
+  border-radius: 0;
+  background: #fff !important;
+}
+
+body .market-temperature-workspace .macro-series-card:nth-child(2n) {
+  border-right: 0;
+}
+
+body .market-temperature-workspace .macro-series-info {
+  display: block;
+  border: 0;
+  border-right: 1px solid #edf1f5;
+  background: #fff !important;
+  padding: 14px;
+}
+
+body .market-temperature-workspace .macro-series-info > :not(h3):not(.macro-series-reading) {
+  display: none !important;
+}
+
+body .market-temperature-workspace .macro-series-info h3 {
+  color: #26344a !important;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+body .market-temperature-workspace .macro-series-reading {
+  margin-top: 12px;
+}
+
+body .market-temperature-workspace .macro-series-reading strong {
+  color: #172033 !important;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+body .market-temperature-workspace .macro-series-reading em {
+  display: block;
+  margin-top: 4px;
+  color: #718096 !important;
+  font-size: 11px;
+  font-style: normal;
+}
+
+body .market-temperature-workspace .macro-series-visual {
+  min-width: 0;
+  border: 0;
+  background: #fff !important;
+  padding: 8px 10px 10px;
+}
+
+body .market-temperature-workspace .macro-series-chart-head,
+body .market-temperature-workspace .macro-series-foot {
+  display: none !important;
+}
+
+body .market-temperature-workspace .macro-series-chart {
+  height: 166px !important;
+}
+
+body .market-temperature-workspace .macro-series-plot-bg {
+  fill: #fff !important;
+  stroke: #e3e9f1 !important;
+}
+
+body .market-temperature-workspace .macro-series-area {
+  fill: rgba(23, 105, 210, 0.08) !important;
+}
+
+body .market-temperature-workspace .macro-series-line {
+  stroke: #1769d2 !important;
+}
+
+body .market-temperature-workspace .macro-series-y-tick line,
+body .market-temperature-workspace .macro-series-ref line {
+  stroke: #e7ecf2 !important;
+}
+
+body .market-temperature-workspace .macro-series-y-tick text,
+body .market-temperature-workspace .macro-series-x-label,
+body .market-temperature-workspace .macro-series-ref-label,
+body .market-temperature-workspace .macro-series-current-callout text {
+  fill: #718096 !important;
+}
+
+body .market-temperature-workspace .macro-series-current-callout rect {
+  fill: #fff !important;
+  stroke: #ccd6e3 !important;
+}
+
+body .market-strength-workspace .strength-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+body .market-strength-workspace .strength-overview article {
+  min-height: 98px;
+  border: 0;
+  border-right: 1px solid #e3e9f1;
+  border-radius: 0;
+  background: #fff;
+  padding: 15px 16px;
+}
+
+body .market-strength-workspace .strength-overview article:last-child {
+  border-right: 0;
+}
+
+body .market-strength-workspace .strength-overview span {
+  color: #718096;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+body .market-strength-workspace .strength-overview strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 8px;
+  color: #172033;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .market-strength-workspace .strength-overview p {
+  margin-top: 5px;
+  color: #718096;
+  font-size: 11px;
+}
+
+body .market-strength-workspace .strength-sector-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+}
+
+body .market-strength-workspace .strength-sector-board > div {
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+body .market-strength-workspace .strength-sector-board > div + div {
+  border-left: 1px solid #e3e9f1;
+}
+
+body .market-strength-workspace .strength-sector-board header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+body .market-strength-workspace .strength-sector-board h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+body .market-strength-workspace .strength-sector-board header span {
+  color: #8a98aa;
+  font-size: 11px;
+}
+
+body .market-strength-workspace .strength-sector-list {
+  display: grid;
+  gap: 8px;
+}
+
+body .market-strength-workspace .strength-sector-row {
+  display: grid;
+  grid-template-columns: 86px minmax(120px, 1fr) 58px;
+  gap: 10px;
+  align-items: center;
+  min-height: 25px;
+}
+
+body .market-strength-workspace .strength-sector-row b,
+body .market-strength-workspace .strength-sector-row em {
+  overflow: hidden;
+  color: #35445a;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .market-strength-workspace .strength-sector-row em {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+body .market-strength-workspace .strength-sector-row > span {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent 49.5%, #ccd6e3 49.5% 50.5%, transparent 50.5%);
+}
+
+body .market-strength-workspace .strength-sector-row i {
+  position: absolute;
+  top: 0;
+  height: 8px;
+  border-radius: 2px;
+}
+
+body .market-strength-workspace .strength-sector-row.is-positive i {
+  left: 50%;
+  background: #079568;
+}
+
+body .market-strength-workspace .strength-sector-row.is-negative i {
+  right: 50%;
+  background: #d33d52;
+}
+
+body .market-strength-workspace .strength-sector-row.is-positive em {
+  color: #087a52;
+}
+
+body .market-strength-workspace .strength-sector-row.is-negative em {
+  color: #c02f43;
+}
+
+body .market-strength-workspace .strength-watch-summary {
+  display: grid;
+  gap: 0;
+}
+
+body .market-strength-workspace .strength-watch-summary > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 43px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+body .market-strength-workspace .strength-watch-summary > div:last-child {
+  border-bottom: 0;
+}
+
+body .market-strength-workspace .strength-watch-summary span {
+  color: #718096;
+  font-size: 11px;
+}
+
+body .market-strength-workspace .strength-watch-summary strong {
+  overflow: hidden;
+  color: #26344a;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .market-strength-workspace .strength-layout.workspace-main {
+  grid-template-columns: 1fr;
+}
+
+body .market-strength-workspace .strength-panel {
+  grid-column: 1;
+}
+
+body .market-strength-workspace .panel-head .summary {
+  color: #718096;
+  font-size: 12px;
+}
+
+body .market-strength-workspace .strength-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 180px 150px auto;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid #e3e9f1;
+  background: #fff;
+  padding: 10px 14px;
+}
+
+body .market-strength-workspace .strength-toolbar label > span {
+  display: none;
+}
+
+body .market-strength-workspace .strength-toolbar :is(input, select) {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #d5deea;
+  border-radius: 5px;
+  background: #fff !important;
+  color: #26344a !important;
+  font-size: 12px;
+  padding: 0 10px;
+}
+
+body .market-strength-workspace .filter-clear-action {
+  min-height: 34px;
+  border: 1px solid #d5deea;
+  border-radius: 5px;
+  background: #fff;
+  color: #526176;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+body .market-strength-workspace .strength-table {
+  min-width: 1080px;
+  table-layout: fixed;
+}
+
+body .market-strength-workspace .strength-table th:nth-child(1),
+body .market-strength-workspace .strength-table td:nth-child(1) { width: 58px; }
+body .market-strength-workspace .strength-table th:nth-child(2),
+body .market-strength-workspace .strength-table td:nth-child(2) { width: 180px; }
+body .market-strength-workspace .strength-table th:nth-child(3),
+body .market-strength-workspace .strength-table td:nth-child(3) { width: 110px; }
+body .market-strength-workspace .strength-table th:nth-child(4),
+body .market-strength-workspace .strength-table td:nth-child(4),
+body .market-strength-workspace .strength-table th:nth-child(5),
+body .market-strength-workspace .strength-table td:nth-child(5),
+body .market-strength-workspace .strength-table th:nth-child(6),
+body .market-strength-workspace .strength-table td:nth-child(6) { width: 92px; text-align: right; }
+body .market-strength-workspace .strength-table th:nth-child(7),
+body .market-strength-workspace .strength-table td:nth-child(7) { width: 130px; }
+body .market-strength-workspace .strength-table th:nth-child(8),
+body .market-strength-workspace .strength-table td:nth-child(8) { width: 260px; }
+
+body .market-strength-workspace .strength-table tbody tr {
+  cursor: pointer;
+}
+
+body .market-strength-workspace .strength-table tbody tr:hover,
+body .market-strength-workspace .strength-table tbody tr:focus {
+  outline: none;
+  background: #f5f9ff;
+}
+
+body .market-strength-workspace .strength-table tbody tr:hover td,
+body .market-strength-workspace .strength-table tbody tr:focus td {
+  background: #f5f9ff;
+}
+
+body .market-strength-workspace .symbol-cell strong,
+body .market-strength-workspace .strength-state-cell strong {
+  display: block;
+  color: #243248;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body .market-strength-workspace .symbol-cell span,
+body .market-strength-workspace .strength-state-cell span {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #8a98aa;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .market-strength-workspace .strength-number {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+body .market-strength-workspace .strength-number.is-positive,
+body .market-strength-workspace .strength-state-cell.is-positive strong {
+  color: #087a52;
+}
+
+body .market-strength-workspace .strength-number.is-negative,
+body .market-strength-workspace .strength-state-cell.is-negative strong {
+  color: #c02f43;
+}
+
+body .market-strength-workspace .strength-state-cell.is-watch strong {
+  color: #936400;
+}
+
+body .market-strength-workspace .strength-advice-cell {
+  overflow: hidden;
+  color: #526176;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  body .market-temperature-workspace .temperature-hero {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-areas:
+      "score decision"
+      "drivers drivers";
+  }
+
+  body .market-temperature-workspace .temperature-copy {
+    border-right: 0;
+  }
+
+  body .market-temperature-workspace .temperature-driver-panel {
+    border-top: 1px solid #e3e9f1;
+  }
+
+  body .market-temperature-workspace .temperature-driver-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  body .market-temperature-workspace .temperature-driver-list > div {
+    border: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  body .market-temperature-workspace .market-tool-heading,
+  body .market-strength-workspace .market-tool-heading {
+    align-items: flex-start;
+  }
+
+  body .market-temperature-workspace .market-tool-heading h1,
+  body .market-strength-workspace .market-tool-heading h1 {
+    font-size: 21px;
+  }
+
+  body .market-temperature-workspace .temperature-hero {
+    grid-template-columns: 1fr;
+    grid-template-areas: "score" "decision" "drivers";
+  }
+
+  body .market-temperature-workspace .thermometer-card,
+  body .market-temperature-workspace .temperature-copy {
+    border-right: 0;
+    border-bottom: 1px solid #e3e9f1;
+  }
+
+  body .market-temperature-workspace .temperature-driver-list,
+  body .market-temperature-workspace .macro-series-grid,
+  body .market-strength-workspace .strength-overview,
+  body .market-strength-workspace .strength-sector-board {
+    grid-template-columns: 1fr;
+  }
+
+  body .market-temperature-workspace .temperature-driver-list {
+    gap: 0;
+  }
+
+  body .market-temperature-workspace .temperature-driver-list > div {
+    border-bottom: 1px solid #edf1f5;
+  }
+
+  body .market-temperature-workspace .section-title {
+    display: grid;
+    gap: 8px;
+    align-items: start;
+  }
+
+  body .market-temperature-workspace .market-tool-tabs,
+  body .market-temperature-workspace .macro-series-range {
+    width: 100%;
+  }
+
+  body .market-temperature-workspace :is(.market-tool-tabs, .macro-series-range) button {
+    flex: 1;
+  }
+
+  body .market-temperature-workspace .macro-series-card {
+    grid-template-columns: 116px minmax(0, 1fr);
+    border-right: 0;
+  }
+
+  body .market-temperature-workspace .macro-series-chart {
+    height: 150px;
+  }
+
+  body .market-strength-workspace .strength-overview article {
+    min-height: 78px;
+    border-right: 0;
+    border-bottom: 1px solid #e3e9f1;
+  }
+
+  body .market-strength-workspace .strength-overview article:last-child {
+    border-bottom: 0;
+  }
+
+  body .market-strength-workspace .strength-sector-board > div + div {
+    border-top: 1px solid #e3e9f1;
+    border-left: 0;
+  }
+
+  body .market-strength-workspace .panel-head {
+    display: grid;
+    gap: 8px;
+  }
+
+  body .market-strength-workspace .board-tabs {
+    width: 100%;
+  }
+
+  body .market-strength-workspace .strength-tab {
+    flex: 1;
+  }
+
+  body .market-strength-workspace .strength-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  body .market-strength-workspace .strength-toolbar .search-box,
+  body .market-strength-workspace .filter-clear-action {
+    grid-column: 1 / -1;
+  }
+}

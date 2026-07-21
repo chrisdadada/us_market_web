@@ -36,7 +36,8 @@ const routeCases = [
   { hash: "#stock-events", view: "dashboard", text: "最新" },
   { hash: "#stock-events/guidance_up", view: "dashboard", text: "最新" },
   { hash: "#events/guidance_up", view: "dashboard", text: "最新" },
-  { hash: "#strength", view: "dashboard", text: "最新" },
+  { hash: "#risk", view: "risk", text: "登录后可看市场温度计", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "#strength", view: "strength", text: "会员可看全市场强弱", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#watchlist", view: "dashboard", text: "最新", absentText: "观察池" },
 ];
 
@@ -54,8 +55,11 @@ const flowsToMarketSectionCases = [
   { section: "flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
 ];
 
+const datasetCache = new Map();
+
 async function readDataset(name) {
-  return readProductDataset(name);
+  if (!datasetCache.has(name)) datasetCache.set(name, readProductDataset(name));
+  return datasetCache.get(name);
 }
 
 function sendJson(response, payload, status = 200) {
@@ -285,19 +289,19 @@ async function assertRoute(page, expected) {
 }
 
 async function assertExpandedStockSearch(page, serverUrl) {
-  await page.goto(`${serverUrl}#stocks`, { waitUntil: "networkidle" });
+  await page.goto(`${serverUrl}#stocks`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('.page-view.is-active[data-view="stocks"]');
   await page.waitForFunction(() => document.querySelectorAll("#stocksTableBody tr").length >= 200);
   const stockRows = await page.locator("#stocksTableBody tr").count();
   assert(stockRows >= 200, `stocks library rendered ${stockRows} rows, expected at least 200`);
 
-  await page.locator("#globalSearchInput").fill("WATT");
-  await page.waitForSelector('[data-global-search-result][data-result-type="stock"][data-symbol="WATT"]');
-  await page.locator('[data-global-search-result][data-result-type="stock"][data-symbol="WATT"]').first().click();
+  await page.locator("#globalSearchInput").fill("MU");
+  await page.waitForSelector('[data-global-search-result][data-result-type="stock"][data-symbol="MU"]');
+  await page.locator("#globalSearchInput").press("Enter");
   await page.waitForSelector('.page-view.is-active[data-view="stock"]');
   const state = await collectRouteState(page);
   assert(state.activeView === "stock", `global search opened ${state.activeView}, expected stock`);
-  assert(state.activeViewText.includes("WATT"), "global search stock page is missing WATT");
+  assert(state.activeViewText.includes("MU"), "global search stock page is missing MU");
 }
 
 async function run() {
@@ -307,12 +311,12 @@ async function run() {
 
   try {
     for (const route of routeCases) {
-      await page.goto(`${server.url}${route.hash}`, { waitUntil: "networkidle" });
+      await page.goto(`${server.url}${route.hash}`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(`.page-view.is-active[data-view="${route.view}"]`);
       await assertRoute(page, route);
     }
 
-    await page.goto(`${server.url}#market`, { waitUntil: "networkidle" });
+    await page.goto(`${server.url}#market`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector('.page-view.is-active[data-view="market"]');
     for (const sectionCase of marketSectionCases) {
       await page.locator(`.page-view.is-active [data-market-section="${sectionCase.section}"]`).first().click();
@@ -331,7 +335,7 @@ async function run() {
       );
     }
 
-    await page.goto(`${server.url}#flows`, { waitUntil: "networkidle" });
+    await page.goto(`${server.url}#flows`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector('.page-view.is-active[data-view="market"]');
     for (const sectionCase of flowsToMarketSectionCases) {
       await page.locator(`.page-view.is-active [data-market-section="${sectionCase.section}"]`).first().click();

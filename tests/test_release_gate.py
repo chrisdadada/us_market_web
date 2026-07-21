@@ -315,15 +315,44 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 )
                 """
             )
-            conn.execute(
+            rows = [
+                ("market-temperature", {"source": "product-db"}),
+                ("macro-series", {"indicators": [{"key": "vix"}]}),
+                ("strength-scanner", {"rows": [{"symbol": "MU"}]}),
+            ]
+            conn.executemany(
                 "INSERT INTO raw_payloads (name, source_path, payload_json) VALUES (?, ?, ?)",
-                ("market-temperature", "db-test", json.dumps({"source": "product-db"}, ensure_ascii=False)),
+                [(name, "db-test", json.dumps(payload, ensure_ascii=False)) for name, payload in rows],
             )
         auth_api.PRODUCT_DB_ENV = str(db_path)
 
-        status, payload = self.client().get("/api/data/market-temperature")
+        anonymous = self.client()
+        status, payload = anonymous.get("/api/data/market-temperature")
+        self.assertEqual(status, 401, payload)
+        self.assertEqual(payload["code"], "unauthenticated")
+
+        free = self.client()
+        status, payload = free.post(
+            "/api/auth/register",
+            {"email": "market-data-free@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = free.get("/api/data/market-temperature")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["source"], "product-db")
+        status, payload = free.get("/api/product/raw/macro-series")
+        self.assertEqual(status, 200, payload)
+        status, payload = free.get("/api/product/raw/strength-scanner")
+        self.assertEqual(status, 403, payload)
+        self.assertEqual(payload["code"], "membership_required")
+
+        admin = self.login("admin@example.test", "admin-password")
+        expires_at = (date.today() + timedelta(days=30)).isoformat()
+        self.create_user(admin, "market-data-monthly@example.test", "monthly", expires_at=expires_at)
+        monthly = self.login("market-data-monthly@example.test", "user-password")
+        status, payload = monthly.get("/api/product/raw/strength-scanner")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"][0]["symbol"], "MU")
 
     def test_product_calendar_supports_db_pagination_and_filters(self) -> None:
         db_path = Path(self.tempdir.name) / "product.db"
@@ -505,6 +534,11 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertGreaterEqual(len(payload["rows"]), 1)
         self.assertEqual(payload["rows"][0]["symbol"], "MU")
+        self.assertNotIn("strengthScore", payload["rows"][0])
+
+        status, payload = client.get("/api/product/symbols?preset=strength&limit=5")
+        self.assertEqual(status, 403, payload)
+        self.assertEqual(payload["code"], "membership_required")
 
         status, payload = client.get("/api/product/symbols?limit=3000")
         self.assertEqual(status, 200, payload)
@@ -516,6 +550,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(payload["profile"]["sector"], "科技")
         self.assertGreaterEqual(len(payload["marketRows"]), 1)
         self.assertIn("peers", payload)
+        self.assertIsNone(payload["strength"])
 
         status, payload = client.get("/api/product/sectors?limit=5")
         self.assertEqual(status, 200, payload)
@@ -552,10 +587,29 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertIn("core", payload)
         self.assertGreater(len(payload["ytd"]["rows"]), 100)
         self.assertGreaterEqual(len(payload["movers"]["boards"]["day"]["rows"]), 3)
+        self.assertIsNone(payload["marketTemperature"])
+        self.assertIsNone(payload["strength"])
+
+        status, payload = client.get("/api/product/raw/macro-series")
+        self.assertEqual(status, 401, payload)
+
+        status, payload = client.post(
+            "/api/auth/register",
+            {"email": "product-api-free@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = client.get("/api/product/bootstrap")
+        self.assertEqual(status, 200, payload)
+        self.assertIsNotNone(payload["marketTemperature"])
+        self.assertIsNone(payload["strength"])
 
         status, payload = client.get("/api/product/raw/macro-series")
         self.assertEqual(status, 200, payload)
         self.assertIn("indicators", payload)
+
+        status, payload = client.get("/api/product/raw/strength-scanner")
+        self.assertEqual(status, 403, payload)
+        self.assertEqual(payload["code"], "membership_required")
 
         status, payload = client.get("/api/product/raw/earnings-quality")
         self.assertEqual(status, 200, payload)
