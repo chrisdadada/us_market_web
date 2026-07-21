@@ -942,6 +942,16 @@ const pageAccessRules = {
     title: "年度会员可看持仓参考",
     text: "持仓参考、交割记录和复盘细节仅年度会员查看。请联系管理员开通年度会员。",
   },
+  risk: {
+    level: "registered",
+    title: "登录后可看市场温度计",
+    text: "注册或登录后可查看市场温度、复盘强度和风险环境。",
+  },
+  strength: {
+    level: "monthly",
+    title: "会员可看全市场强弱",
+    text: "月度或年度会员可查看强弱榜单、筛选和完整跟踪数据。",
+  },
 };
 
 const currentAccessRank = () => {
@@ -963,7 +973,11 @@ const requiredAccessRank = (level) => {
 
 const hasYearlyAccess = () => currentAccessRank() >= 2;
 
-const hasPageAccess = (page) => currentAccessRank() >= requiredAccessRank(pageAccessRules[page]?.level);
+const hasPageAccess = (page) => {
+  const level = pageAccessRules[page]?.level;
+  if (level === "registered") return Boolean(state.auth.authenticated);
+  return currentAccessRank() >= requiredAccessRank(level);
+};
 
 const renderMembershipGates = () => {
   document.querySelectorAll(".page-view").forEach((view) => {
@@ -984,7 +998,7 @@ const renderMembershipGates = () => {
       view.insertBefore(gate, anchor);
     }
     const actionText = state.auth.authenticated ? "联系管理员开通" : "注册 / 登录";
-    const hint = rule.level === "yearly" ? "年度会员内容" : "月度 / 年度会员内容";
+    const hint = rule.level === "registered" ? "注册用户可看" : rule.level === "yearly" ? "年度会员内容" : "月度 / 年度会员内容";
     gate.innerHTML = `
       <span>${escapeHtml(hint)}</span>
       <strong>${escapeHtml(rule.title)}</strong>

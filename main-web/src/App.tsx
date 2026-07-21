@@ -41,7 +41,7 @@ import {
 } from "./shared";
 
 type PageKey = "home" | "opinions" | "tracking" | "market" | "stocks" | "calendar" | "open" | "position" | "funding" | "forum" | "courses";
-type AccessLevel = "free" | "monthly" | "yearly";
+type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
 
 const navItems: Array<{ key: PageKey; label: string; status?: string; disabled?: boolean }> = [
@@ -56,9 +56,12 @@ const navItems: Array<{ key: PageKey; label: string; status?: string; disabled?:
   { key: "forum", label: "论坛讨论区", status: "待开放", disabled: true }
 ];
 
-const toolDataNavItems = [
+const userToolDataNavItems: Array<{ href: string; label: string }> = [
   { href: "/legacy/#risk", label: "市场温度计" },
-  { href: "/legacy/#strength", label: "全市场强弱" },
+  { href: "/legacy/#strength", label: "全市场强弱" }
+];
+
+const adminToolDataNavItems: Array<{ href: string; label: string }> = [
   { href: "/legacy/#valuation", label: "指数估值" },
   { href: "/legacy/#options", label: "期权流向" },
   { href: "/legacy/#signals", label: "趋势信号" },
@@ -629,6 +632,7 @@ function requiredRank(level?: AccessLevel) {
 }
 
 function hasPageAccess(auth: AuthStatus | null, page: PageKey) {
+  if (pageAccessRules[page]?.level === "registered") return Boolean(auth?.authenticated);
   return accessRank(auth) >= requiredRank(pageAccessRules[page]?.level);
 }
 
@@ -981,19 +985,24 @@ function App() {
             </button>
           ))}
         </div>
-        {auth?.entitlements?.admin ? (
-          <div className="navToolGroup">
-            <p className="navGroupTitle">工具数据</p>
-            {toolDataPageNavItems.map((item) => (
+        <div className="navToolGroup">
+          <p className="navGroupTitle">工具数据</p>
+          {userToolDataNavItems.map((item) => (
+            <a key={item.href} href={item.href}>{item.label}</a>
+          ))}
+          {auth?.entitlements?.admin ? (
+            <>
+              {toolDataPageNavItems.map((item) => (
               <button key={item.key} className={activeNavPage === item.key ? "active" : ""} onClick={() => navigatePage(item.key)}>
                 <span>{item.label}</span>
               </button>
-            ))}
-            {toolDataNavItems.map((item) => (
-              <a key={item.href} href={item.href}>{item.label}</a>
-            ))}
-          </div>
-        ) : null}
+              ))}
+              {adminToolDataNavItems.map((item) => (
+                <a key={item.href} href={item.href}>{item.label}</a>
+              ))}
+            </>
+          ) : null}
+        </div>
         <div className="sideSlogan" aria-label="品牌标语">
           <strong>市场永远不缺机会，缺的是等到机会时还活着的本金。</strong>
           <span>The market never runs out of opportunities.</span>
