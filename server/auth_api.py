@@ -14,6 +14,7 @@ import time
 import mimetypes
 import urllib.request
 import urllib.error
+import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from http import HTTPStatus
@@ -90,6 +91,11 @@ COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
 COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
 COURSE_VIDEO_UPLOAD_MAX_BYTES = int(os.environ.get("COURSE_VIDEO_UPLOAD_MAX_BYTES", str(5 * 1024 * 1024 * 1024)))
+COURSE_VIDEO_AUTO_PROCESS_ENABLED = os.environ.get("COURSE_VIDEO_AUTO_PROCESS_ENABLED", "0") == "1"
+COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS = int(os.environ.get("COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS", "3000"))
+COURSE_VIDEO_TARGET_BITRATE_KBPS = int(os.environ.get("COURSE_VIDEO_TARGET_BITRATE_KBPS", "2300"))
+COURSE_VIDEO_MAX_WIDTH = int(os.environ.get("COURSE_VIDEO_MAX_WIDTH", "1920"))
+COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS = int(os.environ.get("COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS", "21600"))
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 REGISTER_RATE_BUCKETS: dict[str, list[float]] = {}
 REGISTER_RATE_LOCK = threading.Lock()
@@ -1259,6 +1265,11 @@ def init_db() -> None:
               duration_label TEXT,
               cover_url TEXT,
               video_key TEXT NOT NULL,
+              video_source_key TEXT,
+              video_job_id TEXT,
+              video_output_key TEXT,
+              video_process_error TEXT,
+              video_process_started_at TEXT,
               video_status TEXT NOT NULL DEFAULT 'ready',
               status TEXT NOT NULL DEFAULT 'published',
               created_at TEXT NOT NULL,
@@ -1314,6 +1325,9 @@ def init_db() -> None:
             conn.execute("ALTER TABLE course_lessons ADD COLUMN cover_url TEXT")
         if "video_status" not in course_lesson_columns:
             conn.execute("ALTER TABLE course_lessons ADD COLUMN video_status TEXT NOT NULL DEFAULT 'ready'")
+        for column in ["video_source_key", "video_job_id", "video_output_key", "video_process_error", "video_process_started_at"]:
+            if column not in course_lesson_columns:
+                conn.execute(f"ALTER TABLE course_lessons ADD COLUMN {column} TEXT")
         if SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD:
             existing = conn.execute("SELECT id FROM users WHERE email = ?", (SUPER_ADMIN_EMAIL,)).fetchone()
             if not existing:
@@ -1861,6 +1875,8 @@ def course_lesson_payload(row: sqlite3.Row, include_key: bool = False) -> dict[s
         "durationLabel": row["duration_label"] or "",
         "coverUrl": signed_course_image_url(row["cover_url"] or ""),
         "videoStatus": video_status,
+        "videoProcessError": (row["video_process_error"] if "video_process_error" in row.keys() else "") or "",
+        "videoAvailable": bool(str(row["video_key"] or "").strip()),
         "status": row["status"],
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
@@ -1947,6 +1963,367 @@ def signed_course_image_url(value: str) -> str:
             return cos_object_url(key)[0]
         except Exception:
             return raw
+
+
+def qcloud_authorization(
+    method: str,
+    host: str,
+    path: str,
+    *,
+    params: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None,
+    now: int | None = None,
+    ttl: int = 600,
+) -> str:
+    if not COURSE_COS_SECRET_ID or not COURSE_COS_SECRET_KEY:
+        raise RuntimeError("COS 未配置")
+    sign_headers = {"host": host, **{str(key).lower(): str(value) for key, value in (headers or {}).items()}}
+    encoded_headers = {
+        quote(key, safe="-_.~").lower(): quote(value, safe="-_.~")
+        for key, value in sign_headers.items()
+    }
+    encoded_params = {
+        quote(str(key), safe="-_.~").lower(): quote(str(value), safe="-_.~")
+        for key, value in (params or {}).items()
+    }
+    canonical_headers = "&".join(f"{key}={encoded_headers[key]}" for key in sorted(encoded_headers))
+    canonical_params = "&".join(f"{key}={encoded_params[key]}" for key in sorted(encoded_params))
+    http_string = f"{method.lower()}\n{path}\n{canonical_params}\n{canonical_headers}\n"
+    start = int(now or time.time()) - 60
+    key_time = f"{start};{start + max(60, ttl)}"
+    string_to_sign = f"sha1\n{key_time}\n{hashlib.sha1(http_string.encode('utf-8')).hexdigest()}\n"
+    sign_key = hmac.new(COURSE_COS_SECRET_KEY.encode("utf-8"), key_time.encode("utf-8"), hashlib.sha1).hexdigest()
+    signature = hmac.new(sign_key.encode("utf-8"), string_to_sign.encode("utf-8"), hashlib.sha1).hexdigest()
+    return "&".join([
+        "q-sign-algorithm=sha1",
+        f"q-ak={COURSE_COS_SECRET_ID}",
+        f"q-sign-time={key_time}",
+        f"q-key-time={key_time}",
+        f"q-header-list={';'.join(sorted(encoded_headers))}",
+        f"q-url-param-list={';'.join(sorted(encoded_params))}",
+        f"q-signature={signature}",
+    ])
+
+
+def qcloud_xml_request(
+    method: str,
+    endpoint: str,
+    path: str,
+    *,
+    params: dict[str, str] | None = None,
+    body: bytes | None = None,
+    timeout: int = 30,
+) -> ET.Element:
+    parsed = urlparse(endpoint)
+    host = parsed.netloc
+    signed_headers = {"content-type": "application/xml"} if body is not None else {}
+    authorization = qcloud_authorization(method, host, path, params=params, headers=signed_headers)
+    query = "&".join(
+        f"{quote(str(key), safe='-_.~')}={quote(str(value), safe='-_.~')}"
+        for key, value in sorted((params or {}).items())
+    )
+    url = f"{endpoint}{path}{'?' + query if query else ''}"
+    request_headers = {"Authorization": authorization, "Host": host}
+    if body is not None:
+        request_headers["Content-Type"] = "application/xml"
+    request = urllib.request.Request(url, data=body, method=method.upper(), headers=request_headers)
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"视频处理服务请求失败：HTTP {exc.code} {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError("视频处理服务暂时不可用") from exc
+    try:
+        return ET.fromstring(raw)
+    except ET.ParseError as exc:
+        raise RuntimeError("视频处理服务返回内容不正确") from exc
+
+
+def xml_request_body(payload: dict[str, Any]) -> bytes:
+    root = ET.Element("Request")
+
+    def append(parent: ET.Element, values: dict[str, Any]) -> None:
+        for key, value in values.items():
+            child = ET.SubElement(parent, key)
+            if isinstance(value, dict):
+                append(child, value)
+            else:
+                child.text = str(value)
+
+    append(root, payload)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=False)
+
+
+def xml_value(root: ET.Element, path: str, default: str = "") -> str:
+    value = root.findtext(path)
+    return str(value).strip() if value is not None else default
+
+
+def course_media_info(video_key: str) -> dict[str, Any]:
+    object_url, host, path = cos_object_url(video_key)
+    root = qcloud_xml_request("GET", f"https://{host}", path, params={"ci-process": "videoinfo"})
+    bitrate = float(xml_value(root, "./MediaInfo/Format/Bitrate", "0") or 0)
+    size = int(float(xml_value(root, "./MediaInfo/Format/Size", "0") or 0))
+    duration = float(xml_value(root, "./MediaInfo/Format/Duration", "0") or 0)
+    if bitrate <= 0 and size > 0 and duration > 0:
+        bitrate = size * 8 / duration / 1000
+    return {
+        "url": object_url,
+        "size": size,
+        "duration": duration,
+        "bitrateKbps": bitrate,
+        "format": xml_value(root, "./MediaInfo/Format/FormatName").lower(),
+        "videoCodec": xml_value(root, "./MediaInfo/Stream/Video/CodecName").lower(),
+        "audioCodec": xml_value(root, "./MediaInfo/Stream/Audio/CodecName").lower(),
+        "width": int(float(xml_value(root, "./MediaInfo/Stream/Video/Width", "0") or 0)),
+        "height": int(float(xml_value(root, "./MediaInfo/Stream/Video/Height", "0") or 0)),
+    }
+
+
+def course_media_requires_optimization(info: dict[str, Any]) -> bool:
+    if not info.get("videoCodec") or float(info.get("duration") or 0) <= 0:
+        raise ValueError("无法识别视频内容")
+    return bool(
+        float(info.get("bitrateKbps") or 0) > COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS
+        or int(info.get("width") or 0) > COURSE_VIDEO_MAX_WIDTH
+        or str(info.get("videoCodec") or "").lower() != "h264"
+        or (info.get("audioCodec") and str(info["audioCodec"]).lower() != "aac")
+    )
+
+
+def course_ci_endpoint() -> str:
+    if not COURSE_COS_BUCKET or not COURSE_COS_REGION:
+        raise RuntimeError("COS 未配置")
+    return f"https://{COURSE_COS_BUCKET}.ci.{COURSE_COS_REGION}.myqcloud.com"
+
+
+def create_course_transcode_job(lesson_id: int, source_key: str, source_width: int = COURSE_VIDEO_MAX_WIDTH) -> tuple[str, str]:
+    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    output_key = f"lesson/optimized/auto/{day}/lesson-{lesson_id}-{secrets.token_hex(6)}.mp4"
+    target_width = max(2, min(int(source_width or COURSE_VIDEO_MAX_WIDTH), COURSE_VIDEO_MAX_WIDTH))
+    target_width -= target_width % 2
+    body = xml_request_body({
+        "Tag": "Transcode",
+        "Input": {"Object": source_key},
+        "Operation": {
+            "Transcode": {
+                "Container": {"Format": "mp4"},
+                "Video": {
+                    "Codec": "H.264",
+                    "Profile": "high",
+                    "Bitrate": str(COURSE_VIDEO_TARGET_BITRATE_KBPS),
+                    "Width": str(target_width),
+                    "Fps": "30",
+                    "Preset": "medium",
+                },
+                "Audio": {"Codec": "aac", "Samplerate": "44100", "Bitrate": "128", "Channels": "2"},
+            },
+            "Output": {"Region": COURSE_COS_REGION, "Bucket": COURSE_COS_BUCKET, "Object": output_key},
+            "FreeTranscode": "true",
+            "UserData": f"dongbimao-course-lesson-{lesson_id}",
+        },
+    })
+    root = qcloud_xml_request("POST", course_ci_endpoint(), "/jobs", body=body)
+    job_id = xml_value(root, "./JobsDetail/JobId")
+    if not job_id:
+        raise RuntimeError(xml_value(root, "./JobsDetail/Message", "视频转码任务创建失败"))
+    return job_id, output_key
+
+
+def course_transcode_job(job_id: str) -> dict[str, str]:
+    root = qcloud_xml_request("GET", course_ci_endpoint(), f"/jobs/{quote(job_id, safe='-_.~')}")
+    return {
+        "state": xml_value(root, "./JobsDetail/State"),
+        "code": xml_value(root, "./JobsDetail/Code"),
+        "message": xml_value(root, "./JobsDetail/Message"),
+    }
+
+
+def course_video_failure(lesson_id: int, source_key: str, message: str) -> sqlite3.Row:
+    with db() as conn:
+        conn.execute(
+            """
+            UPDATE course_lessons
+            SET video_status = 'failed', video_process_error = ?, updated_at = ?
+            WHERE id = ? AND video_source_key = ?
+            """,
+            (str(message or "视频处理失败")[:240], now_iso(), lesson_id, source_key),
+        )
+        return conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
+
+
+def process_course_video(payload: dict[str, Any]) -> dict[str, Any]:
+    if not COURSE_VIDEO_AUTO_PROCESS_ENABLED:
+        raise ValueError("视频自动处理尚未开启")
+    source_key = course_video_key(str(payload.get("videoKey") or "").strip())
+    if not source_key.startswith("lesson/"):
+        raise ValueError("视频文件路径不正确")
+    lesson_id = int(payload.get("id") or 0)
+    timestamp = now_iso()
+    with db() as conn:
+        existing = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone() if lesson_id > 0 else None
+        if lesson_id > 0 and not existing:
+            raise ValueError("视频不存在")
+        title = str(payload.get("title") or (existing["title"] if existing else "")).strip()
+        if not title:
+            raise ValueError("视频标题不能为空")
+        series_id = int(payload.get("seriesId") or (existing["series_id"] if existing else 0))
+        if not conn.execute("SELECT 1 FROM course_series WHERE id = ?", (series_id,)).fetchone():
+            raise ValueError("交易实战课程不存在")
+        status = str(payload.get("status") or (existing["status"] if existing else "published")).strip()
+        if status not in COURSE_STATUSES:
+            raise ValueError("视频状态不正确")
+        cover_url = course_video_key(str(payload.get("coverUrl") or (existing["cover_url"] if existing else "")).strip())
+        if payload.get("sortOrder") not in {None, ""}:
+            try:
+                sort_order = max(1, int(payload.get("sortOrder") or 1))
+            except (TypeError, ValueError):
+                sort_order = 1
+        elif existing:
+            sort_order = int(existing["sort_order"] or 1)
+        else:
+            row = conn.execute("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM course_lessons WHERE series_id = ?", (series_id,)).fetchone()
+            sort_order = int(row["max_sort"] or 0) + 1
+        if existing:
+            conn.execute(
+                """
+                UPDATE course_lessons
+                SET series_id = ?, title = ?, sort_order = ?, cover_url = ?, video_source_key = ?,
+                    video_job_id = NULL, video_output_key = NULL, video_process_error = NULL,
+                    video_process_started_at = ?, video_status = 'processing', status = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (series_id, title, sort_order, cover_url, source_key, timestamp, status, timestamp, lesson_id),
+            )
+        else:
+            cursor = conn.execute(
+                """
+                INSERT INTO course_lessons
+                (series_id, title, sort_order, duration_label, cover_url, video_key, video_source_key,
+                 video_process_started_at, video_status, status, created_at, updated_at)
+                VALUES (?, ?, ?, '', ?, '', ?, ?, 'processing', ?, ?, ?)
+                """,
+                (series_id, title, sort_order, cover_url, source_key, timestamp, status, timestamp, timestamp),
+            )
+            lesson_id = int(cursor.lastrowid)
+
+    try:
+        source_info = course_media_info(source_key)
+        if not course_media_requires_optimization(source_info):
+            with db() as conn:
+                conn.execute(
+                    """
+                    UPDATE course_lessons
+                    SET video_key = ?, video_status = 'ready', video_job_id = NULL, video_output_key = NULL,
+                        video_process_error = NULL, updated_at = ?
+                    WHERE id = ? AND video_source_key = ?
+                    """,
+                    (source_key, now_iso(), lesson_id, source_key),
+                )
+                row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
+        else:
+            job_id, output_key = create_course_transcode_job(lesson_id, source_key, int(source_info.get("width") or COURSE_VIDEO_MAX_WIDTH))
+            with db() as conn:
+                conn.execute(
+                    """
+                    UPDATE course_lessons
+                    SET video_job_id = ?, video_output_key = ?, updated_at = ?
+                    WHERE id = ? AND video_source_key = ? AND video_status = 'processing'
+                    """,
+                    (job_id, output_key, now_iso(), lesson_id, source_key),
+                )
+                row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
+    except Exception as exc:
+        row = course_video_failure(lesson_id, source_key, str(exc))
+    return course_lesson_payload(row, include_key=True)
+
+
+def retry_course_video(lesson_id: int) -> dict[str, Any]:
+    with db() as conn:
+        row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
+    if not row:
+        raise ValueError("视频不存在")
+    source_key = str(row["video_source_key"] or "").strip()
+    if not source_key:
+        raise ValueError("没有可重试的视频文件")
+    return process_course_video({
+        "id": lesson_id,
+        "seriesId": row["series_id"],
+        "title": row["title"],
+        "sortOrder": row["sort_order"],
+        "coverUrl": row["cover_url"],
+        "videoKey": source_key,
+        "status": row["status"],
+    })
+
+
+def validate_course_transcode(source: dict[str, Any], output: dict[str, Any]) -> None:
+    source_size = int(source.get("size") or 0)
+    output_size = int(output.get("size") or 0)
+    source_duration = float(source.get("duration") or 0)
+    output_duration = float(output.get("duration") or 0)
+    if output_size <= 0 or source_size <= 0 or output_size >= source_size:
+        raise ValueError("新视频未通过体积检查")
+    if output_duration <= 0 or abs(output_duration - source_duration) > max(2.0, source_duration * 0.01):
+        raise ValueError("新视频未通过时长检查")
+    if course_media_requires_optimization(output):
+        raise ValueError("新视频未达到播放规格")
+
+
+def refresh_course_video_jobs(limit: int = 3) -> int:
+    if not COURSE_VIDEO_AUTO_PROCESS_ENABLED:
+        return 0
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, video_source_key, video_job_id, video_output_key, video_process_started_at
+            FROM course_lessons
+            WHERE video_status = 'processing' AND COALESCE(video_job_id, '') != ''
+            ORDER BY video_process_started_at, id
+            LIMIT ?
+            """,
+            (max(1, min(limit, 50)),),
+        ).fetchall()
+    updated = 0
+    for row in rows:
+        lesson_id = int(row["id"])
+        source_key = str(row["video_source_key"] or "")
+        job_id = str(row["video_job_id"] or "")
+        output_key = str(row["video_output_key"] or "")
+        started_at = timestamp_epoch(row["video_process_started_at"])
+        if started_at and time.time() - started_at > max(300, COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS):
+            course_video_failure(lesson_id, source_key, "视频处理超时，请重试")
+            updated += 1
+            continue
+        try:
+            job = course_transcode_job(job_id)
+        except Exception:
+            continue
+        state = job.get("state", "")
+        if state == "Success":
+            try:
+                source_info = course_media_info(source_key)
+                output_info = course_media_info(output_key)
+                validate_course_transcode(source_info, output_info)
+                with db() as conn:
+                    cursor = conn.execute(
+                        """
+                        UPDATE course_lessons
+                        SET video_key = video_output_key, video_status = 'ready', video_process_error = NULL, updated_at = ?
+                        WHERE id = ? AND video_source_key = ? AND video_job_id = ? AND video_status = 'processing'
+                        """,
+                        (now_iso(), lesson_id, source_key, job_id),
+                    )
+                updated += cursor.rowcount
+            except Exception as exc:
+                course_video_failure(lesson_id, source_key, str(exc))
+                updated += 1
+        elif state in {"Failed", "Cancel"}:
+            course_video_failure(lesson_id, source_key, job.get("message") or job.get("code") or "视频处理失败")
+            updated += 1
+    return updated
 
 
 def signed_course_cos_url(key: str, *, method: str = "get", now: int | None = None, ttl: int | None = None) -> str:
@@ -2093,6 +2470,10 @@ def upload_course_video(name: str, content_type: str, raw: bytes) -> dict[str, s
 
 
 def list_admin_courses() -> dict[str, Any]:
+    try:
+        refresh_course_video_jobs()
+    except Exception:
+        pass
     with db() as conn:
         series_rows = conn.execute(
             """
@@ -2373,7 +2754,9 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                 """
                 SELECT s.*, COUNT(l.id) AS lesson_count, 0 AS grant_count, 1 AS unlocked
                 FROM course_series s
-                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published' AND COALESCE(NULLIF(TRIM(l.video_status), ''), 'ready') = 'ready'
+                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
+                  AND TRIM(COALESCE(l.video_key, '')) != ''
+                  AND (COALESCE(NULLIF(TRIM(l.video_status), ''), 'ready') = 'ready' OR TRIM(COALESCE(l.video_source_key, '')) != '')
                 WHERE s.status = 'published'
                 GROUP BY s.id
                 ORDER BY s.sort_order DESC, s.id DESC
@@ -2398,7 +2781,9 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                        MAX(g.expires_at) AS grant_expires_at
                 FROM course_series s
                 LEFT JOIN course_grants g ON g.series_id = s.id AND g.user_id = ? AND (g.expires_at IS NULL OR g.expires_at = '' OR date(g.expires_at) >= date('now'))
-                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published' AND COALESCE(NULLIF(TRIM(l.video_status), ''), 'ready') = 'ready'
+                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
+                  AND TRIM(COALESCE(l.video_key, '')) != ''
+                  AND (COALESCE(NULLIF(TRIM(l.video_status), ''), 'ready') = 'ready' OR TRIM(COALESCE(l.video_source_key, '')) != '')
                 WHERE s.status = 'published'
                 GROUP BY s.id
                 ORDER BY s.sort_order DESC, s.id DESC
@@ -2418,7 +2803,9 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                 f"""
                 SELECT *
                 FROM course_lessons
-                WHERE status = 'published' AND COALESCE(NULLIF(TRIM(video_status), ''), 'ready') = 'ready' AND series_id IN ({placeholders})
+                WHERE status = 'published' AND TRIM(COALESCE(video_key, '')) != ''
+                  AND (COALESCE(NULLIF(TRIM(video_status), ''), 'ready') = 'ready' OR TRIM(COALESCE(video_source_key, '')) != '')
+                  AND series_id IN ({placeholders})
                 ORDER BY series_id, sort_order DESC, id DESC
                 """,
                 lesson_series_ids,
@@ -3402,7 +3789,11 @@ class Handler(BaseHTTPRequestHandler):
                     not lesson
                     or lesson["status"] != "published"
                     or lesson["series_status"] != "published"
-                    or course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
+                    or not str(lesson["video_key"] or "").strip()
+                    or (
+                        course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
+                        and not str(lesson["video_source_key"] or "").strip()
+                    )
                 ):
                     self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
                     return
@@ -3961,6 +4352,37 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": f"上传准备失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
             self.send_json({"ok": True, "image": image}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/admin/courses/video-process":
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                item = process_course_video(self.read_json())
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"视频处理启动失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": item["videoStatus"] != "failed", "lesson": item}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path.startswith("/api/admin/courses/lessons/") and parsed.path.endswith("/retry"):
+            admin = self.require_admin()
+            if not admin:
+                return
+            try:
+                lesson_id = int(unquote(parsed.path.removeprefix("/api/admin/courses/lessons/").removesuffix("/retry")))
+                item = retry_course_video(lesson_id)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception as exc:
+                self.send_json({"error": f"重试失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self.send_json({"ok": item["videoStatus"] != "failed", "lesson": item}, HTTPStatus.CREATED)
             return
 
         if self.path == "/api/admin/courses":

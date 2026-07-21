@@ -81,6 +81,8 @@ export type CourseLesson = {
   coverUrl: string;
   videoKey?: string;
   videoStatus: "processing" | "ready" | "failed";
+  videoProcessError: string;
+  videoAvailable: boolean;
   status: "published" | "draft";
   createdAt: string;
   updatedAt: string;
@@ -311,6 +313,16 @@ export const api = {
     request<{ ok: true; lesson: CourseLesson }>("/api/admin/courses/lessons", {
       method: "POST",
       body: JSON.stringify(payload)
+    }),
+  processCourseVideo: (payload: { id?: number; seriesId: number; title: string; sortOrder?: number; coverUrl?: string; videoKey: string; status: CourseLesson["status"] }) =>
+    request<{ ok: boolean; lesson: CourseLesson }>("/api/admin/courses/video-process", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  retryCourseVideo: (id: number) =>
+    request<{ ok: boolean; lesson: CourseLesson }>(`/api/admin/courses/lessons/${encodeURIComponent(id)}/retry`, {
+      method: "POST",
+      body: "{}"
     }),
   deleteCourseSeries: (id: number) =>
     request<{ ok: true }>(`/api/admin/courses/${encodeURIComponent(id)}`, {

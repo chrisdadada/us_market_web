@@ -1400,7 +1400,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [error, setError] = useState("");
-  const [courseToast, setCourseToast] = useState<{ title: string; detail: string } | null>(null);
+  const [courseToast, setCourseToast] = useState<AdminToastPayload>(null);
   const [seriesForm, setSeriesForm] = useState<CourseSeriesForm>(emptyCourseSeriesForm);
   const [lessonForm, setLessonForm] = useState<CourseLessonForm>(emptyCourseLessonForm);
   const selected = series.find((item) => item.id === selectedId) || series[0] || null;
@@ -1430,10 +1430,11 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     grants: grants.filter((grant) => grant.active !== false).length,
     expiring: series.reduce((sum, item) => sum + (item.expiringCount || 0), 0)
   };
+  const hasProcessingVideo = series.some((item) => item.lessons?.some((lesson) => lesson.videoStatus === "processing"));
 
-  async function loadCourses() {
+  async function loadCourses(background = false) {
     setError("");
-    setLoading(true);
+    if (!background) setLoading(true);
     try {
       const payload = await api.courses();
       setSeries(payload.series || []);
@@ -1442,13 +1443,19 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "交易实战课程读取失败");
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }
 
   useEffect(() => {
     void loadCourses();
   }, []);
+
+  useEffect(() => {
+    if (!hasProcessingVideo) return;
+    const timer = window.setInterval(() => void loadCourses(true), 12000);
+    return () => window.clearInterval(timer);
+  }, [hasProcessingVideo]);
 
   useEffect(() => {
     setGrantPage(1);
@@ -1649,25 +1656,48 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       const payload = await api.uploadCourseVideo(file, setVideoUploadProgress);
       const title = lessonForm.title || file.name.replace(/\.[^.]+$/, "");
       const sortOrder = lessonForm.sortOrder.trim();
-      await api.saveCourseLesson({
+      const processed = await api.processCourseVideo({
         id: lessonForm.id,
         seriesId: selected.id,
         title,
         coverUrl: lessonForm.coverUrl,
         videoKey: payload.video.key,
-        videoStatus: "ready",
         status: lessonForm.status,
         sortOrder: sortOrder ? Number(sortOrder) : undefined
       });
       setLessonOpen(false);
       setLessonForm(emptyCourseLessonForm());
       await loadCourses();
-      setCourseToast({ title: "已上传", detail: `${title} 已保存` });
+      if (processed.lesson.videoStatus === "failed") {
+        setCourseToast({ title: "处理失败", detail: processed.lesson.videoProcessError || "可在课时列表中重试", tone: "error" });
+      } else if (processed.lesson.videoStatus === "processing") {
+        setCourseToast({ title: "已上传", detail: "视频正在后台优化" });
+      } else {
+        setCourseToast({ title: "已上传", detail: "视频已可播放，无需优化" });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "视频上传失败");
     } finally {
       setVideoUploading(false);
       setVideoUploadProgress(0);
+    }
+  }
+
+  async function retryLessonVideo(lesson: CourseLesson) {
+    setSaving(true);
+    setError("");
+    try {
+      const payload = await api.retryCourseVideo(lesson.id);
+      await loadCourses(true);
+      if (payload.lesson.videoStatus === "failed") {
+        setCourseToast({ title: "重试失败", detail: payload.lesson.videoProcessError || "请稍后再试", tone: "error" });
+      } else {
+        setCourseToast({ title: "已重新处理", detail: payload.lesson.videoStatus === "ready" ? "视频已可播放" : "原视频可继续播放" });
+      }
+    } catch (err) {
+      setCourseToast({ title: "重试失败", detail: err instanceof Error ? err.message : "请稍后再试", tone: "error" });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -1734,8 +1764,8 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
   }
 
   function videoState(status: CourseLesson["videoStatus"]) {
-    if (status === "processing") return { label: "处理中", className: "warningBg" };
-    if (status === "failed") return { label: "处理失败", className: "dangerBg" };
+    if (status === "processing") return { label: "优化中", className: "warningBg" };
+    if (status === "failed") return { label: "优化失败", className: "dangerBg" };
     return { label: "可播放", className: "positiveBg" };
   }
 
@@ -1897,9 +1927,19 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                     return (
                       <tr key={lesson.id}>
                         <td>{lesson.sortOrder}</td>
-                        <td><div className="courseLessonCell"><strong>{lesson.title}</strong><small><span className={`status ${mediaState.className}`}>{mediaState.label}</span></small></div></td>
+                        <td>
+                          <div className="courseLessonCell">
+                            <strong>{lesson.title}</strong>
+                            <small>
+                              <span className={`status ${mediaState.className}`}>{mediaState.label}</span>
+                              {lesson.videoStatus === "processing" ? <span>{lesson.videoAvailable ? "原视频可播放" : "正在准备视频"}</span> : null}
+                              {lesson.videoStatus === "failed" ? <span className="courseLessonProcessError" title={lesson.videoProcessError}>{lesson.videoProcessError || "请重试"}</span> : null}
+                            </small>
+                          </div>
+                        </td>
                         <td><span className={`status ${lesson.status === "published" ? "positiveBg" : "warningBg"}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
                         <td>
+                          {lesson.videoStatus === "failed" ? <button type="button" className="tableAction" disabled={saving} onClick={() => void retryLessonVideo(lesson)}>重试</button> : null}
                           <button type="button" className="tableAction" disabled={saving} onClick={() => openEditLesson(lesson)}>编辑</button>
                           <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "lesson", id: lesson.id })}>删除</button>
                         </td>

@@ -12,6 +12,7 @@ import urllib.request
 from datetime import date, timedelta
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,6 +85,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_COS_BUCKET = ""
         auth_api.COURSE_COS_REGION = ""
         auth_api.COURSE_COS_DOMAIN = ""
+        auth_api.COURSE_VIDEO_AUTO_PROCESS_ENABLED = False
+        auth_api.COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS = 21600
         auth_api.init_db()
 
     def tearDown(self) -> None:
@@ -1364,6 +1367,142 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = admin.get("/api/product/opinions")
         self.assertEqual(status, 200, payload)
         self.assertIn(f"![chart]({image_url})", payload["rows"][0]["body"])
+
+    def test_course_video_auto_processing_skips_low_bitrate_source(self) -> None:
+        series = auth_api.create_course_series({"title": "自动处理测试课", "status": "published"})
+        source_info = {
+            "size": 1000,
+            "duration": 60,
+            "bitrateKbps": 1200,
+            "videoCodec": "h264",
+            "audioCodec": "aac",
+            "width": 1280,
+        }
+        with (
+            patch.object(auth_api, "COURSE_VIDEO_AUTO_PROCESS_ENABLED", True),
+            patch.object(auth_api, "course_media_info", return_value=source_info),
+            patch.object(auth_api, "create_course_transcode_job") as create_job,
+        ):
+            lesson = auth_api.process_course_video({
+                "seriesId": series["id"],
+                "title": "低码率视频",
+                "videoKey": "lesson/low.mp4",
+                "status": "published",
+            })
+        self.assertEqual(lesson["videoStatus"], "ready")
+        self.assertEqual(lesson["videoKey"], "lesson/low.mp4")
+        self.assertTrue(lesson["videoAvailable"])
+        create_job.assert_not_called()
+
+    def test_course_video_auto_processing_switches_only_after_validation(self) -> None:
+        series = auth_api.create_course_series({"title": "自动转码测试课", "status": "published"})
+        original = auth_api.create_course_lesson({
+            "seriesId": series["id"],
+            "title": "已有视频",
+            "videoKey": "lesson/original.mp4",
+            "status": "published",
+        })
+        source_info = {
+            "size": 2000,
+            "duration": 60,
+            "bitrateKbps": 5000,
+            "videoCodec": "h264",
+            "audioCodec": "aac",
+            "width": 1920,
+        }
+        output_info = {
+            "size": 1000,
+            "duration": 60,
+            "bitrateKbps": 2300,
+            "videoCodec": "h264",
+            "audioCodec": "aac",
+            "width": 1920,
+        }
+        with (
+            patch.object(auth_api, "COURSE_VIDEO_AUTO_PROCESS_ENABLED", True),
+            patch.object(auth_api, "course_media_info", return_value=source_info),
+            patch.object(auth_api, "create_course_transcode_job", return_value=("job-1", "lesson/optimized.mp4")),
+        ):
+            processing = auth_api.process_course_video({
+                "id": original["id"],
+                "seriesId": series["id"],
+                "title": "已有视频",
+                "videoKey": "lesson/replacement.mp4",
+                "status": "published",
+            })
+        self.assertEqual(processing["videoStatus"], "processing")
+        self.assertEqual(processing["videoKey"], "lesson/original.mp4")
+        self.assertTrue(processing["videoAvailable"])
+
+        with (
+            patch.object(auth_api, "COURSE_VIDEO_AUTO_PROCESS_ENABLED", True),
+            patch.object(auth_api, "course_transcode_job", return_value={"state": "Success", "code": "", "message": ""}),
+            patch.object(auth_api, "course_media_info", side_effect=lambda key: output_info if key.endswith("optimized.mp4") else source_info),
+        ):
+            self.assertEqual(auth_api.refresh_course_video_jobs(), 1)
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            row = conn.execute("SELECT video_key, video_status FROM course_lessons WHERE id = ?", (original["id"],)).fetchone()
+        self.assertEqual(row, ("lesson/optimized.mp4", "ready"))
+
+        with (
+            patch.object(auth_api, "COURSE_VIDEO_AUTO_PROCESS_ENABLED", True),
+            patch.object(auth_api, "course_media_info", return_value=source_info),
+            patch.object(auth_api, "create_course_transcode_job", return_value=("job-2", "lesson/failed.mp4")),
+        ):
+            auth_api.process_course_video({
+                "id": original["id"],
+                "seriesId": series["id"],
+                "title": "已有视频",
+                "videoKey": "lesson/next.mp4",
+                "status": "published",
+            })
+        with (
+            patch.object(auth_api, "COURSE_VIDEO_AUTO_PROCESS_ENABLED", True),
+            patch.object(auth_api, "course_transcode_job", return_value={"state": "Failed", "code": "E1", "message": "转码失败"}),
+        ):
+            self.assertEqual(auth_api.refresh_course_video_jobs(), 1)
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            row = conn.execute("SELECT video_key, video_status, video_process_error FROM course_lessons WHERE id = ?", (original["id"],)).fetchone()
+        self.assertEqual(row, ("lesson/optimized.mp4", "failed", "转码失败"))
+
+    def test_new_processing_course_video_is_not_exposed_before_ready(self) -> None:
+        series = auth_api.create_course_series({"title": "待处理视频测试课", "status": "published"})
+        source_info = {
+            "size": 2000,
+            "duration": 60,
+            "bitrateKbps": 5000,
+            "videoCodec": "h264",
+            "audioCodec": "aac",
+            "width": 1920,
+        }
+        with (
+            patch.object(auth_api, "COURSE_VIDEO_AUTO_PROCESS_ENABLED", True),
+            patch.object(auth_api, "course_media_info", return_value=source_info),
+            patch.object(auth_api, "create_course_transcode_job", return_value=("job-new", "lesson/new-optimized.mp4")),
+        ):
+            lesson = auth_api.process_course_video({
+                "seriesId": series["id"],
+                "title": "新视频",
+                "videoKey": "lesson/new.mp4",
+                "status": "published",
+            })
+        self.assertEqual(lesson["videoStatus"], "processing")
+        self.assertFalse(lesson["videoAvailable"])
+        admin = auth_api.find_user_by_email("admin@example.test")
+        payload = auth_api.user_courses_payload(admin)
+        lesson_ids = [item["id"] for course in payload["series"] for item in course["lessons"]]
+        self.assertNotIn(lesson["id"], lesson_ids)
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            conn.execute("UPDATE course_lessons SET video_process_started_at = ? WHERE id = ?", ("2000-01-01T00:00:00+00:00", lesson["id"]))
+        with (
+            patch.object(auth_api, "COURSE_VIDEO_AUTO_PROCESS_ENABLED", True),
+            patch.object(auth_api, "course_transcode_job") as query_job,
+        ):
+            self.assertEqual(auth_api.refresh_course_video_jobs(), 1)
+        query_job.assert_not_called()
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            row = conn.execute("SELECT video_key, video_status, video_process_error FROM course_lessons WHERE id = ?", (lesson["id"],)).fetchone()
+        self.assertEqual(row, ("", "failed", "视频处理超时，请重试"))
 
     def test_course_cover_upload_puts_to_cos(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"

@@ -2193,9 +2193,17 @@ nav button.active { background: #eff6ff; color: #1677ff; box-shadow: inset 4px 0
 }
 
 .courseLessonCell small {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #8a97a8;
   font-size: 12px;
   font-weight: 520;
+}
+
+.courseLessonProcessError {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .courseDetailActions {
