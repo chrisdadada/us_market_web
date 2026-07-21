@@ -31,7 +31,7 @@ const profiles = {
   },
   monthly: {
     authenticated: true,
-    user: { id: 2, email: "monthly@example.test", role: "user", plan: "monthly", subscriptionExpiresAt: "2026-07-22 12:00:00" },
+    user: { id: 2, email: "monthly@example.test", role: "user", plan: "monthly", subscriptionExpiresAt: "2026-07-22 12:00:00", onboardingSeenAt: "2026-07-01 12:00:00" },
     entitlements: { paid: true, pro: true, proPlus: false, admin: false, yearly: false },
   },
   yearly: {
@@ -68,6 +68,7 @@ function moneyValue(label) {
 async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/auth/status") return authProfile;
   if (url.pathname === "/api/auth/logout") return { ok: true };
+  if (url.pathname === "/api/open-portfolio") return { curve: [], holdings: [], trades: [] };
 
   const ytd = await readDataset("ytd-gainers");
   const movers = await readDataset("market-movers");
@@ -75,6 +76,8 @@ async function apiPayload(url, authProfile) {
   const strength = await readDataset("strength-scanner");
   const calendar = await readDataset("events-calendar");
   const opinions = await readDataset("market-opinion-content");
+  const marketTemperature = await readDataset("market-temperature");
+  const macroSeries = await readDataset("macro-series");
 
   if (url.pathname === "/api/product/bootstrap") {
     return {
@@ -90,6 +93,10 @@ async function apiPayload(url, authProfile) {
       sectorFlow,
     };
   }
+
+  if (url.pathname === "/api/product/raw/market-temperature") return marketTemperature;
+  if (url.pathname === "/api/product/raw/macro-series") return macroSeries;
+  if (url.pathname === "/api/product/raw/strength-scanner") return strength;
 
   if (url.pathname === "/api/product/opinions") {
     const items = (opinions.items || []).filter((item) => item.status === "published");
@@ -207,16 +214,22 @@ const scenarios = [
   { profile: "anonymous", page: "calendar", absent: Object.values(gates) },
   { profile: "anonymous", page: "market", present: [gates.open] },
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
+  { profile: "anonymous", page: "risk", present: ["注册后查看"] },
+  { profile: "anonymous", page: "strength", present: [gates.open] },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
   { profile: "free", page: "tracking", presentSelector: ".lockedStockName" },
   { profile: "free", page: "home", presentSelector: ".frontHomeTableLock" },
   { profile: "free", page: "open", present: [gates.open] },
   { profile: "free", page: "market", present: [gates.open] },
+  { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
+  { profile: "free", page: "strength", present: [gates.open] },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "monthly", page: "home", absentSelector: ".frontHomeTableLock" },
   { profile: "monthly", page: "open", present: [gates.open] },
   { profile: "monthly", page: "market", absent: Object.values(gates) },
+  { profile: "monthly", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
+  { profile: "monthly", page: "strength", presentSelector: "[data-testid='market-strength-page']", absent: Object.values(gates) },
   { profile: "yearly", page: "opinions", absent: Object.values(gates) },
   { profile: "yearly", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "yearly", page: "open", absent: [gates.open] },
@@ -232,6 +245,7 @@ try {
   for (const [profileName, authProfile] of Object.entries(profiles)) {
     const server = await startServer(authProfile);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page.on("pageerror", (error) => console.error(`Browser error (${profileName}):`, error.stack));
     try {
       for (const baseUrl of [server.rootUrl, server.nextUrl]) {
         for (const scenario of scenarios.filter((item) => item.profile === profileName)) {
@@ -240,8 +254,12 @@ try {
             await page.waitForSelector(".frontHomeStrengthPanel");
           }
           const text = await page.locator("body").innerText();
+          assert(!new URL(page.url()).pathname.startsWith("/legacy"), `${profileName}/${scenario.page} should stay in the white main site`);
+          if (!authProfile.entitlements.admin) {
+            assert(await page.locator(".navGroupTitle", { hasText: "工具数据" }).count() === 0, `${profileName} should not show the admin tool-data group`);
+          }
           for (const expected of scenario.present || []) {
-            assert(text.includes(expected), `${profileName}/${baseUrl}/${scenario.page} should show gate: ${expected}`);
+            assert(text.includes(expected), `${profileName}/${baseUrl}/${scenario.page} should show gate: ${expected}; body=${text.slice(0, 240)}`);
           }
           for (const unexpected of scenario.absent || []) {
             assert(!text.includes(unexpected), `${profileName}/${baseUrl}/${scenario.page} should not show gate: ${unexpected}`);

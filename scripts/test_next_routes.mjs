@@ -41,6 +41,7 @@ async function apiPayload(url) {
   if (url.pathname === "/api/auth/status") {
     return { authenticated: false, user: null, entitlements: { paid: false, pro: false, proPlus: false, admin: false } };
   }
+  if (url.pathname === "/api/open-portfolio") return { curve: [], holdings: [], trades: [] };
 
   const ytd = await readDataset("ytd-gainers");
   const movers = await readDataset("market-movers");
@@ -176,6 +177,8 @@ const routeCases = [
   { query: "?page=opinions", text: "美股热点风向标" },
   { query: "?page=tracking", text: "股票机会跟踪榜单" },
   { query: "?page=market", text: "市场与资金" },
+  { query: "?page=risk", text: "注册后查看" },
+  { query: "?page=strength", text: "开通查看完整内容" },
   { query: "?page=stocks&symbol=MU", text: "股票库" },
   { query: "?page=calendar", text: "美股重点财经前瞻" },
   { query: "?page=open", text: "Open 持仓参考" },
@@ -209,6 +212,7 @@ async function launchBrowser() {
 const browser = await launchBrowser();
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  page.on("pageerror", (error) => console.error(error.stack));
   for (const baseUrl of [server.rootUrl, server.nextUrl]) {
     for (const item of routeCases) {
       await page.goto(`${baseUrl}${item.query}`, { waitUntil: "networkidle" });
@@ -225,4 +229,4 @@ try {
   await server.close();
 }
 
-console.log("Next/root front regression passed (16 checks).");
+console.log(`Next/root front regression passed (${routeCases.length * 2} checks).`);

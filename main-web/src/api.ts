@@ -34,6 +34,7 @@ export type MarketRow = {
 };
 
 export type StrengthRow = {
+  rank?: number;
   symbol: string;
   name?: string;
   sector?: string;
@@ -45,7 +46,9 @@ export type StrengthRow = {
   action?: string;
   primaryFactor?: string;
   periods?: Record<string, string>;
-  crowding?: { volumeRatio?: string | number };
+  score?: number;
+  relative?: { spy?: string; qqq?: string; sector?: string };
+  crowding?: { score?: number; volumeRatio?: string | number };
   onBoard?: {
     label?: string;
     firstSeen?: string;
@@ -53,6 +56,57 @@ export type StrengthRow = {
     streak?: number;
     totalDays?: number;
   };
+};
+
+export type TemperatureIndicator = {
+  key: string;
+  name: string;
+  value?: string;
+  previous?: string;
+  change?: string;
+  level?: string;
+  status?: "positive" | "neutral" | "watch" | string;
+  impact?: string;
+  explain?: string;
+  asOf?: string;
+};
+
+export type MarketTemperaturePayload = {
+  asOf?: string;
+  overall?: { score?: number; label?: string; summary?: string; action?: string };
+  indicators?: TemperatureIndicator[];
+};
+
+export type MacroSeriesIndicator = TemperatureIndicator & {
+  current?: number;
+  unit?: string;
+  points?: Array<{ date: string; value: number }>;
+};
+
+export type MacroSeriesPayload = {
+  asOf?: string;
+  indicators?: MacroSeriesIndicator[];
+};
+
+export type StrengthTheme = {
+  name?: string;
+  return20d?: string;
+  vsMarket?: string;
+  symbols?: string;
+};
+
+export type StrengthScannerPayload = {
+  asOf?: string;
+  summary?: {
+    hotCrowdingCount?: number;
+    leader?: string;
+    leaderScore?: number;
+    medianScore?: number;
+    weakest?: string;
+    weakestScore?: number;
+  };
+  themes?: { leaders?: StrengthTheme[]; risk?: StrengthTheme[]; hot?: StrengthTheme[] };
+  rows?: StrengthRow[];
 };
 
 export type BootstrapPayload = {
@@ -448,6 +502,9 @@ export const api = {
     if (symbols?.length) params.set("symbols", symbols.join(","));
     return request<BootstrapPayload>(`/api/product/bootstrap?${params.toString()}`);
   },
+  marketTemperature: () => request<MarketTemperaturePayload>("/api/product/raw/market-temperature"),
+  macroSeries: () => request<MacroSeriesPayload>("/api/product/raw/macro-series"),
+  strengthScanner: () => request<StrengthScannerPayload>("/api/product/raw/strength-scanner"),
   opinions: (limit = 60, options?: { offset?: number; section?: string }) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (options?.offset) params.set("offset", String(options.offset));

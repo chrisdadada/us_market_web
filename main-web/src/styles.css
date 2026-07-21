@@ -26,6 +26,245 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* Main-site market tools */
+.marketToolPage {
+  padding: 22px 24px 40px;
+  color: #172033;
+}
+
+.marketToolHeading {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  margin-bottom: 14px;
+}
+
+.marketToolHeading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.marketToolHeading h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+.marketToolHeading span,
+.marketToolPanelHead span {
+  color: #718096;
+  font-size: 13px;
+}
+
+.marketToolPanel,
+.temperatureOverview > article,
+.strengthMetrics article {
+  background: #fff;
+  border: 1px solid #dfe7f1;
+  border-radius: 8px;
+}
+
+.temperatureOverview {
+  display: grid;
+  grid-template-columns: minmax(210px, .7fr) minmax(320px, 1.35fr) minmax(250px, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.temperatureOverview > article {
+  min-height: 178px;
+  padding: 20px;
+}
+
+.temperatureOverview article > span,
+.strengthMetrics span {
+  display: block;
+  color: #718096;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.temperatureScore > strong {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.temperatureScore > strong small {
+  color: #718096;
+  font-size: 15px;
+}
+
+.temperatureScore > b,
+.toolStatus {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.temperatureScore > b.positive,
+.toolStatus.positive { color: #087a56; background: #e7f7f1; }
+.temperatureScore > b.neutral,
+.toolStatus.neutral { color: #9a6700; background: #fff4d6; }
+.temperatureScore > b.negative,
+.toolStatus.negative { color: #bd2f43; background: #fdecef; }
+
+.temperatureScale {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-top: 20px;
+}
+
+.temperatureScale i { height: 7px; border-radius: 2px; }
+.temperatureScale i:nth-child(1) { background: #d33d52; }
+.temperatureScale i:nth-child(2) { background: #e8a83b; }
+.temperatureScale i:nth-child(3) { background: #0b9968; }
+.temperatureScale em { position: absolute; top: -4px; width: 2px; height: 15px; background: #172033; transform: translateX(-1px); }
+
+.temperatureDecision strong {
+  display: block;
+  margin: 14px 0 8px;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.temperatureDecision p {
+  margin: 0;
+  color: #526176;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.temperatureImpacts > div {
+  display: grid;
+  grid-template-columns: 7px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.temperatureImpacts i { width: 7px; height: 7px; border-radius: 50%; }
+.temperatureImpacts i.positive { background: #0b9968; }
+.temperatureImpacts i.neutral { background: #e8a83b; }
+.temperatureImpacts i.negative { background: #d33d52; }
+.temperatureImpacts strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.temperatureImpacts em { color: #526176; font-size: 12px; font-style: normal; }
+
+.marketToolPanelHead {
+  min-height: 54px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e6edf5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.marketToolPanelHead h2 { margin: 0; font-size: 16px; }
+.marketToolTabs,
+.marketToolRange { display: flex; align-items: center; gap: 4px; }
+.marketToolTabs button,
+.marketToolRange button {
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #526176;
+  min-height: 32px;
+  padding: 0 11px;
+  cursor: pointer;
+}
+.marketToolTabs button.active,
+.marketToolRange button.active { color: #1268d5; border-color: #bcd7fb; background: #edf5ff; }
+
+.marketToolTable { overflow: auto; }
+.marketToolTable table { width: 100%; min-width: 820px; border-collapse: collapse; }
+.marketToolTable th,
+.marketToolTable td { padding: 12px 16px; border-bottom: 1px solid #edf1f6; text-align: left; font-size: 13px; vertical-align: middle; }
+.marketToolTable th { color: #718096; background: #f7f9fc; font-weight: 600; }
+.marketToolTable td strong,
+.marketToolTable td small { display: block; }
+.marketToolTable td small { margin-top: 3px; color: #8290a4; font-size: 11px; }
+.marketToolTable tbody tr:last-child td { border-bottom: 0; }
+.strengthTable tbody tr { cursor: pointer; }
+.strengthTable tbody tr:hover { background: #f6f9fd; }
+
+.macroSeriesBlock { padding: 14px; }
+.marketToolRange { justify-content: flex-end; margin-bottom: 10px; }
+.macroSeriesGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.macroSeriesGrid > article { border: 1px solid #e4ebf3; border-radius: 7px; padding: 14px; }
+.macroSeriesGrid > article > div:first-child { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.macroSeriesGrid > article > div:first-child span { color: #526176; }
+.marketLineChart svg { display: block; width: 100%; height: 142px; margin-top: 8px; }
+.marketLineChart line { stroke: #dfe7f1; stroke-width: 1; }
+.marketLineChart polyline { fill: none; stroke: #1677ff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.marketLineChart > div { display: flex; justify-content: space-between; color: #8290a4; font-size: 11px; }
+.marketLineChart > div strong { color: #172033; font-size: 12px; }
+
+.strengthMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.strengthMetrics article { min-height: 94px; padding: 16px; }
+.strengthMetrics strong { display: block; margin-top: 10px; font-size: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.strengthTopGrid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; margin-bottom: 10px; }
+.sectorStrengthBars { padding: 8px 16px 14px; }
+.sectorStrengthBars > div { display: grid; grid-template-columns: 125px 1fr 60px; align-items: center; gap: 10px; min-height: 34px; }
+.sectorStrengthBars strong,
+.sectorStrengthBars em { font-size: 12px; font-style: normal; }
+.sectorStrengthBars em { text-align: right; }
+.sectorStrengthBars span { height: 8px; background: #edf1f6; border-radius: 2px; overflow: hidden; }
+.sectorStrengthBars i { display: block; height: 100%; border-radius: 2px; }
+.sectorStrengthBars i.positive { background: #0b9968; }
+.sectorStrengthBars i.negative { background: #d33d52; }
+.strengthFocusList { display: grid; gap: 0; }
+.strengthFocusList button { display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 16px; border: 0; border-bottom: 1px solid #edf1f6; background: #fff; cursor: pointer; }
+.strengthFocusList button:last-child { border-bottom: 0; }
+.strengthFocusList button:hover { background: #f6f9fd; }
+.strengthFocusList span { color: #526176; }
+.strengthListHead { align-items: center; }
+.strengthFilters { display: flex; gap: 8px; }
+.strengthFilters input,
+.strengthFilters select { min-height: 34px; border: 1px solid #d7e0ec; border-radius: 5px; background: #fff; color: #172033; padding: 0 10px; font-size: 12px; }
+.strengthFilters input { width: 150px; }
+
+.marketToolLoading,
+.marketToolError,
+.marketToolEmpty,
+.marketToolSkeleton { min-height: 280px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: center; color: #718096; font-size: 14px; }
+.marketToolError { gap: 12px; }
+.marketToolError button { min-height: 34px; padding: 0 12px; border: 1px solid #bcd7fb; border-radius: 5px; background: #edf5ff; color: #1268d5; cursor: pointer; }
+.marketToolEmpty.compact { min-height: 100px; border: 0; }
+
+@media (max-width: 1080px) {
+  .temperatureOverview { grid-template-columns: 1fr 1fr; }
+  .temperatureImpacts { grid-column: 1 / -1; }
+  .strengthMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .strengthTopGrid { grid-template-columns: 1fr; }
+  .strengthListHead { align-items: stretch; flex-direction: column; }
+}
+
+@media (max-width: 720px) {
+  .marketToolPage { padding: 16px 12px 28px; }
+  .marketToolHeading h1 { font-size: 20px; }
+  .temperatureOverview,
+  .strengthMetrics,
+  .macroSeriesGrid { grid-template-columns: 1fr; }
+  .temperatureImpacts { grid-column: auto; }
+  .marketToolPanelHead { align-items: stretch; flex-direction: column; }
+  .marketToolTabs { overflow-x: auto; }
+  .strengthFilters { display: grid; grid-template-columns: 1fr 1fr; }
+  .strengthFilters input { width: auto; grid-column: 1 / -1; }
+}
+
 /* Market funds final layout. */
 .marketPage {
   background: #f4f7fb;
