@@ -8,6 +8,7 @@
 - 正式环境站点代码部署 / promote production 必须用户当次手动通知并明确授权；默认只允许部署 dev，不能因为 dev 验证通过、定时任务、环境变量或历史授权自动 promote prod。
 - 已确认例外：`美股数据与产品刷新 v2` 可在 DB-first 验证、release gate、覆盖检查、DB-only 打包和 dev 部署通过后，自动准备本轮 `data/product.db`；若要部署到 prod，只允许通过 `scripts/deploy_prod_data.sh`，且在存在 `Open 持仓`运行表时必须当次人工授权，不得 promote prod 站点代码、后台、用户库或其它模块。
 - `Open 持仓`的 `open_portfolio_trades`、`open_portfolio_symbol_rules` 及其计算结果属于生产运行数据。任何写入、删除、迁移、重算、导入、恢复或替换，都必须由用户在当次明确人工授权；普通代码发布不得复制、覆盖或触碰 `/opt/dongbimao-prod/data/product.db`，且必须在发布前后校验其未变化。
+- 课程图片、视频的盘点、压缩、转码和迁移必须先在 local / dev 完整验证。任何读取以外的 prod 媒体操作、prod 数据库字段更新、prod COS 上传/覆盖/删除或链接切换，都必须由用户在当次明确人工授权；dev 验证通过不等于获得 prod 授权。
 
 ## 交付汇报格式
 
