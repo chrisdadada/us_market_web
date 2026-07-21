@@ -1987,7 +1987,7 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
       >
         {thresholdY !== null ? <g className="marketPressureZone"><rect x={plot.left} y={plot.top} width={plotWidth} height={Math.max(0, thresholdY - plot.top)} /><line x1={plot.left} y1={thresholdY} x2={width - plot.right} y2={thresholdY} /><text x={plot.left + 8} y={Math.max(plot.top + 13, thresholdY - 6)}>压力区</text></g> : null}
         {yTicks.map((tick) => <g className="marketChartGrid" key={tick}><line x1={plot.left} y1={yFor(tick)} x2={width - plot.right} y2={yFor(tick)} /><text x={plot.left - 8} y={yFor(tick) + 4}>{formatSeriesValue(tick, item.unit)}</text></g>)}
-        {dateIndexes.map((index) => <text className="marketChartDate" key={visible[index].date} x={xFor(index)} y={height - 12}>{visible[index].date.slice(0, 7)}</text>)}
+        {dateIndexes.map((index) => <text className="marketChartDate" key={visible[index].date} x={xFor(index)} y={height - 12} style={{ textAnchor: index === 0 ? "start" : index === visible.length - 1 ? "end" : "middle" }}>{visible[index].date.slice(0, 7)}</text>)}
         <polyline className="marketChartPath" points={coordinates} />
         <line className="marketChartCrosshair" x1={activeX} y1={plot.top} x2={activeX} y2={height - plot.bottom} />
         <circle className="marketChartPoint" cx={activeX} cy={activeY} r="4" />
