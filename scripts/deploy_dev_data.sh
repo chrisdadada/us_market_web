@@ -142,7 +142,8 @@ with sqlite3.connect("/opt/dongbimao-dev/data/product.db") as conn:
         print(f"{name}={count}")
     for name in ("macro-series", "market-temperature", "strength-scanner"):
         row = conn.execute("SELECT as_of FROM datasets WHERE name = ?", (name,)).fetchone()
-        print(f"{name}={row[0] if row else '--'}")
+        value = row[0] if row else "--"
+        print(f"{name}={value}")
 PY
 '
 
