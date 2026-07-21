@@ -952,6 +952,11 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         )
         self.assertEqual(status, 201, payload)
         lesson_id = payload["lesson"]["id"]
+        self.assertEqual(payload["lesson"]["videoStatus"], "ready")
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            conn.execute("UPDATE course_lessons SET video_status = '' WHERE id = ?", (lesson_id,))
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 403, payload)
 
         status, payload = admin.post(
             "/api/admin/courses/lessons",
@@ -972,6 +977,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 "title": "财报季交易框架更新",
                 "summary": "课程简介更新",
                 "coverUrl": "/uploads/courses/cover.png",
+                "coverCardUrl": "/uploads/courses/cover-card.webp",
                 "sortOrder": 9,
                 "status": "published",
             },
@@ -979,6 +985,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         self.assertEqual(payload["series"]["id"], series_id)
         self.assertEqual(payload["series"]["title"], "财报季交易框架更新")
+        self.assertEqual(payload["series"]["coverCardUrl"], "/uploads/courses/cover-card.webp")
         self.assertEqual(payload["series"]["sortOrder"], 9)
 
         status, payload = admin.post(
@@ -990,6 +997,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 "coverUrl": "https://cdn.example.test/lesson-cover-updated.jpg",
                 "sortOrder": 9,
                 "videoKey": "https://example.test/video-updated.mp4",
+                "videoStatus": "ready",
                 "status": "published",
             },
         )
@@ -1002,6 +1010,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["series"][0]["title"], "财报季交易框架更新")
         self.assertFalse(payload["series"][0]["unlocked"])
+        self.assertEqual(payload["series"][0]["lessonCount"], 2)
         self.assertEqual(payload["series"][0]["lessons"], [])
 
         status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
@@ -1035,12 +1044,65 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertTrue(payload["series"][0]["unlocked"])
         self.assertEqual(payload["series"][0]["grantExpiresAt"], "2029-01-01")
         self.assertEqual(payload["series"][0]["coverUrl"], "/uploads/courses/cover.png")
+        self.assertEqual(payload["series"][0]["coverCardUrl"], "/uploads/courses/cover-card.webp")
         self.assertEqual(payload["series"][0]["lessons"][0]["title"], "01 课程框架更新")
         self.assertEqual(payload["series"][0]["lessons"][0]["coverUrl"], "https://cdn.example.test/lesson-cover-updated.jpg")
+        self.assertEqual(payload["series"][0]["lessons"][0]["videoStatus"], "ready")
 
         status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["url"], "https://example.test/video-updated.mp4")
+
+        status, payload = admin.post(
+            "/api/admin/courses/lessons",
+            {
+                "id": lesson_id,
+                "seriesId": series_id,
+                "title": "01 课程框架更新",
+                "coverUrl": "https://cdn.example.test/lesson-cover-updated.jpg",
+                "sortOrder": 9,
+                "videoKey": "https://example.test/video-updated.mp4",
+                "videoStatus": "failed",
+                "status": "published",
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        self.assertEqual(payload["lesson"]["videoStatus"], "failed")
+        status, payload = admin.post(
+            "/api/admin/courses/lessons",
+            {
+                "id": lesson_id,
+                "seriesId": series_id,
+                "title": "01 课程框架更新",
+                "coverUrl": "https://cdn.example.test/lesson-cover-updated.jpg",
+                "sortOrder": 9,
+                "videoKey": "https://example.test/video-updated.mp4",
+                "status": "published",
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        self.assertEqual(payload["lesson"]["videoStatus"], "failed")
+        status, payload = client.get("/api/courses")
+        self.assertEqual(status, 200, payload)
+        self.assertNotIn(lesson_id, [lesson["id"] for lesson in payload["series"][0]["lessons"]])
+        self.assertEqual(payload["series"][0]["lessonCount"], 1)
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 404, payload)
+
+        status, payload = admin.post(
+            "/api/admin/courses/lessons",
+            {
+                "id": lesson_id,
+                "seriesId": series_id,
+                "title": "01 课程框架更新",
+                "coverUrl": "https://cdn.example.test/lesson-cover-updated.jpg",
+                "sortOrder": 9,
+                "videoKey": "https://example.test/video-updated.mp4",
+                "videoStatus": "ready",
+                "status": "published",
+            },
+        )
+        self.assertEqual(status, 201, payload)
 
         status, payload = admin.delete(f"/api/admin/courses/grants/{grant_id}")
         self.assertEqual(status, 200, payload)

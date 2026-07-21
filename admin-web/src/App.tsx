@@ -1,5 +1,6 @@
 import { ClipboardEvent, FormEvent, ReactElement, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { api, AdminMetrics, AdminUser, AuthStatus, CourseGrant, CourseLesson, CourseSeries, MarketOpinion, OpenPortfolioPayload, OpenPortfolioTrade, OpinionStatus, UserEvent } from "./api";
+import { optimizeCourseCover } from "./courseMedia";
 
 type PageKey = "home" | "users" | "content" | "open" | "courses" | "events" | "admins";
 
@@ -1353,6 +1354,7 @@ type CourseSeriesForm = {
   discountPrice: string;
   discountLabel: string;
   coverUrl: string;
+  coverCardUrl: string;
   sortOrder: string;
   status: CourseSeries["status"];
 };
@@ -1363,11 +1365,12 @@ type CourseLessonForm = {
   sortOrder: string;
   coverUrl: string;
   videoKey: string;
+  videoStatus: CourseLesson["videoStatus"];
   status: CourseLesson["status"];
 };
 
-const emptyCourseSeriesForm = (): CourseSeriesForm => ({ title: "", summary: "", intro: "", progressStatus: "updating", originalPrice: "", discountPrice: "", discountLabel: "", coverUrl: "", sortOrder: "", status: "draft" });
-const emptyCourseLessonForm = (): CourseLessonForm => ({ title: "", sortOrder: "", coverUrl: "", videoKey: "", status: "published" });
+const emptyCourseSeriesForm = (): CourseSeriesForm => ({ title: "", summary: "", intro: "", progressStatus: "updating", originalPrice: "", discountPrice: "", discountLabel: "", coverUrl: "", coverCardUrl: "", sortOrder: "", status: "draft" });
+const emptyCourseLessonForm = (): CourseLessonForm => ({ title: "", sortOrder: "", coverUrl: "", videoKey: "", videoStatus: "ready", status: "published" });
 
 function CoursesPage({ users }: { users: AdminUser[] }) {
   const coverFileRef = useRef<HTMLInputElement | null>(null);
@@ -1496,6 +1499,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
         title: lessonForm.title,
         coverUrl: lessonForm.coverUrl,
         videoKey: lessonForm.videoKey,
+        videoStatus: lessonForm.videoStatus,
         status: lessonForm.status,
         sortOrder: sortOrder ? Number(sortOrder) : undefined
       });
@@ -1595,8 +1599,17 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setCoverUploading(true);
     setError("");
     try {
-      const payload = await api.uploadCourseImage(file);
-      setSeriesForm((current) => ({ ...current, coverUrl: payload.image.url }));
+      const optimized = await optimizeCourseCover(file);
+      const [cardPayload, detailPayload] = await Promise.all([
+        api.uploadCourseImage(optimized.card),
+        api.uploadCourseImage(optimized.detail),
+      ]);
+      setSeriesForm((current) => ({
+        ...current,
+        coverUrl: detailPayload.image.url,
+        coverCardUrl: cardPayload.image.url,
+      }));
+      setCourseToast({ title: "封面已优化", detail: "列表图和详情图已生成" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "封面上传失败");
     } finally {
@@ -1612,8 +1625,10 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
     setCoverUploading(true);
     setError("");
     try {
-      const payload = await api.uploadCourseImage(file);
+      const { detail } = await optimizeCourseCover(file);
+      const payload = await api.uploadCourseImage(detail);
       setLessonForm((current) => ({ ...current, coverUrl: payload.image.url }));
+      setCourseToast({ title: "封面已优化", detail: "图片已转为 WebP" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "封面上传失败");
     } finally {
@@ -1640,6 +1655,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
         title,
         coverUrl: lessonForm.coverUrl,
         videoKey: payload.video.key,
+        videoStatus: "ready",
         status: lessonForm.status,
         sortOrder: sortOrder ? Number(sortOrder) : undefined
       });
@@ -1671,6 +1687,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       discountPrice: item.discountPrice || "",
       discountLabel: item.discountLabel || "",
       coverUrl: item.coverUrl || "",
+      coverCardUrl: item.coverCardUrl || "",
       sortOrder: String(item.sortOrder || ""),
       status: item.status
     });
@@ -1689,6 +1706,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
       sortOrder: String(lesson.sortOrder || ""),
       coverUrl: lesson.coverUrl || "",
       videoKey: lesson.videoKey || "",
+      videoStatus: lesson.videoStatus || "ready",
       status: lesson.status
     });
     setLessonOpen(true);
@@ -1713,6 +1731,12 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
 
   function coursePrice(item: CourseSeries) {
     return item.originalPrice || item.discountPrice ? `${item.originalPrice || "--"} / ${item.discountPrice || "--"}` : "--";
+  }
+
+  function videoState(status: CourseLesson["videoStatus"]) {
+    if (status === "processing") return { label: "处理中", className: "warningBg" };
+    if (status === "failed") return { label: "处理失败", className: "dangerBg" };
+    return { label: "可播放", className: "positiveBg" };
   }
 
   function isUsStockCourse(item: CourseSeries) {
@@ -1868,17 +1892,20 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
               <table className="adminTable courseLessonsTable">
                 <thead><tr><th>顺序</th><th>视频</th><th>状态</th><th>操作</th></tr></thead>
                 <tbody>
-                  {(selected.lessons || []).map((lesson) => (
-                    <tr key={lesson.id}>
-                      <td>{lesson.sortOrder}</td>
-                      <td><div className="courseLessonCell"><strong>{lesson.title}</strong><small>{lesson.videoKey ? "已上传视频" : "未上传视频"}</small></div></td>
-                      <td><span className={`status ${lesson.status === "published" ? "positiveBg" : "warningBg"}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
-                      <td>
-                        <button type="button" className="tableAction" disabled={saving} onClick={() => openEditLesson(lesson)}>编辑</button>
-                        <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "lesson", id: lesson.id })}>删除</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {(selected.lessons || []).map((lesson) => {
+                    const mediaState = videoState(lesson.videoStatus);
+                    return (
+                      <tr key={lesson.id}>
+                        <td>{lesson.sortOrder}</td>
+                        <td><div className="courseLessonCell"><strong>{lesson.title}</strong><small><span className={`status ${mediaState.className}`}>{mediaState.label}</span></small></div></td>
+                        <td><span className={`status ${lesson.status === "published" ? "positiveBg" : "warningBg"}`}>{lesson.status === "published" ? "上架" : "草稿"}</span></td>
+                        <td>
+                          <button type="button" className="tableAction" disabled={saving} onClick={() => openEditLesson(lesson)}>编辑</button>
+                          <button type="button" className="tableAction dangerAction" disabled={saving} onClick={() => setConfirmAction({ kind: "lesson", id: lesson.id })}>删除</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {!selected.lessons?.length ? <tr><td colSpan={4}>暂无视频</td></tr> : null}
                 </tbody>
               </table>
@@ -2002,8 +2029,8 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   <div>
                     {seriesForm.coverUrl ? <img src={seriesForm.coverUrl} alt="" /> : <em>未上传</em>}
                     <section>
-                      <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => coverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
-                      <small>{seriesForm.coverUrl || "支持 PNG、JPG、WebP、GIF"}</small>
+                      <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => coverFileRef.current?.click()}>{coverUploading ? "自动优化中" : "上传封面"}</button>
+                      <small>{seriesForm.coverUrl && seriesForm.coverCardUrl ? "已生成列表图和详情图" : "上传后自动压缩为 WebP"}</small>
                     </section>
                   </div>
                   <input
@@ -2051,8 +2078,8 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                   <div>
                     {lessonForm.coverUrl ? <img src={lessonForm.coverUrl} alt="" /> : <em>未上传</em>}
                     <section>
-                      <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => lessonCoverFileRef.current?.click()}>{coverUploading ? "上传中" : "上传封面"}</button>
-                      <small>{lessonForm.coverUrl || "支持 PNG、JPG、WebP、GIF"}</small>
+                      <button type="button" className="ghostButton" disabled={coverUploading} onClick={() => lessonCoverFileRef.current?.click()}>{coverUploading ? "自动优化中" : "上传封面"}</button>
+                      <small>{lessonForm.coverUrl ? "已生成 WebP 封面" : "上传后自动压缩为 WebP"}</small>
                     </section>
                   </div>
                   <input
@@ -2072,7 +2099,7 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                 <h3>视频文件</h3>
                 <div className="courseVideoUpload">
                   <button type="button" className="ghostButton" disabled={videoUploading} onClick={() => videoFileRef.current?.click()}>{videoUploading ? "上传中" : "上传视频"}</button>
-                  <span>{videoUploading ? `上传中 ${videoUploadProgress}%` : lessonForm.videoKey || "上传成功后会自动保存，也可以手动填写视频文件路径"}</span>
+                  <span>{videoUploading ? `上传中 ${videoUploadProgress}%` : lessonForm.videoKey ? videoState(lessonForm.videoStatus).label : "未上传视频"}</span>
                   {videoUploading ? <progress value={videoUploadProgress} max={100} /> : null}
                   <input
                     ref={videoFileRef}
@@ -2086,12 +2113,12 @@ function CoursesPage({ users }: { users: AdminUser[] }) {
                     }}
                   />
                 </div>
-                <label>视频文件路径<input value={lessonForm.videoKey} onChange={(event) => setLessonForm({ ...lessonForm, videoKey: event.target.value })} placeholder="courses/earnings/lesson-01.mp4" /></label>
+                <label>视频文件路径<input value={lessonForm.videoKey} onChange={(event) => setLessonForm({ ...lessonForm, videoKey: event.target.value, videoStatus: "ready" })} placeholder="courses/earnings/lesson-01.mp4" /></label>
               </section>
             </div>
             <div className="modalActions">
               <button type="button" className="ghostButton" onClick={() => setLessonOpen(false)}>取消</button>
-              <button type="submit" className="primaryButton" disabled={saving || videoUploading}>{lessonForm.id ? "保存修改" : "保存视频"}</button>
+              <button type="submit" className="primaryButton" disabled={saving || videoUploading || !lessonForm.videoKey.trim()}>{lessonForm.id ? "保存修改" : "保存视频"}</button>
             </div>
           </form>
         </div>

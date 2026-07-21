@@ -79,6 +79,7 @@ US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
 COURSE_PROGRESS_STATUSES = {"updating", "finished"}
+COURSE_VIDEO_STATUSES = {"processing", "ready", "failed"}
 COURSE_COS_SECRET_ID = os.environ.get("COURSE_COS_SECRET_ID") or os.environ.get("TENCENT_COS_SECRET_ID") or ""
 COURSE_COS_SECRET_KEY = os.environ.get("COURSE_COS_SECRET_KEY") or os.environ.get("TENCENT_COS_SECRET_KEY") or ""
 COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCENT_COS_BUCKET") or ""
@@ -1237,6 +1238,7 @@ def init_db() -> None:
               discount_price TEXT,
               discount_label TEXT,
               cover_url TEXT,
+              cover_card_url TEXT,
               sort_order INTEGER NOT NULL DEFAULT 1,
               status TEXT NOT NULL DEFAULT 'draft',
               created_at TEXT NOT NULL,
@@ -1251,6 +1253,7 @@ def init_db() -> None:
               duration_label TEXT,
               cover_url TEXT,
               video_key TEXT NOT NULL,
+              video_status TEXT NOT NULL DEFAULT 'ready',
               status TEXT NOT NULL DEFAULT 'published',
               created_at TEXT NOT NULL,
               updated_at TEXT NOT NULL,
@@ -1295,12 +1298,16 @@ def init_db() -> None:
             conn.execute("ALTER TABLE course_series ADD COLUMN discount_price TEXT")
         if "discount_label" not in course_series_columns:
             conn.execute("ALTER TABLE course_series ADD COLUMN discount_label TEXT")
+        if "cover_card_url" not in course_series_columns:
+            conn.execute("ALTER TABLE course_series ADD COLUMN cover_card_url TEXT")
         course_grant_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_grants)").fetchall()}
         if "expires_at" not in course_grant_columns:
             conn.execute("ALTER TABLE course_grants ADD COLUMN expires_at TEXT")
         course_lesson_columns = {row["name"] for row in conn.execute("PRAGMA table_info(course_lessons)").fetchall()}
         if "cover_url" not in course_lesson_columns:
             conn.execute("ALTER TABLE course_lessons ADD COLUMN cover_url TEXT")
+        if "video_status" not in course_lesson_columns:
+            conn.execute("ALTER TABLE course_lessons ADD COLUMN video_status TEXT NOT NULL DEFAULT 'ready'")
         if SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD:
             existing = conn.execute("SELECT id FROM users WHERE email = ?", (SUPER_ADMIN_EMAIL,)).fetchone()
             if not existing:
@@ -1814,6 +1821,7 @@ def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None
         "discountPrice": (row["discount_price"] if "discount_price" in row.keys() else "") or "",
         "discountLabel": (row["discount_label"] if "discount_label" in row.keys() else "") or "",
         "coverUrl": signed_course_image_url(row["cover_url"] or ""),
+        "coverCardUrl": signed_course_image_url((row["cover_card_url"] if "cover_card_url" in row.keys() else "") or ""),
         "sortOrder": row["sort_order"],
         "status": row["status"],
         "lessonCount": row["lesson_count"] if "lesson_count" in row.keys() else len(lessons or []),
@@ -1830,7 +1838,15 @@ def course_series_payload(row: sqlite3.Row, lessons: list[dict[str, Any]] | None
     return payload
 
 
+def course_video_status(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "ready"
+    return raw if raw in COURSE_VIDEO_STATUSES else "failed"
+
+
 def course_lesson_payload(row: sqlite3.Row, include_key: bool = False) -> dict[str, Any]:
+    video_status = course_video_status(row["video_status"] if "video_status" in row.keys() else "")
     payload = {
         "id": row["id"],
         "seriesId": row["series_id"],
@@ -1838,6 +1854,7 @@ def course_lesson_payload(row: sqlite3.Row, include_key: bool = False) -> dict[s
         "sortOrder": row["sort_order"],
         "durationLabel": row["duration_label"] or "",
         "coverUrl": signed_course_image_url(row["cover_url"] or ""),
+        "videoStatus": video_status,
         "status": row["status"],
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
@@ -2119,6 +2136,7 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
     discount_price = str(payload.get("discountPrice") or "").strip()
     discount_label = str(payload.get("discountLabel") or "").strip()
     cover_url = course_video_key(str(payload.get("coverUrl") or "").strip())
+    cover_card_url = course_video_key(str(payload.get("coverCardUrl") or "").strip())
     timestamp = now_iso()
     with db() as conn:
         if series_id > 0:
@@ -2135,10 +2153,10 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
             conn.execute(
                 """
                 UPDATE course_series
-                SET title = ?, summary = ?, intro = ?, progress_status = ?, original_price = ?, discount_price = ?, discount_label = ?, cover_url = ?, sort_order = ?, status = ?, updated_at = ?
+                SET title = ?, summary = ?, intro = ?, progress_status = ?, original_price = ?, discount_price = ?, discount_label = ?, cover_url = ?, cover_card_url = ?, sort_order = ?, status = ?, updated_at = ?
                 WHERE id = ?
                 """,
-                (title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, sort_order, status, timestamp, series_id),
+                (title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, cover_card_url, sort_order, status, timestamp, series_id),
             )
             row = conn.execute("SELECT * FROM course_series WHERE id = ?", (series_id,)).fetchone()
             return course_series_payload(row)
@@ -2155,10 +2173,10 @@ def create_course_series(payload: dict[str, Any]) -> dict[str, Any]:
         cursor = conn.execute(
             """
             INSERT INTO course_series
-            (slug, title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, sort_order, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (slug, title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, cover_card_url, sort_order, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (slug, title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, sort_order, status, timestamp, timestamp),
+            (slug, title, summary, intro, progress_status, original_price, discount_price, discount_label, cover_url, cover_card_url, sort_order, status, timestamp, timestamp),
         )
         row = conn.execute("SELECT * FROM course_series WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return course_series_payload(row)
@@ -2175,6 +2193,9 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("视频状态不正确")
     duration_label = str(payload.get("durationLabel") or "").strip()
     cover_url = course_video_key(str(payload.get("coverUrl") or "").strip())
+    requested_video_status = str(payload.get("videoStatus") or "").strip()
+    if requested_video_status and requested_video_status not in COURSE_VIDEO_STATUSES:
+        raise ValueError("视频处理状态不正确")
     timestamp = now_iso()
     with db() as conn:
         existing = None
@@ -2182,6 +2203,7 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
             existing = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
             if not existing:
                 raise ValueError("视频不存在")
+        video_status = requested_video_status or (course_video_status(existing["video_status"]) if existing else "ready")
         series_id = int(payload.get("seriesId") or (existing["series_id"] if existing else 0))
         if series_id <= 0:
             raise ValueError("交易实战课程必填")
@@ -2202,10 +2224,10 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
             conn.execute(
                 """
                 UPDATE course_lessons
-                SET series_id = ?, title = ?, sort_order = ?, duration_label = ?, cover_url = ?, video_key = ?, status = ?, updated_at = ?
+                SET series_id = ?, title = ?, sort_order = ?, duration_label = ?, cover_url = ?, video_key = ?, video_status = ?, status = ?, updated_at = ?
                 WHERE id = ?
                 """,
-                (series_id, title, sort_order, duration_label, cover_url, video_key, status, timestamp, lesson_id),
+                (series_id, title, sort_order, duration_label, cover_url, video_key, video_status, status, timestamp, lesson_id),
             )
             row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (lesson_id,)).fetchone()
             return course_lesson_payload(row, include_key=True)
@@ -2213,10 +2235,10 @@ def create_course_lesson(payload: dict[str, Any]) -> dict[str, Any]:
         cursor = conn.execute(
             """
             INSERT INTO course_lessons
-            (series_id, title, sort_order, duration_label, cover_url, video_key, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (series_id, title, sort_order, duration_label, cover_url, video_key, video_status, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (series_id, title, sort_order, duration_label, cover_url, video_key, status, timestamp, timestamp),
+            (series_id, title, sort_order, duration_label, cover_url, video_key, video_status, status, timestamp, timestamp),
         )
         row = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return course_lesson_payload(row, include_key=True)
@@ -2345,7 +2367,7 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                 """
                 SELECT s.*, COUNT(l.id) AS lesson_count, 0 AS grant_count, 1 AS unlocked
                 FROM course_series s
-                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
+                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published' AND COALESCE(NULLIF(TRIM(l.video_status), ''), 'ready') = 'ready'
                 WHERE s.status = 'published'
                 GROUP BY s.id
                 ORDER BY s.sort_order DESC, s.id DESC
@@ -2370,7 +2392,7 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                        MAX(g.expires_at) AS grant_expires_at
                 FROM course_series s
                 LEFT JOIN course_grants g ON g.series_id = s.id AND g.user_id = ? AND (g.expires_at IS NULL OR g.expires_at = '' OR date(g.expires_at) >= date('now'))
-                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published'
+                LEFT JOIN course_lessons l ON l.series_id = s.id AND l.status = 'published' AND COALESCE(NULLIF(TRIM(l.video_status), ''), 'ready') = 'ready'
                 WHERE s.status = 'published'
                 GROUP BY s.id
                 ORDER BY s.sort_order DESC, s.id DESC
@@ -2390,7 +2412,7 @@ def user_courses_payload(user: sqlite3.Row) -> dict[str, Any]:
                 f"""
                 SELECT *
                 FROM course_lessons
-                WHERE status = 'published' AND series_id IN ({placeholders})
+                WHERE status = 'published' AND COALESCE(NULLIF(TRIM(video_status), ''), 'ready') = 'ready' AND series_id IN ({placeholders})
                 ORDER BY series_id, sort_order DESC, id DESC
                 """,
                 lesson_series_ids,
@@ -3335,7 +3357,12 @@ class Handler(BaseHTTPRequestHandler):
                     """,
                     (lesson_id,),
                 ).fetchone()
-                if not lesson or lesson["status"] != "published" or lesson["series_status"] != "published":
+                if (
+                    not lesson
+                    or lesson["status"] != "published"
+                    or lesson["series_status"] != "published"
+                    or course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
+                ):
                     self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
                     return
                 if not course_has_access(conn, user, int(lesson["series_id"])):

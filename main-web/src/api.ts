@@ -301,6 +301,7 @@ export type CourseLesson = {
   sortOrder: number;
   durationLabel: string;
   coverUrl: string;
+  videoStatus: "processing" | "ready" | "failed";
   status: "published" | "draft";
 };
 
@@ -315,6 +316,7 @@ export type CourseSeries = {
   discountPrice: string;
   discountLabel: string;
   coverUrl: string;
+  coverCardUrl: string;
   sortOrder: number;
   status: "published" | "draft";
   unlocked?: boolean;

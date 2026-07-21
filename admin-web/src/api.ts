@@ -80,6 +80,7 @@ export type CourseLesson = {
   durationLabel: string;
   coverUrl: string;
   videoKey?: string;
+  videoStatus: "processing" | "ready" | "failed";
   status: "published" | "draft";
   createdAt: string;
   updatedAt: string;
@@ -96,6 +97,7 @@ export type CourseSeries = {
   discountPrice: string;
   discountLabel: string;
   coverUrl: string;
+  coverCardUrl: string;
   sortOrder: number;
   status: "published" | "draft";
   lessonCount: number;
@@ -300,12 +302,12 @@ export const api = {
     return { ok: true, video: ticket.video };
   },
   courses: () => request<{ series: CourseSeries[]; grants: CourseGrant[] }>("/api/admin/courses"),
-  saveCourseSeries: (payload: { id?: number; title: string; summary: string; intro: string; progressStatus: CourseSeries["progressStatus"]; originalPrice: string; discountPrice: string; discountLabel: string; coverUrl: string; sortOrder?: number; status: CourseSeries["status"] }) =>
+  saveCourseSeries: (payload: { id?: number; title: string; summary: string; intro: string; progressStatus: CourseSeries["progressStatus"]; originalPrice: string; discountPrice: string; discountLabel: string; coverUrl: string; coverCardUrl: string; sortOrder?: number; status: CourseSeries["status"] }) =>
     request<{ ok: true; series: CourseSeries }>("/api/admin/courses", {
       method: "POST",
       body: JSON.stringify(payload)
     }),
-  saveCourseLesson: (payload: { id?: number; seriesId: number; title: string; sortOrder?: number; durationLabel?: string; coverUrl?: string; videoKey: string; status: CourseLesson["status"] }) =>
+  saveCourseLesson: (payload: { id?: number; seriesId: number; title: string; sortOrder?: number; durationLabel?: string; coverUrl?: string; videoKey: string; videoStatus: CourseLesson["videoStatus"]; status: CourseLesson["status"] }) =>
     request<{ ok: true; lesson: CourseLesson }>("/api/admin/courses/lessons", {
       method: "POST",
       body: JSON.stringify(payload)

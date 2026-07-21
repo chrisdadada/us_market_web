@@ -3125,7 +3125,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
               <article className="coursePlayer">
                 <div className="courseVideoBox">
                   {videoUrl ? (
-                    <video key={videoUrl} src={videoUrl} controls controlsList="nodownload" />
+                    <video key={videoUrl} src={videoUrl} controls controlsList="nodownload" preload="metadata" playsInline />
                   ) : (
                     <button type="button" disabled={!activeLesson || playing} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
                       <span />
@@ -3205,7 +3205,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                 }}
               >
                 <div className="courseThumb">
-                  {item.coverUrl ? <img src={item.coverUrl} alt="" loading={index < 4 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 4 ? "high" : "auto"} /> : null}
+                  {item.coverCardUrl || item.coverUrl ? <img src={item.coverCardUrl || item.coverUrl} alt="" loading={index < 4 ? "eager" : "lazy"} decoding="async" fetchPriority={index < 4 ? "high" : "auto"} /> : null}
                 </div>
                 <section>
                   <h2>{item.title}</h2>
