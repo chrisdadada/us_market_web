@@ -241,6 +241,8 @@
 .marketToolTable tbody tr:last-child td { border-bottom: 0; }
 .strengthTable tbody tr { cursor: pointer; }
 .strengthTable tbody tr:hover { background: #f6f9fd; }
+.strengthTable table { min-width: 1040px; }
+.strengthTable th { white-space: nowrap; }
 
 .strengthMetrics {
   display: grid;
