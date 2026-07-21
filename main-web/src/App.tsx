@@ -1903,8 +1903,8 @@ function TrackingStockDetailPage({
   );
 }
 
-type TemperatureView = "key" | "all" | "trend";
 type StrengthView = "watch" | "hot" | "avoid";
+type StrengthSort = "score" | "return20d" | "relative" | "crowding";
 
 function numericValue(value?: string | number | null) {
   const parsed = Number.parseFloat(String(value ?? "").replace(/[,%+$]/g, ""));
@@ -1917,32 +1917,92 @@ function temperatureTone(status?: string) {
   return "neutral";
 }
 
+const marketPressureThresholds: Record<string, number> = {
+  vixcls: 28,
+  dgs10: 4.8,
+  dgs30: 5,
+  dtwexbgs: 120,
+  dcoilwtico: 105,
+  dcoilbrenteu: 105,
+  cpiaucsl: 3.2
+};
+
+function formatSeriesValue(value: number, unit?: string) {
+  const number = Math.abs(value).toFixed(2);
+  if (unit === "$") return `${value < 0 ? "-$" : "$"}${number}`;
+  return `${value < 0 ? "-" : ""}${number}${unit || ""}`;
+}
+
+function marketSectorName(value?: string) {
+  return (value || "").replace(/^[A-Z]{2,6}\s+/, "") || "--";
+}
+
 function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 }) {
   const points = (item.points || []).filter((point) => Number.isFinite(point.value));
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  useEffect(() => setHoverIndex(null), [item.key, years]);
   if (points.length < 2) return <div className="marketToolEmpty compact">暂无走势数据</div>;
   const lastDate = new Date(`${points.at(-1)?.date || ""}T00:00:00`);
   const cutoff = new Date(lastDate);
   cutoff.setFullYear(cutoff.getFullYear() - years);
   const visible = points.filter((point) => new Date(`${point.date}T00:00:00`) >= cutoff);
   const values = visible.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const width = 420;
-  const height = 142;
-  const padding = 12;
-  const coordinates = visible.map((point, index) => {
-    const x = padding + (index / Math.max(1, visible.length - 1)) * (width - padding * 2);
-    const y = padding + (1 - (point.value - min) / Math.max(0.0001, max - min)) * (height - padding * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  const current = visible.at(-1);
+  const threshold = marketPressureThresholds[item.key.toLowerCase()];
+  const dataMin = Math.min(...values, Number.isFinite(threshold) ? threshold : Infinity);
+  const dataMax = Math.max(...values, Number.isFinite(threshold) ? threshold : -Infinity);
+  const dataSpan = Math.max(0.1, dataMax - dataMin);
+  const min = dataMin - dataSpan * 0.08;
+  const max = dataMax + dataSpan * 0.12;
+  const width = 780;
+  const height = 308;
+  const plot = { left: 58, right: 18, top: 18, bottom: 38 };
+  const plotWidth = width - plot.left - plot.right;
+  const plotHeight = height - plot.top - plot.bottom;
+  const xFor = (index: number) => plot.left + (index / Math.max(1, visible.length - 1)) * plotWidth;
+  const yFor = (value: number) => plot.top + (1 - (value - min) / Math.max(0.0001, max - min)) * plotHeight;
+  const coordinates = visible.map((point, index) => `${xFor(index).toFixed(1)},${yFor(point.value).toFixed(1)}`).join(" ");
+  const yTicks = Array.from({ length: 5 }, (_, index) => max - (index / 4) * (max - min));
+  const dateIndexes = Array.from(new Set(Array.from({ length: 5 }, (_, index) => Math.round(index / 4 * (visible.length - 1)))));
+  const activeIndex = hoverIndex ?? visible.length - 1;
+  const active = visible[activeIndex];
+  const activeX = xFor(activeIndex);
+  const activeY = yFor(active.value);
+  const tooltipX = activeX > width - 170 ? activeX - 128 : activeX + 10;
+  const tooltipY = Math.max(plot.top + 4, activeY - 48);
+  const periodChange = visible.at(-1)!.value - visible[0].value;
+  const thresholdY = Number.isFinite(threshold) ? yFor(threshold) : null;
   return (
     <div className="marketLineChart">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${item.name}走势`}>
-        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} />
-        <polyline points={coordinates} />
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={`${item.name}走势`}
+        onPointerMove={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const relativeX = (event.clientX - rect.left) / rect.width * width;
+          const ratio = Math.max(0, Math.min(1, (relativeX - plot.left) / plotWidth));
+          setHoverIndex(Math.round(ratio * (visible.length - 1)));
+        }}
+        onPointerLeave={() => setHoverIndex(null)}
+      >
+        {thresholdY !== null ? <g className="marketPressureZone"><rect x={plot.left} y={plot.top} width={plotWidth} height={Math.max(0, thresholdY - plot.top)} /><line x1={plot.left} y1={thresholdY} x2={width - plot.right} y2={thresholdY} /><text x={plot.left + 8} y={Math.max(plot.top + 13, thresholdY - 6)}>压力区</text></g> : null}
+        {yTicks.map((tick) => <g className="marketChartGrid" key={tick}><line x1={plot.left} y1={yFor(tick)} x2={width - plot.right} y2={yFor(tick)} /><text x={plot.left - 8} y={yFor(tick) + 4}>{formatSeriesValue(tick, item.unit)}</text></g>)}
+        {dateIndexes.map((index) => <text className="marketChartDate" key={visible[index].date} x={xFor(index)} y={height - 12}>{visible[index].date.slice(0, 7)}</text>)}
+        <polyline className="marketChartPath" points={coordinates} />
+        <line className="marketChartCrosshair" x1={activeX} y1={plot.top} x2={activeX} y2={height - plot.bottom} />
+        <circle className="marketChartPoint" cx={activeX} cy={activeY} r="4" />
+        <g className="marketChartTooltip" transform={`translate(${tooltipX}, ${tooltipY})`}>
+          <rect width="118" height="40" rx="4" />
+          <text x="9" y="15">{active.date}</text>
+          <text x="9" y="31">{formatSeriesValue(active.value, item.unit)}</text>
+        </g>
       </svg>
-      <div><span>{visible[0]?.date}</span><strong>{current?.value}{item.unit || ""}</strong><span>{current?.date}</span></div>
+      <div className="marketChartStats">
+        <span>区间最低<strong>{formatSeriesValue(Math.min(...values), item.unit)}</strong></span>
+        <span>区间最高<strong>{formatSeriesValue(Math.max(...values), item.unit)}</strong></span>
+        <span>区间变化<strong className={signedClass(periodChange)}>{periodChange > 0 ? "+" : ""}{formatSeriesValue(periodChange, item.unit)}</strong></span>
+        <span>最新日期<strong>{visible.at(-1)?.date}</strong></span>
+      </div>
     </div>
   );
 }
@@ -1950,8 +2010,8 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
 function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
   const [payload, setPayload] = useState<MarketTemperaturePayload | null>(null);
   const [series, setSeries] = useState<MacroSeriesPayload | null>(null);
-  const [view, setView] = useState<TemperatureView>("key");
   const [years, setYears] = useState<1 | 3 | 5>(1);
+  const [selectedKey, setSelectedKey] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [reload, setReload] = useState(0);
 
@@ -1975,8 +2035,15 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
     const order: Record<string, number> = { watch: 0, neutral: 1, positive: 2 };
     return (order[a.status || "neutral"] ?? 1) - (order[b.status || "neutral"] ?? 1);
   });
-  const visible = view === "all" ? indicators : priority.slice(0, 6);
+  const seriesItems = series?.indicators || [];
+  const selectedSeries = seriesItems.find((item) => item.key === selectedKey) || seriesItems[0];
+  useEffect(() => {
+    if (!seriesItems.length || seriesItems.some((item) => item.key === selectedKey)) return;
+    const firstPressure = priority.find((indicator) => seriesItems.some((item) => item.key === indicator.key));
+    setSelectedKey(firstPressure?.key || seriesItems[0].key);
+  }, [selectedKey, seriesItems, priority]);
   const score = Math.max(0, Math.min(100, payload?.overall?.score ?? 0));
+  const scoreTone = temperatureTone(payload?.overall?.label === "偏强" ? "positive" : payload?.overall?.label === "偏弱" ? "watch" : "neutral");
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
@@ -1985,27 +2052,26 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
         <div className="marketToolError"><span>市场数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无市场温度数据</div> : (
         <>
-          <section className="temperatureOverview">
+          <section className="temperatureSnapshot">
             <article className="temperatureScore">
-              <span>市场温度</span><strong>{score}<small>/100</small></strong><b className={temperatureTone(payload.overall?.label === "偏强" ? "positive" : payload.overall?.label === "偏弱" ? "watch" : "neutral")}>{payload.overall?.label || "--"}</b>
+              <span>市场温度</span><strong>{score}<small>/100</small></strong><b className={scoreTone}>{payload.overall?.label || "--"}</b>
               <div className="temperatureScale"><i /><i /><i /><em style={{ left: `${score}%` }} /></div>
             </article>
-            <article className="temperatureDecision"><span>今日判断</span><strong>{payload.overall?.summary || "--"}</strong><p>{payload.overall?.action || "--"}</p></article>
-            <article className="temperatureImpacts"><span>主要影响</span>{priority.slice(0, 4).map((item) => <div key={item.key}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.change || item.value || "--"}</em></div>)}</article>
+            <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{formatDate(item.asOf)}</small></button>)}</div>
+            <article className="temperatureFreshness"><span>数据日期</span><strong>{formatDate(payload.asOf)}</strong><small>{indicators.length} 项指标</small></article>
           </section>
-          <section className="marketToolPanel">
-            <div className="marketToolPanelHead"><h2>市场压力因子</h2><div className="marketToolTabs" role="tablist">
-              <button className={view === "key" ? "active" : ""} onClick={() => setView("key")}>关键指标</button>
-              <button className={view === "all" ? "active" : ""} onClick={() => setView("all")}>全部指标</button>
-              <button className={view === "trend" ? "active" : ""} onClick={() => setView("trend")}>指标走势</button>
-            </div></div>
-            {view !== "trend" ? <div className="marketToolTable"><table><thead><tr><th>因子</th><th>当前读数</th><th>变化</th><th>压力</th><th>主要影响</th></tr></thead><tbody>
-              {visible.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong><small>{formatDate(item.asOf)}</small></td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
-            </tbody></table></div> : (
-              <div className="macroSeriesBlock"><div className="marketToolRange">{([1, 3, 5] as const).map((range) => <button key={range} className={years === range ? "active" : ""} onClick={() => setYears(range)}>{range}年</button>)}</div><div className="macroSeriesGrid">
-                {(series?.indicators || []).map((item) => <article key={item.key}><div><strong>{item.name}</strong><span>{item.value || (item.current ?? "--")}</span></div><MarketLineChart item={item} years={years} /></article>)}
-              </div></div>
-            )}
+          <section className="marketToolPanel temperatureChartPanel">
+            <div className="marketToolPanelHead"><div><h2>指标走势</h2><span>{selectedSeries?.name || "--"}</span></div><div className="marketToolRange">{([1, 3, 5] as const).map((range) => <button key={range} className={years === range ? "active" : ""} onClick={() => setYears(range)}>{range}年</button>)}</div></div>
+            <div className="temperatureChartLayout">
+              <nav className="temperatureIndicatorNav" aria-label="市场指标">{seriesItems.map((item) => <button type="button" key={item.key} className={selectedSeries?.key === item.key ? "active" : ""} onClick={() => setSelectedKey(item.key)}><span>{item.name}</span><strong>{item.value || item.current || "--"}</strong><small>{formatDate(item.asOf)}</small></button>)}</nav>
+              <div className="temperatureChartStage">{selectedSeries ? <MarketLineChart item={selectedSeries} years={years} /> : <div className="marketToolEmpty compact">暂无走势数据</div>}</div>
+            </div>
+          </section>
+          <section className="marketToolPanel temperatureTablePanel">
+            <div className="marketToolPanelHead"><h2>全部指标</h2><span>{indicators.length} 项</span></div>
+            <div className="marketToolTable"><table><thead><tr><th>因子</th><th>数据日期</th><th>当前读数</th><th>变化</th><th>压力</th><th>主要影响</th></tr></thead><tbody>
+              {indicators.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong></td><td>{formatDate(item.asOf)}</td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
+            </tbody></table></div>
           </section>
         </>
       )}
@@ -2028,6 +2094,8 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
   const [query, setQuery] = useState("");
   const [sector, setSector] = useState("all");
   const [heat, setHeat] = useState("all");
+  const [sort, setSort] = useState<StrengthSort>("score");
+  const [page, setPage] = useState(1);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [reload, setReload] = useState(0);
 
@@ -2039,17 +2107,38 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
     return () => { active = false; };
   }, [enabled, reload]);
 
-  const rows = payload?.rows || [];
+  const rows = useMemo(() => {
+    const unique = new Map<string, StrengthRow>();
+    for (const row of payload?.rows || []) {
+      const existing = unique.get(row.symbol);
+      if (!existing || (row.score || 0) > (existing.score || 0)) unique.set(row.symbol, row);
+    }
+    return Array.from(unique.values());
+  }, [payload]);
   const sectors = Array.from(new Set(rows.map((row) => row.sectorProxy).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "zh-CN"));
   const filtered = rows.filter((row) => {
     const crowding = row.crowding?.score || 0;
     const heatMatch = heat === "all" || (heat === "normal" && crowding < 55) || (heat === "rising" && crowding >= 55 && crowding < 72) || (heat === "hot" && crowding >= 72);
     const text = `${row.symbol} ${row.name || ""}`.toLowerCase();
     return strengthBucket(row) === view && (sector === "all" || row.sectorProxy === sector) && heatMatch && text.includes(query.trim().toLowerCase());
+  }).sort((a, b) => {
+    const values: Record<StrengthSort, (row: StrengthRow) => number> = {
+      score: (row) => row.score || 0,
+      return20d: (row) => numericValue(row.periods?.["20d"]),
+      relative: (row) => numericValue(row.relative?.spy),
+      crowding: (row) => row.crowding?.score || 0
+    };
+    return values[sort](b) - values[sort](a) || a.symbol.localeCompare(b.symbol);
   });
+  useEffect(() => setPage(1), [view, query, sector, heat, sort]);
+  const pageSize = 20;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const themes = [...(payload?.themes?.leaders || []).slice(0, 3), ...(payload?.themes?.risk || []).slice(0, 3)];
   const maxTheme = Math.max(1, ...themes.map((item) => Math.abs(numericValue(item.vsMarket))));
-  const firstByBucket = (bucket: StrengthView) => rows.find((row) => strengthBucket(row) === bucket);
+  const firstByBucket = (bucket: StrengthView) => rows.filter((row) => strengthBucket(row) === bucket).sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+  const bucketCount = (bucket: StrengthView) => rows.filter((row) => strengthBucket(row) === bucket).length;
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
@@ -2060,12 +2149,12 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
         <>
           <section className="strengthMetrics">
             <article><span>市场中位强度</span><strong>{payload.summary?.medianScore ?? "--"}</strong></article>
-            <article><span>领先板块</span><strong>{payload.themes?.leaders?.[0]?.name || "--"}</strong></article>
+            <article><span>领先板块</span><strong>{marketSectorName(payload.themes?.leaders?.[0]?.name)}</strong></article>
             <article><span>偏热标的</span><strong>{payload.summary?.hotCrowdingCount ?? "--"}</strong></article>
-            <article><span>落后板块</span><strong>{payload.themes?.risk?.[0]?.name || "--"}</strong></article>
+            <article><span>落后板块</span><strong>{marketSectorName(payload.themes?.risk?.[0]?.name)}</strong></article>
           </section>
           <div className="strengthTopGrid">
-            <section className="marketToolPanel"><div className="marketToolPanelHead"><h2>行业强弱</h2></div><div className="sectorStrengthBars">{themes.map((item) => { const value = numericValue(item.vsMarket); return <div key={`${item.name}-${item.vsMarket}`}><strong>{item.name}</strong><span><i className={value >= 0 ? "positive" : "negative"} style={{ width: `${Math.max(5, Math.abs(value) / maxTheme * 100)}%` }} /></span><em className={signedClass(value)}>{item.vsMarket || "--"}</em></div>; })}</div></section>
+            <section className="marketToolPanel"><div className="marketToolPanelHead"><h2>行业强弱</h2><span>相对大盘</span></div><div className="sectorStrengthBars">{themes.map((item) => { const value = numericValue(item.vsMarket); const barWidth = Math.max(2, Math.abs(value) / maxTheme * 50); return <div key={`${item.name}-${item.vsMarket}`}><strong>{marketSectorName(item.name)}</strong><span><i className={value >= 0 ? "positive" : "negative"} style={{ left: `${value >= 0 ? 50 : 50 - barWidth}%`, width: `${barWidth}%` }} /></span><em className={signedClass(value)}>{item.vsMarket || "--"}</em></div>; })}</div></section>
             <section className="marketToolPanel"><div className="marketToolPanelHead"><h2>今日先看</h2></div><div className="strengthFocusList">
               <button onClick={() => setView("watch")}><span>强势但不过热</span><strong>{firstByBucket("watch")?.symbol || "--"}</strong></button>
               <button onClick={() => setView("hot")}><span>强势但偏热</span><strong>{firstByBucket("hot")?.symbol || "--"}</strong></button>
@@ -2073,11 +2162,12 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
             </div></section>
           </div>
           <section className="marketToolPanel">
-            <div className="marketToolPanelHead strengthListHead"><div className="marketToolTabs">{([["watch", "值得观察"], ["hot", "强但偏热"], ["avoid", "风险回避"]] as const).map(([key, label]) => <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key)}>{label}</button>)}</div><div className="strengthFilters"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票" /><select value={sector} onChange={(event) => setSector(event.target.value)}><option value="all">全部板块</option>{sectors.map((item) => <option key={item}>{item}</option>)}</select><select value={heat} onChange={(event) => setHeat(event.target.value)}><option value="all">全部热度</option><option value="normal">正常</option><option value="rising">升温</option><option value="hot">偏热</option></select></div></div>
-            <div className="marketToolTable strengthTable"><table><thead><tr><th>排名</th><th>股票</th><th>板块</th><th>近20日</th><th>相对大盘</th><th>成交热度</th><th>状态</th><th>观察建议</th></tr></thead><tbody>
-              {filtered.map((row) => <tr key={row.symbol} onClick={() => onOpenStock(row.symbol, "stocks")}><td>{row.rank || "--"}</td><td><strong>{row.symbol}</strong><small>{row.name || ""}</small></td><td>{row.sectorProxy || row.sector || "--"}</td><td className={signedClass(row.periods?.["20d"])}>{row.periods?.["20d"] || "--"}</td><td className={signedClass(row.relative?.spy)}>{row.relative?.spy || "--"}</td><td>{ratioDisplay(row.crowding?.volumeRatio)}</td><td><b className={`toolStatus ${strengthBucket(row) === "avoid" ? "negative" : strengthBucket(row) === "hot" ? "neutral" : "positive"}`}>{row.label || "--"}</b></td><td>{row.action || "--"}</td></tr>)}
+            <div className="marketToolPanelHead strengthListHead"><div className="marketToolTabs">{([["watch", "值得观察"], ["hot", "强但偏热"], ["avoid", "风险回避"]] as const).map(([key, label]) => <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key)}>{label}<small>{bucketCount(key)}</small></button>)}</div><div className="strengthFilters"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票" /><select value={sector} onChange={(event) => setSector(event.target.value)}><option value="all">全部板块</option>{sectors.map((item) => <option key={item} value={item}>{marketSectorName(item)}</option>)}</select><select value={heat} onChange={(event) => setHeat(event.target.value)}><option value="all">全部热度</option><option value="normal">正常</option><option value="rising">升温</option><option value="hot">偏热</option></select><select value={sort} onChange={(event) => setSort(event.target.value as StrengthSort)}><option value="score">按强度</option><option value="return20d">按近20日</option><option value="relative">按相对大盘</option><option value="crowding">按热度</option></select></div></div>
+            <div className="marketToolTable strengthTable"><table><thead><tr><th>强度</th><th>股票</th><th>板块</th><th>近20日</th><th>相对大盘</th><th>成交热度</th><th>状态</th><th>观察建议</th></tr></thead><tbody>
+              {visibleRows.map((row) => <tr key={row.symbol} onClick={() => onOpenStock(row.symbol, "stocks")}><td><strong>{row.score ?? "--"}</strong></td><td><strong>{row.symbol}</strong><small>{row.name || ""}</small></td><td>{marketSectorName(row.sectorProxy || row.sector)}</td><td className={signedClass(row.periods?.["20d"])}>{row.periods?.["20d"] || "--"}</td><td className={signedClass(row.relative?.spy)}>{row.relative?.spy || "--"}</td><td>{ratioDisplay(row.crowding?.volumeRatio)}</td><td><b className={`toolStatus ${strengthBucket(row) === "avoid" ? "negative" : strengthBucket(row) === "hot" ? "neutral" : "positive"}`}>{row.label || "--"}</b></td><td>{row.action || "--"}</td></tr>)}
               {!filtered.length ? <tr><td colSpan={8}><div className="marketToolEmpty compact">当前筛选下没有标的</div></td></tr> : null}
             </tbody></table></div>
+            {filtered.length ? <footer className="strengthPagination"><span>共 {filtered.length} 只，每页 {pageSize} 只</span><div><button type="button" aria-label="上一页" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button><strong>{currentPage} / {pageCount}</strong><button type="button" aria-label="下一页" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>›</button></div></footer> : null}
           </section>
         </>
       )}

@@ -89,9 +89,11 @@ has_successful_log_today() {
       && grep -q -- "OK" "${candidate}" \
       && grep -q -- "--- build deploy package ---" "${candidate}" \
       && grep -q -- "Dev deployed:" "${candidate}" \
+      && grep -q -- "Dev data deployed with runtime tables preserved." "${candidate}" \
       && grep -q -- "=== automated refresh finished" "${candidate}"; then
       if [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]] \
-        && ! grep -q -- "Prod data deployed without using dev DB." "${candidate}"; then
+        && ! grep -q -- "Prod data deployed without using dev DB." "${candidate}" \
+        && ! grep -q -- "Skipping prod product DB deployment: Open holding data needs explicit approval." "${candidate}"; then
         continue
       fi
       echo "${candidate}"
@@ -365,6 +367,9 @@ run_root "build deploy package" \
 if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   run_root "deploy latest build to dev" \
     env SKIP_PRODUCT_DB_BUILD=1 bash scripts/deploy_dev.sh
+
+  run_root "deploy product DB to dev" \
+    env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_dev_data.sh
 
   if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
     run_root "promote latest build to production" \

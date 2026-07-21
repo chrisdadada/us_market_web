@@ -8,10 +8,14 @@ bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 
 It updates recent Polygon daily stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, rebuilds the product DB, and runs the release gate.
 
-After DB-first validation, release gate, product DB coverage, DB-only packaging,
-and dev deployment pass, this automation deploys the rebuilt `data/product.db`
-to production by default. This is a data-only prod update: it does not promote
-production site code, admin assets, user data, or other modules.
+After DB-first validation, release gate, product DB coverage, and packaging pass,
+the automation deploys the site and rebuilt `data/product.db` to dev. The dev
+data step backs up the current DB and preserves dev-side content and Open holding
+runtime tables before replacing it.
+
+Production data is skipped unless the current run carries explicit Open holding
+data approval. This never promotes production site code, admin assets, user data,
+or other modules.
 Production data deploys must go through `scripts/deploy_prod_data.sh`, which
 backs up the current prod DB and preserves prod-side runtime tables such as
 content and open-portfolio records.
@@ -24,7 +28,7 @@ Sector gaps are supplemented by the `sector_overrides` table in `data/product.db
 
 ## Manual Run
 
-Use one manual command when you want to refresh local data, rebuild `data/product.db`, and deploy it:
+Use one manual command when you want to refresh local data, rebuild `data/product.db`, and deploy it to dev:
 
 ```bash
 SKIP_IF_SUCCESSFUL_TODAY=0 RUN_OPTIONS_FLOW=0 RUN_MINUTE_BARS=0 RUN_REFERENCE=0 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"

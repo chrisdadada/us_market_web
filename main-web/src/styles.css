@@ -58,45 +58,44 @@
 }
 
 .marketToolPanel,
-.temperatureOverview > article,
-.strengthMetrics article {
-  background: #fff;
+.temperatureSnapshot,
+.strengthMetrics {
+  overflow: hidden;
   border: 1px solid #dfe7f1;
   border-radius: 8px;
+  background: #fff;
 }
 
-.temperatureOverview {
+.temperatureSnapshot {
   display: grid;
-  grid-template-columns: minmax(210px, .7fr) minmax(320px, 1.35fr) minmax(250px, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: 210px minmax(420px, 1fr) 180px;
+  margin-bottom: 10px;
 }
 
-.temperatureOverview > article {
-  min-height: 178px;
-  padding: 20px;
+.temperatureSnapshot > * {
+  min-width: 0;
+  padding: 16px 18px;
 }
 
-.temperatureOverview article > span,
+.temperatureSnapshot > * + * { border-left: 1px solid #e7edf4; }
+.temperatureScore > span,
+.temperaturePressureList > span,
+.temperatureFreshness > span,
 .strengthMetrics span {
   display: block;
   color: #718096;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .temperatureScore > strong {
-  display: block;
-  margin: 10px 0 4px;
-  font-size: 38px;
+  display: inline-block;
+  margin: 8px 10px 6px 0;
+  font-size: 30px;
   line-height: 1;
 }
 
-.temperatureScore > strong small {
-  color: #718096;
-  font-size: 15px;
-}
-
+.temperatureScore > strong small { color: #718096; font-size: 13px; }
 .temperatureScore > b,
 .toolStatus {
   display: inline-flex;
@@ -119,122 +118,163 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 3px;
-  margin-top: 20px;
+  margin-top: 9px;
 }
 
-.temperatureScale i { height: 7px; border-radius: 2px; }
+.temperatureScale i { height: 6px; border-radius: 2px; }
 .temperatureScale i:nth-child(1) { background: #d33d52; }
 .temperatureScale i:nth-child(2) { background: #e8a83b; }
 .temperatureScale i:nth-child(3) { background: #0b9968; }
-.temperatureScale em { position: absolute; top: -4px; width: 2px; height: 15px; background: #172033; transform: translateX(-1px); }
+.temperatureScale em { position: absolute; top: -4px; width: 2px; height: 14px; background: #172033; transform: translateX(-1px); }
 
-.temperatureDecision strong {
-  display: block;
-  margin: 14px 0 8px;
-  font-size: 18px;
-  line-height: 1.55;
-}
-
-.temperatureDecision p {
-  margin: 0;
-  color: #526176;
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.temperatureImpacts > div {
+.temperaturePressureList {
   display: grid;
-  grid-template-columns: 7px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  margin-top: 13px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 12px;
 }
 
-.temperatureImpacts i { width: 7px; height: 7px; border-radius: 50%; }
-.temperatureImpacts i.positive { background: #0b9968; }
-.temperatureImpacts i.neutral { background: #e8a83b; }
-.temperatureImpacts i.negative { background: #d33d52; }
-.temperatureImpacts strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.temperatureImpacts em { color: #526176; font-size: 12px; font-style: normal; }
+.temperaturePressureList > span { grid-column: 1 / -1; margin-bottom: 4px; }
+.temperaturePressureList button {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px 8px;
+  min-width: 0;
+  padding: 8px 0 2px;
+  border: 0;
+  background: transparent;
+  color: #172033;
+  text-align: left;
+  cursor: pointer;
+}
+
+.temperaturePressureList button:hover strong { color: #1677ff; }
+.temperaturePressureList i { width: 7px; height: 7px; border-radius: 50%; }
+.temperaturePressureList i.positive { background: #0b9968; }
+.temperaturePressureList i.neutral { background: #e8a83b; }
+.temperaturePressureList i.negative { background: #d33d52; }
+.temperaturePressureList strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.temperaturePressureList em { font-size: 13px; font-style: normal; font-weight: 600; }
+.temperaturePressureList small { grid-column: 2 / -1; color: #8290a4; font-size: 11px; }
+
+.temperatureFreshness strong { display: block; margin-top: 12px; font-size: 16px; }
+.temperatureFreshness small { display: block; margin-top: 8px; color: #8290a4; font-size: 12px; }
+.temperatureChartPanel { margin-bottom: 10px; }
 
 .marketToolPanelHead {
-  min-height: 54px;
-  padding: 10px 16px;
-  border-bottom: 1px solid #e6edf5;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 52px;
+  padding: 9px 16px;
+  border-bottom: 1px solid #e6edf5;
 }
 
+.marketToolPanelHead > div:first-child { display: flex; align-items: baseline; gap: 10px; }
 .marketToolPanelHead h2 { margin: 0; font-size: 16px; }
 .marketToolTabs,
 .marketToolRange { display: flex; align-items: center; gap: 4px; }
 .marketToolTabs button,
 .marketToolRange button {
+  min-height: 32px;
+  padding: 0 11px;
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
   color: #526176;
-  min-height: 32px;
-  padding: 0 11px;
   cursor: pointer;
 }
 .marketToolTabs button.active,
 .marketToolRange button.active { color: #1268d5; border-color: #bcd7fb; background: #edf5ff; }
+.marketToolTabs button small { margin-left: 6px; color: #8290a4; font-size: 11px; }
+
+.temperatureChartLayout { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: 390px; }
+.temperatureIndicatorNav { border-right: 1px solid #e6edf5; background: #f8fafc; }
+.temperatureIndicatorNav button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 1px solid #e9eef5;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: #172033;
+  text-align: left;
+  cursor: pointer;
+}
+
+.temperatureIndicatorNav button.active { border-left-color: #1677ff; background: #fff; }
+.temperatureIndicatorNav button:hover { background: #f1f6fd; }
+.temperatureIndicatorNav span { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.temperatureIndicatorNav strong { font-size: 12px; }
+.temperatureIndicatorNav small { grid-column: 1 / -1; color: #8290a4; font-size: 10.5px; }
+.temperatureChartStage { min-width: 0; padding: 14px 16px 12px; }
+.marketLineChart svg { display: block; width: 100%; height: 308px; touch-action: none; cursor: crosshair; }
+.marketChartGrid line { stroke: #e7edf4; stroke-width: 1; }
+.marketChartGrid text { fill: #8290a4; font-size: 10px; text-anchor: end; }
+.marketChartDate { fill: #8290a4; font-size: 10px; text-anchor: middle; }
+.marketChartPath { fill: none; stroke: #1677ff; stroke-width: 2.25; vector-effect: non-scaling-stroke; }
+.marketChartCrosshair { stroke: #9fb4ca; stroke-width: 1; stroke-dasharray: 3 3; }
+.marketChartPoint { fill: #fff; stroke: #1677ff; stroke-width: 2.5; }
+.marketPressureZone rect { fill: #fff2f3; }
+.marketPressureZone line { stroke: #e27886; stroke-width: 1; stroke-dasharray: 4 4; }
+.marketPressureZone text { fill: #bd2f43; font-size: 10px; }
+.marketChartTooltip rect { fill: #172033; opacity: .92; }
+.marketChartTooltip text { fill: #fff; font-size: 10px; }
+.marketChartTooltip text:last-child { font-size: 12px; font-weight: 600; }
+.marketChartStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #edf1f6; }
+.marketChartStats span { padding: 9px 12px 0; color: #8290a4; font-size: 11px; }
+.marketChartStats strong { display: block; margin-top: 4px; color: #172033; font-size: 12px; }
 
 .marketToolTable { overflow: auto; }
-.marketToolTable table { width: 100%; min-width: 820px; border-collapse: collapse; }
+.marketToolTable table { width: 100%; min-width: 880px; border-collapse: collapse; }
 .marketToolTable th,
-.marketToolTable td { padding: 12px 16px; border-bottom: 1px solid #edf1f6; text-align: left; font-size: 13px; vertical-align: middle; }
-.marketToolTable th { color: #718096; background: #f7f9fc; font-weight: 600; }
+.marketToolTable td { padding: 11px 16px; border-bottom: 1px solid #edf1f6; text-align: left; font-size: 12.5px; vertical-align: middle; }
+.marketToolTable th { color: #718096; background: #f7f9fc; font-size: 12px; font-weight: 600; }
 .marketToolTable td strong,
 .marketToolTable td small { display: block; }
-.marketToolTable td small { margin-top: 3px; color: #8290a4; font-size: 11px; }
+.marketToolTable td small { max-width: 240px; margin-top: 3px; overflow: hidden; color: #8290a4; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .marketToolTable tbody tr:last-child td { border-bottom: 0; }
 .strengthTable tbody tr { cursor: pointer; }
 .strengthTable tbody tr:hover { background: #f6f9fd; }
 
-.macroSeriesBlock { padding: 14px; }
-.marketToolRange { justify-content: flex-end; margin-bottom: 10px; }
-.macroSeriesGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.macroSeriesGrid > article { border: 1px solid #e4ebf3; border-radius: 7px; padding: 14px; }
-.macroSeriesGrid > article > div:first-child { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
-.macroSeriesGrid > article > div:first-child span { color: #526176; }
-.marketLineChart svg { display: block; width: 100%; height: 142px; margin-top: 8px; }
-.marketLineChart line { stroke: #dfe7f1; stroke-width: 1; }
-.marketLineChart polyline { fill: none; stroke: #1677ff; stroke-width: 2; vector-effect: non-scaling-stroke; }
-.marketLineChart > div { display: flex; justify-content: space-between; color: #8290a4; font-size: 11px; }
-.marketLineChart > div strong { color: #172033; font-size: 12px; }
-
 .strengthMetrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
   margin-bottom: 10px;
 }
-.strengthMetrics article { min-height: 94px; padding: 16px; }
-.strengthMetrics strong { display: block; margin-top: 10px; font-size: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.strengthMetrics article { min-width: 0; min-height: 82px; padding: 14px 16px; }
+.strengthMetrics article + article { border-left: 1px solid #e7edf4; }
+.strengthMetrics strong { display: block; margin-top: 8px; overflow: hidden; font-size: 19px; text-overflow: ellipsis; white-space: nowrap; }
 .strengthTopGrid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; margin-bottom: 10px; }
 .sectorStrengthBars { padding: 8px 16px 14px; }
-.sectorStrengthBars > div { display: grid; grid-template-columns: 125px 1fr 60px; align-items: center; gap: 10px; min-height: 34px; }
+.sectorStrengthBars > div { display: grid; grid-template-columns: 105px 1fr 58px; align-items: center; gap: 10px; min-height: 34px; }
 .sectorStrengthBars strong,
-.sectorStrengthBars em { font-size: 12px; font-style: normal; }
+.sectorStrengthBars em { overflow: hidden; font-size: 12px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .sectorStrengthBars em { text-align: right; }
-.sectorStrengthBars span { height: 8px; background: #edf1f6; border-radius: 2px; overflow: hidden; }
-.sectorStrengthBars i { display: block; height: 100%; border-radius: 2px; }
+.sectorStrengthBars span { position: relative; height: 9px; border-radius: 2px; background: linear-gradient(90deg, #f8e8eb 0 49.7%, #bdc9d8 49.7% 50.3%, #e4f4ee 50.3% 100%); overflow: hidden; }
+.sectorStrengthBars i { position: absolute; top: 0; display: block; height: 100%; }
 .sectorStrengthBars i.positive { background: #0b9968; }
 .sectorStrengthBars i.negative { background: #d33d52; }
-.strengthFocusList { display: grid; gap: 0; }
+.strengthFocusList { display: grid; }
 .strengthFocusList button { display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 16px; border: 0; border-bottom: 1px solid #edf1f6; background: #fff; cursor: pointer; }
 .strengthFocusList button:last-child { border-bottom: 0; }
 .strengthFocusList button:hover { background: #f6f9fd; }
 .strengthFocusList span { color: #526176; }
 .strengthListHead { align-items: center; }
-.strengthFilters { display: flex; gap: 8px; }
+.strengthFilters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .strengthFilters input,
-.strengthFilters select { min-height: 34px; border: 1px solid #d7e0ec; border-radius: 5px; background: #fff; color: #172033; padding: 0 10px; font-size: 12px; }
-.strengthFilters input { width: 150px; }
+.strengthFilters select { min-height: 34px; border: 1px solid #d7e0ec; border-radius: 5px; background: #fff; color: #172033; padding: 0 9px; font-size: 12px; }
+.strengthFilters input { width: 140px; }
+.strengthPagination { display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 8px 16px; border-top: 1px solid #e6edf5; color: #718096; font-size: 12px; }
+.strengthPagination > div { display: flex; align-items: center; gap: 10px; }
+.strengthPagination button { width: 32px; height: 32px; border: 1px solid #d7e0ec; border-radius: 5px; background: #fff; color: #526176; font-size: 20px; line-height: 1; cursor: pointer; }
+.strengthPagination button:disabled { opacity: .4; cursor: default; }
+.strengthPagination strong { min-width: 54px; color: #526176; text-align: center; }
 
 .marketToolLoading,
 .marketToolError,
@@ -245,24 +285,35 @@
 .marketToolEmpty.compact { min-height: 100px; border: 0; }
 
 @media (max-width: 1080px) {
-  .temperatureOverview { grid-template-columns: 1fr 1fr; }
-  .temperatureImpacts { grid-column: 1 / -1; }
+  .temperatureSnapshot { grid-template-columns: 190px 1fr; }
+  .temperatureFreshness { grid-column: 1 / -1; border-top: 1px solid #e7edf4; border-left: 0; }
   .strengthMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .strengthMetrics article:nth-child(3) { border-top: 1px solid #e7edf4; border-left: 0; }
+  .strengthMetrics article:nth-child(4) { border-top: 1px solid #e7edf4; }
   .strengthTopGrid { grid-template-columns: 1fr; }
   .strengthListHead { align-items: stretch; flex-direction: column; }
+  .strengthFilters { justify-content: flex-start; }
 }
 
 @media (max-width: 720px) {
   .marketToolPage { padding: 16px 12px 28px; }
   .marketToolHeading h1 { font-size: 20px; }
-  .temperatureOverview,
-  .strengthMetrics,
-  .macroSeriesGrid { grid-template-columns: 1fr; }
-  .temperatureImpacts { grid-column: auto; }
+  .temperatureSnapshot { grid-template-columns: 1fr; }
+  .temperatureSnapshot > * + * { border-top: 1px solid #e7edf4; border-left: 0; }
+  .temperaturePressureList { grid-template-columns: 1fr; }
+  .temperatureChartLayout { grid-template-columns: 1fr; }
+  .temperatureIndicatorNav { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid #e6edf5; }
+  .temperatureIndicatorNav button { flex: 0 0 150px; border-left: 0; border-bottom: 3px solid transparent; }
+  .temperatureIndicatorNav button.active { border-bottom-color: #1677ff; }
+  .temperatureChartStage { padding: 10px 8px; }
+  .marketLineChart svg { height: 260px; }
+  .marketChartStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .marketToolPanelHead { align-items: stretch; flex-direction: column; }
+  .marketToolPanelHead > div:first-child { justify-content: space-between; }
   .marketToolTabs { overflow-x: auto; }
-  .strengthFilters { display: grid; grid-template-columns: 1fr 1fr; }
-  .strengthFilters input { width: auto; grid-column: 1 / -1; }
+  .strengthMetrics { grid-template-columns: 1fr 1fr; }
+  .strengthFilters { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .strengthFilters input { grid-column: 1 / -1; width: auto; }
 }
 
 /* Market funds final layout. */
