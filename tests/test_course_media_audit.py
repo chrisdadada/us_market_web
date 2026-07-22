@@ -92,6 +92,51 @@ class CourseMediaAuditTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "media-audits"):
             audit_course_media.write_report({"ok": True}, str(outside), self.root)
 
+    def test_metadata_probe_uses_content_not_file_extension(self) -> None:
+        path = self.create_db(modern=False)
+        safe = audit_course_media.safe_db_path(str(path), "dev", self.allowed_roots())
+        metadata = {
+            "size": 100,
+            "duration": 60,
+            "bitrateKbps": 1800,
+            "format": "mov,mp4",
+            "videoCodec": "h264",
+            "audioCodec": "aac",
+            "width": 1920,
+            "height": 1080,
+        }
+        report = audit_course_media.audit_database(
+            safe,
+            "dev",
+            metadata_probe=lambda _key: metadata,
+            requires_optimization=lambda info: info["videoCodec"] != "h264",
+        )
+
+        self.assertEqual(report["objectMetadata"]["status"], "probed")
+        self.assertEqual(report["objectMetadata"]["totalBytes"], 100)
+        self.assertEqual(report["objectMetadata"]["meetsSpec"], 1)
+        self.assertEqual(report["objectMetadata"]["requiresOptimization"], 0)
+        self.assertEqual(report["objectMetadata"]["videos"][0]["video"], "lesson/first.mov")
+
+    def test_metadata_probe_freezes_real_failures(self) -> None:
+        path = self.create_db(modern=False)
+        safe = audit_course_media.safe_db_path(str(path), "dev", self.allowed_roots())
+
+        def fail_probe(_key: str):
+            raise RuntimeError("secret detail")
+
+        report = audit_course_media.audit_database(
+            safe,
+            "dev",
+            metadata_probe=fail_probe,
+            requires_optimization=lambda _info: False,
+        )
+
+        self.assertEqual(report["objectMetadata"]["status"], "partial")
+        self.assertEqual(report["objectMetadata"]["failed"], 1)
+        self.assertEqual(report["objectMetadata"]["videos"][0]["error"], "RuntimeError")
+        self.assertNotIn("secret detail", str(report))
+
 
 if __name__ == "__main__":
     unittest.main()

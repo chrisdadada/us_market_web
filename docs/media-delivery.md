@@ -8,7 +8,8 @@
 - 总体积约 15.6 GB，35 个对象均支持 HTTP Range。
 - 35 个地址均为腾讯 COS 短期签名直链，没有观察到 CDN 缓存命中。
 - 15 个视频超过 Cloudflare Free 的 512 MB 单对象缓存上限。
-- 多条课程仍引用原始 `.mov` 或大体积 `.mp4`，不能视为已经全部切换到优化版本。
+- 28 个视频均为 H.264/AAC、宽度不超过 1920，当前平均码率均未超过 3000 kbps；没有视频达到自动重转码门槛。
+- 其中 13 个对象使用 `.mov` 容器，但不能只按扩展名判定需要转码。仅换容器基本不降低流量，重新编码还可能损伤课程中的小字和图表。
 
 因此，Cloudflare Free 可以继续承载网页、脚本和样式等普通网站内容，但不用于代理现有腾讯 COS 课程视频。Cloudflare 的 Free / Pro / Business 条款要求视频和其他大文件使用 Stream、R2 等指定服务；文件未超过 512 MB 只代表没有触发缓存尺寸限制，不代表可以用免费 CDN 分发。
 
@@ -44,10 +45,22 @@ python3 scripts/audit_media_delivery.py --stdin --require-range --require-cache-
 
 ## 下一步门槛
 
-1. 在 dev 核对 28 个视频的转码状态、输出对象和当前 `video_key`，先解决仍引用旧大文件的问题。
+1. 保留当前 28 个视频，不按文件扩展名批量重转码；后续新视频继续按真实编码、尺寸和码率判定。
 2. 在 dev 建立腾讯 CDN 私有 COS 回源与 CDN URL 鉴权的最小闭环，不把外部 COS 视频接入 Cloudflare 免费 CDN。
-3. 用两个不同的有效签名验证缓存复用，并确认过期、篡改、无课程权限请求均不能访问；同时验收 Range、国内播放速度和实际回源成本。
+3. 用两个不同的有效签名验证缓存复用，并确认过期、篡改、无课程权限请求均不能访问；同时验收 Range、播放速度和实际回源成本。
 4. 未获得当次人工授权前，不修改 prod 数据库、prod COS、DNS 或媒体链接。
+
+只读媒体规格盘点仅允许在 dev 运行：
+
+```bash
+python3 scripts/audit_course_media.py \
+  --environment dev \
+  --db /var/lib/ytd-gainers-dev/app.db \
+  --probe-video-metadata \
+  --output .local/media-audits/dev-video-metadata-YYYYMMDDTHHMMSSZ.json
+```
+
+报告不保存 COS 签名地址或凭证；探测失败会原样计入失败数量，不会猜测为达标。
 
 ## Dev CDN 白名单
 

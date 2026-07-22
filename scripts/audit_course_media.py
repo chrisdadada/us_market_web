@@ -4,9 +4,11 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Callable
 from urllib.parse import urlparse
 
 
@@ -99,7 +101,48 @@ def normalized_video_status(value: str) -> str:
     return status if status in {"processing", "ready", "failed"} else "failed"
 
 
-def audit_database(path: Path, environment: str) -> dict[str, object]:
+def probe_lesson_videos(
+    lessons: list[dict[str, object]],
+    metadata_probe: Callable[[str], dict[str, Any]],
+    requires_optimization: Callable[[dict[str, Any]], bool],
+) -> dict[str, object]:
+    fields = ("size", "duration", "bitrateKbps", "format", "videoCodec", "audioCodec", "width", "height")
+    results = []
+    for lesson in lessons:
+        if lesson["videoStatus"] != "ready" or not lesson["video"]:
+            continue
+        try:
+            metadata = metadata_probe(str(lesson["video"]))
+            results.append({
+                "id": lesson["id"],
+                "video": lesson["video"],
+                "metadata": {field: metadata.get(field) for field in fields},
+                "requiresOptimization": bool(requires_optimization(metadata)),
+            })
+        except Exception as exc:
+            results.append({
+                "id": lesson["id"],
+                "video": lesson["video"],
+                "error": type(exc).__name__,
+            })
+    failed = sum("error" in item for item in results)
+    return {
+        "status": "probed" if not failed else "partial",
+        "checked": len(results),
+        "totalBytes": sum(int(item.get("metadata", {}).get("size") or 0) for item in results),
+        "meetsSpec": sum(item.get("requiresOptimization") is False for item in results),
+        "requiresOptimization": sum(item.get("requiresOptimization") is True for item in results),
+        "failed": failed,
+        "videos": results,
+    }
+
+
+def audit_database(
+    path: Path,
+    environment: str,
+    metadata_probe: Callable[[str], dict[str, Any]] | None = None,
+    requires_optimization: Callable[[dict[str, Any]], bool] | None = None,
+) -> dict[str, object]:
     uri = f"file:{path.as_posix()}?mode=ro"
     conn = sqlite3.connect(uri, uri=True)
     conn.row_factory = sqlite3.Row
@@ -141,6 +184,15 @@ def audit_database(path: Path, environment: str) -> dict[str, object]:
             for row in lesson_rows
         ]
 
+        object_metadata: dict[str, object] = {
+            "status": "not-probed",
+            "reason": "dev 与 prod COS 边界尚未确认，禁止网络探测",
+        }
+        if metadata_probe:
+            if environment != "dev" or not requires_optimization:
+                raise ValueError("视频元数据只允许在 dev 使用完整判定器探测")
+            object_metadata = probe_lesson_videos(lessons, metadata_probe, requires_optimization)
+
         return {
             "schemaVersion": 1,
             "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -165,10 +217,7 @@ def audit_database(path: Path, environment: str) -> dict[str, object]:
                 "videosNeedingMetadataProbe": [item["id"] for item in lessons if item["video"]],
             },
             "records": {"series": series, "lessons": lessons},
-            "objectMetadata": {
-                "status": "not-probed",
-                "reason": "dev 与 prod COS 边界尚未确认，禁止网络探测",
-            },
+            "objectMetadata": object_metadata,
         }
     finally:
         conn.close()
@@ -192,6 +241,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="只读盘点 local / dev 课程媒体引用")
     parser.add_argument("--environment", required=True, choices=sorted(ALLOWED_DB_ROOTS))
     parser.add_argument("--db", required=True)
+    parser.add_argument("--probe-video-metadata", action="store_true", help="仅在 dev 读取 COS 媒体规格")
     parser.add_argument("--output")
     return parser.parse_args()
 
@@ -200,7 +250,17 @@ def main() -> int:
     args = parse_args()
     try:
         path = safe_db_path(args.db, args.environment)
-        payload = audit_database(path, args.environment)
+        metadata_probe = None
+        requires_optimization = None
+        if args.probe_video_metadata:
+            if args.environment != "dev":
+                raise ValueError("视频元数据只允许在 dev 探测")
+            sys.path.insert(0, str(ROOT / "server"))
+            import auth_api
+
+            metadata_probe = auth_api.course_media_info
+            requires_optimization = auth_api.course_media_requires_optimization
+        payload = audit_database(path, args.environment, metadata_probe, requires_optimization)
         if args.output:
             report = write_report(payload, args.output)
             print(json.dumps({"ok": True, "report": str(report)}, ensure_ascii=False))
