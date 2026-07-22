@@ -90,6 +90,15 @@ COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCE
 COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
 COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
+COURSE_CDN_ENABLED = os.environ.get("COURSE_CDN_ENABLED", "0") == "1"
+COURSE_CDN_DOMAIN = os.environ.get("COURSE_CDN_DOMAIN", "").strip().rstrip("/")
+COURSE_CDN_AUTH_KEY = os.environ.get("COURSE_CDN_AUTH_KEY", "").strip()
+COURSE_CDN_SIGN_TTL = int(os.environ.get("COURSE_CDN_SIGN_TTL_SECONDS", "1800"))
+COURSE_CDN_VIDEO_KEYS = {
+    key.strip().lstrip("/")
+    for key in re.split(r"[,\n]+", os.environ.get("COURSE_CDN_VIDEO_KEYS", ""))
+    if key.strip()
+}
 COURSE_VIDEO_UPLOAD_MAX_BYTES = int(os.environ.get("COURSE_VIDEO_UPLOAD_MAX_BYTES", str(5 * 1024 * 1024 * 1024)))
 COURSE_VIDEO_AUTO_PROCESS_ENABLED = os.environ.get("COURSE_VIDEO_AUTO_PROCESS_ENABLED", "0") == "1"
 COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS = int(os.environ.get("COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS", "3000"))
@@ -2351,11 +2360,54 @@ def signed_course_cos_url(key: str, *, method: str = "get", now: int | None = No
     return f"{object_url}?{urlencode(params)}"
 
 
+def course_video_uses_cdn(key: str) -> bool:
+    return COURSE_CDN_ENABLED and key.strip().lstrip("/") in COURSE_CDN_VIDEO_KEYS
+
+
+def validate_course_cdn_config() -> None:
+    if not COURSE_CDN_ENABLED:
+        return
+    domain = urlparse(COURSE_CDN_DOMAIN)
+    if domain.scheme != "https" or not domain.netloc or domain.path not in {"", "/"} or domain.query or domain.fragment:
+        raise RuntimeError("课程 CDN 域名格式错误")
+    if not re.fullmatch(r"[A-Za-z0-9]{6,32}", COURSE_CDN_AUTH_KEY):
+        raise RuntimeError("课程 CDN 鉴权密钥格式错误")
+    if not 60 <= COURSE_CDN_SIGN_TTL <= 630_720_000:
+        raise RuntimeError("课程 CDN 鉴权有效期格式错误")
+    if not COURSE_CDN_VIDEO_KEYS:
+        raise RuntimeError("课程 CDN 视频白名单不能为空")
+
+
+def signed_course_cdn_url(key: str, *, now: int | None = None, nonce: str | None = None) -> str:
+    validate_course_cdn_config()
+    clean_key = key.strip().lstrip("/")
+    if not clean_key:
+        raise ValueError("视频 CDN Key 不能为空")
+    if not course_video_uses_cdn(clean_key):
+        raise RuntimeError("视频不在 CDN 白名单")
+    path = "/" + quote(clean_key, safe="/-_.~")
+    timestamp = int(time.time() if now is None else now)
+    random_value = nonce or secrets.token_hex(8)
+    if not re.fullmatch(r"[A-Za-z0-9]{1,100}", random_value):
+        raise ValueError("CDN 签名随机值格式错误")
+    digest = hashlib.md5(
+        f"{path}-{timestamp}-{random_value}-0-{COURSE_CDN_AUTH_KEY}".encode("utf-8")
+    ).hexdigest()
+    return f"{COURSE_CDN_DOMAIN}{path}?{urlencode({'sign': f'{timestamp}-{random_value}-0-{digest}'})}"
+
+
 def signed_course_video_url(video_key: str, now: int | None = None) -> str:
     raw = course_video_key(str(video_key or "").strip())
     if raw.startswith("http://") or raw.startswith("https://"):
         return raw
+    if course_video_uses_cdn(raw):
+        return signed_course_cdn_url(raw, now=now)
     return signed_course_cos_url(raw, method="get", now=now)
+
+
+def course_video_url_ttl(video_key: str) -> int:
+    raw = course_video_key(str(video_key or "").strip())
+    return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_COS_SIGN_TTL)
 
 
 def safe_course_video_filename(value: str) -> str:
@@ -3801,7 +3853,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
                     return
             try:
-                self.send_json({"url": signed_course_video_url(lesson["video_key"]), "expiresIn": max(60, COURSE_COS_SIGN_TTL)})
+                self.send_json({"url": signed_course_video_url(lesson["video_key"]), "expiresIn": course_video_url_ttl(lesson["video_key"])})
             except Exception as exc:
                 self.send_json({"error": f"播放地址不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
@@ -4578,6 +4630,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    validate_course_cdn_config()
     init_db()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"auth api listening on http://{HOST}:{PORT}, db={DB_PATH}")

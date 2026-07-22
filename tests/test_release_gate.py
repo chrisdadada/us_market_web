@@ -1,5 +1,6 @@
 import http.cookiejar
 import base64
+import hashlib
 import json
 import sqlite3
 import subprocess
@@ -85,6 +86,11 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_COS_BUCKET = ""
         auth_api.COURSE_COS_REGION = ""
         auth_api.COURSE_COS_DOMAIN = ""
+        auth_api.COURSE_CDN_ENABLED = False
+        auth_api.COURSE_CDN_DOMAIN = ""
+        auth_api.COURSE_CDN_AUTH_KEY = ""
+        auth_api.COURSE_CDN_SIGN_TTL = 1800
+        auth_api.COURSE_CDN_VIDEO_KEYS = set()
         auth_api.COURSE_VIDEO_AUTO_PROCESS_ENABLED = False
         auth_api.COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS = 21600
         auth_api.init_db()
@@ -1574,6 +1580,101 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         )
         self.assertIn("q-sign-algorithm=sha1", url)
         self.assertIn("/lesson/demo.mp4?", url)
+
+    def test_course_cdn_type_a_signing_is_limited_to_allowlist(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_DOMAIN = "https://lesson-dev.dongbimao.org"
+        auth_api.COURSE_CDN_AUTH_KEY = "cdnsecret"
+        auth_api.COURSE_CDN_SIGN_TTL = 900
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/demo video.mp4"}
+
+        cdn_url = auth_api.signed_course_cdn_url(
+            "lesson/demo video.mp4",
+            now=1_700_000_000,
+            nonce="abc123",
+        )
+        expected_hash = hashlib.md5(
+            b"/lesson/demo%20video.mp4-1700000000-abc123-0-cdnsecret"
+        ).hexdigest()
+        self.assertEqual(
+            cdn_url,
+            "https://lesson-dev.dongbimao.org/lesson/demo%20video.mp4"
+            f"?sign=1700000000-abc123-0-{expected_hash}",
+        )
+        self.assertIn(
+            "lesson-dev.dongbimao.org",
+            auth_api.signed_course_video_url("lesson/demo video.mp4", now=1_700_000_000),
+        )
+        self.assertEqual(auth_api.course_video_url_ttl("lesson/demo video.mp4"), 900)
+
+        cos_url = auth_api.signed_course_video_url("lesson/other.mp4", now=1_700_000_000)
+        self.assertIn("cos.ap-chengdu.myqcloud.com", cos_url)
+        self.assertIn("q-sign-algorithm=sha1", cos_url)
+        self.assertEqual(auth_api.course_video_url_ttl("lesson/other.mp4"), 1800)
+
+        auth_api.COURSE_CDN_AUTH_KEY = "bad-key!"
+        with self.assertRaisesRegex(RuntimeError, "密钥格式错误"):
+            auth_api.signed_course_cdn_url("lesson/demo video.mp4")
+
+    def test_course_cdn_playback_keeps_course_access_boundary_and_rolls_back(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_DOMAIN = "https://lesson-dev.dongbimao.org"
+        auth_api.COURSE_CDN_AUTH_KEY = "cdnsecret"
+        auth_api.COURSE_CDN_SIGN_TTL = 900
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/poc.mp4"}
+
+        admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(admin, "cdn-course-user@example.test", "free")
+        client = self.login("cdn-course-user@example.test", "user-password")
+        status, payload = admin.post(
+            "/api/admin/courses",
+            {"title": "CDN 测试课程", "summary": "", "coverUrl": "", "status": "published"},
+        )
+        self.assertEqual(status, 201, payload)
+        series_id = payload["series"]["id"]
+        status, payload = admin.post(
+            "/api/admin/courses/lessons",
+            {
+                "seriesId": series_id,
+                "title": "CDN 测试视频",
+                "videoKey": "lesson/poc.mp4",
+                "status": "published",
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        lesson_id = payload["lesson"]["id"]
+
+        status, payload = self.client().get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 401, payload)
+        self.assertNotIn("url", payload)
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 403, payload)
+        self.assertNotIn("url", payload)
+
+        status, payload = admin.post(
+            "/api/admin/courses/grants",
+            {"seriesId": series_id, "user": user["uid"], "expiresAt": "2027-01-01"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("lesson-dev.dongbimao.org/lesson/poc.mp4?sign=", payload["url"])
+        self.assertEqual(payload["expiresIn"], 900)
+
+        auth_api.COURSE_CDN_ENABLED = False
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("cos.ap-chengdu.myqcloud.com/lesson/poc.mp4", payload["url"])
+        self.assertIn("q-sign-algorithm=sha1", payload["url"])
+        self.assertEqual(payload["expiresIn"], 1800)
 
     def test_course_video_upload_puts_to_cos_and_returns_key(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"

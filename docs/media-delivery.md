@@ -49,6 +49,22 @@ python3 scripts/audit_media_delivery.py --stdin --require-range --require-cache-
 3. 用两个不同的有效签名验证缓存复用，并确认过期、篡改、无课程权限请求均不能访问；同时验收 Range、国内播放速度和实际回源成本。
 4. 未获得当次人工授权前，不修改 prod 数据库、prod COS、DNS 或媒体链接。
 
+## Dev CDN 白名单
+
+后端支持把单个 dev 视频切到腾讯 CDN Type A 鉴权，默认关闭且不会改变现有播放链路：
+
+```bash
+COURSE_CDN_ENABLED=1
+COURSE_CDN_DOMAIN=https://lesson-dev.dongbimao.org
+COURSE_CDN_AUTH_KEY=<独立的 CDN Type A 密钥>
+COURSE_CDN_SIGN_TTL_SECONDS=1800
+COURSE_CDN_VIDEO_KEYS=lesson/path/to/poc-video.mp4
+```
+
+`COURSE_CDN_VIDEO_KEYS` 只接受精确对象 Key。未命中白名单的视频继续使用 COS 签名地址；上传、转码和课程封面不经过 CDN。关闭 `COURSE_CDN_ENABLED` 并重启 dev 服务即可回滚。
+
+腾讯 CDN 侧的 Type A 过期时间必须与 `COURSE_CDN_SIGN_TTL_SECONDS` 一致。私有 COS 必须同时开启 CDN 服务授权、回源鉴权和 CDN URL 鉴权。
+
 ## 参考
 
 - [Cloudflare CDN 视频与大文件条款](https://www.cloudflare.com/service-specific-terms-application-services/)
