@@ -119,7 +119,9 @@ finish() {
   trap - EXIT
   rollback_failed=0
   if [ "$rc" -ne 0 ]; then
-    echo "Deployment failed; restoring previous release." >&2
+    if [ "$web_swapped" -eq 1 ] || [ "$main_swapped" -eq 1 ] || [ "$admin_swapped" -eq 1 ]; then
+      echo "Deployment failed; restoring previous release." >&2
+    fi
     if [ "$admin_swapped" -eq 1 ] && ! exchange_dirs "$prod_root/admin-web/dist" "$next_admin"; then
       rollback_failed=1
     fi

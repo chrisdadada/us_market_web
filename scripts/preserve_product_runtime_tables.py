@@ -197,11 +197,12 @@ def main() -> None:
     fingerprint_parser = subparsers.add_parser("fingerprint")
     fingerprint_parser.add_argument("--db", type=Path, required=True)
     args = parser.parse_args()
-    paths = {
-        "merge": (args.incoming, args.existing),
-        "verify": (args.before, args.after),
-        "fingerprint": (args.db,),
-    }[args.command]
+    if args.command == "merge":
+        paths = (args.incoming, args.existing)
+    elif args.command == "verify":
+        paths = (args.before, args.after)
+    else:
+        paths = (args.db,)
     for path in paths:
         if not path.is_file():
             raise SystemExit(f"missing DB: {path}")

@@ -1,4 +1,6 @@
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -69,6 +71,15 @@ class PreserveProductRuntimeTablesTest(unittest.TestCase):
         with sqlite3.connect(self.existing) as conn:
             conn.execute("UPDATE market_opinion_items SET body = 'changed'")
         self.assertNotEqual(fingerprint(self.existing), before)
+
+    def test_fingerprint_cli(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "scripts/preserve_product_runtime_tables.py", "fingerprint", "--db", str(self.existing)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.stdout.strip(), fingerprint(self.existing))
 
 
 if __name__ == "__main__":
