@@ -56,10 +56,7 @@ const primaryNavItems: NavItem[] = [
   { key: "opinions", label: "美股热点风向标" },
   { key: "tracking", label: "股票机会跟踪榜单" },
   { key: "stocks", label: "股票库" },
-  { key: "calendar", label: "美股重点财经前瞻" }
-];
-
-const marketToolNavItems: NavItem[] = [
+  { key: "calendar", label: "美股重点财经前瞻" },
   { key: "market", label: "市场与资金" },
   { key: "risk", label: "市场温度计" },
   { key: "strength", label: "全市场强弱" }
@@ -87,7 +84,7 @@ const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
   { key: "funding", label: "资金费套利扫描" }
 ];
 
-const allPageNavItems = [...primaryNavItems, ...marketToolNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems, { key: "courses" as const, label: "交易实战课程" }];
+const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems, { key: "courses" as const, label: "交易实战课程" }];
 const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
@@ -1023,10 +1020,6 @@ function App() {
           <button ref={mobileNavCloseRef} type="button" className="mobileNavClose mobileNavigationControl" aria-label="关闭菜单" onClick={() => setMobileNavOpen(false)}>×</button>
         </div>
         <nav>{renderNavItems(primaryNavItems)}</nav>
-        <div className="navToolGroup">
-          <p className="navGroupTitle">工具数据</p>
-          {renderNavItems(marketToolNavItems)}
-        </div>
         <div className="navToolGroup">
           <p className="navGroupTitle">其他</p>
           {renderNavItems(secondaryNavItems)}

@@ -300,8 +300,8 @@ try {
         const navigationBox = await page.locator(".sideRail").boundingBox();
         assert(Boolean(navigationBox && navigationBox.x <= 1 && navigationBox.width >= 300), `mobile navigation should fully open: ${JSON.stringify(navigationBox)}`);
         const primaryLabels = await page.locator(".sideRail > nav button span").allTextContents();
-        assert(primaryLabels.join("|") === "首页|美股热点风向标|股票机会跟踪榜单|股票库|美股重点财经前瞻", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
-        assert(await page.locator(".sideRail", { hasText: "工具数据" }).count() === 1, "mobile navigation should include the tool-data group");
+        assert(primaryLabels.join("|") === "首页|美股热点风向标|股票机会跟踪榜单|股票库|美股重点财经前瞻|市场与资金|市场温度计|全市场强弱", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
+        assert(await page.locator(".sideRail", { hasText: "工具数据" }).count() === 0, "mobile navigation should not separate market pages into a tool-data group");
         assert(await page.locator(".sideRail", { hasText: "交易实战课程" }).count() === 0, "courses should not appear in mobile navigation");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-navigation.png` });
         await page.locator(".mobileNavClose").click();
