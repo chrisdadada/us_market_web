@@ -59,7 +59,8 @@ const primaryNavItems: NavItem[] = [
   { key: "calendar", label: "美股重点财经前瞻" },
   { key: "market", label: "市场与资金" },
   { key: "risk", label: "市场温度计" },
-  { key: "strength", label: "全市场强弱" }
+  { key: "strength", label: "全市场强弱" },
+  { key: "courses", label: "交易实战课程" }
 ];
 
 const secondaryNavItems: NavItem[] = [
@@ -84,7 +85,7 @@ const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
   { key: "funding", label: "资金费套利扫描" }
 ];
 
-const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems, { key: "courses" as const, label: "交易实战课程" }];
+const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems];
 const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
