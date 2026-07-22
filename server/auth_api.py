@@ -1655,11 +1655,13 @@ def analytics_text(value: Any, max_length: int) -> str:
     return re.sub(r"[^a-zA-Z0-9_./#:-]+", "", str(value or ""))[:max_length]
 
 
-def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
-    event_type = analytics_text(payload.get("eventType"), 40)
-    event_key = analytics_text(payload.get("eventKey"), 80)
-    if event_type != "nav_click" or not event_key:
-        raise ValueError("埋点参数不正确")
+def insert_analytics_event(
+    conn: sqlite3.Connection,
+    user: sqlite3.Row | None,
+    event_type: str,
+    event_key: str,
+    path: str = "",
+) -> None:
     if not user:
         return
     timestamp = now_iso()
@@ -1668,12 +1670,48 @@ def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, pa
         INSERT INTO analytics_events (user_id, event_type, event_key, path, created_at)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (user["id"], event_type, event_key, analytics_text(payload.get("path"), 200), timestamp),
+        (
+            user["id"],
+            analytics_text(event_type, 40),
+            analytics_text(event_key, 80),
+            analytics_text(path, 200),
+            timestamp,
+        ),
     )
     today = timestamp[:10]
     last_login = str(user["last_login_at"] or "")[:10]
     if last_login != today:
         conn.execute("UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?", (timestamp, timestamp, user["id"]))
+
+
+def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
+    event_type = analytics_text(payload.get("eventType"), 40)
+    event_key = analytics_text(payload.get("eventKey"), 80)
+    if event_type != "nav_click" or not event_key:
+        raise ValueError("埋点参数不正确")
+    insert_analytics_event(conn, user, event_type, event_key, str(payload.get("path") or ""))
+
+
+def write_course_play_grant(user: sqlite3.Row, lesson_id: int) -> None:
+    conn: sqlite3.Connection | None = None
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=0.05)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=50")
+        conn.execute("PRAGMA foreign_keys=ON")
+        with conn:
+            insert_analytics_event(
+                conn,
+                user,
+                "course_play_grant",
+                str(lesson_id),
+                "/api/courses/lessons/:id/play",
+            )
+    except Exception:
+        print("course play analytics write failed")
+    finally:
+        if conn:
+            conn.close()
 
 
 def analytics_range_clause(
@@ -3853,9 +3891,13 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
                     return
             try:
-                self.send_json({"url": signed_course_video_url(lesson["video_key"]), "expiresIn": course_video_url_ttl(lesson["video_key"])})
+                play_url = signed_course_video_url(lesson["video_key"])
+                play_ttl = course_video_url_ttl(lesson["video_key"])
             except Exception as exc:
                 self.send_json({"error": f"播放地址不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            write_course_play_grant(user, lesson_id)
+            self.send_json({"url": play_url, "expiresIn": play_ttl})
             return
 
         if parsed.path == "/api/tools/funding-arbitrage":

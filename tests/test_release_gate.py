@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -718,6 +719,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         status, payload = user.post("/api/analytics/event", {"eventType": "nav_click", "eventKey": "stocks", "path": "/?page=stocks"})
         self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_play_grant", "eventKey": "1"})
+        self.assertEqual(status, 400, payload)
 
         status, payload = admin.get("/api/admin/metrics")
         self.assertEqual(status, 200, payload)
@@ -1115,6 +1118,26 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["url"], "https://example.test/video-updated.mp4")
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            event = conn.execute(
+                "SELECT event_type, event_key, path FROM analytics_events WHERE event_type = 'course_play_grant'"
+            ).fetchone()
+        self.assertEqual(event, ("course_play_grant", str(lesson_id), "/api/courses/lessons/:id/play"))
+        with patch.object(auth_api, "insert_analytics_event", side_effect=sqlite3.OperationalError("write failed")):
+            status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["url"], "https://example.test/video-updated.mp4")
+        blocker = sqlite3.connect(auth_api.DB_PATH)
+        try:
+            blocker.execute("BEGIN IMMEDIATE")
+            started = time.monotonic()
+            status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+            elapsed = time.monotonic() - started
+        finally:
+            blocker.rollback()
+            blocker.close()
+        self.assertEqual(status, 200, payload)
+        self.assertLess(elapsed, 0.75)
 
         status, payload = admin.post(
             "/api/admin/courses/lessons",

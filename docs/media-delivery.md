@@ -62,6 +62,21 @@ python3 scripts/audit_course_media.py \
 
 报告不保存 COS 签名地址或凭证；探测失败会原样计入失败数量，不会猜测为达标。
 
+## Dev 播放地址发放基线
+
+后端仅在用户通过权限校验且成功生成播放地址后记录 `course_play_grant`。它表示播放地址发放成功，不代表视频实际开始播放、观看完成或产生了多少流量；真实传输量仍以 COS / CDN 账单与访问日志为准。
+
+聚合报告只读取 dev 用户库和指定的视频元数据报告，不输出用户身份、签名地址、IP 或单次访问时间：
+
+```bash
+python3 scripts/report_course_media_usage.py \
+  --metadata /opt/dongbimao-dev/.local/media-audits/dev-video-metadata-YYYYMMDDTHHMMSSZ.json \
+  --from 2026-07-22 \
+  --to 2026-08-01
+```
+
+公开的 `/api/analytics/event` 仍只接受 `nav_click`，不能由前台伪造课程播放地址发放记录。
+
 ## Dev CDN 白名单
 
 后端支持把单个 dev 视频切到腾讯 CDN Type A 鉴权，默认关闭且不会改变现有播放链路：
