@@ -89,7 +89,7 @@ async function apiPayload(url, authProfile) {
           Object.entries(movers.boards || {}).map(([board, payload]) => [board, { ...payload, rows: (payload.rows || []).slice(0, 20) }]),
         ),
       },
-      strength,
+      strength: authProfile.entitlements.paid ? strength : null,
       sectorFlow,
     };
   }
@@ -151,10 +151,12 @@ async function apiPayload(url, authProfile) {
 }
 
 function startServer(authProfile) {
+  const apiRequests = [];
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://127.0.0.1");
       if (url.pathname.startsWith("/api/")) {
+        apiRequests.push(url.pathname);
         sendJson(response, await apiPayload(url, authProfile));
         return;
       }
@@ -184,6 +186,7 @@ function startServer(authProfile) {
       resolveServer({
         rootUrl: `http://127.0.0.1:${address.port}/`,
         nextUrl: `http://127.0.0.1:${address.port}/next/`,
+        apiRequests,
         close: () => new Promise((resolveClose) => server.close(resolveClose)),
       });
     });
@@ -215,14 +218,14 @@ const scenarios = [
   { profile: "anonymous", page: "market", present: [gates.open] },
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
   { profile: "anonymous", page: "risk", present: ["注册后查看"] },
-  { profile: "anonymous", page: "strength", present: [gates.open] },
+  { profile: "anonymous", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
   { profile: "free", page: "tracking", presentSelector: ".lockedStockName" },
   { profile: "free", page: "home", presentSelector: ".frontHomeTableLock" },
   { profile: "free", page: "open", present: [gates.open] },
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
-  { profile: "free", page: "strength", present: [gates.open] },
+  { profile: "free", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "monthly", page: "home", absentSelector: ".frontHomeTableLock" },
@@ -256,7 +259,7 @@ try {
           const text = await page.locator("body").innerText();
           assert(!new URL(page.url()).pathname.startsWith("/legacy"), `${profileName}/${scenario.page} should stay in the white main site`);
           if (!authProfile.entitlements.admin) {
-            assert(await page.locator(".navGroupTitle", { hasText: "工具数据" }).count() === 0, `${profileName} should not show the admin tool-data group`);
+            assert(await page.locator(".navGroupTitle", { hasText: "管理员工具" }).count() === 0, `${profileName} should not show the admin tool group`);
           }
           for (const expected of scenario.present || []) {
             assert(text.includes(expected), `${profileName}/${baseUrl}/${scenario.page} should show gate: ${expected}; body=${text.slice(0, 240)}`);
@@ -272,6 +275,65 @@ try {
             assert(await page.locator(scenario.absentSelector).count() === 0, `${profileName}/${baseUrl}/${scenario.page} should hide ${scenario.absentSelector}`);
           }
         }
+      }
+      const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/raw/strength-scanner").length;
+      if (profileName === "anonymous" || profileName === "free") {
+        assert(strengthRequestCount === 0, `${profileName} should not request the paid strength dataset`);
+      }
+      if (profileName === "monthly") {
+        assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
+      }
+      if (profileName === "monthly") {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
+        await page.waitForSelector("[data-testid='market-strength-page']");
+        assert(await page.locator(".mobileShellBar").isVisible(), "mobile shell bar should be visible");
+        assert(!(await page.locator(".strengthTable").isVisible()), "desktop strength table should be hidden on mobile");
+        assert(await page.locator(".strengthMobileList").isVisible(), "mobile strength list should be visible");
+        assert(await page.locator(".strengthMobileRow").count() > 0, "mobile strength list should contain rows");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile strength page should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-strength.png`, fullPage: true });
+
+        await page.locator(".mobileMenuButton").click();
+        await page.waitForFunction(() => document.querySelector(".sideRail")?.classList.contains("mobileOpen"));
+        await page.waitForTimeout(250);
+        const navigationBox = await page.locator(".sideRail").boundingBox();
+        assert(Boolean(navigationBox && navigationBox.x <= 1 && navigationBox.width >= 300), `mobile navigation should fully open: ${JSON.stringify(navigationBox)}`);
+        const primaryLabels = await page.locator(".sideRail > nav button span").allTextContents();
+        assert(primaryLabels.join("|") === "首页|美股热点风向标|股票机会跟踪榜单|股票库|美股重点财经前瞻", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
+        assert(await page.locator(".sideRail", { hasText: "工具数据" }).count() === 1, "mobile navigation should include the tool-data group");
+        assert(await page.locator(".sideRail", { hasText: "交易实战课程" }).count() === 0, "courses should not appear in mobile navigation");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-navigation.png` });
+        await page.locator(".mobileNavClose").click();
+        await page.waitForTimeout(250);
+        assert(await page.locator(".mobileMenuButton").evaluate((element) => document.activeElement === element), "closing mobile navigation should restore focus to the menu button");
+
+        await page.locator(".strengthMobileControls button").click();
+        assert(await page.locator(".strengthFilterSheet").isVisible(), "mobile strength filter sheet should open");
+        assert(await page.locator("body.strengthFilterLocked").count() === 1, "mobile strength filter should lock background scrolling");
+        await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "关闭筛选");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-filter.png` });
+        await page.locator(".strengthSheetFilters select").first().selectOption({ index: 1 });
+        await page.locator(".strengthFilterApply").click();
+        assert(await page.locator(".strengthMobileControls b").textContent() === "1", "applying a strength filter should update the active filter count");
+        await page.locator(".strengthMobileControls button").click();
+        await page.locator(".strengthFilterReset").click();
+        await page.locator(".strengthFilterSheet header button").click();
+        assert(await page.locator(".strengthFilterSheet").count() === 0, "mobile strength filter sheet should close");
+        assert(await page.locator(".strengthMobileControls b").count() === 0, "resetting strength filters should clear the active filter count");
+
+        await page.setViewportSize({ width: 768, height: 820 });
+        await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
+        assert(await page.locator(".mobileShellBar").isVisible(), "tablet shell bar should be visible");
+        assert(await page.locator(".strengthMobileList").isVisible(), "tablet should use the mobile strength list");
+        assert(!(await page.locator(".strengthTable").isVisible()), "tablet should not show the wide strength table");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "tablet strength page should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tablet.png`, fullPage: true });
+        await page.locator(".strengthMobileControls button").click();
+        await page.setViewportSize({ width: 1200, height: 820 });
+        await page.waitForTimeout(50);
+        assert(await page.locator(".strengthFilterSheet").count() === 0, "resizing to desktop should close the mobile strength filter");
+        assert(await page.locator("body.strengthFilterLocked").count() === 0, "resizing to desktop should unlock background scrolling");
       }
     } finally {
       await page.close();

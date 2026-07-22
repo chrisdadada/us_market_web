@@ -269,9 +269,15 @@
 .strengthFocusList span { color: #526176; }
 .strengthListHead { align-items: center; }
 .strengthFilters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.strengthFilters label { display: grid; gap: 5px; min-width: 0; }
+.strengthFilters label > span { color: #718096; font-size: 12px; font-weight: 600; }
 .strengthFilters input,
 .strengthFilters select { min-height: 34px; border: 1px solid #d7e0ec; border-radius: 5px; background: #fff; color: #172033; padding: 0 9px; font-size: 12px; }
 .strengthFilters input { width: 140px; }
+.strengthDesktopFilters label > span { display: none; }
+.strengthMobileControls,
+.strengthMobileList,
+.strengthFilterOverlay { display: none; }
 .strengthPagination { display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 8px 16px; border-top: 1px solid #e6edf5; color: #718096; font-size: 12px; }
 .strengthPagination > div { display: flex; align-items: center; gap: 10px; }
 .strengthPagination button { width: 32px; height: 32px; border: 1px solid #d7e0ec; border-radius: 5px; background: #fff; color: #526176; font-size: 20px; line-height: 1; cursor: pointer; }
@@ -297,6 +303,54 @@
   .strengthFilters { justify-content: flex-start; }
 }
 
+@media (max-width: 1100px) {
+  .strengthMetrics { grid-template-columns: 1fr 1fr; }
+  .strengthListHead { position: sticky; top: 58px; z-index: 8; align-items: stretch; flex-direction: column; gap: 10px; padding: 10px 12px; background: #fff; }
+  .strengthListHead .marketToolTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; overflow: visible; }
+  .strengthListHead .marketToolTabs button { min-width: 0; padding: 0 5px; font-size: 12px; white-space: nowrap; }
+  .strengthListHead .marketToolTabs button small { margin-left: 3px; font-size: 10px; }
+  .strengthDesktopFilters,
+  .strengthTable { display: none; }
+  .strengthMobileControls { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 8px; width: 100%; }
+  .strengthMobileControls input,
+  .strengthMobileControls button { min-width: 0; height: 36px; border: 1px solid #d7e0ec; border-radius: 6px; background: #fff; color: #172033; padding: 0 10px; font-size: 12px; }
+  .strengthMobileControls button { color: #1268d5; border-color: #bcd7fb; background: #edf5ff; cursor: pointer; }
+  .strengthMobileControls b { display: inline-grid; min-width: 17px; height: 17px; margin-left: 5px; place-items: center; border-radius: 9px; background: #1677ff; color: #fff; font-size: 10px; }
+  .strengthMobileList { display: block; }
+  .strengthMobileRow { display: grid; grid-template-columns: 40px minmax(0, 1fr) 58px 58px; align-items: center; gap: 8px; width: 100%; min-height: 76px; border: 0; border-bottom: 1px solid #edf1f6; background: #fff; padding: 9px 12px; color: #172033; text-align: left; cursor: pointer; }
+  .strengthMobileRow:last-child { border-bottom: 0; }
+  .strengthMobileRow:active { background: #f4f8fd; }
+  .strengthMobileScore { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 6px; background: #edf5ff; color: #1268d5; font-size: 14px; }
+  .strengthMobileIdentity { min-width: 0; }
+  .strengthMobileIdentity > strong,
+  .strengthMobileIdentity > small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .strengthMobileIdentity > strong { font-size: 13px; }
+  .strengthMobileIdentity > small { margin-top: 3px; color: #8290a4; font-size: 11px; }
+  .strengthMobileIdentity .toolStatus { min-height: 19px; margin-top: 5px; padding: 0 6px; font-size: 10px; }
+  .strengthMobileDatum { min-width: 0; text-align: right; }
+  .strengthMobileDatum small,
+  .strengthMobileDatum strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .strengthMobileDatum small { color: #8290a4; font-size: 10px; }
+  .strengthMobileDatum strong { margin-top: 5px; font-size: 11px; }
+  .strengthPagination { min-height: 46px; padding: 7px 12px; }
+  .strengthPagination > span { font-size: 11px; }
+  .strengthPagination > div { gap: 6px; }
+  .strengthPagination button { width: 30px; height: 30px; }
+  .strengthFilterOverlay { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; background: rgba(15, 23, 42, .34); }
+  .strengthFilterSheet { width: 100%; max-height: 82dvh; overflow: auto; border-radius: 14px 14px 0 0; background: #fff; box-shadow: 0 -14px 36px rgba(15, 23, 42, .16); }
+  .strengthFilterSheet > header { position: sticky; top: 0; z-index: 1; display: flex; min-height: 54px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e6edf5; background: #fff; padding: 0 16px; }
+  .strengthFilterSheet > header strong { font-size: 16px; }
+  .strengthFilterSheet > header button { width: 34px; height: 34px; border: 0; background: transparent; color: #526176; font-size: 24px; cursor: pointer; }
+  .strengthSheetFilters { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 10px; width: 100%; padding: 16px; }
+  .strengthSheetFilters label:first-child { grid-column: 1 / -1; }
+  .strengthSheetFilters input,
+  .strengthSheetFilters select { width: 100%; height: 40px; font-size: 13px; }
+  .strengthFilterSheet > footer { position: sticky; bottom: 0; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; border-top: 1px solid #e6edf5; background: #fff; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .strengthFilterSheet > footer button { height: 42px; border-radius: 7px; font-size: 13px; cursor: pointer; }
+  .strengthFilterReset { border: 1px solid #d7e0ec; background: #fff; color: #526176; }
+  .strengthFilterApply { border: 1px solid #1677ff; background: #1677ff; color: #fff; }
+}
+
 @media (max-width: 720px) {
   .marketToolPage { padding: 16px 12px 28px; }
   .marketToolHeading h1 { font-size: 20px; }
@@ -313,9 +367,6 @@
   .marketToolPanelHead { align-items: stretch; flex-direction: column; }
   .marketToolPanelHead > div:first-child { justify-content: space-between; }
   .marketToolTabs { overflow-x: auto; }
-  .strengthMetrics { grid-template-columns: 1fr 1fr; }
-  .strengthFilters { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
-  .strengthFilters input { grid-column: 1 / -1; width: auto; }
 }
 
 /* Market funds final layout. */
@@ -6977,6 +7028,18 @@ body,
   padding: 22px 16px;
 }
 
+.sideRailHeader {
+  display: block;
+}
+
+.mobileShellBar,
+.mobileGlobalSearch,
+.mobileNavClose,
+.mobileNavBackdrop,
+.mobileDrawerAccount {
+  display: none;
+}
+
 .brand {
   padding: 2px 4px 22px;
   gap: 10px;
@@ -7288,23 +7351,6 @@ body,
     grid-template-columns: 1fr;
   }
 
-  .sideRail {
-    position: static;
-    min-height: auto;
-    border-right: 0;
-    border-bottom: 1px solid #dfe7f2;
-  }
-
-  .sideRail nav {
-    display: flex;
-    overflow-x: auto;
-  }
-
-  .sideRail nav button {
-    white-space: nowrap;
-  }
-
-  .topbar,
   .frontHomeBoard,
   .frontHomeBottomGrid {
     grid-template-columns: 1fr;
@@ -8030,6 +8076,8 @@ body,
   width: 100%;
   min-height: 38px;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -8039,6 +8087,22 @@ body,
   font-weight: 560;
   text-align: left;
   cursor: pointer;
+}
+
+.navToolGroup button span {
+  min-width: 0;
+}
+
+.navToolGroup button em {
+  color: #98a5b7;
+  font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.navToolGroup button.disabled {
+  color: #98a5b7;
+  cursor: not-allowed;
 }
 
 .navToolGroup button:hover,
@@ -11021,5 +11085,328 @@ body,
   .calendarV3 .calendarTableHead,
   .calendarV3 .calendarTableBody article {
     min-width: 820px;
+  }
+}
+
+/* Canonical mobile shell. */
+@media (max-width: 1100px) {
+  body.mobileNavLocked,
+  body.strengthFilterLocked {
+    overflow: hidden;
+  }
+
+  .terminalShell {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .workspace {
+    min-width: 0;
+  }
+
+  .topbar,
+  .topbar.calendarTopbar {
+    display: none;
+  }
+
+  .mobileShellBar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    height: 58px;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #dfe7f2;
+    background: rgba(255, 255, 255, .96);
+    padding: 0 12px;
+    backdrop-filter: blur(12px);
+  }
+
+  .mobileShellBrand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+    color: #172033;
+    text-decoration: none;
+  }
+
+  .mobileShellBrand img {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .mobileShellBrand strong,
+  .mobileShellBrand small {
+    display: block;
+  }
+
+  .mobileShellBrand strong {
+    font-size: 15px;
+    font-weight: 620;
+    line-height: 1.15;
+  }
+
+  .mobileShellBrand small {
+    margin-top: 2px;
+    color: #718096;
+    font-size: 10px;
+  }
+
+  .mobileShellBar > div {
+    display: flex;
+    gap: 4px;
+  }
+
+  .mobileShellButton {
+    position: relative;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #526176;
+    cursor: pointer;
+  }
+
+  .mobileShellButton:active {
+    background: #edf3fa;
+  }
+
+  .mobileMenuButton span,
+  .mobileMenuButton span::before,
+  .mobileMenuButton span::after {
+    display: block;
+    width: 19px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  .mobileMenuButton span {
+    position: relative;
+  }
+
+  .mobileMenuButton span::before,
+  .mobileMenuButton span::after {
+    position: absolute;
+    left: 0;
+    content: "";
+  }
+
+  .mobileMenuButton span::before {
+    top: -6px;
+  }
+
+  .mobileMenuButton span::after {
+    top: 6px;
+  }
+
+  .mobileSearchButton span {
+    position: relative;
+    display: block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+  }
+
+  .mobileSearchButton span::after {
+    position: absolute;
+    right: -5px;
+    bottom: -3px;
+    width: 7px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    content: "";
+    transform: rotate(45deg);
+  }
+
+  .mobileGlobalSearch {
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid #dfe7f2;
+    background: #fff;
+    padding: 8px 12px;
+  }
+
+  .mobileGlobalSearch input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #d7e0ec;
+    border-radius: 7px;
+    background: #fff;
+    color: #172033;
+    padding: 0 11px;
+    font-size: 13px;
+  }
+
+  .sideRail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(336px, calc(100vw - 54px));
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    border-right: 1px solid #dfe7f2;
+    border-bottom: 0;
+    background: #fff;
+    padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+    box-shadow: 16px 0 36px rgba(15, 23, 42, .14);
+    transform: translateX(-102%);
+    visibility: hidden;
+    transition: transform .2s ease, visibility 0s linear .2s;
+  }
+
+  .sideRail.mobileOpen {
+    transform: translateX(0);
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  .sideRailHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .sideRailHeader .brand {
+    min-width: 0;
+    padding: 0 4px 14px;
+  }
+
+  .sideRailHeader .brand img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .sideRailHeader .brand strong {
+    font-size: 16px;
+  }
+
+  .mobileNavClose {
+    display: grid;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    margin-bottom: 14px;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: #f3f6fa;
+    color: #526176;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .sideRail nav {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2px;
+    overflow: visible;
+  }
+
+  .sideRail nav button,
+  .navToolGroup button,
+  .navToolGroup a {
+    min-height: 39px;
+    border-radius: 7px;
+    padding: 0 11px;
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .navToolGroup {
+    margin-top: 12px;
+    padding-top: 11px;
+  }
+
+  .navGroupTitle {
+    margin-bottom: 5px;
+    padding: 0 4px;
+    font-size: 11px;
+  }
+
+  .mobileDrawerAccount {
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 14px;
+    border-top: 1px solid #dfe7f2;
+    padding: 14px 4px 0;
+  }
+
+  .mobileDrawerAccount > span {
+    min-width: 0;
+  }
+
+  .mobileDrawerAccount strong,
+  .mobileDrawerAccount small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileDrawerAccount strong {
+    color: #172033;
+    font-size: 12px;
+  }
+
+  .mobileDrawerAccount small {
+    margin-top: 3px;
+    color: #718096;
+    font-size: 10px;
+  }
+
+  .mobileDrawerAccount .accountButton {
+    flex: 0 0 auto;
+    height: 34px;
+    border-radius: 7px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+
+  .mobileDrawerAccount > .accountButton:only-child {
+    width: 100%;
+  }
+
+  .mobileNavBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: block;
+    border: 0;
+    background: rgba(15, 23, 42, .34);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+  }
+
+  .mobileNavBackdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sideSlogan {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sideRail,
+  .mobileNavBackdrop {
+    transition: none;
   }
 }

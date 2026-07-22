@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import {
   api,
   AuthStatus,
@@ -49,16 +49,23 @@ type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength"
 type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
 
-const navItems: Array<{ key: PageKey; label: string; status?: string; disabled?: boolean }> = [
+type NavItem = { key: PageKey; label: string; status?: string; disabled?: boolean };
+
+const primaryNavItems: NavItem[] = [
   { key: "home", label: "首页" },
   { key: "opinions", label: "美股热点风向标" },
   { key: "tracking", label: "股票机会跟踪榜单" },
   { key: "stocks", label: "股票库" },
-  { key: "calendar", label: "美股重点财经前瞻" },
+  { key: "calendar", label: "美股重点财经前瞻" }
+];
+
+const marketToolNavItems: NavItem[] = [
   { key: "market", label: "市场与资金" },
   { key: "risk", label: "市场温度计" },
-  { key: "strength", label: "全市场强弱" },
-  { key: "courses", label: "交易实战课程" },
+  { key: "strength", label: "全市场强弱" }
+];
+
+const secondaryNavItems: NavItem[] = [
   { key: "open", label: "Open 持仓参考" },
   { key: "forum", label: "论坛讨论区", status: "待开放", disabled: true }
 ];
@@ -80,7 +87,7 @@ const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
   { key: "funding", label: "资金费套利扫描" }
 ];
 
-const allPageNavItems = [...navItems, ...memberToolNavItems, ...toolDataPageNavItems];
+const allPageNavItems = [...primaryNavItems, ...marketToolNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems, { key: "courses" as const, label: "交易实战课程" }];
 const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
@@ -744,6 +751,10 @@ function App() {
   const [authMode, setAuthMode] = useState<AuthMode>(initialRoute.resetToken ? "reset" : "login");
   const [resetToken, setResetToken] = useState(initialRoute.resetToken);
   const [globalSearch, setGlobalSearch] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileNavCloseRef = useRef<HTMLButtonElement>(null);
 
   const refreshAuth = () => api.auth().then((payload) => {
     setAuth(payload);
@@ -859,13 +870,32 @@ function App() {
       setSelectedSymbol(route.symbol);
       setSelectedCourse(route.courseId);
       setSelectedSymbolSource("stocks");
+      setMobileNavOpen(false);
+      setMobileSearchOpen(false);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    window.requestAnimationFrame(() => mobileNavCloseRef.current?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+    document.body.classList.add("mobileNavLocked");
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.classList.remove("mobileNavLocked");
+      window.removeEventListener("keydown", onKeyDown);
+      window.requestAnimationFrame(() => mobileMenuButtonRef.current?.focus());
+    };
+  }, [mobileNavOpen]);
+
   const navigatePage = useCallback((nextPage: PageKey) => {
     if (!requireLogin()) return;
+    setMobileNavOpen(false);
+    setMobileSearchOpen(false);
     setPage(nextPage);
     setSelectedOpinion("");
     setSelectedSymbol("");
@@ -930,6 +960,8 @@ function App() {
     setSelectedSymbol(nextSymbol);
     setSelectedSymbolSource("search");
     setPage("stocks");
+    setMobileNavOpen(false);
+    setMobileSearchOpen(false);
     pushRouteState({ page: "stocks", symbol: nextSymbol });
   };
 
@@ -950,7 +982,7 @@ function App() {
   const gateGuestClick = useCallback((event: MouseEvent<HTMLElement>) => {
     if (auth?.authenticated) return;
     const target = event.target as HTMLElement | null;
-    if (!target || target.closest(".authOverlay, .accountButton")) return;
+    if (!target || target.closest(".authOverlay, .accountButton, .mobileNavigationControl")) return;
     const interactive = target.closest("button, a, input, select, textarea, tr, [role='button']");
     if (!interactive) return;
     event.preventDefault();
@@ -964,59 +996,87 @@ function App() {
       (pageNeedsCalendar(page) && !calendarLoaded) ||
       (pageNeedsSignals(page) && !signalsLoaded)
     );
+  const renderNavItems = (items: NavItem[]) => items.map((item) => (
+    <button
+      type="button"
+      key={item.key}
+      className={`${activeNavPage === item.key ? "active" : ""} ${item.disabled ? "disabled" : ""}`}
+      disabled={item.disabled}
+      onClick={() => navigatePage(item.key)}
+    >
+      <span>{item.label}</span>
+      {item.status ? <em>{item.status}</em> : null}
+    </button>
+  ));
 
   return (
     <main className="terminalShell" onClickCapture={gateGuestClick}>
-      <aside className="sideRail">
-        <a className="brand" href="/">
-          <img src="/assets/dongbimao-logo.png" alt="" width="38" height="38" />
-          <span>
-            <strong>懂币猫</strong>
-            <small>美股投研</small>
-          </span>
-        </a>
-        <nav>
-          {navItems.map((item) => (
-            <div key={item.key}>
-              <button
-                className={`${activeNavPage === item.key ? "active" : ""} ${item.disabled ? "disabled" : ""}`}
-                disabled={item.disabled}
-                onClick={() => navigatePage(item.key)}
-              >
-                <span>{item.label}</span>
-                {item.status ? <em>{item.status}</em> : null}
-              </button>
-            </div>
-          ))}
-        </nav>
+      <aside className={`sideRail ${mobileNavOpen ? "mobileOpen" : ""}`} aria-label="网站导航">
+        <div className="sideRailHeader">
+          <a className="brand" href="/" onClick={() => setMobileNavOpen(false)}>
+            <img src="/assets/dongbimao-logo.png" alt="" width="38" height="38" />
+            <span>
+              <strong>懂币猫</strong>
+              <small>美股投研</small>
+            </span>
+          </a>
+          <button ref={mobileNavCloseRef} type="button" className="mobileNavClose mobileNavigationControl" aria-label="关闭菜单" onClick={() => setMobileNavOpen(false)}>×</button>
+        </div>
+        <nav>{renderNavItems(primaryNavItems)}</nav>
+        <div className="navToolGroup">
+          <p className="navGroupTitle">工具数据</p>
+          {renderNavItems(marketToolNavItems)}
+        </div>
+        <div className="navToolGroup">
+          <p className="navGroupTitle">其他</p>
+          {renderNavItems(secondaryNavItems)}
+        </div>
         <div className="navToolGroup">
           <p className="navGroupTitle">会员工具</p>
-          {memberToolNavItems.map((item) => (
-            <button key={item.key} className={activeNavPage === item.key ? "active" : ""} onClick={() => navigatePage(item.key)}>
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {renderNavItems(memberToolNavItems)}
         </div>
         {auth?.entitlements?.admin ? (
           <div className="navToolGroup">
-            <p className="navGroupTitle">工具数据</p>
-              {toolDataPageNavItems.map((item) => (
-              <button key={item.key} className={activeNavPage === item.key ? "active" : ""} onClick={() => navigatePage(item.key)}>
-                <span>{item.label}</span>
-              </button>
-              ))}
+            <p className="navGroupTitle">管理员工具</p>
+              {renderNavItems(toolDataPageNavItems)}
               {adminToolDataNavItems.map((item) => (
-                <a key={item.href} href={item.href}>{item.label}</a>
+                <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)}>{item.label}</a>
               ))}
           </div>
         ) : null}
+        <div className="mobileDrawerAccount">
+          {auth?.authenticated && auth.user ? (
+            <>
+              <span><strong>{accountName(auth)}</strong><small>{planLabel(auth)}</small></span>
+              <button type="button" className="accountButton" onClick={() => { setMobileNavOpen(false); void api.logout().then(refreshAuth); }}>退出</button>
+            </>
+          ) : (
+            <button type="button" className="accountButton" onClick={() => { setMobileNavOpen(false); openAuth("login"); }}>登录 / 注册</button>
+          )}
+        </div>
         <div className="sideSlogan" aria-label="品牌标语">
           <strong>市场永远不缺机会，缺的是等到机会时还活着的本金。</strong>
           <span>The market never runs out of opportunities.</span>
         </div>
       </aside>
+      <button type="button" tabIndex={-1} className={`mobileNavBackdrop mobileNavigationControl ${mobileNavOpen ? "visible" : ""}`} aria-label="关闭菜单" onClick={() => setMobileNavOpen(false)} />
 
-      <section className="workspace">
+      <section className="workspace" inert={mobileNavOpen}>
+        <header className="mobileShellBar">
+          <a className="mobileShellBrand" href="/">
+            <img src="/assets/dongbimao-logo.png" alt="" width="34" height="34" />
+            <span><strong>懂币猫</strong><small>美股投研</small></span>
+          </a>
+          <div>
+            <button type="button" className="mobileShellButton mobileSearchButton mobileNavigationControl" aria-label={mobileSearchOpen ? "关闭搜索" : "搜索"} aria-expanded={mobileSearchOpen} onClick={() => setMobileSearchOpen((value) => !value)}><span /></button>
+            <button ref={mobileMenuButtonRef} type="button" className="mobileShellButton mobileMenuButton mobileNavigationControl" aria-label="打开菜单" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(true)}><span /></button>
+          </div>
+        </header>
+        {mobileSearchOpen ? (
+          <form className="mobileGlobalSearch" onSubmit={submitGlobalSearch}>
+            <input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="搜索股票代码" aria-label="搜索股票代码" autoFocus />
+          </form>
+        ) : null}
         <header className={`topbar ${page === "home" ? "homeTopbar" : ""} ${page === "calendar" ? "calendarTopbar" : ""}`}>
           {page !== "calendar" ? (
             <form className="globalSearch" onSubmit={submitGlobalSearch}>
@@ -2088,6 +2148,39 @@ function strengthBucket(row: StrengthRow): StrengthView | "other" {
   return "other";
 }
 
+function StrengthFilterFields({
+  query,
+  sector,
+  heat,
+  sort,
+  sectors,
+  className = "",
+  onQuery,
+  onSector,
+  onHeat,
+  onSort
+}: {
+  query: string;
+  sector: string;
+  heat: string;
+  sort: StrengthSort;
+  sectors: string[];
+  className?: string;
+  onQuery: (value: string) => void;
+  onSector: (value: string) => void;
+  onHeat: (value: string) => void;
+  onSort: (value: StrengthSort) => void;
+}) {
+  return (
+    <div className={`strengthFilters ${className}`.trim()}>
+      <label><span>股票</span><input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="输入股票代码或名称" /></label>
+      <label><span>板块</span><select value={sector} onChange={(event) => onSector(event.target.value)}><option value="all">全部板块</option>{sectors.map((item) => <option key={item} value={item}>{marketSectorName(item)}</option>)}</select></label>
+      <label><span>成交热度</span><select value={heat} onChange={(event) => onHeat(event.target.value)}><option value="all">全部热度</option><option value="normal">正常</option><option value="rising">升温</option><option value="hot">偏热</option></select></label>
+      <label><span>排序</span><select value={sort} onChange={(event) => onSort(event.target.value as StrengthSort)}><option value="score">按强度</option><option value="return20d">按近20日</option><option value="relative">按相对大盘</option><option value="crowding">按热度</option></select></label>
+    </div>
+  );
+}
+
 function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void }) {
   const [payload, setPayload] = useState<StrengthScannerPayload | null>(null);
   const [view, setView] = useState<StrengthView>("watch");
@@ -2098,6 +2191,10 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
   const [page, setPage] = useState(1);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [reload, setReload] = useState(0);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
+  const filterCloseRef = useRef<HTMLButtonElement>(null);
+  const filterSheetRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -2131,6 +2228,36 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
     return values[sort](b) - values[sort](a) || a.symbol.localeCompare(b.symbol);
   });
   useEffect(() => setPage(1), [view, query, sector, heat, sort]);
+  useEffect(() => {
+    if (!filterOpen) return;
+    window.requestAnimationFrame(() => filterCloseRef.current?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFilterOpen(false);
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(filterSheetRef.current?.querySelectorAll<HTMLElement>("button, input, select, [tabindex]:not([tabindex='-1'])") || []).filter((element) => !element.hasAttribute("disabled"));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    const onResize = () => {
+      if (window.innerWidth > 1100) setFilterOpen(false);
+    };
+    document.body.classList.add("strengthFilterLocked");
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.body.classList.remove("strengthFilterLocked");
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onResize);
+      window.requestAnimationFrame(() => filterTriggerRef.current?.focus());
+    };
+  }, [filterOpen]);
   const pageSize = 20;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -2139,6 +2266,13 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
   const maxTheme = Math.max(1, ...themes.map((item) => Math.abs(numericValue(item.vsMarket))));
   const firstByBucket = (bucket: StrengthView) => rows.filter((row) => strengthBucket(row) === bucket).sort((a, b) => (b.score || 0) - (a.score || 0))[0];
   const bucketCount = (bucket: StrengthView) => rows.filter((row) => strengthBucket(row) === bucket).length;
+  const activeFilterCount = Number(Boolean(query.trim())) + Number(sector !== "all") + Number(heat !== "all") + Number(sort !== "score");
+  const resetFilters = () => {
+    setQuery("");
+    setSector("all");
+    setHeat("all");
+    setSort("score");
+  };
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
@@ -2162,13 +2296,40 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
             </div></section>
           </div>
           <section className="marketToolPanel">
-            <div className="marketToolPanelHead strengthListHead"><div className="marketToolTabs">{([["watch", "值得观察"], ["hot", "强但偏热"], ["avoid", "风险回避"]] as const).map(([key, label]) => <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key)}>{label}<small>{bucketCount(key)}</small></button>)}</div><div className="strengthFilters"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票" /><select value={sector} onChange={(event) => setSector(event.target.value)}><option value="all">全部板块</option>{sectors.map((item) => <option key={item} value={item}>{marketSectorName(item)}</option>)}</select><select value={heat} onChange={(event) => setHeat(event.target.value)}><option value="all">全部热度</option><option value="normal">正常</option><option value="rising">升温</option><option value="hot">偏热</option></select><select value={sort} onChange={(event) => setSort(event.target.value as StrengthSort)}><option value="score">按强度</option><option value="return20d">按近20日</option><option value="relative">按相对大盘</option><option value="crowding">按热度</option></select></div></div>
+            <div className="marketToolPanelHead strengthListHead">
+              <div className="marketToolTabs">{([["watch", "值得观察"], ["hot", "强但偏热"], ["avoid", "风险回避"]] as const).map(([key, label]) => <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key)}>{label}<small>{bucketCount(key)}</small></button>)}</div>
+              <StrengthFilterFields query={query} sector={sector} heat={heat} sort={sort} sectors={sectors} className="strengthDesktopFilters" onQuery={setQuery} onSector={setSector} onHeat={setHeat} onSort={setSort} />
+              <div className="strengthMobileControls">
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票" aria-label="搜索股票" />
+                <button ref={filterTriggerRef} type="button" onClick={() => setFilterOpen(true)}>筛选{activeFilterCount ? <b>{activeFilterCount}</b> : null}</button>
+              </div>
+            </div>
             <div className="marketToolTable strengthTable"><table><thead><tr><th>强度</th><th>股票</th><th>板块</th><th>近20日</th><th>相对大盘</th><th>成交热度</th><th>状态</th><th>观察建议</th></tr></thead><tbody>
               {visibleRows.map((row) => <tr key={row.symbol} onClick={() => onOpenStock(row.symbol, "stocks")}><td><strong>{row.score ?? "--"}</strong></td><td><strong>{row.symbol}</strong><small>{row.name || ""}</small></td><td>{marketSectorName(row.sectorProxy || row.sector)}</td><td className={signedClass(row.periods?.["20d"])}>{row.periods?.["20d"] || "--"}</td><td className={signedClass(row.relative?.spy)}>{row.relative?.spy || "--"}</td><td>{ratioDisplay(row.crowding?.volumeRatio)}</td><td><b className={`toolStatus ${strengthBucket(row) === "avoid" ? "negative" : strengthBucket(row) === "hot" ? "neutral" : "positive"}`}>{row.label || "--"}</b></td><td>{row.action || "--"}</td></tr>)}
               {!filtered.length ? <tr><td colSpan={8}><div className="marketToolEmpty compact">当前筛选下没有标的</div></td></tr> : null}
             </tbody></table></div>
+            <div className="strengthMobileList">
+              {visibleRows.map((row) => (
+                <button type="button" className="strengthMobileRow" key={row.symbol} onClick={() => onOpenStock(row.symbol, "stocks")}>
+                  <strong className="strengthMobileScore">{row.score ?? "--"}</strong>
+                  <span className="strengthMobileIdentity"><strong>{row.symbol}</strong><small>{row.name || marketSectorName(row.sectorProxy || row.sector)}</small><b className={`toolStatus ${strengthBucket(row) === "avoid" ? "negative" : strengthBucket(row) === "hot" ? "neutral" : "positive"}`}>{row.label || "--"}</b></span>
+                  <span className="strengthMobileDatum"><small>近20日</small><strong className={signedClass(row.periods?.["20d"])}>{row.periods?.["20d"] || "--"}</strong></span>
+                  <span className="strengthMobileDatum"><small>相对大盘</small><strong className={signedClass(row.relative?.spy)}>{row.relative?.spy || "--"}</strong></span>
+                </button>
+              ))}
+              {!filtered.length ? <div className="marketToolEmpty compact">当前筛选下没有标的</div> : null}
+            </div>
             {filtered.length ? <footer className="strengthPagination"><span>共 {filtered.length} 只，每页 {pageSize} 只</span><div><button type="button" aria-label="上一页" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button><strong>{currentPage} / {pageCount}</strong><button type="button" aria-label="下一页" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>›</button></div></footer> : null}
           </section>
+          {filterOpen ? (
+            <div className="strengthFilterOverlay" role="presentation" onMouseDown={() => setFilterOpen(false)}>
+              <section ref={filterSheetRef} className="strengthFilterSheet" role="dialog" aria-modal="true" aria-label="筛选股票" onMouseDown={(event) => event.stopPropagation()}>
+                <header><strong>筛选股票</strong><button ref={filterCloseRef} type="button" aria-label="关闭筛选" onClick={() => setFilterOpen(false)}>×</button></header>
+                <StrengthFilterFields query={query} sector={sector} heat={heat} sort={sort} sectors={sectors} className="strengthSheetFilters" onQuery={setQuery} onSector={setSector} onHeat={setHeat} onSort={setSort} />
+                <footer><button type="button" className="strengthFilterReset" onClick={resetFilters}>重置</button><button type="button" className="strengthFilterApply" onClick={() => setFilterOpen(false)}>查看 {filtered.length} 只股票</button></footer>
+              </section>
+            </div>
+          ) : null}
         </>
       )}
     </div>
