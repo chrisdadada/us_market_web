@@ -552,5 +552,8 @@ export const api = {
     return request<FundingScannerPayload>(`/api/tools/funding-arbitrage?${params.toString()}`);
   },
   courses: () => request<{ series: CourseSeries[] }>("/api/courses"),
-  coursePlayUrl: (lessonId: number) => request<{ url: string; expiresIn: number }>(`/api/courses/lessons/${encodeURIComponent(lessonId)}/play`)
+  coursePlayUrl: (lessonId: number, signal?: AbortSignal) => request<{ url: string; expiresIn: number }>(
+    `/api/courses/lessons/${encodeURIComponent(lessonId)}/play`,
+    { signal }
+  )
 };

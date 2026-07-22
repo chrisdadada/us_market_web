@@ -7960,6 +7960,7 @@ body,
 }
 
 .courseVideoBox {
+  position: relative;
   height: 540px;
   display: grid;
   place-items: center;
@@ -7974,7 +7975,7 @@ body,
   object-fit: contain;
 }
 
-.courseVideoBox > button {
+.courseVideoPlayButton {
   width: 76px;
   height: 76px;
   display: grid;
@@ -7986,13 +7987,56 @@ body,
   cursor: pointer;
 }
 
-.courseVideoBox > button span {
+.courseVideoPlayButton span {
   width: 0;
   height: 0;
   margin-left: 6px;
   border-top: 14px solid transparent;
   border-bottom: 14px solid transparent;
   border-left: 21px solid #1677ff;
+}
+
+.courseVideoState {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: rgba(5,7,11,.72);
+  color: #dce5f0;
+  font-size: 13px;
+}
+
+.courseVideoState i {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(255,255,255,.28);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: courseVideoSpin .8s linear infinite;
+}
+
+.courseVideoState button,
+.courseVideoResume {
+  height: 32px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 6px;
+  background: rgba(15,23,42,.82);
+  color: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.courseVideoResume {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes courseVideoSpin {
+  to { transform: rotate(360deg); }
 }
 
 .courseLessonList button {

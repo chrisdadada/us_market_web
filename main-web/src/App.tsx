@@ -3489,8 +3489,15 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   const [loadVersion, setLoadVersion] = useState(0);
   const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(true);
-  const [playing, setPlaying] = useState(false);
+  const [playLoading, setPlayLoading] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [manualPlayRequired, setManualPlayRequired] = useState(false);
+  const [playError, setPlayError] = useState("");
   const [error, setError] = useState("");
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const playRequestRef = useRef(0);
+  const playAbortRef = useRef<AbortController | null>(null);
+  const pendingLessonRef = useRef<number | null>(null);
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const unlockedSeries = useMemo(() => series.filter((item) => item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
@@ -3519,25 +3526,103 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     };
   }, [loadVersion, viewerKey]);
 
-  async function playLesson(lessonId: number) {
-    setPlaying(true);
-    setError("");
+  const stopCurrentVideo = useCallback(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+    setVideoUrl("");
+    setIsVideoPlaying(false);
+    setManualPlayRequired(false);
+  }, []);
+
+  function handlePlayFailure(video: HTMLVideoElement, err: unknown) {
+    if (videoRef.current !== video) return;
+    if (err instanceof DOMException && err.name === "AbortError") return;
+    if (err instanceof DOMException && err.name === "NotAllowedError") {
+      setManualPlayRequired(true);
+      return;
+    }
+    setManualPlayRequired(false);
+    setPlayError("播放失败，请重试");
+  }
+
+  async function resumeCurrentVideo() {
+    const video = videoRef.current;
+    if (!video) return;
     try {
-      const payload = await api.coursePlayUrl(lessonId);
-      setActiveLessonId(lessonId);
+      await video.play();
+      if (videoRef.current !== video) return;
+      setManualPlayRequired(false);
+      setPlayError("");
+    } catch (err) {
+      handlePlayFailure(video, err);
+    }
+  }
+
+  async function playLesson(lessonId: number, forceRefresh = false) {
+    if (!forceRefresh && pendingLessonRef.current === lessonId) return;
+    if (!forceRefresh && activeLessonId === lessonId && videoUrl) {
+      await resumeCurrentVideo();
+      return;
+    }
+
+    const requestId = playRequestRef.current + 1;
+    playRequestRef.current = requestId;
+    playAbortRef.current?.abort();
+    const controller = new AbortController();
+    playAbortRef.current = controller;
+    pendingLessonRef.current = lessonId;
+
+    stopCurrentVideo();
+    setActiveLessonId(lessonId);
+    setPlayLoading(true);
+    setPlayError("");
+    try {
+      const payload = await api.coursePlayUrl(lessonId, controller.signal);
+      if (playRequestRef.current !== requestId) return;
       setVideoUrl(payload.url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "播放失败");
+      if (controller.signal.aborted || playRequestRef.current !== requestId) return;
+      setPlayError("播放失败，请重试");
     } finally {
-      setPlaying(false);
+      if (playRequestRef.current === requestId) {
+        playAbortRef.current = null;
+        pendingLessonRef.current = null;
+        setPlayLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    setVideoUrl("");
-    setError("");
+    playRequestRef.current += 1;
+    playAbortRef.current?.abort();
+    playAbortRef.current = null;
+    pendingLessonRef.current = null;
+    stopCurrentVideo();
+    setPlayLoading(false);
+    setPlayError("");
     setActiveLessonId(selected?.unlocked ? selected.lessons?.[0]?.id || null : null);
-  }, [selected?.id, selected?.unlocked, selected?.lessons]);
+  }, [selected?.id, selected?.unlocked, selected?.lessons, stopCurrentVideo]);
+
+  useEffect(() => {
+    if (!videoUrl || !videoRef.current) return;
+    const video = videoRef.current;
+    void video.play().catch((err) => handlePlayFailure(video, err));
+  }, [videoUrl]);
+
+  useEffect(() => () => {
+    playRequestRef.current += 1;
+    playAbortRef.current?.abort();
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+  }, []);
 
   if (loading) return <div className="coursesPage"><div className="loading" /></div>;
 
@@ -3568,9 +3653,37 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
               <article className="coursePlayer">
                 <div className="courseVideoBox">
                   {videoUrl ? (
-                    <video key={videoUrl} src={videoUrl} controls controlsList="nodownload" preload="metadata" playsInline />
+                    <>
+                      <video
+                        ref={videoRef}
+                        key={videoUrl}
+                        src={videoUrl}
+                        controls
+                        controlsList="nodownload"
+                        preload="metadata"
+                        playsInline
+                        onPlay={() => { setIsVideoPlaying(true); setManualPlayRequired(false); setPlayError(""); }}
+                        onPause={() => setIsVideoPlaying(false)}
+                        onEnded={() => setIsVideoPlaying(false)}
+                        onError={(event) => {
+                          if (!event.currentTarget.currentSrc) return;
+                          setIsVideoPlaying(false);
+                          setManualPlayRequired(false);
+                          setPlayError("播放失败，请重试");
+                        }}
+                      />
+                      {playError ? (
+                        <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
+                      ) : manualPlayRequired ? (
+                        <button type="button" className="courseVideoResume" onClick={resumeCurrentVideo}>继续播放</button>
+                      ) : null}
+                    </>
+                  ) : playLoading ? (
+                    <div className="courseVideoState"><i aria-hidden="true" /><span>正在加载</span></div>
+                  ) : playError ? (
+                    <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
                   ) : (
-                    <button type="button" disabled={!activeLesson || playing} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
+                    <button type="button" className="courseVideoPlayButton" disabled={!activeLesson} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
                       <span />
                     </button>
                   )}
@@ -3583,7 +3696,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                   <button key={lesson.id} type="button" className={activeLesson?.id === lesson.id ? "active" : ""} onClick={() => playLesson(lesson.id)}>
                     <b>{index + 1}</b>
                     <span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</span>
-                    <i>{activeLesson?.id === lesson.id && videoUrl ? "播放中" : "播放"}</i>
+                    <i>{activeLesson?.id === lesson.id && playLoading ? "加载中" : activeLesson?.id === lesson.id && isVideoPlaying ? "播放中" : "播放"}</i>
                   </button>
                 ))}
               </aside>
