@@ -172,6 +172,19 @@ def verify(before: Path, after: Path) -> None:
             raise RuntimeError(f"deployed product DB integrity check failed: {result}")
 
 
+def fingerprint(path: Path) -> str:
+    digest = hashlib.sha256()
+    with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+        result = conn.execute("PRAGMA integrity_check").fetchone()[0]
+        if result != "ok":
+            raise RuntimeError(f"product DB integrity check failed: {result}")
+        for statement in conn.iterdump():
+            payload = statement.encode("utf-8")
+            digest.update(len(payload).to_bytes(8, "big"))
+            digest.update(payload)
+    return digest.hexdigest()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -181,14 +194,23 @@ def main() -> None:
     verify_parser = subparsers.add_parser("verify")
     verify_parser.add_argument("--before", type=Path, required=True)
     verify_parser.add_argument("--after", type=Path, required=True)
+    fingerprint_parser = subparsers.add_parser("fingerprint")
+    fingerprint_parser.add_argument("--db", type=Path, required=True)
     args = parser.parse_args()
-    for path in (args.incoming, args.existing) if args.command == "merge" else (args.before, args.after):
+    paths = {
+        "merge": (args.incoming, args.existing),
+        "verify": (args.before, args.after),
+        "fingerprint": (args.db,),
+    }[args.command]
+    for path in paths:
         if not path.is_file():
             raise SystemExit(f"missing DB: {path}")
     if args.command == "merge":
         merge(args.incoming, args.existing)
-    else:
+    elif args.command == "verify":
         verify(args.before, args.after)
+    else:
+        print(fingerprint(args.db))
 
 
 if __name__ == "__main__":

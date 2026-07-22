@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.preserve_product_runtime_tables import merge, verify
+from scripts.preserve_product_runtime_tables import fingerprint, merge, verify
 
 
 class PreserveProductRuntimeTablesTest(unittest.TestCase):
@@ -63,6 +63,12 @@ class PreserveProductRuntimeTablesTest(unittest.TestCase):
             conn.execute("UPDATE open_portfolio_trades SET note = 'changed'")
         with self.assertRaisesRegex(RuntimeError, "content fingerprint changed"):
             verify(self.existing, self.incoming)
+
+    def test_fingerprint_changes_with_any_database_content(self) -> None:
+        before = fingerprint(self.existing)
+        with sqlite3.connect(self.existing) as conn:
+            conn.execute("UPDATE market_opinion_items SET body = 'changed'")
+        self.assertNotEqual(fingerprint(self.existing), before)
 
 
 if __name__ == "__main__":
