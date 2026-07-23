@@ -77,6 +77,18 @@ python3 scripts/report_course_media_usage.py \
 
 公开的 `/api/analytics/event` 仍只接受 `nav_click`，不能由前台伪造课程播放地址发放记录。
 
+## Dev HLS 试点
+
+2026-07-23 已在 dev 课程第 35 课启用离线 HLS 试点：
+
+- 原 MP4 保留在 `video_source_key`，当前播放入口指向 `lesson/hls/dev-pilot/lesson-35-offline-20260723/master.m3u8`。
+- 主清单包含 1080、720、480 三档，每档 230 个分片，时长均为 1149.9 秒。
+- 播放接口和 HLS 清单继续校验登录与课程权限；清单使用同源接口，媒体分片使用短期 COS 签名地址。
+- Safari 使用原生 HLS，其他支持 MSE 的浏览器按需加载 `hls.js`，不会让未进入播放页的用户下载播放器代码。
+- dev 验收已覆盖主清单、三档子清单及每档首段、中段、末段的 Range 读取；prod 数据和媒体地址未切换。
+
+回滚只需把 dev 第 35 课的 `video_key` 恢复为 `video_source_key`。未获得当次人工授权前，不得把该 HLS 地址或相关代码推广到 prod。
+
 ## Dev CDN 白名单
 
 后端支持把单个 dev 视频切到腾讯 CDN Type A 鉴权，默认关闭且不会改变现有播放链路：
