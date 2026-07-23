@@ -27,7 +27,7 @@ const profiles = {
   },
   free: {
     authenticated: true,
-    user: { id: 1, email: "free@example.test", role: "user", plan: "free", subscriptionExpiresAt: null },
+    user: { id: 1, email: "free@example.test", role: "user", plan: "free", subscriptionExpiresAt: null, onboardingSeenAt: "2026-07-01 12:00:00" },
     entitlements: { paid: false, pro: false, proPlus: false, admin: false, yearly: false },
   },
   monthly: {
@@ -257,7 +257,7 @@ const gates = {
 };
 
 const scenarios = [
-  { profile: "anonymous", page: "home", presentSelector: ".frontHomeTableLock" },
+  { profile: "anonymous", page: "home", presentSelector: ".frontHomeMemberBar" },
   { profile: "anonymous", page: "opinions", absent: Object.values(gates) },
   { profile: "anonymous", page: "tracking", presentSelector: ".lockedStockName" },
   { profile: "anonymous", page: "open", present: [gates.open] },
@@ -268,14 +268,14 @@ const scenarios = [
   { profile: "anonymous", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
   { profile: "free", page: "tracking", presentSelector: ".lockedStockName" },
-  { profile: "free", page: "home", presentSelector: ".frontHomeTableLock" },
+  { profile: "free", page: "home", presentSelector: ".frontHomeMemberBar" },
   { profile: "free", page: "open", present: [gates.open] },
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "free", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },
-  { profile: "monthly", page: "home", absentSelector: ".frontHomeTableLock" },
+  { profile: "monthly", page: "home", absentSelector: ".frontHomeMemberBar" },
   { profile: "monthly", page: "open", present: [gates.open] },
   { profile: "monthly", page: "market", absent: Object.values(gates) },
   { profile: "monthly", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
@@ -321,6 +321,23 @@ try {
           if (scenario.absentSelector) {
             assert(await page.locator(scenario.absentSelector).count() === 0, `${profileName}/${baseUrl}/${scenario.page} should hide ${scenario.absentSelector}`);
           }
+          if (scenario.page === "home" && !authProfile.entitlements.paid && !authProfile.entitlements.admin) {
+            assert(text.includes("完整榜单会员可见"), `${profileName}/${baseUrl}/home should explain the blurred preview`);
+            assert(await page.locator(".frontHomeMemberBar i").count() === 0, `${profileName}/${baseUrl}/home should not show a hand-drawn lock`);
+            const lockedPreview = page.locator(".frontHomeLockedTable .frontHomeDesktopTable");
+            assert((await lockedPreview.innerText()).includes("AAPL"), `${profileName}/${baseUrl}/home should retain real preview contours`);
+            const previewStyle = await lockedPreview.evaluate((element) => {
+              const style = getComputedStyle(element);
+              return { filter: style.filter, opacity: style.opacity };
+            });
+            assert(previewStyle.filter.includes("blur(3px)"), `${profileName}/${baseUrl}/home should use the approved light blur`);
+            assert(previewStyle.opacity === "0.7", `${profileName}/${baseUrl}/home should keep preview contours visible`);
+            if (profileName === "free" && baseUrl === server.rootUrl && process.env.MOBILE_QA_SCREENSHOT_PREFIX) {
+              const continueButton = page.getByRole("button", { name: "同意并继续" });
+              if (await continueButton.isVisible()) await continueButton.click();
+              await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-home-free.png`, fullPage: true });
+            }
+          }
           if (scenario.page === "tracking" && !authProfile.entitlements.paid && !authProfile.entitlements.admin) {
             assert(text.includes("会员可见"), `${profileName}/${baseUrl}/tracking should use the member preview label`);
             assert(await page.locator(".lockedStockName i").count() === 0, `${profileName}/${baseUrl}/tracking should not repeat lock icons`);
@@ -340,6 +357,25 @@ try {
         assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
       }
       if (profileName === "monthly") {
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=home`, { waitUntil: "networkidle" });
+        assert(await page.locator(".frontHomeDesktopTable").isVisible(), "desktop home should show the stock table");
+        assert(!(await page.locator(".frontHomeMobileList").isVisible()), "desktop home should hide the mobile stock list");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-home-desktop.png`, fullPage: true });
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(100);
+        assert(await page.locator(".frontHomeMobileList").isVisible(), "mobile home should show the compact stock list");
+        assert(!(await page.locator(".frontHomeDesktopTable").isVisible()), "mobile home should hide the desktop stock table");
+        assert(await page.locator(".frontHomeMobileRow").count() > 0, "mobile home should keep the stock rows");
+        const firstHomeMobileRow = page.locator(".frontHomeMobileRow").first();
+        const firstHomeMobileText = await firstHomeMobileRow.innerText();
+        for (const label of ["近1天", "近1周", "近1月", "成交额"]) {
+          assert(firstHomeMobileText.includes(label), `mobile home should keep ${label}`);
+        }
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile home should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-home-mobile.png`, fullPage: true });
+
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=tracking`, { waitUntil: "networkidle" });
         const keyLevelHelp = page.locator(".trackingKeyLevelsHead .infoTip");

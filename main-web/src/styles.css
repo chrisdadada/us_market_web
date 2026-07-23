@@ -4141,9 +4141,7 @@ body,
 
 .membershipGate span,
 .opinionInlineLock i,
-.readerLockPanel i,
-.frontInlineLock i,
-.frontMaskedValue i {
+.readerLockPanel i {
   position: relative;
   flex: 0 0 auto;
   width: 16px;
@@ -4152,9 +4150,7 @@ body,
 
 .membershipGate span::before,
 .opinionInlineLock i::before,
-.readerLockPanel i::before,
-.frontInlineLock i::before,
-.frontMaskedValue i::before {
+.readerLockPanel i::before {
   content: "";
   position: absolute;
   left: 4px;
@@ -4168,9 +4164,7 @@ body,
 
 .membershipGate span::after,
 .opinionInlineLock i::after,
-.readerLockPanel i::after,
-.frontInlineLock i::after,
-.frontMaskedValue i::after {
+.readerLockPanel i::after {
   content: "";
   position: absolute;
   left: 2px;
@@ -4207,8 +4201,7 @@ body,
   cursor: pointer;
 }
 
-.opinionLockedExcerpt p,
-.frontLeadPreview.locked p {
+.opinionLockedExcerpt p {
   filter: blur(4px);
   user-select: none;
 }
@@ -4489,7 +4482,8 @@ body,
 }
 
 .frontLeadPreview.locked p {
-  filter: blur(4px);
+  filter: blur(3px);
+  opacity: .7;
   user-select: none;
 }
 
@@ -7162,7 +7156,7 @@ body,
 .frontMiniPanel {
   border: 1px solid #dfe7f2;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
 }
 
@@ -7180,8 +7174,8 @@ body,
 .frontLeadPanel h1 {
   margin-top: 13px;
   max-width: 760px;
-  font-size: clamp(30px, 3vw, 42px);
-  line-height: 1.18;
+  font-size: 32px;
+  line-height: 1.24;
   font-weight: 560;
   color: #111827;
 }
@@ -7196,7 +7190,16 @@ body,
 }
 
 .frontLeadActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 18px;
+}
+
+.frontLeadActions > span {
+  color: #8390a2;
+  font-size: 12px;
+  font-weight: 560;
 }
 
 .frontLeadActions button,
@@ -7251,6 +7254,10 @@ body,
 
 .frontHomeStrengthPanel {
   overflow: hidden;
+}
+
+.frontHomeMobileList {
+  display: none;
 }
 
 .frontHomeTable th,
@@ -9709,71 +9716,180 @@ body,
 }
 
 .frontHomeLockedTable {
-  position: relative;
   overflow: hidden;
 }
 
-.frontHomeLockedTable table {
-  filter: blur(4px);
+.frontHomeLockedTable .frontHomeDesktopTable,
+.frontHomeLockedTable .frontHomeMobileList {
+  filter: blur(3px);
+  opacity: .7;
   pointer-events: none;
   user-select: none;
 }
 
-.frontHomeLockedTable::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,.52), rgba(255,255,255,.78));
-}
-
-.frontHomeTableLock {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 2;
-  display: inline-flex;
+.frontHomeMemberBar {
+  display: flex;
+  min-height: 48px;
   align-items: center;
-  gap: 8px;
-  height: 38px;
-  border: 1px solid #d2e3f4;
-  border-radius: 10px;
+  justify-content: center;
+  gap: 14px;
+  border-top: 1px solid #edf2f7;
+  background: #fbfcfe;
+}
+
+.frontHomeMemberBar span {
+  color: #8390a2;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.frontHomeMemberBar button {
+  height: 32px;
+  border: 1px solid #cfe0f5;
+  border-radius: 7px;
   background: #fff;
-  color: #1677d2;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 520;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .14);
+  color: #1677ff;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transform: translate(-50%, -50%);
 }
 
-.frontHomeTableLock i {
-  position: relative;
-  width: 16px;
-  height: 16px;
-}
+@media (max-width: 760px) {
+  .frontHomePage {
+    gap: 10px;
+    padding: 12px 12px 28px;
+  }
 
-.frontHomeTableLock i::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 7px;
-  height: 6px;
-  border: 1.5px solid #1677d2;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-}
+  .frontHomeBoard {
+    gap: 10px;
+  }
 
-.frontHomeTableLock i::after {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 7px;
-  width: 12px;
-  height: 9px;
-  border-radius: 3px;
-  background: #1677d2;
+  .frontLeadPanel {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .frontLeadPanel h1 {
+    margin-top: 8px;
+    font-size: 24px;
+    line-height: 1.28;
+  }
+
+  .frontLeadPreview p {
+    margin-top: 13px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .frontLeadActions {
+    margin-top: 12px;
+  }
+
+  .frontCalendarEvent:nth-of-type(n + 3) {
+    display: none;
+  }
+
+  .frontHomeDesktopTable {
+    display: none;
+  }
+
+  .frontHomeMobileList {
+    display: grid;
+  }
+
+  .frontHomeMobileRow {
+    display: grid;
+    gap: 9px;
+    min-height: 106px;
+    border: 0;
+    border-bottom: 1px solid #edf2f7;
+    background: #fff;
+    padding: 13px 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .frontHomeMobileRow:last-child {
+    border-bottom: 0;
+  }
+
+  .frontHomeMobileRow:disabled {
+    color: inherit;
+    cursor: default;
+  }
+
+  .frontHomeMobileStock,
+  .frontHomeMobileMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .frontHomeMobileStock > span,
+  .frontHomeMobileStock strong,
+  .frontHomeMobileStock small {
+    display: block;
+  }
+
+  .frontHomeMobileStock > span {
+    min-width: 0;
+  }
+
+  .frontHomeMobileStock strong {
+    color: #172033;
+    font-size: 14px;
+    font-weight: 620;
+  }
+
+  .frontHomeMobileStock small {
+    overflow: hidden;
+    max-width: 190px;
+    margin-top: 2px;
+    color: #718096;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .frontHomeMobileStock b {
+    flex: 0 0 auto;
+    color: #172033;
+    font-size: 14px;
+    font-weight: 620;
+  }
+
+  .frontHomeMobileMetrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .frontHomeMobileMetrics small,
+  .frontHomeMobileMetrics strong {
+    display: block;
+  }
+
+  .frontHomeMobileMetrics small,
+  .frontHomeMobileMeta > small {
+    color: #718096;
+    font-size: 10px;
+  }
+
+  .frontHomeMobileMetrics strong {
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 620;
+  }
+
+  .frontHomeMobileMeta .signalDirectionBadge {
+    height: 24px;
+    min-width: 0;
+    border-radius: 7px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
 }
 
 /* Final treemap: tile area follows fund size; color follows direction. */

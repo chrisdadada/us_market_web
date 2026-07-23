@@ -91,15 +91,6 @@ export function SignalDirectionBadge({ label }: { label?: string | null }) {
   return <span className={`signalDirectionBadge ${trackingDirectionClass(text)}`}>{text}</span>;
 }
 
-export function MaskedValue({ value }: { value?: string | number | null }) {
-  return (
-    <span className="frontMaskedValue" aria-label="会员内容">
-      <span>{isBlankValue(value) ? "--" : value}</span>
-      <i aria-hidden="true" />
-    </span>
-  );
-}
-
 export function LockedStockName(_: { symbol: string; name?: string }) {
   return (
     <span className="lockedStockName" aria-label="会员可见">
