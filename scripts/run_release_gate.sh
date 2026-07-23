@@ -7,6 +7,7 @@ python3 -m unittest \
   tests.test_open_portfolio \
   tests.test_course_media_audit \
   tests.test_media_delivery_audit \
+  tests.test_media_cost_report \
   tests.test_preserve_product_runtime_tables \
   tests.test_prod_code_deploy \
   -v

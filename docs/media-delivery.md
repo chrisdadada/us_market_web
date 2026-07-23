@@ -77,6 +77,25 @@ python3 scripts/report_course_media_usage.py \
 
 公开的 `/api/analytics/event` 仍只接受 `nav_click`，不能由前台伪造课程播放地址发放记录。
 
+## Dev 每日媒体成本证据
+
+`scripts/report_dev_media_costs.py` 把现有 dev 证据汇总为一份只读 JSON：
+
+- 最新课程媒体库存及原视频体积；
+- 当前 HLS 覆盖和原文件保留情况；
+- 所有闲时转码批次的成功、失败、待处理数量及历史估算费用；
+- 指定时段内的播放地址发放量。
+
+它不会把播放地址发放量冒充观看量或流量，也不会把价目估算冒充腾讯云账单。腾讯账单和实际出网流量尚未接入时，报告状态为 `partial`；自动化需要完整费用证据时加 `--require-external-costs`，此时返回状态码 `2`，避免把不完整数据当成完成。
+
+```bash
+python3 scripts/report_dev_media_costs.py \
+  --from 2026-07-22 \
+  --to 2026-07-24
+```
+
+脚本只允许读取 `/var/lib/ytd-gainers-dev/app.db`、dev 媒体报告目录和 dev HLS 批次目录，不读取 prod，不写数据库、COS 或腾讯云配置。
+
 ## Dev HLS 试点
 
 2026-07-23 已在 dev 课程第 35 课启用离线 HLS 试点：
