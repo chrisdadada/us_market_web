@@ -2401,7 +2401,11 @@ def signed_course_cos_url(key: str, *, method: str = "get", now: int | None = No
 
 
 def course_video_uses_cdn(key: str) -> bool:
-    return COURSE_CDN_ENABLED and key.strip().lstrip("/") in COURSE_CDN_VIDEO_KEYS
+    clean_key = key.strip().lstrip("/")
+    return COURSE_CDN_ENABLED and any(
+        clean_key == allowed_key or (allowed_key.endswith("/") and clean_key.startswith(allowed_key))
+        for allowed_key in COURSE_CDN_VIDEO_KEYS
+    )
 
 
 def validate_course_cdn_config() -> None:
@@ -2443,6 +2447,12 @@ def signed_course_video_url(video_key: str, now: int | None = None) -> str:
     if course_video_uses_cdn(raw):
         return signed_course_cdn_url(raw, now=now)
     return signed_course_cos_url(raw, method="get", now=now)
+
+
+def signed_course_hls_segment_url(video_key: str) -> str:
+    if course_video_uses_cdn(video_key) and COURSE_CDN_SIGN_TTL < COURSE_HLS_SIGN_TTL:
+        raise RuntimeError("HLS CDN 鉴权有效期不能短于 HLS 播放有效期")
+    return signed_course_video_url(video_key)
 
 
 def course_video_is_hls(video_key: str) -> bool:
@@ -2510,7 +2520,7 @@ def render_course_hls_playlist(lesson_id: int, master_key: str, requested_key: s
                 f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': target_key})}"
             )
         else:
-            output.append(signed_course_cos_url(target_key, method="get", ttl=COURSE_HLS_SIGN_TTL))
+            output.append(signed_course_hls_segment_url(target_key))
     return "\n".join(output) + "\n"
 
 

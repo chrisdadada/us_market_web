@@ -1651,6 +1651,15 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "密钥格式错误"):
             auth_api.signed_course_cdn_url("lesson/demo video.mp4")
 
+    def test_course_cdn_allowlist_accepts_hls_directory_prefix(self) -> None:
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/hls/dev-pilot/lesson-35/"}
+
+        self.assertTrue(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-35/master.m3u8"))
+        self.assertTrue(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-35/720/segment-1.ts"))
+        self.assertFalse(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-350/720/segment-1.ts"))
+        self.assertFalse(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-36/720/segment-1.ts"))
+
     def test_course_cdn_playback_keeps_course_access_boundary_and_rolls_back(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"
         auth_api.COURSE_COS_SECRET_KEY = "secret-key"
@@ -1769,6 +1778,35 @@ class AuthApiReleaseGateTest(unittest.TestCase):
 
         status, payload = self.client().get(f"/api/courses/lessons/{lesson_id}/hls")
         self.assertEqual(status, 401, payload)
+
+    def test_course_hls_playlist_can_sign_allowlisted_segments_with_cdn(self) -> None:
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_DOMAIN = "https://lesson-dev.dongbimao.org"
+        auth_api.COURSE_CDN_AUTH_KEY = "cdnsecret"
+        auth_api.COURSE_CDN_SIGN_TTL = auth_api.COURSE_HLS_SIGN_TTL
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/hls/pilot/"}
+        master_key = "lesson/hls/pilot/master.m3u8"
+
+        playlist = auth_api.render_course_hls_playlist(
+            35,
+            master_key,
+            "lesson/hls/pilot/720/index.m3u8",
+            "#EXTM3U\n#EXTINF:5,\nsegment-00001.ts\n#EXT-X-ENDLIST\n",
+        )
+
+        self.assertIn(
+            "https://lesson-dev.dongbimao.org/lesson/hls/pilot/720/segment-00001.ts?sign=",
+            playlist,
+        )
+
+        auth_api.COURSE_CDN_SIGN_TTL = auth_api.COURSE_HLS_SIGN_TTL - 1
+        with self.assertRaisesRegex(RuntimeError, "不能短于 HLS"):
+            auth_api.render_course_hls_playlist(
+                35,
+                master_key,
+                "lesson/hls/pilot/720/index.m3u8",
+                "#EXTM3U\n#EXTINF:5,\nsegment-00001.ts\n",
+            )
 
     def test_course_hls_playlist_rejects_escape_and_external_addresses(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"

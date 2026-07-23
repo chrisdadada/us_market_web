@@ -108,13 +108,20 @@ python3 scripts/report_course_media_usage.py \
 COURSE_CDN_ENABLED=1
 COURSE_CDN_DOMAIN=https://lesson-dev.dongbimao.org
 COURSE_CDN_AUTH_KEY=<独立的 CDN Type A 密钥>
-COURSE_CDN_SIGN_TTL_SECONDS=1800
-COURSE_CDN_VIDEO_KEYS=lesson/path/to/poc-video.mp4
+COURSE_CDN_SIGN_TTL_SECONDS=7200
+COURSE_CDN_VIDEO_KEYS=lesson/hls/dev-batch/20260723-batch-02/lesson-36/
 ```
 
-`COURSE_CDN_VIDEO_KEYS` 只接受精确对象 Key。未命中白名单的视频继续使用 COS 签名地址；上传、转码和课程封面不经过 CDN。关闭 `COURSE_CDN_ENABLED` 并重启 dev 服务即可回滚。
+`COURSE_CDN_VIDEO_KEYS` 接受精确对象 Key，也接受以 `/` 结尾的目录前缀。HLS 试验只配置单个课程目录，该目录中的媒体分片使用 CDN，播放清单仍由登录后的同源接口鉴权返回。未命中白名单的视频继续使用 COS 签名地址；上传、转码和课程封面不经过 CDN。关闭 `COURSE_CDN_ENABLED` 并重启 dev 服务即可回滚。
 
-腾讯 CDN 侧的 Type A 过期时间必须与 `COURSE_CDN_SIGN_TTL_SECONDS` 一致。私有 COS 必须同时开启 CDN 服务授权、回源鉴权和 CDN URL 鉴权。
+腾讯 CDN 侧的 Type A 过期时间必须与 `COURSE_CDN_SIGN_TTL_SECONDS` 一致。HLS 课程不得低于 7200 秒，避免长视频播放过程中分片地址失效。私有 COS 必须同时开启 CDN 服务授权、回源鉴权和 CDN URL 鉴权。
+
+2026-07-23 的 dev CDN 接入检查没有改变线上配置：
+
+- 腾讯 CDN 境内加速要求 `lesson-dev.dongbimao.org` 先完成备案，当前控制台因此不允许添加该域名。
+- 成都 COS 访问域名配置正确，但用户侧抽样分片首字节为 2.6 至 7.6 秒，完整下载为 4.6 至 9.4 秒，慢点位在 COS 传输链路，不在播放器界面。
+- COS 全球加速域名尚未启用，试读返回 HTTP 400；没有开通付费加速，也没有切换 DNS、dev 环境变量或媒体链接。
+- 在境内 CDN 域名可用前保持 CDN 关闭，不能为绕过备案改用可能拖慢中国用户播放的境外线路。
 
 ## 参考
 
