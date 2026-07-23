@@ -17,7 +17,7 @@ class DevHlsPilotTest(unittest.TestCase):
         root = ET.fromstring(
             pilot.build_hls_job_body(
                 "lesson/source.mp4",
-                "lesson/hls/pilot/720/index.m3u8",
+                "lesson/hls/pilot/720/index.hls.m3u8",
                 720,
                 650,
             )
@@ -34,9 +34,9 @@ class DevHlsPilotTest(unittest.TestCase):
     def test_master_playlist_contains_three_ordered_renditions(self) -> None:
         content = pilot.master_playlist(list(pilot.VARIANTS))
 
-        self.assertIn("RESOLUTION=1920x1080\n1080/index.m3u8", content)
-        self.assertIn("RESOLUTION=1280x720\n720/index.m3u8", content)
-        self.assertIn("RESOLUTION=854x480\n480/index.m3u8", content)
+        self.assertIn("RESOLUTION=1920x1080\n1080/index.hls.m3u8", content)
+        self.assertIn("RESOLUTION=1280x720\n720/index.hls.m3u8", content)
+        self.assertIn("RESOLUTION=854x480\n480/index.hls.m3u8", content)
 
 
 if __name__ == "__main__":

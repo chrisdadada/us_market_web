@@ -49,7 +49,7 @@ def build_hls_job_body(source_key: str, output_key: str, height: int, bitrate: i
             "Output": {
                 "Region": auth_api.COURSE_COS_REGION,
                 "Bucket": auth_api.COURSE_COS_BUCKET,
-                "Object": output_key.replace(".m3u8", ".${ext}"),
+                "Object": output_key.removesuffix(".hls.m3u8") + ".${ext}",
             },
             "UserData": "dongbimao-dev-hls-pilot",
             "FreeTranscode": "true",
@@ -74,9 +74,18 @@ def submit_variant(source_key: str, output_key: str, height: int, bitrate: int) 
 def wait_for_jobs(jobs: dict[str, str], timeout_seconds: int) -> None:
     deadline = time.monotonic() + timeout_seconds
     pending = dict(jobs)
+    query_failures = 0
     while pending:
         for name, job_id in list(pending.items()):
-            status = auth_api.course_transcode_job(job_id)
+            try:
+                status = auth_api.course_transcode_job(job_id)
+                query_failures = 0
+            except RuntimeError:
+                query_failures += 1
+                if query_failures >= 3:
+                    raise
+                time.sleep(10)
+                continue
             if status["state"] == "Success":
                 del pending[name]
             elif status["state"] == "Failed":
@@ -144,7 +153,7 @@ def master_playlist(variants: list[dict[str, int | str]]) -> str:
         bandwidth = (int(variant["bitrate"]) + 96) * 1000
         lines.extend([
             f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={width}x{height}",
-            f"{variant['name']}/index.m3u8",
+            f"{variant['name']}/index.hls.m3u8",
         ])
     return "\n".join(lines) + "\n"
 
@@ -178,6 +187,7 @@ def main() -> int:
     parser.add_argument("--lesson-id", type=int, required=True)
     parser.add_argument("--output-prefix", required=True)
     parser.add_argument("--activate", action="store_true")
+    parser.add_argument("--use-existing", action="store_true")
     parser.add_argument("--timeout-seconds", type=int, default=7200)
     args = parser.parse_args()
 
@@ -209,19 +219,23 @@ def main() -> int:
     if len(variants) < 2:
         raise RuntimeError("源视频不适合自适应码率试点")
 
-    jobs = {}
     output_keys = {}
     for variant in variants:
         name = str(variant["name"])
-        output_key = f"{prefix}/{name}/index.m3u8"
-        jobs[name] = submit_variant(
-            source_key,
-            output_key,
-            int(variant["height"]),
-            int(variant["bitrate"]),
-        )
+        output_key = f"{prefix}/{name}/index.hls.m3u8"
         output_keys[name] = output_key
-    wait_for_jobs(jobs, args.timeout_seconds)
+    if not args.use_existing:
+        jobs = {
+            str(variant["name"]): submit_variant(
+                source_key,
+                output_keys[str(variant["name"])],
+                int(variant["height"]),
+                int(variant["bitrate"]),
+            )
+            for variant in variants
+        }
+        print(json.dumps({"jobs": jobs}, ensure_ascii=False), flush=True)
+        wait_for_jobs(jobs, args.timeout_seconds)
 
     checks = {
         name: playlist_summary(output_keys[name], float(source["duration"] or 0))
