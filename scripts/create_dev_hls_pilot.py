@@ -18,9 +18,9 @@ import auth_api  # noqa: E402
 
 
 VARIANTS = (
-    {"name": "1080", "width": 1920, "height": 1080, "bitrate": 900},
-    {"name": "720", "width": 1280, "height": 720, "bitrate": 650},
-    {"name": "480", "width": 854, "height": 480, "bitrate": 350},
+    {"name": "1080", "maxWidth": 1920, "maxHeight": 1080, "bitrate": 900},
+    {"name": "720", "maxWidth": 1280, "maxHeight": 720, "bitrate": 650},
+    {"name": "480", "maxWidth": 854, "maxHeight": 480, "bitrate": 350},
 )
 
 
@@ -29,7 +29,43 @@ def require_dev_scope(db_path: Path) -> None:
         raise RuntimeError("仅允许在 dev COS 和 dev 数据库运行")
 
 
-def build_hls_job_body(source_key: str, output_key: str, height: int, bitrate: int) -> bytes:
+def fit_dimensions(source_width: int, source_height: int, max_width: int, max_height: int) -> tuple[int, int]:
+    scale = min(1.0, max_width / source_width, max_height / source_height)
+    width = max(2, int(source_width * scale) // 2 * 2)
+    height = max(2, int(source_height * scale) // 2 * 2)
+    return width, height
+
+
+def variant_specs(source_width: int, source_height: int, source_bitrate: float) -> list[dict[str, int | str]]:
+    if source_width <= 0 or source_height <= 0 or source_bitrate <= 0:
+        return []
+    variants = []
+    for item in VARIANTS:
+        bitrate = int(item["bitrate"])
+        if bitrate >= source_bitrate:
+            continue
+        width, height = fit_dimensions(
+            source_width,
+            source_height,
+            int(item["maxWidth"]),
+            int(item["maxHeight"]),
+        )
+        variants.append({
+            "name": str(item["name"]),
+            "width": width,
+            "height": height,
+            "bitrate": bitrate,
+        })
+    return variants
+
+
+def build_hls_job_body(
+    source_key: str,
+    output_key: str,
+    width: int,
+    height: int,
+    bitrate: int,
+) -> bytes:
     return auth_api.xml_request_body({
         "Tag": "Transcode",
         "Input": {"Object": source_key},
@@ -40,6 +76,7 @@ def build_hls_job_body(source_key: str, output_key: str, height: int, bitrate: i
                     "Codec": "H.264",
                     "Profile": "high",
                     "Bitrate": str(bitrate),
+                    "Width": str(width),
                     "Height": str(height),
                     "Fps": "30",
                     "Preset": "medium",
@@ -58,12 +95,18 @@ def build_hls_job_body(source_key: str, output_key: str, height: int, bitrate: i
     })
 
 
-def submit_variant(source_key: str, output_key: str, height: int, bitrate: int) -> str:
+def submit_variant(
+    source_key: str,
+    output_key: str,
+    width: int,
+    height: int,
+    bitrate: int,
+) -> str:
     root = auth_api.qcloud_xml_request(
         "POST",
         auth_api.course_ci_endpoint(),
         "/jobs",
-        body=build_hls_job_body(source_key, output_key, height, bitrate),
+        body=build_hls_job_body(source_key, output_key, width, height, bitrate),
     )
     job_id = auth_api.xml_value(root, "./JobsDetail/JobId")
     if not job_id:
@@ -187,11 +230,15 @@ def main() -> int:
     parser.add_argument("--lesson-id", type=int, required=True)
     parser.add_argument("--output-prefix", required=True)
     parser.add_argument("--activate", action="store_true")
-    parser.add_argument("--use-existing", action="store_true")
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--submit", action="store_true")
+    action.add_argument("--use-existing", action="store_true")
     parser.add_argument("--timeout-seconds", type=int, default=7200)
     args = parser.parse_args()
 
     require_dev_scope(args.db)
+    if args.activate and not (args.submit or args.use_existing):
+        raise RuntimeError("启用 HLS 前必须显式提交任务或验证已有产物")
     with sqlite3.connect(args.db) as conn:
         conn.row_factory = sqlite3.Row
         lesson = conn.execute("SELECT * FROM course_lessons WHERE id = ?", (args.lesson_id,)).fetchone()
@@ -208,14 +255,7 @@ def main() -> int:
         raise RuntimeError("源视频规格不可用")
 
     prefix = args.output_prefix.strip().strip("/")
-    variants = [
-        item for item in VARIANTS
-        if (
-            int(item["width"]) <= source_width
-            and int(item["height"]) <= source_height
-            and int(item["bitrate"]) < source_bitrate
-        )
-    ]
+    variants = variant_specs(source_width, source_height, source_bitrate)
     if len(variants) < 2:
         raise RuntimeError("源视频不适合自适应码率试点")
 
@@ -224,11 +264,24 @@ def main() -> int:
         name = str(variant["name"])
         output_key = f"{prefix}/{name}/index.hls.m3u8"
         output_keys[name] = output_key
-    if not args.use_existing:
+    if not (args.submit or args.use_existing):
+        print(json.dumps({
+            "mode": "dry-run",
+            "lessonId": args.lesson_id,
+            "sourceKey": source_key,
+            "sourceMinutes": round(float(source["duration"] or 0) / 60, 2),
+            "freeTranscode": True,
+            "estimatedOutputMinutes": round(float(source["duration"] or 0) * len(variants) / 60, 2),
+            "variants": variants,
+            "masterKey": f"{prefix}/master.m3u8",
+        }, ensure_ascii=False, indent=2))
+        return 0
+    if args.submit:
         jobs = {
             str(variant["name"]): submit_variant(
                 source_key,
                 output_keys[str(variant["name"])],
+                int(variant["width"]),
                 int(variant["height"]),
                 int(variant["bitrate"]),
             )

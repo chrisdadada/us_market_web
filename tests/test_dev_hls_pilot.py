@@ -18,6 +18,7 @@ class DevHlsPilotTest(unittest.TestCase):
             pilot.build_hls_job_body(
                 "lesson/source.mp4",
                 "lesson/hls/pilot/720/index.hls.m3u8",
+                1280,
                 720,
                 650,
             )
@@ -26,17 +27,27 @@ class DevHlsPilotTest(unittest.TestCase):
         self.assertEqual(root.findtext("Tag"), "Transcode")
         self.assertEqual(root.findtext("Operation/Transcode/Container/Format"), "hls")
         self.assertEqual(root.findtext("Operation/Transcode/Container/ClipConfig/Duration"), "5")
+        self.assertEqual(root.findtext("Operation/Transcode/Video/Width"), "1280")
         self.assertEqual(root.findtext("Operation/Transcode/Video/Height"), "720")
         self.assertEqual(root.findtext("Operation/Transcode/Video/Bitrate"), "650")
+        self.assertEqual(root.findtext("Operation/FreeTranscode"), "true")
         self.assertEqual(root.findtext("Operation/Output/Bucket"), "lesson-dev-1259765032")
         self.assertEqual(root.findtext("Operation/Output/Object"), "lesson/hls/pilot/720/index.${ext}")
 
     def test_master_playlist_contains_three_ordered_renditions(self) -> None:
-        content = pilot.master_playlist(list(pilot.VARIANTS))
+        content = pilot.master_playlist(pilot.variant_specs(1920, 1080, 1100))
 
         self.assertIn("RESOLUTION=1920x1080\n1080/index.hls.m3u8", content)
         self.assertIn("RESOLUTION=1280x720\n720/index.hls.m3u8", content)
-        self.assertIn("RESOLUTION=854x480\n480/index.hls.m3u8", content)
+        self.assertIn("RESOLUTION=852x480\n480/index.hls.m3u8", content)
+
+    def test_non_widescreen_source_keeps_aspect_ratio(self) -> None:
+        variants = pilot.variant_specs(1920, 708, 2500)
+
+        self.assertEqual(
+            [(item["width"], item["height"]) for item in variants],
+            [(1920, 708), (1280, 472), (854, 314)],
+        )
 
 
 if __name__ == "__main__":
