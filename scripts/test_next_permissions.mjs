@@ -353,6 +353,23 @@ try {
               await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-free.png`, fullPage: true });
             }
           }
+          if (scenario.page === "opinions" && profileName === "free" && baseUrl === server.rootUrl) {
+            const memberPreview = page.locator(".opinionMemberLabel").first();
+            await memberPreview.waitFor();
+            assert((await memberPreview.innerText()) === "会员可见", "opinion list should use a quiet member label");
+            assert(await page.locator(".opinionInlineLock").count() === 0, "opinion list should not show lock icons");
+            const excerpt = page.locator(".opinionLockedExcerpt p").first();
+            const excerptStyle = await excerpt.evaluate((element) => {
+              const style = getComputedStyle(element);
+              return { filter: style.filter, opacity: style.opacity };
+            });
+            assert(excerptStyle.filter.includes("blur(2.6px)"), "opinion list should keep a light real-content preview");
+            assert(excerptStyle.opacity === "0.76", "opinion list preview should remain visibly loaded");
+            await page.locator(".opinionProductFeed > button").first().click();
+            await page.waitForSelector(".readerMemberPreview");
+            assert(await page.locator(".readerMemberPreview i").count() === 0, "opinion detail should not show a lock icon");
+            assert((await page.locator(".readerMemberPreview").innerText()).includes("查看完整观点"), "opinion detail should keep one clear next action");
+          }
         }
       }
       const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
@@ -367,6 +384,17 @@ try {
         await page.goto(`${server.rootUrl}?page=home`, { waitUntil: "networkidle" });
         assert(await page.locator(".frontHomeDesktopTable").isVisible(), "desktop home should show the stock table");
         assert(!(await page.locator(".frontHomeMobileList").isVisible()), "desktop home should hide the mobile stock list");
+        const homeTableText = await page.locator(".frontHomeDesktopTable").innerText();
+        assert(homeTableText.includes("关键点位"), "desktop home should show the technical-analysis column");
+        assert(homeTableText.includes("$100.00") && homeTableText.includes("$110.00"), "desktop home should show support and resistance");
+        assert(await page.locator(".frontLeadMeta time").count() === 1, "home opinion should show its publish time");
+        assert(await page.locator(".frontPanelTitle time").count() >= 2, "home data panels should show real update times");
+        const leadTitleStyle = await page.locator(".frontLeadPanel h1").evaluate((element) => {
+          const style = getComputedStyle(element);
+          return { lineClamp: style.webkitLineClamp, fontSize: style.fontSize };
+        });
+        assert(leadTitleStyle.lineClamp === "2", "home opinion title should stay within two lines");
+        assert(Number.parseFloat(leadTitleStyle.fontSize) <= 30, "home opinion title should use the approved compact size");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-home-desktop.png`, fullPage: true });
 
         await page.setViewportSize({ width: 390, height: 844 });
@@ -376,7 +404,7 @@ try {
         assert(await page.locator(".frontHomeMobileRow").count() > 0, "mobile home should keep the stock rows");
         const firstHomeMobileRow = page.locator(".frontHomeMobileRow").first();
         const firstHomeMobileText = await firstHomeMobileRow.innerText();
-        for (const label of ["近1天", "近1周", "近1月", "成交额"]) {
+        for (const label of ["近1天", "近1周", "近1月", "成交额", "关键点位", "支撑", "阻力"]) {
           assert(firstHomeMobileText.includes(label), `mobile home should keep ${label}`);
         }
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile home should not overflow horizontally");
@@ -405,6 +433,16 @@ try {
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail-mobile.png`, fullPage: true });
 
         await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
+        await page.getByRole("button", { name: "热力图" }).click();
+        const firstHeatTile = page.locator(".marketSectorHeatmap button").first();
+        await firstHeatTile.hover();
+        const heatTooltip = page.locator(".marketHeatTooltip");
+        await heatTooltip.waitFor();
+        assert((await heatTooltip.innerText()).includes("均涨跌"), "market heatmap should show the average change immediately");
+        assert((await heatTooltip.innerText()).includes("资金方向"), "market heatmap should show the fund direction immediately");
+        assert(await page.locator(".marketSectorHeatmap button[title]").count() === 0, "market heatmap should not use delayed native tooltips");
+
         await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
         const strengthTabs = page.locator(".strengthListHead .marketToolTabs button");
         assert(await strengthTabs.count() === 4, "strength page should show three focused lists and all stocks");

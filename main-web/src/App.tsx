@@ -1440,11 +1440,17 @@ function HomePage({
       return dateCompare || aHigh - bHigh || String(a.time || "").localeCompare(String(b.time || ""));
     })
     .slice(0, 3);
+  const trackingUpdatedAt = bootstrap?.strength?.asOf || bootstrap?.meta?.generatedAt;
+  const sectorUpdatedAt = bootstrap?.sectorFlow?.asOf;
+  const stocksUpdatedAt = bootstrap?.movers?.updatedAt;
   return (
     <div className="frontHomePage">
       <section className="frontHomeBoard">
         <article className="frontLeadPanel">
-          <span>最新观点</span>
+          <div className="frontLeadMeta">
+            <span>最新观点</span>
+            {latest?.tradeDate ? <time>{formatOpinionTime(latest.tradeDate)}</time> : null}
+          </div>
           <h1>{latest?.title || "美股热点风向标"}</h1>
           <div className={opinionsLocked ? "frontLeadPreview locked" : "frontLeadPreview"}>
             <p>{latest?.summary || compactText(latest?.body, 110) || "--"}</p>
@@ -1473,7 +1479,10 @@ function HomePage({
 
       <section className="frontHomeStrengthPanel">
         <div className="frontPanelHead">
-          <strong>股票机会跟踪榜单</strong>
+          <div className="frontPanelTitle">
+            <strong>股票机会跟踪榜单</strong>
+            {trackingUpdatedAt ? <time>更新 {formatStoredDateTime(trackingUpdatedAt)}</time> : null}
+          </div>
           <button type="button" onClick={() => onPage("tracking")}>查看机会</button>
         </div>
         <div className={trackingLocked ? "frontHomeLockedTable" : ""}>
@@ -1488,6 +1497,7 @@ function HomePage({
                   <th>近1月</th>
                   <th>成交额</th>
                   <th>趋势策略方向</th>
+                  <th className="frontHomeKeyLevelsHead">关键点位</th>
                 </tr>
               </thead>
               <tbody>
@@ -1503,6 +1513,9 @@ function HomePage({
                     <td className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</td>
                     <td>{isBlankValue(row.liquidity) ? "--" : row.liquidity}</td>
                     <td><SignalDirectionBadge label={trackingDirection(row)} /></td>
+                    <td className="frontHomeKeyLevelsData">
+                      <TrackingKeyLevelsCell levels={row.keyLevels} locked={trackingLocked} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1527,6 +1540,18 @@ function HomePage({
                   <small>成交额 {isBlankValue(row.liquidity) ? "--" : row.liquidity}</small>
                   <SignalDirectionBadge label={trackingDirection(row)} />
                 </span>
+                {row.keyLevels?.status === "ready" && (row.keyLevels.support || row.keyLevels.resistance) ? (
+                  <span className="frontHomeMobileKeyLevels">
+                    <span>
+                      <strong>关键点位</strong>
+                      <small>{row.keyLevels.positionText || ""}{keyLevelDistance(row.keyLevels)}</small>
+                    </span>
+                    <span>
+                      {row.keyLevels.support ? <b>支撑 {priceDisplay(row.keyLevels.support.center)} <em className={keyLevelStrengthClass(row.keyLevels.support)}>{row.keyLevels.support.strengthText || "--"}</em></b> : null}
+                      {row.keyLevels.resistance ? <b>阻力 {priceDisplay(row.keyLevels.resistance.center)} <em className={keyLevelStrengthClass(row.keyLevels.resistance)}>{row.keyLevels.resistance.strengthText || "--"}</em></b> : null}
+                    </span>
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -1542,7 +1567,10 @@ function HomePage({
       <section className="frontHomeBottomGrid">
         <article className="frontMiniPanel">
           <div className="frontPanelHead">
-            <strong>热门股票板块</strong>
+            <div className="frontPanelTitle">
+              <strong>热门股票板块</strong>
+              {sectorUpdatedAt ? <time>更新 {formatStoredDateTime(sectorUpdatedAt)}</time> : null}
+            </div>
             <button type="button" onClick={() => onPage("market")}>查看资金</button>
           </div>
           <div className="frontSectorList">
@@ -1559,7 +1587,10 @@ function HomePage({
 
         <article className="frontMiniPanel">
           <div className="frontPanelHead">
-            <strong>股票库精选</strong>
+            <div className="frontPanelTitle">
+              <strong>股票库精选</strong>
+              {stocksUpdatedAt ? <time>更新 {formatStoredDateTime(stocksUpdatedAt)}</time> : null}
+            </div>
             <button type="button" onClick={() => onPage("stocks")}>打开股票库</button>
           </div>
           <div className="frontStockList">
@@ -1660,12 +1691,12 @@ function OpinionsPage({
                   <strong>{opinionDisplayTitle(item)}</strong>
                   <div className={locked ? "opinionLockedExcerpt opinionListPreview" : "opinionListPreview"}>
                     <p>{compactText(item.summary || item.body, 96)}</p>
-                    {locked ? <span className="opinionInlineLock" aria-label="会员内容"><i aria-hidden="true" /></span> : null}
                   </div>
                   <div className="opinionProductTags compact">
                     {[...(item.symbols || []), ...(item.topics || [])].slice(0, 5).map((tag) => <b key={tag}>{tag}</b>)}
                   </div>
                 </div>
+                {locked ? <span className="opinionMemberLabel">会员可见</span> : null}
               </button>
             )) : null}
             <div className="opinionPager">
@@ -1712,10 +1743,10 @@ function OpinionsPage({
                 </div>
               )}
               {locked ? (
-                <button type="button" className="readerLockPanel" onClick={() => authenticated ? onUnlock() : onAuth("register")}>
-                  <i aria-hidden="true" />
-                  <strong>开通查看完整内容</strong>
-                </button>
+                <div className="readerMemberPreview">
+                  <span>完整观点会员可见</span>
+                  <button type="button" onClick={() => authenticated ? onUnlock() : onAuth("register")}>查看完整观点</button>
+                </div>
               ) : null}
             </div>
             {(previousItem || nextItem) ? (
@@ -2609,6 +2640,15 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [activeSectorPayload, bootstrap, sectorPayload, sectorRange]);
   const [viewMode, setViewMode] = useState<"rank" | "map">("rank");
   const [selectedSector, setSelectedSector] = useState(sectors[0]?.sector || "");
+  const [heatTooltip, setHeatTooltip] = useState<{
+    sector: string;
+    change: string;
+    flow: string;
+    changeClass: string;
+    flowClass: string;
+    x: number;
+    y: number;
+  } | null>(null);
   useEffect(() => {
     let alive = true;
     setSectorPayload(null);
@@ -2639,6 +2679,19 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   const sectorDate = formatStoredDateTime(activeSectorPayload?.asOf || (sectorRange === "day" ? bootstrap?.movers?.updatedAt || bootstrap?.sectorFlow?.asOf : ""));
   const sectorChange = (sector?: typeof sectors[number]) => Number(sector?.avgChangePct ?? sector?.avgChange ?? 0);
   const sectorFlowTone = (sector?: typeof sectors[number]) => sectorChange(sector) >= 0 ? "up" : "down";
+  const showHeatTooltip = (target: HTMLButtonElement, sector: typeof sectors[number]) => {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    const rect = target.getBoundingClientRect();
+    setHeatTooltip({
+      sector: sector.sector,
+      change: signed(sectorChange(sector)),
+      flow: money(sector.netFlowProxy),
+      changeClass: signedClass(sectorChange(sector)),
+      flowClass: signedClass(sector.netFlowProxy),
+      x: Math.max(116, Math.min(window.innerWidth - 116, rect.left + rect.width / 2)),
+      y: Math.max(96, rect.top - 8)
+    });
+  };
   const heatTiles = useMemo(() => {
     const values = sectors.map((sector) => ({
       value: Math.max(1, Math.abs(Number(sector.netFlowProxy || 0)) || Number(sector.activeValue || 0))
@@ -2738,7 +2791,11 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
                       className={`${sectorFlowTone(sector)} ${tile.sizeClass} ${tile.contentClass} ${tile.strengthClass} ${sector.sector === selected?.sector ? "selected" : ""}`}
                       style={tile.style}
                       aria-label={`${sector.sector} ${signed(sectorChange(sector))} ${money(sector.netFlowProxy)}`}
-                      title={`${sector.sector} ${signed(sectorChange(sector))} ${money(sector.netFlowProxy)}`}
+                      aria-describedby={heatTooltip?.sector === sector.sector ? "market-heat-tooltip" : undefined}
+                      onMouseEnter={(event) => showHeatTooltip(event.currentTarget, sector)}
+                      onMouseLeave={() => setHeatTooltip(null)}
+                      onFocus={(event) => showHeatTooltip(event.currentTarget, sector)}
+                      onBlur={() => setHeatTooltip(null)}
                       onClick={() => setSelectedSector(sector.sector)}
                     >
                       {tile.contentClass !== "heatBlank" ? <strong>{sector.sector}</strong> : null}
@@ -2751,6 +2808,18 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
                 {!sectors.length ? <div className="marketEmpty">{sectorLoading ? "加载中" : "--"}</div> : null}
               </div>
             )}
+            {viewMode === "map" && heatTooltip ? (
+              <div
+                id="market-heat-tooltip"
+                className="marketHeatTooltip"
+                role="tooltip"
+                style={{ left: heatTooltip.x, top: heatTooltip.y }}
+              >
+                <strong>{heatTooltip.sector}</strong>
+                <span>均涨跌 <b className={heatTooltip.changeClass}>{heatTooltip.change}</b></span>
+                <span>资金方向 <b className={heatTooltip.flowClass}>{heatTooltip.flow}</b></span>
+              </div>
+            ) : null}
           </div>
           <aside className="marketFundsSide">
             {selected ? (
