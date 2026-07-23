@@ -31,7 +31,7 @@ def require_dev_scope(db_path: Path) -> None:
 
 def build_hls_job_body(source_key: str, output_key: str, height: int, bitrate: int) -> bytes:
     return auth_api.xml_request_body({
-        "Tag": "GeneratePlayList",
+        "Tag": "Transcode",
         "Input": {"Object": source_key},
         "Operation": {
             "Transcode": {
@@ -52,6 +52,7 @@ def build_hls_job_body(source_key: str, output_key: str, height: int, bitrate: i
                 "Object": output_key.replace(".m3u8", ".${ext}"),
             },
             "UserData": "dongbimao-dev-hls-pilot",
+            "FreeTranscode": "true",
             "JobLevel": "0",
         },
     })

@@ -23,7 +23,7 @@ class DevHlsPilotTest(unittest.TestCase):
             )
         )
 
-        self.assertEqual(root.findtext("Tag"), "GeneratePlayList")
+        self.assertEqual(root.findtext("Tag"), "Transcode")
         self.assertEqual(root.findtext("Operation/Transcode/Container/Format"), "hls")
         self.assertEqual(root.findtext("Operation/Transcode/Container/ClipConfig/Duration"), "5")
         self.assertEqual(root.findtext("Operation/Transcode/Video/Height"), "720")
