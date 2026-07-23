@@ -3301,6 +3301,8 @@ type PositionHistoryItem = {
   id: string;
   symbol: string;
   direction: PositionDirection;
+  accountSize: number;
+  riskPercent: number;
   shares: number;
   entryPrice: number;
   stopPrice: number;
@@ -3309,18 +3311,22 @@ type PositionHistoryItem = {
   createdAt: string;
 };
 
-const positionHistoryKey = "dongbimao_position_sizing_history_v1";
+const positionHistoryKey = "dongbimao_position_sizing_history_v2";
+const positionAccountKey = "dongbimao_position_sizing_account";
+const positionRiskKey = "dongbimao_position_sizing_risk";
 
 function PositionSizingPage() {
   const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<PositionDirection>("long");
-  const [accountSize, setAccountSize] = useState("100,000");
-  const [riskAmount, setRiskAmount] = useState("1,000");
+  const [accountSize, setAccountSize] = useState(() => window.localStorage.getItem(positionAccountKey) || "100,000");
+  const [riskPercent, setRiskPercent] = useState(() => window.localStorage.getItem(positionRiskKey) || "1");
   const [entryPrice, setEntryPrice] = useState("");
   const [stopPrice, setStopPrice] = useState("");
-  const [latestPrice, setLatestPrice] = useState("");
+  const [latestPrice, setLatestPrice] = useState<number | null>(null);
   const [priceStatus, setPriceStatus] = useState("");
   const [formError, setFormError] = useState("");
+  const [copyStatus, setCopyStatus] = useState("复制");
+  const [saveStatus, setSaveStatus] = useState("保存计划");
   const [history, setHistory] = useState<PositionHistoryItem[]>(() => {
     try {
       return JSON.parse(window.localStorage.getItem(positionHistoryKey) || "[]").slice(0, 5);
@@ -3329,41 +3335,55 @@ function PositionSizingPage() {
     }
   });
   const normalizedSymbol = symbol.trim().toUpperCase();
-  const hasCoreInput = accountSize.trim() && riskAmount.trim() && entryPrice.trim() && stopPrice.trim();
+  const accountNumber = inputMoneyNumber(accountSize);
+  const riskPercentNumber = inputMoneyNumber(riskPercent);
+  const riskAmount = accountNumber * riskPercentNumber / 100;
+  const hasCoreInput = accountSize.trim() && riskPercent.trim() && entryPrice.trim() && stopPrice.trim();
   const calculation = useMemo<{ result: PositionSizingResult | null; error: string }>(() => {
     if (!hasCoreInput) return { result: null, error: "" };
     try {
       return {
         result: calculatePositionSizing({
           direction,
-          accountSize: inputMoneyNumber(accountSize),
-          riskAmount: inputMoneyNumber(riskAmount),
+          accountSize: accountNumber,
+          riskAmount,
           entryPrice: inputMoneyNumber(entryPrice),
-          stopPrice: inputMoneyNumber(stopPrice),
-          latestPrice: latestPrice.trim() ? inputMoneyNumber(latestPrice) : null
+          stopPrice: inputMoneyNumber(stopPrice)
         }),
         error: ""
       };
     } catch (err) {
       return { result: null, error: err instanceof Error ? err.message : "请检查输入。" };
     }
-  }, [accountSize, direction, entryPrice, hasCoreInput, latestPrice, riskAmount, stopPrice]);
+  }, [accountNumber, direction, entryPrice, hasCoreInput, riskAmount, stopPrice]);
   const result = calculation.result;
 
   useEffect(() => {
+    setCopyStatus("复制");
+    setSaveStatus("保存计划");
+  }, [accountSize, direction, entryPrice, normalizedSymbol, riskPercent, stopPrice]);
+
+  useEffect(() => {
+    if (accountNumber > 0) window.localStorage.setItem(positionAccountKey, accountSize);
+    if (riskPercentNumber > 0) window.localStorage.setItem(positionRiskKey, riskPercent);
+  }, [accountNumber, accountSize, riskPercent, riskPercentNumber]);
+
+  useEffect(() => {
     if (!normalizedSymbol) {
+      setLatestPrice(null);
       setPriceStatus("");
       return;
     }
     let cancelled = false;
     const timer = window.setTimeout(() => {
+      setLatestPrice(null);
       setPriceStatus("读取中");
       api.symbolDetail(normalizedSymbol)
         .then((payload) => {
           if (cancelled) return;
           const price = moneyNumber(payload.profile?.price);
           if (price > 0) {
-            setLatestPrice(String(price));
+            setLatestPrice(price);
             setPriceStatus(`最新价 ${exactMoney(price)}`);
           } else {
             setPriceStatus("未找到最新价");
@@ -3380,19 +3400,12 @@ function PositionSizingPage() {
   }, [normalizedSymbol]);
 
   function applyRiskPreset(percent: number) {
-    const account = inputMoneyNumber(accountSize);
-    if (!Number.isFinite(account) || account <= 0) {
-      setFormError("请先填写账户资金。");
-      return;
-    }
     setFormError("");
-    setRiskAmount((account * percent / 100).toLocaleString("en-US", {
-      maximumFractionDigits: 2
-  }));
-}
+    setRiskPercent(String(percent));
+  }
 
-  function saveCalculation(event: FormEvent) {
-    event.preventDefault();
+  function saveCalculation(event?: FormEvent) {
+    event?.preventDefault();
     if (!result) {
       setFormError(calculation.error || "请先填写买入价和止损价。");
       return;
@@ -3401,6 +3414,8 @@ function PositionSizingPage() {
       id: String(Date.now()),
       symbol: normalizedSymbol || "--",
       direction,
+      accountSize: accountNumber,
+      riskPercent: riskPercentNumber,
       shares: result.shares,
       entryPrice: inputMoneyNumber(entryPrice),
       stopPrice: inputMoneyNumber(stopPrice),
@@ -3412,68 +3427,118 @@ function PositionSizingPage() {
     setHistory(next);
     window.localStorage.setItem(positionHistoryKey, JSON.stringify(next));
     setFormError("");
+    setSaveStatus("已保存");
+  }
+
+  function updateHistory(next: PositionHistoryItem[]) {
+    setHistory(next);
+    window.localStorage.setItem(positionHistoryKey, JSON.stringify(next));
+  }
+
+  function restoreCalculation(item: PositionHistoryItem) {
+    setSymbol(item.symbol === "--" ? "" : item.symbol);
+    setDirection(item.direction);
+    setAccountSize(item.accountSize.toLocaleString("en-US", { maximumFractionDigits: 2 }));
+    setRiskPercent(String(item.riskPercent));
+    setEntryPrice(String(item.entryPrice));
+    setStopPrice(String(item.stopPrice));
+    setFormError("");
+  }
+
+  function copyPlan() {
+    if (!result) return;
+    const plan = `${normalizedSymbol || "交易计划"} ${direction === "long" ? "做多" : "做空"} · 入场 ${exactMoney(inputMoneyNumber(entryPrice))} · 止损 ${exactMoney(inputMoneyNumber(stopPrice))} · ${result.shares.toLocaleString("en-US")} 股 · 最大亏损 ${exactMoney(result.actualRisk)}`;
+    if (!navigator.clipboard) {
+      setCopyStatus("复制失败");
+      return;
+    }
+    void navigator.clipboard.writeText(plan)
+      .then(() => setCopyStatus("已复制"))
+      .catch(() => setCopyStatus("复制失败"));
+  }
+
+  function clearTrade() {
+    setSymbol("");
+    setDirection("long");
+    setEntryPrice("");
+    setStopPrice("");
+    setLatestPrice(null);
+    setPriceStatus("");
+    setFormError("");
+    setCopyStatus("复制");
   }
 
   return (
-    <div className="positionSizingPage">
-      <section className="positionSizingHero">
+    <div className="positionSizingPage" data-testid="position-sizing-page">
+      <header className="positionSizingHead">
         <div>
-          <span>会员工具</span>
           <h1>以损定仓</h1>
           <p>先定能亏多少，再算该买多少。</p>
         </div>
-        <strong>{result ? `${result.shares.toLocaleString("en-US")} 股` : "--"}</strong>
-      </section>
+        <span>美股 · 整股 · 默认无杠杆</span>
+      </header>
 
       <section className="positionSizingGrid">
         <form className="positionSizingPanel positionSizingForm" onSubmit={saveCalculation}>
           <div className="panelHead">
-            <strong>输入</strong>
-            <span>{priceStatus}</span>
+            <strong>交易计划</strong>
+            <span>结果自动计算</span>
           </div>
-          <div className="positionFieldGrid">
-            <label>
-              <span>标的</span>
-              <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 NVDA" />
-            </label>
-            <label>
-              <span>账户资金</span>
-              <input inputMode="decimal" value={accountSize} onChange={(event) => setAccountSize(event.target.value)} placeholder="例如 100,000" />
-            </label>
-            <label>
-              <span>单笔最大亏损</span>
-              <input inputMode="decimal" value={riskAmount} onChange={(event) => setRiskAmount(event.target.value)} placeholder="例如 1,000" />
-            </label>
-            <label>
-              <span>最新价</span>
-              <input inputMode="decimal" value={latestPrice} onChange={(event) => setLatestPrice(event.target.value)} placeholder="可自动读取，也可手动填" />
-            </label>
-          </div>
+          <div className="positionFormBody">
+            <div className="positionFieldGrid">
+              <label>
+                <span>股票代码 <em>可选</em></span>
+                <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 NVDA" />
+                <small>
+                  {priceStatus}
+                  {latestPrice ? <button type="button" onClick={() => setEntryPrice(String(latestPrice))}>设为入场价</button> : null}
+                </small>
+              </label>
+              <label>
+                <span>交易方向</span>
+                <span className="positionSegment">
+                  <button type="button" className={`long ${direction === "long" ? "active" : ""}`} onClick={() => setDirection("long")}>做多</button>
+                  <button type="button" className={`short ${direction === "short" ? "active" : ""}`} onClick={() => setDirection("short")}>做空</button>
+                </span>
+              </label>
+            </div>
 
-          <div className="positionSegment">
-            <button type="button" className={`long ${direction === "long" ? "active" : ""}`} onClick={() => setDirection("long")}>做多</button>
-            <button type="button" className={`short ${direction === "short" ? "active" : ""}`} onClick={() => setDirection("short")}>做空</button>
-          </div>
+            <div className="positionFieldGrid">
+              <label>
+                <span>账户资金</span>
+                <span className="positionInput"><i>$</i><input data-testid="position-account" inputMode="decimal" value={accountSize} onChange={(event) => setAccountSize(event.target.value)} placeholder="例如 100,000" /></span>
+              </label>
+              <label>
+                <span>单笔风险</span>
+                <span className="positionRiskInput">
+                  <span className="positionInput"><input data-testid="position-risk" inputMode="decimal" value={riskPercent} onChange={(event) => setRiskPercent(event.target.value)} placeholder="1" /><i>%</i></span>
+                  <span className="positionPresetRow">
+                    {[0.5, 1, 2].map((percent) => (
+                      <button type="button" className={riskPercentNumber === percent ? "active" : ""} key={percent} onClick={() => applyRiskPreset(percent)}>{percent}%</button>
+                    ))}
+                  </span>
+                </span>
+              </label>
+            </div>
+            <p className="positionDerivedRisk">本次最多亏损 <strong>{accountNumber > 0 && riskPercentNumber > 0 ? exactMoney(riskAmount) : "--"}</strong></p>
 
-          <div className="positionFieldGrid two">
-            <label>
-              <span>{direction === "long" ? "买入价" : "卖出价"}</span>
-              <input inputMode="decimal" value={entryPrice} onChange={(event) => setEntryPrice(event.target.value)} placeholder="例如 100.00" />
-            </label>
-            <label>
-              <span>止损价</span>
-              <input inputMode="decimal" value={stopPrice} onChange={(event) => setStopPrice(event.target.value)} placeholder={direction === "long" ? "低于买入价" : "高于卖出价"} />
-            </label>
-          </div>
+            <div className="positionFieldGrid">
+              <label>
+                <span>{direction === "long" ? "计划买入价" : "计划卖出价"}</span>
+                <span className="positionInput"><i>$</i><input data-testid="position-entry" inputMode="decimal" value={entryPrice} onChange={(event) => setEntryPrice(event.target.value)} placeholder="例如 100.00" /></span>
+              </label>
+              <label>
+                <span>止损价</span>
+                <span className="positionInput"><i>$</i><input data-testid="position-stop" inputMode="decimal" value={stopPrice} onChange={(event) => setStopPrice(event.target.value)} placeholder={direction === "long" ? "低于买入价" : "高于卖出价"} /></span>
+              </label>
+            </div>
 
-          <div className="positionPresetRow">
-            {[0.5, 1, 2].map((percent) => (
-              <button type="button" key={percent} onClick={() => applyRiskPreset(percent)}>{percent}%</button>
-            ))}
+            {calculation.error || formError ? <p className="positionError">{formError || calculation.error}</p> : null}
+            <div className="positionFormFoot">
+              <span>止损应设在交易逻辑失效的位置，再由系统反推仓位。</span>
+              <button type="button" onClick={clearTrade}>清空</button>
+            </div>
           </div>
-
-          {calculation.error || formError ? <p className="positionError">{formError || calculation.error}</p> : null}
-          <button className="positionPrimaryButton" type="submit">保存本次计算</button>
         </form>
 
         <aside className="positionSizingPanel positionResultPanel">
@@ -3482,29 +3547,39 @@ function PositionSizingPage() {
             <span>{direction === "long" ? "做多" : "做空"}</span>
           </div>
           <div className="positionResultHero">
-            <span>建议股数</span>
-            <strong>{result ? result.shares.toLocaleString("en-US") : "--"}</strong>
-            <em>{result ? `实际风险 ${exactMoney(result.actualRisk)}` : "填入价格后计算"}</em>
+            <span>{direction === "long" ? "建议买入" : "建议卖出"}</span>
+            <strong data-testid="position-result-shares">{result ? result.shares.toLocaleString("en-US") : "--"} <i>股</i></strong>
+            <em>{result ? <>预计占用资金 <b>{exactMoney(result.positionAmount)}</b></> : "填入账户、风险和价格后自动计算"}</em>
           </div>
-          <div className="positionMetricGrid">
-            <div><span>仓位金额</span><strong>{exactMoney(result?.positionAmount)}</strong></div>
-            <div><span>账户风险</span><strong>{exactPercent(result?.riskPct)}</strong></div>
-            <div><span>单股风险</span><strong>{exactMoney(result?.perShareRisk)}</strong></div>
-            <div><span>止损距离</span><strong>{exactPercent(result?.stopDistancePct)}</strong></div>
-            <div><span>盈亏平衡</span><strong>{exactMoney(result?.breakevenPrice)}</strong></div>
-            <div><span>1R / 2R</span><strong>{result ? `${exactMoney(result.oneRPrice)} / ${exactMoney(result.twoRPrice)}` : "--"}</strong></div>
+          {result && (result.cashLimited || riskPercentNumber > 2 || result.stopDistancePct < 0.5) ? (
+            <div className="positionWarnings" data-testid="position-warnings">
+              {result.cashLimited ? <p>风险公式得出 {result.riskBasedShares.toLocaleString("en-US")} 股，已按账户资金下调。</p> : null}
+              {riskPercentNumber > 2 ? <p>单笔风险超过账户资金的 2%，请确认风险预算。</p> : null}
+              {result.stopDistancePct < 0.5 ? <p>止损距离较小，请确认止损位置不是误填。</p> : null}
+            </div>
+          ) : null}
+          <div className="positionMetricList">
+            <div><span>仓位占比</span><strong>{exactPercent(result?.positionPct)}</strong></div>
+            <div><span>止损最大亏损</span><strong className="negative">{result ? `-${exactMoney(result.actualRisk)}` : "--"}</strong></div>
+            <div><span>实际账户风险</span><strong>{exactPercent(result?.riskPct)}</strong></div>
+            <div><span>每股风险 / 止损距离</span><strong>{result ? `${exactMoney(result.perShareRisk)} / ${exactPercent(result.stopDistancePct)}` : "--"}</strong></div>
+            <div><span>1R / 2R 参考价</span><strong className="positive">{result ? `${exactMoney(result.oneRPrice)} / ${exactMoney(result.twoRPrice)}` : "--"}</strong></div>
           </div>
-          <div className="positionLivePnl">
-            <span>按最新价</span>
-            <strong className={signedClass(result?.latestPnl ?? undefined)}>{signedExactMoney(result?.latestPnl)}</strong>
+          <p className="positionPlanSummary">
+            {result ? `${normalizedSymbol || "交易计划"} ${direction === "long" ? "做多" : "做空"} · 入场 ${exactMoney(inputMoneyNumber(entryPrice))} · 止损 ${exactMoney(inputMoneyNumber(stopPrice))} · ${result.shares.toLocaleString("en-US")} 股 · 最大亏损 ${exactMoney(result.actualRisk)}` : "--"}
+          </p>
+          <div className="positionResultActions">
+            <button className="positionPrimaryButton" data-testid="position-save" type="button" disabled={!result} onClick={() => saveCalculation()}>{saveStatus}</button>
+            <button type="button" disabled={!result} onClick={copyPlan}>{copyStatus}</button>
           </div>
+          <p className="positionDisclaimer">按止损价成交测算；跳空、滑点和费用可能使实际亏损高于计划值。做空未计算券商保证金和借券限制。</p>
         </aside>
       </section>
 
       <section className="positionSizingPanel positionHistoryPanel">
         <div className="panelHead">
           <strong>最近计算</strong>
-          <span>{history.length ? `${history.length} 条` : ""}</span>
+          {history.length ? <button type="button" onClick={() => updateHistory([])}>全部清空</button> : <span />}
         </div>
         <div className="positionHistoryTable">
           <table>
@@ -3517,25 +3592,28 @@ function PositionSizingPage() {
                 <th>价格</th>
                 <th>风险</th>
                 <th>仓位</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {history.map((item) => (
                 <tr key={item.id}>
                   <td>{item.createdAt}</td>
-                  <td><strong>{item.symbol}</strong></td>
+                  <td><button className="positionHistorySymbol" type="button" onClick={() => restoreCalculation(item)}>{item.symbol}</button></td>
                   <td>{item.direction === "long" ? "做多" : "做空"}</td>
                   <td>{item.shares.toLocaleString("en-US")}</td>
                   <td>{exactMoney(item.entryPrice)} / {exactMoney(item.stopPrice)}</td>
                   <td>{exactMoney(item.actualRisk)}</td>
                   <td>{exactMoney(item.positionAmount)}</td>
+                  <td><button className="positionHistoryDelete" type="button" onClick={() => updateHistory(history.filter((row) => row.id !== item.id))}>删除</button></td>
                 </tr>
               ))}
-              {!history.length ? <tr><td colSpan={7}>--</td></tr> : null}
+              {!history.length ? <tr><td className="positionHistoryEmpty" colSpan={8}>暂无最近计算</td></tr> : null}
             </tbody>
           </table>
         </div>
       </section>
+      {result ? <div className="positionMobileResult"><span>建议 {result.shares.toLocaleString("en-US")} 股</span><strong>{exactMoney(result.positionAmount)}</strong></div> : null}
     </div>
   );
 }

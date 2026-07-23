@@ -265,6 +265,7 @@ const scenarios = [
   { profile: "anonymous", page: "market", present: [gates.open] },
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
   { profile: "anonymous", page: "risk", present: ["注册后查看"] },
+  { profile: "anonymous", page: "position", present: [gates.open] },
   { profile: "anonymous", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
   { profile: "free", page: "tracking", presentSelector: ".lockedStockName" },
@@ -272,6 +273,7 @@ const scenarios = [
   { profile: "free", page: "open", present: [gates.open] },
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
+  { profile: "free", page: "position", present: [gates.open] },
   { profile: "free", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },
@@ -280,14 +282,17 @@ const scenarios = [
   { profile: "monthly", page: "market", absent: Object.values(gates) },
   { profile: "monthly", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "monthly", page: "strength", presentSelector: "[data-testid='market-strength-page']", absent: Object.values(gates) },
+  { profile: "monthly", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
   { profile: "yearly", page: "opinions", absent: Object.values(gates) },
   { profile: "yearly", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "yearly", page: "open", absent: [gates.open] },
   { profile: "yearly", page: "market", absent: Object.values(gates) },
+  { profile: "yearly", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
   { profile: "admin", page: "opinions", absent: Object.values(gates) },
   { profile: "admin", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "admin", page: "open", absent: [gates.open] },
   { profile: "admin", page: "market", absent: Object.values(gates) },
+  { profile: "admin", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
 ];
 
 const browser = await launchBrowser();
@@ -411,8 +416,33 @@ try {
         ]);
         await page.waitForFunction(() => document.querySelector(".strengthTable")?.getAttribute("aria-busy") === "false");
         assert((await page.locator(".strengthPagination").innerText()).includes("共"), "all-stocks view should show server-side pagination");
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=position`, { waitUntil: "networkidle" });
+        await page.getByTestId("position-account").fill("10000");
+        await page.getByTestId("position-risk").fill("1");
+        assert((await page.locator(".positionDerivedRisk").innerText()).includes("$100.00"), "risk amount should derive from account size and risk percent");
+        await page.getByTestId("position-account").fill("20000");
+        assert((await page.locator(".positionDerivedRisk").innerText()).includes("$200.00"), "risk amount should update when account size changes");
+        await page.getByTestId("position-account").fill("10000");
+        await page.getByTestId("position-entry").fill("100");
+        await page.getByTestId("position-stop").fill("99.5");
+        assert((await page.getByTestId("position-result-shares").innerText()).includes("100"), "cash cap should lower the suggested shares to 100");
+        assert((await page.getByTestId("position-warnings").innerText()).includes("已按账户资金下调"), "cash cap should explain why the result was lowered");
+        await page.getByTestId("position-save").click();
+        assert(await page.locator(".positionHistoryTable tbody tr").count() === 1, "saving a valid plan should add one history row");
+        await page.locator(".positionHistoryDelete").click();
+        assert((await page.locator(".positionHistoryEmpty").innerText()).includes("暂无最近计算"), "deleting a history row should restore the empty state");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop position page should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-position-desktop.png`, fullPage: true });
 
         await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto(`${server.rootUrl}?page=position`, { waitUntil: "networkidle" });
+        await page.getByTestId("position-entry").fill("100");
+        await page.getByTestId("position-stop").fill("95");
+        assert(await page.locator(".positionMobileResult").isVisible(), "mobile position result should stay visible");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile position page should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-position-mobile.png`, fullPage: true });
+
         await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
         await page.waitForSelector("[data-testid='market-strength-page']");
         assert(await page.locator(".mobileShellBar").isVisible(), "mobile shell bar should be visible");
