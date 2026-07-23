@@ -8112,7 +8112,9 @@ body,
 }
 
 .positionSizingPage {
-  padding: 8px 32px 42px;
+  min-height: 100%;
+  background: #f4f7fb;
+  padding: 24px 30px 42px;
 }
 
 .fundingScannerPage {
@@ -8433,128 +8435,197 @@ body,
   padding: 0 10px;
 }
 
-.positionSizingHero {
-  min-height: 132px;
+.positionSizingHead {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 18px;
-  border: 1px solid #dfe7f2;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
-  padding: 26px 28px;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
-.positionSizingHero span {
-  color: #6f7f95;
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.positionSizingHero h1 {
-  margin: 8px 0 8px;
-  color: #172033;
-  font-size: 30px;
-  line-height: 1.1;
-}
-
-.positionSizingHero p {
+.positionSizingHead h1 {
   margin: 0;
-  color: #607086;
-  font-size: 15px;
-  font-weight: 520;
+  color: #172033;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.2;
 }
 
-.positionSizingHero > strong {
-  min-width: 160px;
-  color: #0f9f72;
-  font-size: 30px;
-  text-align: right;
+.positionSizingHead p {
+  margin: 6px 0 0;
+  color: #718096;
+  font-size: 13px;
+}
+
+.positionSizingHead > span {
+  color: #8290a4;
+  font-size: 12px;
 }
 
 .positionSizingGrid {
   display: grid;
-  grid-template-columns: minmax(420px, 1.05fr) minmax(360px, .95fr);
-  gap: 18px;
-  margin-top: 18px;
+  grid-template-columns: minmax(460px, 1.14fr) minmax(360px, .86fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .positionSizingPanel {
   border: 1px solid #dfe7f2;
   border-radius: 8px;
   background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+  overflow: hidden;
 }
 
 .positionSizingForm {
-  padding: 0 18px 18px;
+  padding: 0;
 }
 
 .positionSizingPanel .panelHead {
-  padding: 0;
+  min-height: 54px;
+  border-bottom: 1px solid #e9eef4;
+  padding: 0 20px;
+}
+
+.positionSizingPanel .panelHead strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.positionSizingPanel .panelHead span,
+.positionSizingPanel .panelHead button {
+  color: #8290a4;
+  font-size: 12px;
+}
+
+.positionSizingPanel .panelHead button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.positionFormBody {
+  padding: 20px;
 }
 
 .positionFieldGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  margin-top: 16px;
-}
-
-.positionFieldGrid.two {
-  margin-top: 14px;
+  margin-bottom: 16px;
 }
 
 .positionFieldGrid label {
   display: grid;
   gap: 7px;
+  min-width: 0;
 }
 
-.positionFieldGrid span {
+.positionFieldGrid label > span:first-child {
   color: #65758c;
-  font-size: 13px;
-  font-weight: 620;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.positionFieldGrid input {
+.positionFieldGrid label > span em {
+  float: right;
+  color: #9aa5b5;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.positionFieldGrid label > input,
+.positionInput {
   width: 100%;
-  height: 44px;
+  height: 42px;
   border: 1px solid #d8e2ef;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
+}
+
+.positionFieldGrid label > input {
   color: #172033;
   padding: 0 12px;
-  font-size: 15px;
-  font-weight: 560;
+  font-size: 14px;
 }
 
 .positionFieldGrid input::placeholder {
   color: #a1acba;
-  font-weight: 520;
 }
 
-.positionSegment,
-.positionPresetRow {
+.positionFieldGrid input:focus,
+.positionInput:focus-within {
+  border-color: #5aa0ff;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, .09);
+  outline: 0;
+}
+
+.positionFieldGrid small {
+  min-height: 16px;
   display: flex;
-  gap: 8px;
-  margin-top: 16px;
+  align-items: center;
+  justify-content: space-between;
+  color: #8290a4;
+  font-size: 11px;
 }
 
-.positionSegment button,
-.positionPresetRow button {
-  height: 38px;
-  border: 1px solid #d8e2ef;
-  border-radius: 8px;
-  background: #fff;
-  color: #526176;
-  padding: 0 15px;
-  font-weight: 620;
+.positionFieldGrid small button {
+  border: 0;
+  background: transparent;
+  color: #1677ff;
+  padding: 0;
   cursor: pointer;
 }
 
-.positionSegment button {
+.positionInput {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.positionInput input {
+  min-width: 0;
   flex: 1;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  color: #172033;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.positionInput i {
+  color: #7b889b;
+  padding-left: 12px;
+  font-style: normal;
+}
+
+.positionInput input + i {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid #edf1f5;
+  background: #f8fafc;
+  padding: 0 12px;
+}
+
+.positionSegment {
+  height: 42px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #f8fafc;
+  padding: 3px;
+}
+
+.positionSegment button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #526176;
+  cursor: pointer;
 }
 
 .positionSegment button.long {
@@ -8566,135 +8637,228 @@ body,
 }
 
 .positionSegment button.long.active {
-  border-color: #0fb981;
   background: #eefbf6;
   color: #078257;
+  box-shadow: inset 0 0 0 1px #7fd3b2;
+  font-weight: 600;
 }
 
 .positionSegment button.short.active {
-  border-color: #f05252;
   background: #fff1f1;
   color: #cc3333;
+  box-shadow: inset 0 0 0 1px #ef9b9b;
+  font-weight: 600;
 }
 
-.positionSegment button.long:focus-visible {
-  outline-color: rgba(15, 185, 129, .55);
+.positionRiskInput {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 132px;
+  gap: 8px;
 }
 
-.positionSegment button.short:focus-visible {
-  outline-color: rgba(240, 82, 82, .55);
+.positionPresetRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
 }
 
-.positionPresetRow button:hover {
-  border-color: #9cc8ff;
+.positionPresetRow button {
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #65758c;
+  cursor: pointer;
+}
+
+.positionPresetRow button.active {
+  border-color: #72aefb;
+  background: #eef6ff;
   color: #1264c8;
+  font-weight: 600;
+}
+
+.positionDerivedRisk {
+  margin: -8px 0 18px;
+  color: #718096;
+  font-size: 12px;
+}
+
+.positionDerivedRisk strong {
+  color: #263247;
+  font-weight: 600;
 }
 
 .positionError {
-  min-height: 36px;
   border: 1px solid #ffd4d4;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff6f6;
   color: #d33c3c;
-  margin: 14px 0 0;
+  margin: 0 0 14px;
   padding: 9px 12px;
-  font-size: 13px;
-  font-weight: 560;
+  font-size: 12px;
 }
 
-.positionPrimaryButton {
-  width: 100%;
-  height: 44px;
+.positionFormFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #edf1f5;
+  color: #8290a4;
+  padding-top: 16px;
+  font-size: 11px;
+}
+
+.positionFormFoot button {
   border: 0;
-  border-radius: 8px;
-  background: #1677ff;
-  color: #fff;
-  margin-top: 16px;
-  font-weight: 900;
+  background: transparent;
+  color: #718096;
   cursor: pointer;
 }
 
 .positionResultPanel {
-  padding: 0 18px 18px;
+  padding-bottom: 18px;
 }
 
 .positionResultHero {
-  min-height: 116px;
-  display: grid;
-  align-content: center;
-  gap: 6px;
-  border: 1px solid #dcefe7;
-  border-radius: 8px;
-  background: #f3fbf7;
-  margin-top: 16px;
-  padding: 18px;
+  padding: 22px 20px 18px;
 }
 
-.positionResultHero span,
-.positionLivePnl span {
+.positionResultHero > span {
   color: #62728a;
-  font-size: 13px;
-  font-weight: 620;
+  font-size: 12px;
 }
 
 .positionResultHero strong {
-  color: #0f9f72;
-  font-size: 36px;
+  display: block;
+  color: #172033;
+  font-size: 38px;
+  font-weight: 680;
   line-height: 1;
+  margin-top: 8px;
+}
+
+.positionResultHero strong i {
+  color: #526176;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 500;
 }
 
 .positionResultHero em {
+  display: block;
   color: #53637a;
-  font-size: 14px;
+  font-size: 13px;
   font-style: normal;
-  font-weight: 560;
-}
-
-.positionMetricGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.positionMetricGrid div,
-.positionLivePnl {
-  min-height: 68px;
-  display: grid;
-  align-content: center;
-  gap: 5px;
-  border: 1px solid #e3e9f1;
-  border-radius: 8px;
-  background: #fbfcfe;
-  padding: 12px;
-}
-
-.positionMetricGrid span {
-  color: #6f7f95;
-  font-size: 12px;
-  font-weight: 620;
-}
-
-.positionMetricGrid strong,
-.positionLivePnl strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: #172033;
-  font-size: 17px;
-  font-weight: 900;
-}
-
-.positionLivePnl {
   margin-top: 10px;
 }
 
-.positionHistoryPanel {
-  margin-top: 18px;
-  overflow: hidden;
+.positionResultHero em b {
+  color: #172033;
+  font-weight: 650;
 }
 
-.positionHistoryPanel .panelHead {
-  padding: 0 18px;
+.positionWarnings {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #f1d9a8;
+  border-radius: 7px;
+  background: #fffaf0;
+  color: #846321;
+  margin: 0 20px 14px;
+  padding: 9px 12px;
+}
+
+.positionWarnings p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.positionMetricList {
+  margin: 0 20px;
+  border-top: 1px solid #e9eef4;
+}
+
+.positionMetricList div {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.positionMetricList span {
+  color: #718096;
+  font-size: 12px;
+}
+
+.positionMetricList strong {
+  min-width: 0;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: right;
+}
+
+.positionMetricList strong.negative {
+  color: #d84a5d;
+}
+
+.positionMetricList strong.positive {
+  color: #0b9968;
+}
+
+.positionPlanSummary {
+  min-height: 54px;
+  border-radius: 7px;
+  background: #f6f9fc;
+  color: #526176;
+  margin: 18px 20px 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.positionResultActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 8px;
+  margin: 0 20px;
+}
+
+.positionResultActions button {
+  height: 42px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #526176;
+  cursor: pointer;
+}
+
+.positionResultActions .positionPrimaryButton {
+  border-color: #1677ff;
+  background: #1677ff;
+  color: #fff;
+  font-weight: 600;
+}
+
+.positionResultActions button:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
+
+.positionDisclaimer {
+  color: #99a4b3;
+  margin: 12px 20px 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.positionHistoryPanel {
+  margin-top: 16px;
+  overflow: hidden;
 }
 
 .positionHistoryTable {
@@ -8709,11 +8873,11 @@ body,
 
 .positionHistoryTable th,
 .positionHistoryTable td {
-  height: 52px;
+  height: 48px;
   border-top: 1px solid #edf2f7;
   padding: 0 18px;
   color: #263247;
-  font-size: 14px;
+  font-size: 12px;
   text-align: left;
   white-space: nowrap;
 }
@@ -8721,12 +8885,35 @@ body,
 .positionHistoryTable th {
   background: #f8fafc;
   color: #718096;
-  font-size: 12px;
-  font-weight: 620;
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.positionHistoryTable td strong {
+.positionHistorySymbol,
+.positionHistoryDelete {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.positionHistorySymbol {
   color: #172033;
+  font-weight: 650;
+}
+
+.positionHistoryDelete {
+  color: #d84a5d;
+}
+
+.positionHistoryEmpty {
+  height: 96px !important;
+  color: #98a5b7 !important;
+  text-align: center !important;
+}
+
+.positionMobileResult {
+  display: none;
 }
 
 @media (max-width: 1180px) {
@@ -8737,13 +8924,11 @@ body,
 
 @media (max-width: 980px) {
   .positionSizingPage {
-    padding: 8px 18px 34px;
+    padding: 20px 18px 34px;
   }
 
-  .positionSizingHero,
   .positionSizingGrid,
   .positionFieldGrid,
-  .positionMetricGrid,
   .courseDetailHero,
   .courseDetailBody,
   .coursePlayLayout {
@@ -8764,17 +8949,58 @@ body,
     padding: 8px 18px 34px;
   }
 
-  .positionSizingHero {
-    display: grid;
-  }
-
-  .positionSizingHero > strong {
-    min-width: 0;
-    text-align: left;
-  }
 }
 
 @media (max-width: 640px) {
+  .positionSizingPage {
+    padding: 16px 12px 88px;
+  }
+
+  .positionSizingHead {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .positionRiskInput {
+    grid-template-columns: minmax(90px, 1fr) 142px;
+  }
+
+  .positionFormFoot {
+    align-items: flex-start;
+  }
+
+  .positionMetricList div {
+    min-height: 48px;
+  }
+
+  .positionMobileResult {
+    position: fixed;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+    z-index: 40;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #cfe0f6;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .96);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .16);
+    padding: 0 16px;
+  }
+
+  .positionMobileResult span {
+    color: #172033;
+    font-weight: 650;
+  }
+
+  .positionMobileResult strong {
+    color: #1677ff;
+    font-size: 16px;
+  }
+
   .courseThumb {
     aspect-ratio: 16 / 9;
   }
