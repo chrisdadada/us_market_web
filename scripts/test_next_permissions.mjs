@@ -370,7 +370,7 @@ try {
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-home-desktop.png`, fullPage: true });
 
         await page.setViewportSize({ width: 390, height: 844 });
-        await page.waitForTimeout(100);
+        await page.waitForFunction(() => getComputedStyle(document.querySelector(".sideRail")).visibility === "hidden");
         assert(await page.locator(".frontHomeMobileList").isVisible(), "mobile home should show the compact stock list");
         assert(!(await page.locator(".frontHomeDesktopTable").isVisible()), "mobile home should hide the desktop stock table");
         assert(await page.locator(".frontHomeMobileRow").count() > 0, "mobile home should keep the stock rows");
