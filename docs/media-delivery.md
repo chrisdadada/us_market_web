@@ -89,6 +89,17 @@ python3 scripts/report_course_media_usage.py \
 
 回滚只需把 dev 第 35 课的 `video_key` 恢复为 `video_source_key`。未获得当次人工授权前，不得把该 HLS 地址或相关代码推广到 prod。
 
+2026-07-23 完成 dev 全量闲时转码：
+
+- 除第 35 课试点外，剩余 27 节共 997.9 分钟，按 1080、720、480 三档提交闲时转码；估算费用 41.91 元。
+- 两个批次状态分别记录在 `/opt/dongbimao-dev/.local/hls-batches/20260723-batch-01.json` 和 `20260723-batch-02.json`，共 81 个任务，没有失败或遗漏。
+- 非 16:9 视频按原始比例缩放，不拉伸、不放大；例如第 1 课使用 1920×708、1280×472、854×314。
+- 28 节已发布视频全部切换为 HLS，28 份 `video_source_key` 均保留。每节只有在三档清单、时长和分片读取全部通过后才单独切换。
+- 登录播放链路已抽查全部 6 个有视频的课程系列；prod 课程库没有 dev HLS 引用，prod 媒体和代码未切换。
+- Open 持仓保护指纹保持不变：`open_portfolio_trades` 33 行，`open_portfolio_symbol_rules` 442 行。
+
+批处理脚本默认只输出计划。创建付费任务必须显式使用 `--submit` 并指定状态文件；中断后使用同一状态文件续提，不会重新提交已经记录的任务。完成后使用 `--reconcile --activate` 核对并逐课切换。
+
 ## Dev CDN 白名单
 
 后端支持把单个 dev 视频切到腾讯 CDN Type A 鉴权，默认关闭且不会改变现有播放链路：
