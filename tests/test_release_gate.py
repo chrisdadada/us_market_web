@@ -37,6 +37,14 @@ class ApiClient:
     def get(self, path: str) -> tuple[int, dict]:
         return self.request("GET", path)
 
+    def get_raw(self, path: str) -> tuple[int, str, bytes]:
+        request = urllib.request.Request(self.base_url + path, method="GET")
+        try:
+            with self.opener.open(request, timeout=5) as response:
+                return response.status, str(response.headers.get("Content-Type", "")), response.read()
+        except urllib.error.HTTPError as error:
+            return error.code, str(error.headers.get("Content-Type", "")), error.read()
+
     def post(self, path: str, payload: dict | None = None) -> tuple[int, dict]:
         return self.request("POST", path, payload or {})
 
@@ -1698,6 +1706,92 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertIn("cos.ap-chengdu.myqcloud.com/lesson/poc.mp4", payload["url"])
         self.assertIn("q-sign-algorithm=sha1", payload["url"])
         self.assertEqual(payload["expiresIn"], 1800)
+
+    def test_course_hls_playback_keeps_access_checks_and_signs_segments(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-dev-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(admin, "hls-course-user@example.test", "free")
+        client = self.login("hls-course-user@example.test", "user-password")
+        status, payload = admin.post(
+            "/api/admin/courses",
+            {"title": "HLS 测试课程", "summary": "", "coverUrl": "", "status": "published"},
+        )
+        self.assertEqual(status, 201, payload)
+        series_id = payload["series"]["id"]
+        status, payload = admin.post(
+            "/api/admin/courses/lessons",
+            {
+                "seriesId": series_id,
+                "title": "HLS 测试视频",
+                "videoKey": "lesson/hls/pilot/master.m3u8",
+                "status": "published",
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        lesson_id = payload["lesson"]["id"]
+
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 403, payload)
+        status, payload = admin.post(
+            "/api/admin/courses/grants",
+            {"seriesId": series_id, "user": user["uid"], "expiresAt": "2027-01-01"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["type"], "hls")
+        self.assertIn(f"/api/courses/lessons/{lesson_id}/hls?", payload["url"])
+        self.assertEqual(payload["expiresIn"], auth_api.COURSE_HLS_SIGN_TTL)
+
+        def fake_playlist(key: str) -> str:
+            if key.endswith("master.m3u8"):
+                return "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=746000\n720/index.m3u8\n"
+            return "#EXTM3U\n#EXTINF:5,\nsegment-00001.ts\n#EXT-X-ENDLIST\n"
+
+        with patch.object(auth_api, "fetch_course_cos_text", side_effect=fake_playlist):
+            status, content_type, body = client.get_raw(payload["url"])
+            self.assertEqual(status, 200)
+            self.assertIn("application/vnd.apple.mpegurl", content_type)
+            self.assertIn(f"/api/courses/lessons/{lesson_id}/hls?", body.decode("utf-8"))
+
+            variant_url = (
+                f"/api/courses/lessons/{lesson_id}/hls?"
+                "playlist=lesson%2Fhls%2Fpilot%2F720%2Findex.m3u8"
+            )
+            status, _, body = client.get_raw(variant_url)
+            self.assertEqual(status, 200)
+            playlist = body.decode("utf-8")
+            self.assertIn("lesson-dev-1259765032.cos.ap-chengdu.myqcloud.com", playlist)
+            self.assertIn("q-sign-algorithm=sha1", playlist)
+
+        status, payload = self.client().get(f"/api/courses/lessons/{lesson_id}/hls")
+        self.assertEqual(status, 401, payload)
+
+    def test_course_hls_playlist_rejects_escape_and_external_addresses(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-dev-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        master_key = "lesson/hls/pilot/master.m3u8"
+        with self.assertRaisesRegex(ValueError, "不属于当前课程"):
+            auth_api.validate_course_hls_playlist_key(master_key, "lesson/other/master.m3u8")
+        with self.assertRaisesRegex(ValueError, "越过课程目录"):
+            auth_api.render_course_hls_playlist(
+                35,
+                master_key,
+                master_key,
+                "#EXTM3U\n../../private.ts\n",
+            )
+        with self.assertRaisesRegex(ValueError, "不安全地址"):
+            auth_api.render_course_hls_playlist(
+                35,
+                master_key,
+                master_key,
+                "#EXTM3U\nhttps://example.test/video.ts\n",
+            )
 
     def test_course_video_upload_puts_to_cos_and_returns_key(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"

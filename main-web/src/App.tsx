@@ -3488,6 +3488,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   const [courseView, setCourseView] = useState<"mine" | "more">("mine");
   const [loadVersion, setLoadVersion] = useState(0);
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoType, setVideoType] = useState<"file" | "hls">("file");
   const [loading, setLoading] = useState(true);
   const [playLoading, setPlayLoading] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -3495,6 +3496,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   const [playError, setPlayError] = useState("");
   const [error, setError] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<import("hls.js").default | null>(null);
   const playRequestRef = useRef(0);
   const playAbortRef = useRef<AbortController | null>(null);
   const pendingLessonRef = useRef<number | null>(null);
@@ -3527,6 +3529,8 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   }, [loadVersion, viewerKey]);
 
   const stopCurrentVideo = useCallback(() => {
+    hlsRef.current?.destroy();
+    hlsRef.current = null;
     const video = videoRef.current;
     if (video) {
       video.pause();
@@ -3534,6 +3538,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
       video.load();
     }
     setVideoUrl("");
+    setVideoType("file");
     setIsVideoPlaying(false);
     setManualPlayRequired(false);
   }, []);
@@ -3583,6 +3588,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     try {
       const payload = await api.coursePlayUrl(lessonId, controller.signal);
       if (playRequestRef.current !== requestId) return;
+      setVideoType(payload.type);
       setVideoUrl(payload.url);
     } catch (err) {
       if (controller.signal.aborted || playRequestRef.current !== requestId) return;
@@ -3610,12 +3616,57 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   useEffect(() => {
     if (!videoUrl || !videoRef.current) return;
     const video = videoRef.current;
-    void video.play().catch((err) => handlePlayFailure(video, err));
-  }, [videoUrl]);
+    const startPlayback = () => {
+      void video.play().catch((err) => handlePlayFailure(video, err));
+    };
+
+    if (videoType === "hls") {
+      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = videoUrl;
+        video.load();
+        startPlayback();
+        return;
+      }
+      let cancelled = false;
+      void import("hls.js")
+        .then(({ default: Hls }) => {
+          if (cancelled) return;
+          if (!Hls.isSupported()) {
+            setPlayError("当前浏览器暂不支持播放");
+            return;
+          }
+          const hls = new Hls({ enableWorker: true });
+          hlsRef.current = hls;
+          hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(videoUrl));
+          hls.on(Hls.Events.MANIFEST_PARSED, startPlayback);
+          hls.on(Hls.Events.ERROR, (_, data) => {
+            if (!data.fatal || hlsRef.current !== hls) return;
+            setIsVideoPlaying(false);
+            setManualPlayRequired(false);
+            setPlayError("播放失败，请重试");
+          });
+          hls.attachMedia(video);
+        })
+        .catch(() => {
+          if (!cancelled) setPlayError("播放失败，请重试");
+        });
+      return () => {
+        cancelled = true;
+        hlsRef.current?.destroy();
+        hlsRef.current = null;
+      };
+    }
+
+    video.src = videoUrl;
+    video.load();
+    startPlayback();
+  }, [videoType, videoUrl]);
 
   useEffect(() => () => {
     playRequestRef.current += 1;
     playAbortRef.current?.abort();
+    hlsRef.current?.destroy();
+    hlsRef.current = null;
     const video = videoRef.current;
     if (video) {
       video.pause();
@@ -3657,7 +3708,6 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                       <video
                         ref={videoRef}
                         key={videoUrl}
-                        src={videoUrl}
                         controls
                         controlsList="nodownload"
                         preload="metadata"

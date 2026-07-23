@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import posixpath
 import re
 import secrets
 import sqlite3
@@ -89,6 +90,7 @@ COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCE
 COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCENT_COS_REGION") or ""
 COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
+COURSE_HLS_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 7200)
 COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
 COURSE_CDN_ENABLED = os.environ.get("COURSE_CDN_ENABLED", "0") == "1"
 COURSE_CDN_DOMAIN = os.environ.get("COURSE_CDN_DOMAIN", "").strip().rstrip("/")
@@ -2443,8 +2445,79 @@ def signed_course_video_url(video_key: str, now: int | None = None) -> str:
     return signed_course_cos_url(raw, method="get", now=now)
 
 
+def course_video_is_hls(video_key: str) -> bool:
+    raw = course_video_key(str(video_key or "").strip())
+    return bool(raw and not urlparse(raw).scheme and raw.lower().endswith(".m3u8"))
+
+
+def course_hls_playlist_url(lesson_id: int, video_key: str) -> str:
+    return f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': course_video_key(video_key)})}"
+
+
+def fetch_course_cos_text(key: str) -> str:
+    request = urllib.request.Request(
+        signed_course_cos_url(key, method="get", ttl=120),
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            raw = response.read(2 * 1024 * 1024)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"HLS 播放清单读取失败：HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError("HLS 播放清单暂时不可用") from exc
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("HLS 播放清单格式不正确") from exc
+
+
+def resolve_course_hls_key(root_prefix: str, current_key: str, uri: str) -> str:
+    parsed = urlparse(str(uri or "").strip())
+    if parsed.scheme or parsed.netloc or parsed.path.startswith("/") or not parsed.path:
+        raise ValueError("HLS 播放清单包含不安全地址")
+    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(current_key), unquote(parsed.path)))
+    if resolved == root_prefix or not resolved.startswith(root_prefix + "/"):
+        raise ValueError("HLS 播放清单越过课程目录")
+    return resolved
+
+
+def validate_course_hls_playlist_key(master_key: str, requested_key: str) -> str:
+    root_prefix = posixpath.dirname(course_video_key(master_key))
+    clean_key = posixpath.normpath(course_video_key(requested_key))
+    if not root_prefix or (clean_key != course_video_key(master_key) and not clean_key.startswith(root_prefix + "/")):
+        raise ValueError("HLS 播放清单不属于当前课程")
+    if not clean_key.lower().endswith(".m3u8"):
+        raise ValueError("HLS 播放清单格式不正确")
+    return clean_key
+
+
+def render_course_hls_playlist(lesson_id: int, master_key: str, requested_key: str, content: str) -> str:
+    root_prefix = posixpath.dirname(course_video_key(master_key))
+    clean_key = validate_course_hls_playlist_key(master_key, requested_key)
+
+    output: list[str] = []
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            if "URI=" in line:
+                raise ValueError("HLS 播放清单包含未支持的内嵌地址")
+            output.append(raw_line)
+            continue
+        target_key = resolve_course_hls_key(root_prefix, clean_key, line)
+        if target_key.lower().endswith(".m3u8"):
+            output.append(
+                f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': target_key})}"
+            )
+        else:
+            output.append(signed_course_cos_url(target_key, method="get", ttl=COURSE_HLS_SIGN_TTL))
+    return "\n".join(output) + "\n"
+
+
 def course_video_url_ttl(video_key: str) -> int:
     raw = course_video_key(str(video_key or "").strip())
+    if course_video_is_hls(raw):
+        return COURSE_HLS_SIGN_TTL
     return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_COS_SIGN_TTL)
 
 
@@ -3207,6 +3280,14 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_content(self, body: bytes, content_type: str, status: int = 200) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def send_static(self, request_path: str) -> None:
         parsed = urlparse(request_path)
         raw_path = unquote(parsed.path)
@@ -3802,6 +3883,34 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
+    def course_lesson_for_playback(self, user: sqlite3.Row, lesson_id: int) -> sqlite3.Row | None:
+        with db() as conn:
+            lesson = conn.execute(
+                """
+                SELECT l.*, s.status AS series_status
+                FROM course_lessons l
+                JOIN course_series s ON s.id = l.series_id
+                WHERE l.id = ?
+                """,
+                (lesson_id,),
+            ).fetchone()
+            if (
+                not lesson
+                or lesson["status"] != "published"
+                or lesson["series_status"] != "published"
+                or not str(lesson["video_key"] or "").strip()
+                or (
+                    course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
+                    and not str(lesson["video_source_key"] or "").strip()
+                )
+            ):
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return None
+            if not course_has_access(conn, user, int(lesson["series_id"])):
+                self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
+                return None
+        return lesson
+
     def do_GET(self) -> None:
         if self.path == "/api/health":
             self.send_json({"ok": True, "time": now_iso()})
@@ -3856,6 +3965,36 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/hls"):
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                lesson_id = int(parsed.path.removesuffix("/hls").removeprefix("/api/courses/lessons/"))
+            except ValueError:
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            lesson = self.course_lesson_for_playback(user, lesson_id)
+            if not lesson:
+                return
+            master_key = str(lesson["video_key"] or "").strip()
+            if not course_video_is_hls(master_key):
+                self.send_json({"error": "HLS 视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            requested_key = str(parse_qs(parsed.query).get("playlist", [master_key])[0]).strip()
+            try:
+                clean_key = validate_course_hls_playlist_key(master_key, requested_key)
+                content = fetch_course_cos_text(clean_key)
+                playlist = render_course_hls_playlist(lesson_id, master_key, clean_key, content)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception:
+                self.send_json({"error": "播放清单暂时不可用"}, HTTPStatus.BAD_GATEWAY)
+                return
+            self.send_content(playlist.encode("utf-8"), "application/vnd.apple.mpegurl; charset=utf-8")
+            return
+
         if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/play"):
             user = self.require_user()
             if not user:
@@ -3865,39 +4004,22 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
                 return
-            with db() as conn:
-                lesson = conn.execute(
-                    """
-                    SELECT l.*, s.status AS series_status
-                    FROM course_lessons l
-                    JOIN course_series s ON s.id = l.series_id
-                    WHERE l.id = ?
-                    """,
-                    (lesson_id,),
-                ).fetchone()
-                if (
-                    not lesson
-                    or lesson["status"] != "published"
-                    or lesson["series_status"] != "published"
-                    or not str(lesson["video_key"] or "").strip()
-                    or (
-                        course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
-                        and not str(lesson["video_source_key"] or "").strip()
-                    )
-                ):
-                    self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
-                    return
-                if not course_has_access(conn, user, int(lesson["series_id"])):
-                    self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
-                    return
+            lesson = self.course_lesson_for_playback(user, lesson_id)
+            if not lesson:
+                return
             try:
-                play_url = signed_course_video_url(lesson["video_key"])
+                is_hls = course_video_is_hls(lesson["video_key"])
+                play_url = (
+                    course_hls_playlist_url(lesson_id, lesson["video_key"])
+                    if is_hls
+                    else signed_course_video_url(lesson["video_key"])
+                )
                 play_ttl = course_video_url_ttl(lesson["video_key"])
             except Exception as exc:
                 self.send_json({"error": f"播放地址不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
             write_course_play_grant(user, lesson_id)
-            self.send_json({"url": play_url, "expiresIn": play_ttl})
+            self.send_json({"url": play_url, "expiresIn": play_ttl, "type": "hls" if is_hls else "file"})
             return
 
         if parsed.path == "/api/tools/funding-arbitrage":
