@@ -66,6 +66,48 @@ function moneyValue(label) {
   return value;
 }
 
+const trackingPriceHistory = Array.from({ length: 60 }, (_, index) => ({
+  date: new Date(Date.UTC(2026, 4, 1 + index)).toISOString().slice(0, 10),
+  close: 96 + index * 0.2 + Math.sin(index / 4) * 2,
+}));
+
+function trackingFixture(board, includeAnalysis) {
+  const changeByBoard = { day: 1.2, week: 3.4, month: 8.6, volume: 1.2 };
+  return {
+    rank: 9001,
+    symbol: "AAPL",
+    company: "Apple Inc.",
+    sector: "科技",
+    price: 107.8,
+    change: changeByBoard[board] || 1.2,
+    volumeRatio: 1.4,
+    dollarVolume: 5000000000,
+    marketCap: "$3.2T",
+    marketCapValue: 3200000000000,
+    ...(board === "day" && includeAnalysis ? {
+      keyLevels: {
+        status: "ready",
+        asOf: "2026-07-22",
+        currentPrice: 107.8,
+        support: { center: 100, lower: 99, upper: 101, strength: "strong", strengthText: "强", touches: 3, basis: "近120日出现 3 次确认", lastConfirmedAt: "2026-07-08" },
+        secondarySupport: { center: 95, lower: 94, upper: 96, strength: "medium", strengthText: "中", touches: 2, basis: "近120日出现 2 次确认", lastConfirmedAt: "2026-06-18" },
+        resistance: { center: 110, lower: 109, upper: 111, strength: "converting", strengthText: "转换中", touches: 1, basis: "原支撑跌破后，等待反抽确认", lastConfirmedAt: "2026-07-15" },
+        position: "near_resistance",
+        positionText: "接近阻力",
+        supportDistancePct: 6.3,
+        resistanceDistancePct: 1.1,
+        atr14: 2.4,
+        atrPct: 2.23,
+        ma20: 105.2,
+        ma60: 101.4,
+        trend: "strong",
+        trendText: "偏强",
+      },
+      priceHistory: trackingPriceHistory,
+    } : {}),
+  };
+}
+
 async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/auth/status") return authProfile;
   if (url.pathname === "/api/auth/logout") return { ok: true };
@@ -81,14 +123,18 @@ async function apiPayload(url, authProfile) {
   const macroSeries = await readDataset("macro-series");
 
   if (url.pathname === "/api/product/bootstrap") {
+    const boards = Object.fromEntries(
+      Object.entries(movers.boards || {}).map(([board, payload]) => {
+        const rows = (payload.rows || []).filter((row) => row.symbol !== "AAPL").slice(0, 19);
+        return [board, { ...payload, rows: [trackingFixture(board, authProfile.entitlements.paid || authProfile.entitlements.admin), ...rows] }];
+      }),
+    );
     return {
       meta: { schemaVersion: "test", generatedAt: ytd.updatedAt || movers.updatedAt || "", counts: {} },
       ytd: { ...ytd, rows: (ytd.rows || []).slice(0, 20) },
       movers: {
         ...movers,
-        boards: Object.fromEntries(
-          Object.entries(movers.boards || {}).map(([board, payload]) => [board, { ...payload, rows: (payload.rows || []).slice(0, 20) }]),
-        ),
+        boards,
       },
       strength: authProfile.entitlements.paid ? strength : null,
       sectorFlow,
@@ -275,6 +321,16 @@ try {
           if (scenario.absentSelector) {
             assert(await page.locator(scenario.absentSelector).count() === 0, `${profileName}/${baseUrl}/${scenario.page} should hide ${scenario.absentSelector}`);
           }
+          if (scenario.page === "tracking" && !authProfile.entitlements.paid && !authProfile.entitlements.admin) {
+            await page.getByText("会员可见", { exact: true }).first().waitFor();
+            assert(await page.getByText("会员可见", { exact: true }).count() > 0, `${profileName}/${baseUrl}/tracking should use the member preview label`);
+            assert(await page.locator(".lockedStockName i").count() === 0, `${profileName}/${baseUrl}/tracking should not repeat lock icons`);
+            if (profileName === "free" && baseUrl === server.rootUrl && process.env.MOBILE_QA_SCREENSHOT_PREFIX) {
+              const continueButton = page.getByRole("button", { name: "同意并继续" });
+              if (await continueButton.isVisible()) await continueButton.click();
+              await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-free.png`, fullPage: true });
+            }
+          }
         }
       }
       const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
@@ -285,6 +341,28 @@ try {
         assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
       }
       if (profileName === "monthly") {
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=tracking`, { waitUntil: "networkidle" });
+        const keyLevelHelp = page.locator(".trackingKeyLevelsHead .infoTip");
+        await keyLevelHelp.hover();
+        assert(await keyLevelHelp.locator(".infoTipBubble").isVisible(), "tracking help should appear immediately on hover");
+        assert(await page.locator(".trackingKeyLevelsHead [title]").count() === 0, "tracking help should not use delayed native tooltips");
+        const aaplRow = page.locator(".trackingPage .screenerTable tbody tr", { hasText: "AAPL" });
+        assert((await aaplRow.innerText()).includes("$100.00"), "paid tracking row should show support");
+        assert((await aaplRow.innerText()).includes("$110.00"), "paid tracking row should show resistance");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-list.png`, fullPage: true });
+        await aaplRow.locator(".screenerLink").click();
+        await page.waitForSelector(".trackingKeyLevelsPanel");
+        assert(await page.locator(".trackingPriceChart svg").count() === 1, "tracking detail should show the price chart");
+        assert((await page.locator(".trackingKeyLevelsPanel").innerText()).includes("主要支撑"), "tracking detail should show level evidence");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail.png`, fullPage: true });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(300);
+        assert(await page.locator(".trackingKeyLevelsPanel").isVisible(), "mobile tracking detail should keep key levels visible");
+        assert(!(await page.locator(".sideRail").evaluate((element) => element.classList.contains("mobileOpen"))), "mobile tracking detail should keep navigation closed");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile tracking detail should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail-mobile.png`, fullPage: true });
+
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
         const strengthTabs = page.locator(".strengthListHead .marketToolTabs button");

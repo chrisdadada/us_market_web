@@ -6,17 +6,20 @@ import {
   CalendarEvent,
   CourseSeries,
   FundingScannerRow,
+  KeyLevel,
   MacroSeriesIndicator,
   MacroSeriesPayload,
   MarketRow,
   MarketTemperaturePayload,
   OpenPortfolioPayload,
   Opinion,
+  PriceHistoryPoint,
   SectorFlowPayload,
   SignalState,
   StrengthRow,
   StrengthScannerPayload,
   TemperatureIndicator,
+  TrackingKeyLevels,
   SymbolDetailPayload,
   SymbolRow
 } from "./api";
@@ -90,6 +93,7 @@ const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
 const volumeRatioHelp = "当前成交额相对近20日平均成交额的倍数，越高代表成交越活跃。";
+const keyLevelsHelp = "根据近120个交易日的价格拐点、波动区间和均线自动计算，仅作观察参考。";
 
 type RouteState = {
   page: PageKey;
@@ -99,8 +103,17 @@ type RouteState = {
   resetToken: string;
 };
 
+function InfoTip({ text, focusable = false }: { text: string; focusable?: boolean }) {
+  return (
+    <span className="infoTip" aria-label={text} tabIndex={focusable ? 0 : undefined}>
+      <span className="infoTipIcon" aria-hidden="true">i</span>
+      <span className="infoTipBubble" role="tooltip">{text}</span>
+    </span>
+  );
+}
+
 function VolumeRatioLabel() {
-  return <>成交倍数<span className="metricHelp" title={volumeRatioHelp} aria-label={volumeRatioHelp}>?</span></>;
+  return <>成交倍数<InfoTip text={volumeRatioHelp} /></>;
 }
 
 function readRouteState(): RouteState {
@@ -718,6 +731,8 @@ function mergedTrackingRows(bootstrap: BootstrapPayload | null, signalStates: Si
         liquidity: strength?.liquidity || money(dayMarket?.dollarVolume || monthMarket?.dollarVolume),
         marketCap: strength?.marketCap || market?.marketCap || "--",
         marketCapValue: market?.marketCapValue ?? null,
+        keyLevels: dayMarket?.keyLevels,
+        priceHistory: dayMarket?.priceHistory || [],
         scoreValue: Number(String(month).replace("%", "").replace("+", "")) || -999
       };
     })
@@ -1705,6 +1720,153 @@ function OpinionsPage({
   );
 }
 
+function keyLevelStrengthClass(level?: KeyLevel | null) {
+  return `levelStrength ${level?.strength || "weak"}`;
+}
+
+function keyLevelZone(level?: KeyLevel | null) {
+  if (!level || !Number.isFinite(level.lower) || !Number.isFinite(level.upper)) return "--";
+  return `${priceDisplay(level.lower)} – ${priceDisplay(level.upper)}`;
+}
+
+function keyLevelDistance(levels?: TrackingKeyLevels) {
+  if (!levels) return "";
+  const support = levels.supportDistancePct;
+  const resistance = levels.resistanceDistancePct;
+  if (levels.position === "at_support" || levels.position === "at_resistance") return "";
+  if (levels.position === "near_support" && Number.isFinite(support)) return ` · 距支撑 ${support}%`;
+  if (levels.position === "near_resistance" && Number.isFinite(resistance)) return ` · 距阻力 ${resistance}%`;
+  return "";
+}
+
+function keyLevelObservation(direction: string, levels?: TrackingKeyLevels) {
+  if (!levels || levels.status !== "ready") return "";
+  const prefix = direction && direction !== "--" ? `趋势策略方向为${direction}。` : "";
+  const messages: Record<string, string> = {
+    at_support: "价格进入支撑区，先观察该区域能否守住。",
+    near_support: "价格靠近支撑区，先观察回落时是否出现承接。",
+    at_resistance: "价格进入阻力区，先观察能否有效突破。",
+    near_resistance: "价格靠近阻力区，先观察突破力度和回踩表现。",
+    above_resistance: "价格已越过近期阻力，关注回踩后能否站稳。",
+    below_support: "价格已跌破近期支撑，先观察能否收回失守区域。",
+    middle: "价格位于支撑与阻力之间，等待接近关键区域后再观察。"
+  };
+  return `${prefix}${messages[levels.position || "middle"] || messages.middle}`;
+}
+
+function TrackingKeyLevelsCell({
+  levels,
+  locked
+}: {
+  levels?: TrackingKeyLevels;
+  locked: boolean;
+}) {
+  if (locked) {
+    return <div className="trackingKeyLevelsCell locked"><strong>会员可见</strong></div>;
+  }
+  if (levels?.status === "insufficient") {
+    return (
+      <div className="trackingKeyLevelsCell unavailable">
+        <strong>历史数据不足</strong>
+        <small>{levels.availableBars || 0} / {levels.requiredBars || 90} 个交易日</small>
+      </div>
+    );
+  }
+  if (!levels || levels.status !== "ready" || (!levels.support && !levels.resistance)) {
+    return <div className="trackingKeyLevelsCell unavailable"><strong>暂不可用</strong></div>;
+  }
+  return (
+    <div className="trackingKeyLevelsCell">
+      <div>
+        <span>支撑</span>
+        <b>{priceDisplay(levels.support?.center)}</b>
+        <em className={keyLevelStrengthClass(levels.support)}>{levels.support?.strengthText || "--"}</em>
+      </div>
+      <div>
+        <span>阻力</span>
+        <b>{priceDisplay(levels.resistance?.center)}</b>
+        <em className={keyLevelStrengthClass(levels.resistance)}>{levels.resistance?.strengthText || "--"}</em>
+      </div>
+      <small>{levels.positionText || "区间中部"}{keyLevelDistance(levels)}</small>
+    </div>
+  );
+}
+
+function TrackingPriceChart({
+  points,
+  levels
+}: {
+  points: PriceHistoryPoint[];
+  levels: TrackingKeyLevels;
+}) {
+  const visible = points.filter((point) => Number.isFinite(point.close)).slice(-60);
+  if (visible.length < 2) return <div className="trackingLevelEmpty compact">暂无走势数据</div>;
+  const width = 760;
+  const height = 280;
+  const margin = { top: 18, right: 70, bottom: 34, left: 18 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const levelValues = [levels.support?.lower, levels.support?.upper, levels.resistance?.lower, levels.resistance?.upper]
+    .filter((value): value is number => Number.isFinite(value));
+  const values = [...visible.map((point) => point.close), ...levelValues];
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const padding = Math.max((rawMax - rawMin) * 0.08, rawMax * 0.005, 1);
+  const min = rawMin - padding;
+  const max = rawMax + padding;
+  const x = (index: number) => margin.left + (index / (visible.length - 1)) * plotWidth;
+  const y = (value: number) => margin.top + ((max - value) / (max - min)) * plotHeight;
+  const path = visible.map((point, index) => `${index ? "L" : "M"} ${x(index)} ${y(point.close)}`).join(" ");
+  const zone = (level: KeyLevel | null | undefined, className: string, label: string) => {
+    if (!level || !Number.isFinite(level.lower) || !Number.isFinite(level.upper)) return null;
+    const top = y(Number(level.upper));
+    const bottom = y(Number(level.lower));
+    return (
+      <g className={className}>
+        <rect x={margin.left} y={top} width={plotWidth} height={Math.max(3, bottom - top)} />
+        <text x={width - margin.right + 6} y={(top + bottom) / 2 + 4}>{label}</text>
+      </g>
+    );
+  };
+  const dateIndexes = [0, Math.floor((visible.length - 1) / 2), visible.length - 1];
+  const last = visible.at(-1)!;
+
+  return (
+    <div className="trackingPriceChart">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="近60个交易日价格走势与关键点位">
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+          const gridY = margin.top + ratio * plotHeight;
+          return <line key={ratio} className="chartGridLine" x1={margin.left} x2={width - margin.right} y1={gridY} y2={gridY} />;
+        })}
+        {zone(levels.resistance, "resistanceZone", "阻力区")}
+        {zone(levels.support, "supportZone", "支撑区")}
+        <path className="trackingPriceLine" d={path} />
+        <line className="currentPriceLine" x1={margin.left} x2={width - margin.right} y1={y(last.close)} y2={y(last.close)} />
+        <circle className="currentPriceDot" cx={x(visible.length - 1)} cy={y(last.close)} r="4" />
+        <text
+          className="currentPriceLabel"
+          x={width - margin.right - 8}
+          y={Math.max(margin.top + 12, y(last.close) - 8)}
+          textAnchor="end"
+        >
+          {priceDisplay(last.close)}
+        </text>
+        {dateIndexes.map((index) => (
+          <text
+            key={index}
+            className="chartDateLabel"
+            x={x(index)}
+            y={height - 10}
+            textAnchor={index === 0 ? "start" : index === visible.length - 1 ? "end" : "middle"}
+          >
+            {formatDate(visible[index].date)}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 function TrackingPage({
   rows,
   asOf,
@@ -1739,7 +1901,7 @@ function TrackingPage({
         });
       }}
     >
-      {label}<span>{sortKey === key ? (sortDir === "asc" ? "↑" : "↓") : ""}</span>
+      {label}<span className="tableSortIndicator">{sortKey === key ? (sortDir === "asc" ? "↑" : "↓") : ""}</span>
     </button>
   );
   const visibleRows = useMemo(() => {
@@ -1756,8 +1918,10 @@ function TrackingPage({
         <div className="trackingAddStrip">
           <span>本次新增</span>
           <div>
-            {trackingAddedSymbols.map((symbol) => (
-              locked ? <LockedStockName key={symbol} symbol={symbol} name={trackingSymbolNames[symbol] || symbol} /> : <b key={symbol}>{symbol}</b>
+            {locked ? (
+              <span className="trackingAddLocked">会员可见</span>
+            ) : trackingAddedSymbols.map((symbol) => (
+              <b key={symbol}>{symbol}</b>
             ))}
           </div>
           <time>更新 {formatStoredDateTime(asOf)}</time>
@@ -1775,8 +1939,12 @@ function TrackingPage({
                 <th>{sortHeader("volume", <VolumeRatioLabel />)}</th>
                 <th>{sortHeader("marketCap", "市值")}</th>
                 <th>{sortHeader("signal", "趋势策略方向")}</th>
-                <th>{sortHeader("signalFirstSeen", "信号时间")}</th>
-                <th>操作</th>
+                <th className="trackingKeyLevelsHead">
+                  <span>关键点位</span>
+                  <InfoTip text={keyLevelsHelp} focusable />
+                </th>
+                <th className="trackingSignalTimeCell">{sortHeader("signalFirstSeen", "信号时间")}</th>
+                <th className="trackingActionCell">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -1803,8 +1971,9 @@ function TrackingPage({
                     <td>{row.volume || "--"}</td>
                     <td>{marketCapDisplay(row)}</td>
                     <td><SignalDirectionBadge label={directionLabel} /></td>
-                    <td>{row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</td>
-                    <td>
+                    <td className="trackingKeyLevelsData"><TrackingKeyLevelsCell levels={row.keyLevels} locked={locked} /></td>
+                    <td className="trackingSignalTimeCell">{row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</td>
+                    <td className="trackingActionCell">
                       <button
                         type="button"
                         className="screenerLink"
@@ -1859,6 +2028,14 @@ function TrackingStockDetailPage({
   const profile = detail?.profile;
   const displayName = profile?.company || profile?.chineseName || row?.name || row?.symbol || "--";
   const direction = trackingDirection(row || undefined);
+  const detailDay = detail?.marketRows.find((item) => item.board === "day");
+  const keyLevels = detailDay?.keyLevels || row?.keyLevels;
+  const priceHistory = detailDay?.priceHistory || row?.priceHistory || [];
+  const levelRows: Array<[string, KeyLevel | null | undefined]> = [
+    ["主要支撑", keyLevels?.support],
+    ["次级支撑", keyLevels?.secondarySupport],
+    ["主要阻力", keyLevels?.resistance]
+  ];
   const sameList = rows
     .filter((item) => item.symbol !== activeSymbol)
     .slice(0, 5);
@@ -1922,6 +2099,66 @@ function TrackingStockDetailPage({
         <div className="trackingStockActions">
           <button type="button" onClick={onStocks}>查看股票库</button>
         </div>
+      </section>
+
+      <section className="trackingKeyLevelsPanel">
+        <div className="trackingLevelPanelHead">
+          <div>
+            <h2>关键点位 <InfoTip text={keyLevelsHelp} focusable /></h2>
+            <span>{keyLevels?.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</span>
+          </div>
+          {keyLevels?.status === "ready" ? (
+            <strong className={`trackingPositionTag ${keyLevels.position || "middle"}`}>
+              {keyLevels.positionText || "区间中部"}{keyLevelDistance(keyLevels)}
+            </strong>
+          ) : null}
+        </div>
+        {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance) ? (
+          <>
+            <div className="trackingLevelWorkspace">
+              <div className="trackingChartColumn">
+                <TrackingPriceChart points={priceHistory} levels={keyLevels} />
+                <div className="trackingObservation">
+                  <span>观察提示</span>
+                  <strong>{keyLevelObservation(direction, keyLevels)}</strong>
+                </div>
+              </div>
+              <aside className="trackingLevelFacts">
+                <section>
+                  <h3>点位依据</h3>
+                  {levelRows.map(([label, level]) => (
+                    <div className="trackingLevelFact" key={label}>
+                      <span>{label}</span>
+                      {level ? (
+                        <>
+                          <strong>{keyLevelZone(level)}</strong>
+                          <em className={keyLevelStrengthClass(level)}>{level.strengthText || "--"}</em>
+                          <small>{level.basis || "--"}{level.lastConfirmedAt ? ` · ${formatDate(level.lastConfirmedAt)}` : ""}</small>
+                        </>
+                      ) : <strong>--</strong>}
+                    </div>
+                  ))}
+                </section>
+                <section>
+                  <h3>趋势参考</h3>
+                  <dl>
+                    <div><dt>趋势状态</dt><dd>{keyLevels.trendText || "--"}</dd></div>
+                    <div><dt>MA20</dt><dd>{priceDisplay(keyLevels.ma20)}</dd></div>
+                    <div><dt>MA60</dt><dd>{priceDisplay(keyLevels.ma60)}</dd></div>
+                    <div><dt>ATR14</dt><dd>{priceDisplay(keyLevels.atr14)}{Number.isFinite(keyLevels.atrPct) ? ` · ${keyLevels.atrPct}%` : ""}</dd></div>
+                  </dl>
+                </section>
+              </aside>
+            </div>
+          </>
+        ) : (
+          <div className="trackingLevelEmpty">
+            <strong>{keyLevels?.status === "insufficient" ? "历史数据不足" : "关键点位暂不可用"}</strong>
+            {keyLevels?.status === "insufficient" ? (
+              <span>当前 {keyLevels.availableBars || 0} 个交易日，满 {keyLevels.requiredBars || 90} 个交易日后自动计算。</span>
+            ) : null}
+          </div>
+        )}
       </section>
 
       <div className="trackingStockGrid">
@@ -3488,9 +3725,18 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   const [courseView, setCourseView] = useState<"mine" | "more">("mine");
   const [loadVersion, setLoadVersion] = useState(0);
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoType, setVideoType] = useState<"file" | "hls">("file");
   const [loading, setLoading] = useState(true);
-  const [playing, setPlaying] = useState(false);
+  const [playLoading, setPlayLoading] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [manualPlayRequired, setManualPlayRequired] = useState(false);
+  const [playError, setPlayError] = useState("");
   const [error, setError] = useState("");
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<import("hls.js").default | null>(null);
+  const playRequestRef = useRef(0);
+  const playAbortRef = useRef<AbortController | null>(null);
+  const pendingLessonRef = useRef<number | null>(null);
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const unlockedSeries = useMemo(() => series.filter((item) => item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
@@ -3519,25 +3765,152 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     };
   }, [loadVersion, viewerKey]);
 
-  async function playLesson(lessonId: number) {
-    setPlaying(true);
-    setError("");
+  const stopCurrentVideo = useCallback(() => {
+    hlsRef.current?.destroy();
+    hlsRef.current = null;
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+    setVideoUrl("");
+    setVideoType("file");
+    setIsVideoPlaying(false);
+    setManualPlayRequired(false);
+  }, []);
+
+  function handlePlayFailure(video: HTMLVideoElement, err: unknown) {
+    if (videoRef.current !== video) return;
+    if (err instanceof DOMException && err.name === "AbortError") return;
+    if (err instanceof DOMException && err.name === "NotAllowedError") {
+      setManualPlayRequired(true);
+      return;
+    }
+    setManualPlayRequired(false);
+    setPlayError("播放失败，请重试");
+  }
+
+  async function resumeCurrentVideo() {
+    const video = videoRef.current;
+    if (!video) return;
     try {
-      const payload = await api.coursePlayUrl(lessonId);
-      setActiveLessonId(lessonId);
+      await video.play();
+      if (videoRef.current !== video) return;
+      setManualPlayRequired(false);
+      setPlayError("");
+    } catch (err) {
+      handlePlayFailure(video, err);
+    }
+  }
+
+  async function playLesson(lessonId: number, forceRefresh = false) {
+    if (!forceRefresh && pendingLessonRef.current === lessonId) return;
+    if (!forceRefresh && activeLessonId === lessonId && videoUrl) {
+      await resumeCurrentVideo();
+      return;
+    }
+
+    const requestId = playRequestRef.current + 1;
+    playRequestRef.current = requestId;
+    playAbortRef.current?.abort();
+    const controller = new AbortController();
+    playAbortRef.current = controller;
+    pendingLessonRef.current = lessonId;
+
+    stopCurrentVideo();
+    setActiveLessonId(lessonId);
+    setPlayLoading(true);
+    setPlayError("");
+    try {
+      const payload = await api.coursePlayUrl(lessonId, controller.signal);
+      if (playRequestRef.current !== requestId) return;
+      setVideoType(payload.type);
       setVideoUrl(payload.url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "播放失败");
+      if (controller.signal.aborted || playRequestRef.current !== requestId) return;
+      setPlayError("播放失败，请重试");
     } finally {
-      setPlaying(false);
+      if (playRequestRef.current === requestId) {
+        playAbortRef.current = null;
+        pendingLessonRef.current = null;
+        setPlayLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    setVideoUrl("");
-    setError("");
+    playRequestRef.current += 1;
+    playAbortRef.current?.abort();
+    playAbortRef.current = null;
+    pendingLessonRef.current = null;
+    stopCurrentVideo();
+    setPlayLoading(false);
+    setPlayError("");
     setActiveLessonId(selected?.unlocked ? selected.lessons?.[0]?.id || null : null);
-  }, [selected?.id, selected?.unlocked, selected?.lessons]);
+  }, [selected?.id, selected?.unlocked, selected?.lessons, stopCurrentVideo]);
+
+  useEffect(() => {
+    if (!videoUrl || !videoRef.current) return;
+    const video = videoRef.current;
+    const startPlayback = () => {
+      void video.play().catch((err) => handlePlayFailure(video, err));
+    };
+
+    if (videoType === "hls") {
+      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = videoUrl;
+        video.load();
+        startPlayback();
+        return;
+      }
+      let cancelled = false;
+      void import("hls.js")
+        .then(({ default: Hls }) => {
+          if (cancelled) return;
+          if (!Hls.isSupported()) {
+            setPlayError("当前浏览器暂不支持播放");
+            return;
+          }
+          const hls = new Hls({ enableWorker: true });
+          hlsRef.current = hls;
+          hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(videoUrl));
+          hls.on(Hls.Events.MANIFEST_PARSED, startPlayback);
+          hls.on(Hls.Events.ERROR, (_, data) => {
+            if (!data.fatal || hlsRef.current !== hls) return;
+            setIsVideoPlaying(false);
+            setManualPlayRequired(false);
+            setPlayError("播放失败，请重试");
+          });
+          hls.attachMedia(video);
+        })
+        .catch(() => {
+          if (!cancelled) setPlayError("播放失败，请重试");
+        });
+      return () => {
+        cancelled = true;
+        hlsRef.current?.destroy();
+        hlsRef.current = null;
+      };
+    }
+
+    video.src = videoUrl;
+    video.load();
+    startPlayback();
+  }, [videoType, videoUrl]);
+
+  useEffect(() => () => {
+    playRequestRef.current += 1;
+    playAbortRef.current?.abort();
+    hlsRef.current?.destroy();
+    hlsRef.current = null;
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+  }, []);
 
   if (loading) return <div className="coursesPage"><div className="loading" /></div>;
 
@@ -3568,9 +3941,36 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
               <article className="coursePlayer">
                 <div className="courseVideoBox">
                   {videoUrl ? (
-                    <video key={videoUrl} src={videoUrl} controls controlsList="nodownload" preload="metadata" playsInline />
+                    <>
+                      <video
+                        ref={videoRef}
+                        key={videoUrl}
+                        controls
+                        controlsList="nodownload"
+                        preload="metadata"
+                        playsInline
+                        onPlay={() => { setIsVideoPlaying(true); setManualPlayRequired(false); setPlayError(""); }}
+                        onPause={() => setIsVideoPlaying(false)}
+                        onEnded={() => setIsVideoPlaying(false)}
+                        onError={(event) => {
+                          if (!event.currentTarget.currentSrc) return;
+                          setIsVideoPlaying(false);
+                          setManualPlayRequired(false);
+                          setPlayError("播放失败，请重试");
+                        }}
+                      />
+                      {playError ? (
+                        <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
+                      ) : manualPlayRequired ? (
+                        <button type="button" className="courseVideoResume" onClick={resumeCurrentVideo}>继续播放</button>
+                      ) : null}
+                    </>
+                  ) : playLoading ? (
+                    <div className="courseVideoState"><i aria-hidden="true" /><span>正在加载</span></div>
+                  ) : playError ? (
+                    <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
                   ) : (
-                    <button type="button" disabled={!activeLesson || playing} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
+                    <button type="button" className="courseVideoPlayButton" disabled={!activeLesson} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
                       <span />
                     </button>
                   )}
@@ -3583,7 +3983,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                   <button key={lesson.id} type="button" className={activeLesson?.id === lesson.id ? "active" : ""} onClick={() => playLesson(lesson.id)}>
                     <b>{index + 1}</b>
                     <span><strong>{lesson.title}</strong>{lesson.durationLabel ? <em>{lesson.durationLabel}</em> : null}</span>
-                    <i>{activeLesson?.id === lesson.id && videoUrl ? "播放中" : "播放"}</i>
+                    <i>{activeLesson?.id === lesson.id && playLoading ? "加载中" : activeLesson?.id === lesson.id && isVideoPlaying ? "播放中" : "播放"}</i>
                   </button>
                 ))}
               </aside>

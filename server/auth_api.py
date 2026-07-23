@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import posixpath
 import re
 import secrets
 import sqlite3
@@ -89,7 +90,17 @@ COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCE
 COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCENT_COS_REGION") or ""
 COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
+COURSE_HLS_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 7200)
 COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
+COURSE_CDN_ENABLED = os.environ.get("COURSE_CDN_ENABLED", "0") == "1"
+COURSE_CDN_DOMAIN = os.environ.get("COURSE_CDN_DOMAIN", "").strip().rstrip("/")
+COURSE_CDN_AUTH_KEY = os.environ.get("COURSE_CDN_AUTH_KEY", "").strip()
+COURSE_CDN_SIGN_TTL = int(os.environ.get("COURSE_CDN_SIGN_TTL_SECONDS", "1800"))
+COURSE_CDN_VIDEO_KEYS = {
+    key.strip().lstrip("/")
+    for key in re.split(r"[,\n]+", os.environ.get("COURSE_CDN_VIDEO_KEYS", ""))
+    if key.strip()
+}
 COURSE_VIDEO_UPLOAD_MAX_BYTES = int(os.environ.get("COURSE_VIDEO_UPLOAD_MAX_BYTES", str(5 * 1024 * 1024 * 1024)))
 COURSE_VIDEO_AUTO_PROCESS_ENABLED = os.environ.get("COURSE_VIDEO_AUTO_PROCESS_ENABLED", "0") == "1"
 COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS = int(os.environ.get("COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS", "3000"))
@@ -786,7 +797,7 @@ def product_stock_library_payload(row: sqlite3.Row) -> dict[str, Any]:
     return payload
 
 
-def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
+def product_market_row_payload(row: sqlite3.Row, include_tracking_analysis: bool = False) -> dict[str, Any]:
     payload = {
         "board": row["board"],
         "rank": row["rank"],
@@ -809,6 +820,14 @@ def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
         payload["changeYtd"] = row["change_pct"]
     else:
         payload["change"] = row["change_pct"]
+    raw_payload = parse_json_field(row["payload_json"], {})
+    if include_tracking_analysis and isinstance(raw_payload, dict):
+        key_levels = raw_payload.get("keyLevels")
+        price_history = raw_payload.get("priceHistory")
+        if isinstance(key_levels, dict):
+            payload["keyLevels"] = key_levels
+        if isinstance(price_history, list):
+            payload["priceHistory"] = price_history
     return payload
 
 
@@ -841,6 +860,7 @@ def product_market_board_payload(
     board: str,
     limit: int = 500,
     symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
 ) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
@@ -867,7 +887,7 @@ def product_market_board_payload(
             (board, *extra_symbols),
         ).fetchall()
         merged.extend(extra_rows)
-    payloads = [product_market_row_payload(row) for row in merged]
+    payloads = [product_market_row_payload(row, include_tracking_analysis) for row in merged]
     missing_cap_symbols = [
         payload["symbol"]
         for payload in payloads
@@ -895,7 +915,12 @@ def product_market_board_payload(
     return payloads
 
 
-def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, symbols: list[str] | None = None) -> dict[str, Any]:
+def product_bootstrap_payload(
+    conn: sqlite3.Connection,
+    board_limit: int = 500,
+    symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
+) -> dict[str, Any]:
     meta = product_dataset_meta(conn)
     core_raw = product_raw_payload(conn, "core-signals")
     strength_raw = product_raw_payload(conn, "strength-scanner")
@@ -904,7 +929,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     sector_flow_raw = product_raw_payload(conn, "sector-flow")
     generated_at = meta.get("generatedAt")
 
-    ytd_rows = product_market_board_payload(conn, "ytd", board_limit, symbols)
+    ytd_rows = product_market_board_payload(
+        conn, "ytd", board_limit, symbols, include_tracking_analysis
+    )
     ytd = {
         "updatedAt": generated_at,
         "rows": ytd_rows,
@@ -913,7 +940,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     boards: dict[str, Any] = {}
     for board in ["day", "week", "month", "volume"]:
         boards[board] = {
-            "rows": product_market_board_payload(conn, board, board_limit, symbols),
+            "rows": product_market_board_payload(
+                conn, board, board_limit, symbols, include_tracking_analysis
+            ),
         }
     movers = {
         "updatedAt": generated_at,
@@ -1733,11 +1762,13 @@ def analytics_text(value: Any, max_length: int) -> str:
     return re.sub(r"[^a-zA-Z0-9_./#:-]+", "", str(value or ""))[:max_length]
 
 
-def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
-    event_type = analytics_text(payload.get("eventType"), 40)
-    event_key = analytics_text(payload.get("eventKey"), 80)
-    if event_type != "nav_click" or not event_key:
-        raise ValueError("埋点参数不正确")
+def insert_analytics_event(
+    conn: sqlite3.Connection,
+    user: sqlite3.Row | None,
+    event_type: str,
+    event_key: str,
+    path: str = "",
+) -> None:
     if not user:
         return
     timestamp = now_iso()
@@ -1746,12 +1777,48 @@ def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, pa
         INSERT INTO analytics_events (user_id, event_type, event_key, path, created_at)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (user["id"], event_type, event_key, analytics_text(payload.get("path"), 200), timestamp),
+        (
+            user["id"],
+            analytics_text(event_type, 40),
+            analytics_text(event_key, 80),
+            analytics_text(path, 200),
+            timestamp,
+        ),
     )
     today = timestamp[:10]
     last_login = str(user["last_login_at"] or "")[:10]
     if last_login != today:
         conn.execute("UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?", (timestamp, timestamp, user["id"]))
+
+
+def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
+    event_type = analytics_text(payload.get("eventType"), 40)
+    event_key = analytics_text(payload.get("eventKey"), 80)
+    if event_type != "nav_click" or not event_key:
+        raise ValueError("埋点参数不正确")
+    insert_analytics_event(conn, user, event_type, event_key, str(payload.get("path") or ""))
+
+
+def write_course_play_grant(user: sqlite3.Row, lesson_id: int) -> None:
+    conn: sqlite3.Connection | None = None
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=0.05)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=50")
+        conn.execute("PRAGMA foreign_keys=ON")
+        with conn:
+            insert_analytics_event(
+                conn,
+                user,
+                "course_play_grant",
+                str(lesson_id),
+                "/api/courses/lessons/:id/play",
+            )
+    except Exception:
+        print("course play analytics write failed")
+    finally:
+        if conn:
+            conn.close()
 
 
 def analytics_range_clause(
@@ -2438,11 +2505,135 @@ def signed_course_cos_url(key: str, *, method: str = "get", now: int | None = No
     return f"{object_url}?{urlencode(params)}"
 
 
+def course_video_uses_cdn(key: str) -> bool:
+    clean_key = key.strip().lstrip("/")
+    return COURSE_CDN_ENABLED and any(
+        clean_key == allowed_key or (allowed_key.endswith("/") and clean_key.startswith(allowed_key))
+        for allowed_key in COURSE_CDN_VIDEO_KEYS
+    )
+
+
+def validate_course_cdn_config() -> None:
+    if not COURSE_CDN_ENABLED:
+        return
+    domain = urlparse(COURSE_CDN_DOMAIN)
+    if domain.scheme != "https" or not domain.netloc or domain.path not in {"", "/"} or domain.query or domain.fragment:
+        raise RuntimeError("课程 CDN 域名格式错误")
+    if not re.fullmatch(r"[A-Za-z0-9]{6,32}", COURSE_CDN_AUTH_KEY):
+        raise RuntimeError("课程 CDN 鉴权密钥格式错误")
+    if not 60 <= COURSE_CDN_SIGN_TTL <= 630_720_000:
+        raise RuntimeError("课程 CDN 鉴权有效期格式错误")
+    if not COURSE_CDN_VIDEO_KEYS:
+        raise RuntimeError("课程 CDN 视频白名单不能为空")
+
+
+def signed_course_cdn_url(key: str, *, now: int | None = None, nonce: str | None = None) -> str:
+    validate_course_cdn_config()
+    clean_key = key.strip().lstrip("/")
+    if not clean_key:
+        raise ValueError("视频 CDN Key 不能为空")
+    if not course_video_uses_cdn(clean_key):
+        raise RuntimeError("视频不在 CDN 白名单")
+    path = "/" + quote(clean_key, safe="/-_.~")
+    timestamp = int(time.time() if now is None else now)
+    random_value = nonce or secrets.token_hex(8)
+    if not re.fullmatch(r"[A-Za-z0-9]{1,100}", random_value):
+        raise ValueError("CDN 签名随机值格式错误")
+    digest = hashlib.md5(
+        f"{path}-{timestamp}-{random_value}-0-{COURSE_CDN_AUTH_KEY}".encode("utf-8")
+    ).hexdigest()
+    return f"{COURSE_CDN_DOMAIN}{path}?{urlencode({'sign': f'{timestamp}-{random_value}-0-{digest}'})}"
+
+
 def signed_course_video_url(video_key: str, now: int | None = None) -> str:
     raw = course_video_key(str(video_key or "").strip())
     if raw.startswith("http://") or raw.startswith("https://"):
         return raw
+    if course_video_uses_cdn(raw):
+        return signed_course_cdn_url(raw, now=now)
     return signed_course_cos_url(raw, method="get", now=now)
+
+
+def signed_course_hls_segment_url(video_key: str) -> str:
+    if course_video_uses_cdn(video_key) and COURSE_CDN_SIGN_TTL < COURSE_HLS_SIGN_TTL:
+        raise RuntimeError("HLS CDN 鉴权有效期不能短于 HLS 播放有效期")
+    return signed_course_video_url(video_key)
+
+
+def course_video_is_hls(video_key: str) -> bool:
+    raw = course_video_key(str(video_key or "").strip())
+    return bool(raw and not urlparse(raw).scheme and raw.lower().endswith(".m3u8"))
+
+
+def course_hls_playlist_url(lesson_id: int, video_key: str) -> str:
+    return f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': course_video_key(video_key)})}"
+
+
+def fetch_course_cos_text(key: str) -> str:
+    request = urllib.request.Request(
+        signed_course_cos_url(key, method="get", ttl=120),
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            raw = response.read(2 * 1024 * 1024)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"HLS 播放清单读取失败：HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError("HLS 播放清单暂时不可用") from exc
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("HLS 播放清单格式不正确") from exc
+
+
+def resolve_course_hls_key(root_prefix: str, current_key: str, uri: str) -> str:
+    parsed = urlparse(str(uri or "").strip())
+    if parsed.scheme or parsed.netloc or parsed.path.startswith("/") or not parsed.path:
+        raise ValueError("HLS 播放清单包含不安全地址")
+    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(current_key), unquote(parsed.path)))
+    if resolved == root_prefix or not resolved.startswith(root_prefix + "/"):
+        raise ValueError("HLS 播放清单越过课程目录")
+    return resolved
+
+
+def validate_course_hls_playlist_key(master_key: str, requested_key: str) -> str:
+    root_prefix = posixpath.dirname(course_video_key(master_key))
+    clean_key = posixpath.normpath(course_video_key(requested_key))
+    if not root_prefix or (clean_key != course_video_key(master_key) and not clean_key.startswith(root_prefix + "/")):
+        raise ValueError("HLS 播放清单不属于当前课程")
+    if not clean_key.lower().endswith(".m3u8"):
+        raise ValueError("HLS 播放清单格式不正确")
+    return clean_key
+
+
+def render_course_hls_playlist(lesson_id: int, master_key: str, requested_key: str, content: str) -> str:
+    root_prefix = posixpath.dirname(course_video_key(master_key))
+    clean_key = validate_course_hls_playlist_key(master_key, requested_key)
+
+    output: list[str] = []
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            if "URI=" in line:
+                raise ValueError("HLS 播放清单包含未支持的内嵌地址")
+            output.append(raw_line)
+            continue
+        target_key = resolve_course_hls_key(root_prefix, clean_key, line)
+        if target_key.lower().endswith(".m3u8"):
+            output.append(
+                f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': target_key})}"
+            )
+        else:
+            output.append(signed_course_hls_segment_url(target_key))
+    return "\n".join(output) + "\n"
+
+
+def course_video_url_ttl(video_key: str) -> int:
+    raw = course_video_key(str(video_key or "").strip())
+    if course_video_is_hls(raw):
+        return COURSE_HLS_SIGN_TTL
+    return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_COS_SIGN_TTL)
 
 
 def safe_course_video_filename(value: str) -> str:
@@ -3204,6 +3395,14 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_content(self, body: bytes, content_type: str, status: int = 200) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def send_static(self, request_path: str) -> None:
         parsed = urlparse(request_path)
         raw_path = unquote(parsed.path)
@@ -3331,11 +3530,14 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts) >= 3 and parts[2] == "bootstrap":
                     board_limit = int_param(params, "limit", 500, maximum=500)
                     symbols = market_opinion_list(params.get("symbols", [""])[0], upper=True)
-                    payload = product_bootstrap_payload(conn, board_limit, symbols)
                     user = self.current_user()
+                    can_view_paid_data = bool(user and entitlements(user)["paid"])
+                    payload = product_bootstrap_payload(
+                        conn, board_limit, symbols, can_view_paid_data
+                    )
                     if not user:
                         payload["marketTemperature"] = None
-                    if not user or not entitlements(user)["paid"]:
+                    if not can_view_paid_data:
                         payload["strength"] = None
                         payload["strengthReview"] = None
                     self.send_json(payload)
@@ -3603,7 +3805,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(
             {
                 "profile": product_symbol_payload(profile),
-                "marketRows": [product_market_row_payload(row) for row in market_rows],
+                "marketRows": [
+                    product_market_row_payload(row, can_view_strength) for row in market_rows
+                ],
                 "peers": [product_symbol_payload(row) for row in peers],
                 "events": [product_event_payload(row) for row in events],
                 "earnings": [product_earnings_payload(row) for row in earnings],
@@ -3642,7 +3846,19 @@ class Handler(BaseHTTPRequestHandler):
             """,
             (*values, limit, offset),
         ).fetchall()
-        self.send_json({"board": board, "rows": [product_market_row_payload(row) for row in rows], "total": total, "limit": limit, "offset": offset})
+        user = self.current_user()
+        can_view_paid_data = bool(user and entitlements(user)["paid"])
+        self.send_json(
+            {
+                "board": board,
+                "rows": [
+                    product_market_row_payload(row, can_view_paid_data) for row in rows
+                ],
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            }
+        )
 
     def send_product_sectors(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
         limit = int_param(params, "limit", 20, maximum=100)
@@ -3805,6 +4021,34 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
+    def course_lesson_for_playback(self, user: sqlite3.Row, lesson_id: int) -> sqlite3.Row | None:
+        with db() as conn:
+            lesson = conn.execute(
+                """
+                SELECT l.*, s.status AS series_status
+                FROM course_lessons l
+                JOIN course_series s ON s.id = l.series_id
+                WHERE l.id = ?
+                """,
+                (lesson_id,),
+            ).fetchone()
+            if (
+                not lesson
+                or lesson["status"] != "published"
+                or lesson["series_status"] != "published"
+                or not str(lesson["video_key"] or "").strip()
+                or (
+                    course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
+                    and not str(lesson["video_source_key"] or "").strip()
+                )
+            ):
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return None
+            if not course_has_access(conn, user, int(lesson["series_id"])):
+                self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
+                return None
+        return lesson
+
     def do_GET(self) -> None:
         if self.path == "/api/health":
             self.send_json({"ok": True, "time": now_iso()})
@@ -3859,6 +4103,36 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/hls"):
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                lesson_id = int(parsed.path.removesuffix("/hls").removeprefix("/api/courses/lessons/"))
+            except ValueError:
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            lesson = self.course_lesson_for_playback(user, lesson_id)
+            if not lesson:
+                return
+            master_key = str(lesson["video_key"] or "").strip()
+            if not course_video_is_hls(master_key):
+                self.send_json({"error": "HLS 视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            requested_key = str(parse_qs(parsed.query).get("playlist", [master_key])[0]).strip()
+            try:
+                clean_key = validate_course_hls_playlist_key(master_key, requested_key)
+                content = fetch_course_cos_text(clean_key)
+                playlist = render_course_hls_playlist(lesson_id, master_key, clean_key, content)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception:
+                self.send_json({"error": "播放清单暂时不可用"}, HTTPStatus.BAD_GATEWAY)
+                return
+            self.send_content(playlist.encode("utf-8"), "application/vnd.apple.mpegurl; charset=utf-8")
+            return
+
         if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/play"):
             user = self.require_user()
             if not user:
@@ -3868,35 +4142,22 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
                 return
-            with db() as conn:
-                lesson = conn.execute(
-                    """
-                    SELECT l.*, s.status AS series_status
-                    FROM course_lessons l
-                    JOIN course_series s ON s.id = l.series_id
-                    WHERE l.id = ?
-                    """,
-                    (lesson_id,),
-                ).fetchone()
-                if (
-                    not lesson
-                    or lesson["status"] != "published"
-                    or lesson["series_status"] != "published"
-                    or not str(lesson["video_key"] or "").strip()
-                    or (
-                        course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
-                        and not str(lesson["video_source_key"] or "").strip()
-                    )
-                ):
-                    self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
-                    return
-                if not course_has_access(conn, user, int(lesson["series_id"])):
-                    self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
-                    return
+            lesson = self.course_lesson_for_playback(user, lesson_id)
+            if not lesson:
+                return
             try:
-                self.send_json({"url": signed_course_video_url(lesson["video_key"]), "expiresIn": max(60, COURSE_COS_SIGN_TTL)})
+                is_hls = course_video_is_hls(lesson["video_key"])
+                play_url = (
+                    course_hls_playlist_url(lesson_id, lesson["video_key"])
+                    if is_hls
+                    else signed_course_video_url(lesson["video_key"])
+                )
+                play_ttl = course_video_url_ttl(lesson["video_key"])
             except Exception as exc:
                 self.send_json({"error": f"播放地址不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            write_course_play_grant(user, lesson_id)
+            self.send_json({"url": play_url, "expiresIn": play_ttl, "type": "hls" if is_hls else "file"})
             return
 
         if parsed.path == "/api/tools/funding-arbitrage":
@@ -4671,6 +4932,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    validate_course_cdn_config()
     init_db()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"auth api listening on http://{HOST}:{PORT}, db={DB_PATH}")

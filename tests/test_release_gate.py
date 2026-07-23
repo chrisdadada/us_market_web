@@ -1,11 +1,13 @@
 import http.cookiejar
 import base64
+import hashlib
 import json
 import sqlite3
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -34,6 +36,14 @@ class ApiClient:
 
     def get(self, path: str) -> tuple[int, dict]:
         return self.request("GET", path)
+
+    def get_raw(self, path: str) -> tuple[int, str, bytes]:
+        request = urllib.request.Request(self.base_url + path, method="GET")
+        try:
+            with self.opener.open(request, timeout=5) as response:
+                return response.status, str(response.headers.get("Content-Type", "")), response.read()
+        except urllib.error.HTTPError as error:
+            return error.code, str(error.headers.get("Content-Type", "")), error.read()
 
     def post(self, path: str, payload: dict | None = None) -> tuple[int, dict]:
         return self.request("POST", path, payload or {})
@@ -85,6 +95,11 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_COS_BUCKET = ""
         auth_api.COURSE_COS_REGION = ""
         auth_api.COURSE_COS_DOMAIN = ""
+        auth_api.COURSE_CDN_ENABLED = False
+        auth_api.COURSE_CDN_DOMAIN = ""
+        auth_api.COURSE_CDN_AUTH_KEY = ""
+        auth_api.COURSE_CDN_SIGN_TTL = 1800
+        auth_api.COURSE_CDN_VIDEO_KEYS = set()
         auth_api.COURSE_VIDEO_AUTO_PROCESS_ENABLED = False
         auth_api.COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS = 21600
         auth_api.init_db()
@@ -807,6 +822,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         status, payload = user.post("/api/analytics/event", {"eventType": "nav_click", "eventKey": "stocks", "path": "/?page=stocks"})
         self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_play_grant", "eventKey": "1"})
+        self.assertEqual(status, 400, payload)
 
         status, payload = admin.get("/api/admin/metrics")
         self.assertEqual(status, 200, payload)
@@ -1204,6 +1221,26 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["url"], "https://example.test/video-updated.mp4")
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            event = conn.execute(
+                "SELECT event_type, event_key, path FROM analytics_events WHERE event_type = 'course_play_grant'"
+            ).fetchone()
+        self.assertEqual(event, ("course_play_grant", str(lesson_id), "/api/courses/lessons/:id/play"))
+        with patch.object(auth_api, "insert_analytics_event", side_effect=sqlite3.OperationalError("write failed")):
+            status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["url"], "https://example.test/video-updated.mp4")
+        blocker = sqlite3.connect(auth_api.DB_PATH)
+        try:
+            blocker.execute("BEGIN IMMEDIATE")
+            started = time.monotonic()
+            status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+            elapsed = time.monotonic() - started
+        finally:
+            blocker.rollback()
+            blocker.close()
+        self.assertEqual(status, 200, payload)
+        self.assertLess(elapsed, 0.75)
 
         status, payload = admin.post(
             "/api/admin/courses/lessons",
@@ -1669,6 +1706,225 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         )
         self.assertIn("q-sign-algorithm=sha1", url)
         self.assertIn("/lesson/demo.mp4?", url)
+
+    def test_course_cdn_type_a_signing_is_limited_to_allowlist(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_DOMAIN = "https://lesson-dev.dongbimao.org"
+        auth_api.COURSE_CDN_AUTH_KEY = "cdnsecret"
+        auth_api.COURSE_CDN_SIGN_TTL = 900
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/demo video.mp4"}
+
+        cdn_url = auth_api.signed_course_cdn_url(
+            "lesson/demo video.mp4",
+            now=1_700_000_000,
+            nonce="abc123",
+        )
+        expected_hash = hashlib.md5(
+            b"/lesson/demo%20video.mp4-1700000000-abc123-0-cdnsecret"
+        ).hexdigest()
+        self.assertEqual(
+            cdn_url,
+            "https://lesson-dev.dongbimao.org/lesson/demo%20video.mp4"
+            f"?sign=1700000000-abc123-0-{expected_hash}",
+        )
+        self.assertIn(
+            "lesson-dev.dongbimao.org",
+            auth_api.signed_course_video_url("lesson/demo video.mp4", now=1_700_000_000),
+        )
+        self.assertEqual(auth_api.course_video_url_ttl("lesson/demo video.mp4"), 900)
+
+        cos_url = auth_api.signed_course_video_url("lesson/other.mp4", now=1_700_000_000)
+        self.assertIn("cos.ap-chengdu.myqcloud.com", cos_url)
+        self.assertIn("q-sign-algorithm=sha1", cos_url)
+        self.assertEqual(auth_api.course_video_url_ttl("lesson/other.mp4"), 1800)
+
+        auth_api.COURSE_CDN_AUTH_KEY = "bad-key!"
+        with self.assertRaisesRegex(RuntimeError, "密钥格式错误"):
+            auth_api.signed_course_cdn_url("lesson/demo video.mp4")
+
+    def test_course_cdn_allowlist_accepts_hls_directory_prefix(self) -> None:
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/hls/dev-pilot/lesson-35/"}
+
+        self.assertTrue(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-35/master.m3u8"))
+        self.assertTrue(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-35/720/segment-1.ts"))
+        self.assertFalse(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-350/720/segment-1.ts"))
+        self.assertFalse(auth_api.course_video_uses_cdn("lesson/hls/dev-pilot/lesson-36/720/segment-1.ts"))
+
+    def test_course_cdn_playback_keeps_course_access_boundary_and_rolls_back(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_DOMAIN = "https://lesson-dev.dongbimao.org"
+        auth_api.COURSE_CDN_AUTH_KEY = "cdnsecret"
+        auth_api.COURSE_CDN_SIGN_TTL = 900
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/poc.mp4"}
+
+        admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(admin, "cdn-course-user@example.test", "free")
+        client = self.login("cdn-course-user@example.test", "user-password")
+        status, payload = admin.post(
+            "/api/admin/courses",
+            {"title": "CDN 测试课程", "summary": "", "coverUrl": "", "status": "published"},
+        )
+        self.assertEqual(status, 201, payload)
+        series_id = payload["series"]["id"]
+        status, payload = admin.post(
+            "/api/admin/courses/lessons",
+            {
+                "seriesId": series_id,
+                "title": "CDN 测试视频",
+                "videoKey": "lesson/poc.mp4",
+                "status": "published",
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        lesson_id = payload["lesson"]["id"]
+
+        status, payload = self.client().get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 401, payload)
+        self.assertNotIn("url", payload)
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 403, payload)
+        self.assertNotIn("url", payload)
+
+        status, payload = admin.post(
+            "/api/admin/courses/grants",
+            {"seriesId": series_id, "user": user["uid"], "expiresAt": "2027-01-01"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("lesson-dev.dongbimao.org/lesson/poc.mp4?sign=", payload["url"])
+        self.assertEqual(payload["expiresIn"], 900)
+
+        auth_api.COURSE_CDN_ENABLED = False
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("cos.ap-chengdu.myqcloud.com/lesson/poc.mp4", payload["url"])
+        self.assertIn("q-sign-algorithm=sha1", payload["url"])
+        self.assertEqual(payload["expiresIn"], 1800)
+
+    def test_course_hls_playback_keeps_access_checks_and_signs_segments(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-dev-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        admin = self.login("admin@example.test", "admin-password")
+        user = self.create_user(admin, "hls-course-user@example.test", "free")
+        client = self.login("hls-course-user@example.test", "user-password")
+        status, payload = admin.post(
+            "/api/admin/courses",
+            {"title": "HLS 测试课程", "summary": "", "coverUrl": "", "status": "published"},
+        )
+        self.assertEqual(status, 201, payload)
+        series_id = payload["series"]["id"]
+        status, payload = admin.post(
+            "/api/admin/courses/lessons",
+            {
+                "seriesId": series_id,
+                "title": "HLS 测试视频",
+                "videoKey": "lesson/hls/pilot/master.m3u8",
+                "status": "published",
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        lesson_id = payload["lesson"]["id"]
+
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 403, payload)
+        status, payload = admin.post(
+            "/api/admin/courses/grants",
+            {"seriesId": series_id, "user": user["uid"], "expiresAt": "2027-01-01"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = client.get(f"/api/courses/lessons/{lesson_id}/play")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["type"], "hls")
+        self.assertIn(f"/api/courses/lessons/{lesson_id}/hls?", payload["url"])
+        self.assertEqual(payload["expiresIn"], auth_api.COURSE_HLS_SIGN_TTL)
+
+        def fake_playlist(key: str) -> str:
+            if key.endswith("master.m3u8"):
+                return "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=746000\n720/index.m3u8\n"
+            return "#EXTM3U\n#EXTINF:5,\nsegment-00001.ts\n#EXT-X-ENDLIST\n"
+
+        with patch.object(auth_api, "fetch_course_cos_text", side_effect=fake_playlist):
+            status, content_type, body = client.get_raw(payload["url"])
+            self.assertEqual(status, 200)
+            self.assertIn("application/vnd.apple.mpegurl", content_type)
+            self.assertIn(f"/api/courses/lessons/{lesson_id}/hls?", body.decode("utf-8"))
+
+            variant_url = (
+                f"/api/courses/lessons/{lesson_id}/hls?"
+                "playlist=lesson%2Fhls%2Fpilot%2F720%2Findex.m3u8"
+            )
+            status, _, body = client.get_raw(variant_url)
+            self.assertEqual(status, 200)
+            playlist = body.decode("utf-8")
+            self.assertIn("lesson-dev-1259765032.cos.ap-chengdu.myqcloud.com", playlist)
+            self.assertIn("q-sign-algorithm=sha1", playlist)
+
+        status, payload = self.client().get(f"/api/courses/lessons/{lesson_id}/hls")
+        self.assertEqual(status, 401, payload)
+
+    def test_course_hls_playlist_can_sign_allowlisted_segments_with_cdn(self) -> None:
+        auth_api.COURSE_CDN_ENABLED = True
+        auth_api.COURSE_CDN_DOMAIN = "https://lesson-dev.dongbimao.org"
+        auth_api.COURSE_CDN_AUTH_KEY = "cdnsecret"
+        auth_api.COURSE_CDN_SIGN_TTL = auth_api.COURSE_HLS_SIGN_TTL
+        auth_api.COURSE_CDN_VIDEO_KEYS = {"lesson/hls/pilot/"}
+        master_key = "lesson/hls/pilot/master.m3u8"
+
+        playlist = auth_api.render_course_hls_playlist(
+            35,
+            master_key,
+            "lesson/hls/pilot/720/index.m3u8",
+            "#EXTM3U\n#EXTINF:5,\nsegment-00001.ts\n#EXT-X-ENDLIST\n",
+        )
+
+        self.assertIn(
+            "https://lesson-dev.dongbimao.org/lesson/hls/pilot/720/segment-00001.ts?sign=",
+            playlist,
+        )
+
+        auth_api.COURSE_CDN_SIGN_TTL = auth_api.COURSE_HLS_SIGN_TTL - 1
+        with self.assertRaisesRegex(RuntimeError, "不能短于 HLS"):
+            auth_api.render_course_hls_playlist(
+                35,
+                master_key,
+                "lesson/hls/pilot/720/index.m3u8",
+                "#EXTM3U\n#EXTINF:5,\nsegment-00001.ts\n",
+            )
+
+    def test_course_hls_playlist_rejects_escape_and_external_addresses(self) -> None:
+        auth_api.COURSE_COS_SECRET_ID = "secret-id"
+        auth_api.COURSE_COS_SECRET_KEY = "secret-key"
+        auth_api.COURSE_COS_BUCKET = "lesson-dev-1259765032"
+        auth_api.COURSE_COS_REGION = "ap-chengdu"
+        master_key = "lesson/hls/pilot/master.m3u8"
+        with self.assertRaisesRegex(ValueError, "不属于当前课程"):
+            auth_api.validate_course_hls_playlist_key(master_key, "lesson/other/master.m3u8")
+        with self.assertRaisesRegex(ValueError, "越过课程目录"):
+            auth_api.render_course_hls_playlist(
+                35,
+                master_key,
+                master_key,
+                "#EXTM3U\n../../private.ts\n",
+            )
+        with self.assertRaisesRegex(ValueError, "不安全地址"):
+            auth_api.render_course_hls_playlist(
+                35,
+                master_key,
+                master_key,
+                "#EXTM3U\nhttps://example.test/video.ts\n",
+            )
 
     def test_course_video_upload_puts_to_cos_and_returns_key(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"

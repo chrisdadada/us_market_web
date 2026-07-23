@@ -690,6 +690,9 @@ def import_tracking_pool(conn: sqlite3.Connection) -> int:
                 "changeYtd": change,
                 "actionNote": "跟踪池标的，按趋势、成交额和事件节奏复盘。",
             }
+            if board != "day":
+                board_row.pop("keyLevels", None)
+                board_row.pop("priceHistory", None)
             import_market_row(conn, board, as_of, board_row, "tracking-pool")
             count += 1
     for row in missing:

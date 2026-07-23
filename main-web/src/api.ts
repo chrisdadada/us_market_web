@@ -18,9 +18,47 @@ export type AuthStatus = {
   };
 };
 
+export type KeyLevel = {
+  center?: number | null;
+  lower?: number | null;
+  upper?: number | null;
+  strength?: "strong" | "medium" | "weak" | "converting" | string;
+  strengthText?: string;
+  touches?: number;
+  basis?: string;
+  lastConfirmedAt?: string;
+};
+
+export type TrackingKeyLevels = {
+  status?: "ready" | "insufficient" | "unavailable" | string;
+  asOf?: string;
+  availableBars?: number;
+  requiredBars?: number;
+  currentPrice?: number | null;
+  support?: KeyLevel | null;
+  secondarySupport?: KeyLevel | null;
+  resistance?: KeyLevel | null;
+  position?: string;
+  positionText?: string;
+  supportDistancePct?: number | null;
+  resistanceDistancePct?: number | null;
+  atr14?: number | null;
+  atrPct?: number | null;
+  ma20?: number | null;
+  ma60?: number | null;
+  trend?: string;
+  trendText?: string;
+};
+
+export type PriceHistoryPoint = {
+  date: string;
+  close: number;
+};
+
 export type MarketRow = {
   rank?: number;
   symbol: string;
+  tradeDate?: string;
   company?: string;
   chineseName?: string;
   sector?: string;
@@ -31,6 +69,8 @@ export type MarketRow = {
   dollarVolume?: number;
   marketCap?: string;
   marketCapValue?: number;
+  keyLevels?: TrackingKeyLevels;
+  priceHistory?: PriceHistoryPoint[];
 };
 
 export type StrengthRow = {
@@ -265,6 +305,8 @@ export type MarketBoardRow = {
   dollarVolume?: number | null;
   volumeRatio?: number | null;
   marketCap?: string | null;
+  keyLevels?: TrackingKeyLevels;
+  priceHistory?: PriceHistoryPoint[];
 };
 
 export type MarketBoardPayload = {
@@ -569,5 +611,8 @@ export const api = {
     return request<FundingScannerPayload>(`/api/tools/funding-arbitrage?${params.toString()}`);
   },
   courses: () => request<{ series: CourseSeries[] }>("/api/courses"),
-  coursePlayUrl: (lessonId: number) => request<{ url: string; expiresIn: number }>(`/api/courses/lessons/${encodeURIComponent(lessonId)}/play`)
+  coursePlayUrl: (lessonId: number, signal?: AbortSignal) => request<{ url: string; expiresIn: number; type: "file" | "hls" }>(
+    `/api/courses/lessons/${encodeURIComponent(lessonId)}/play`,
+    { signal }
+  )
 };

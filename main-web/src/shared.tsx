@@ -100,12 +100,11 @@ export function MaskedValue({ value }: { value?: string | number | null }) {
   );
 }
 
-export function LockedStockName({ symbol, name }: { symbol: string; name?: string }) {
+export function LockedStockName(_: { symbol: string; name?: string }) {
   return (
-    <span className="lockedStockName" aria-label="会员内容">
-      <b>{symbol}</b>
-      <small>{name || symbol}</small>
-      <i aria-hidden="true" />
+    <span className="lockedStockName" aria-label="会员可见">
+      <span className="lockedStockPlaceholder" aria-hidden="true" />
+      <small>会员可见</small>
     </span>
   );
 }
