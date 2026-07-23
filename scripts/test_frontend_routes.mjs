@@ -5,6 +5,7 @@ import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { readProductDataset } from "./product_db_test_data.mjs";
+import { strengthPageFixture } from "./strength_page_fixture.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const defaultMaxDocumentHeight = 9000;
@@ -145,6 +146,8 @@ async function productApiPayload(url) {
     const name = url.pathname.split("/").pop();
     return readDataset(name);
   }
+
+  if (url.pathname === "/api/product/strength") return strengthPageFixture(strength, url);
 
   if (url.pathname === "/api/product/symbols") {
     const query = String(url.searchParams.get("query") || url.searchParams.get("q") || "").toUpperCase();

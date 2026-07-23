@@ -950,6 +950,93 @@ def product_sector_payload(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def product_strength_page_payload(conn: sqlite3.Connection, params: dict[str, list[str]]) -> dict[str, Any]:
+    limit = int_param(params, "limit", 20, maximum=100)
+    offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
+    bucket = str(params.get("bucket", ["watch"])[0] or "watch").strip().lower()
+    if bucket not in {"all", "watch", "hot", "neutral", "avoid"}:
+        bucket = "watch"
+    query = str(params.get("q", [""])[0] or params.get("query", [""])[0]).strip().upper()
+    sector = str(params.get("sector", [""])[0]).strip()
+    heat = str(params.get("heat", ["all"])[0] or "all").strip().lower()
+    if heat not in {"all", "normal", "rising", "hot"}:
+        heat = "all"
+    sort_key = str(params.get("sort", ["score"])[0] or "score").strip()
+    order_by = {
+        "score": "score DESC",
+        "return20d": "return_20d_pct DESC",
+        "relative": "relative_spy_pct DESC",
+        "crowding": "crowding_score DESC",
+    }.get(sort_key, "score DESC")
+    if sort_key not in {"score", "return20d", "relative", "crowding"}:
+        sort_key = "score"
+
+    where = []
+    values: list[Any] = []
+    if bucket != "all":
+        where.append("bucket = ?")
+        values.append(bucket)
+    if query:
+        like = f"%{query}%"
+        where.append("(symbol LIKE ? OR UPPER(COALESCE(company, '')) LIKE ?)")
+        values.extend([like, like])
+    if sector and sector.lower() != "all":
+        where.append("sector = ?")
+        values.append(sector)
+    if heat == "normal":
+        where.append("COALESCE(crowding_score, 0) < 55")
+    elif heat == "rising":
+        where.append("COALESCE(crowding_score, 0) >= 55 AND COALESCE(crowding_score, 0) < 72")
+    elif heat == "hot":
+        where.append("COALESCE(crowding_score, 0) >= 72")
+    where_sql = "WHERE " + " AND ".join(where) if where else ""
+
+    total = conn.execute(f"SELECT COUNT(*) AS count FROM strength_rows {where_sql}", values).fetchone()["count"]
+    page_rows = conn.execute(
+        f"""
+        SELECT payload_json
+        FROM strength_rows
+        {where_sql}
+        ORDER BY {order_by}, symbol ASC
+        LIMIT ? OFFSET ?
+        """,
+        (*values, limit, offset),
+    ).fetchall()
+    counts = {"all": 0, "watch": 0, "hot": 0, "neutral": 0, "avoid": 0}
+    for row in conn.execute("SELECT bucket, COUNT(*) AS count FROM strength_rows GROUP BY bucket").fetchall():
+        if row["bucket"] in counts:
+            counts[row["bucket"]] = row["count"]
+        counts["all"] += row["count"]
+    sectors = [
+        row["sector"]
+        for row in conn.execute(
+            """
+            SELECT DISTINCT sector
+            FROM strength_rows
+            WHERE COALESCE(sector, '') NOT IN ('', '--', '未分类', '板块待补')
+            ORDER BY sector ASC
+            """
+        ).fetchall()
+    ]
+    summary_payload = product_raw_payload(conn, "strength-scanner") or {}
+    return {
+        "asOf": summary_payload.get("asOf"),
+        "summary": summary_payload.get("summary") or {},
+        "themes": summary_payload.get("themes") or {},
+        "counts": counts,
+        "sectors": sectors,
+        "rows": [parse_json_field(row["payload_json"], {}) for row in page_rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "bucket": bucket,
+        "query": query,
+        "sector": sector or "all",
+        "heat": heat,
+        "sort": sort_key,
+    }
+
+
 def product_sector_board_payload(conn: sqlite3.Connection, board: str, include_unknown: bool, limit: int, offset: int) -> dict[str, Any]:
     unknown_filter = "" if include_unknown else "AND sector NOT IN ('未分类', '板块待补', '--')"
     rows = conn.execute(
@@ -3233,6 +3320,12 @@ class Handler(BaseHTTPRequestHandler):
 
                 if len(parts) >= 3 and parts[2] == "coverage":
                     self.send_json(product_coverage_payload(conn))
+                    return
+
+                if len(parts) >= 3 and parts[2] == "strength":
+                    if not self.require_dataset_access("strength-scanner"):
+                        return
+                    self.send_json(product_strength_page_payload(conn, params))
                     return
 
                 if len(parts) >= 3 and parts[2] == "bootstrap":

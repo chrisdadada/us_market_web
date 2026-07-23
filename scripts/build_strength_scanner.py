@@ -218,7 +218,7 @@ def build_theme_summary(work: pd.DataFrame) -> dict:
     }
 
 
-def build_scanner(data_root: Path, min_adv: float, limit: int) -> dict:
+def build_scanner(data_root: Path, min_adv: float, limit: int, *, include_all_rows: bool = False) -> dict:
     current_year = datetime.now().year
     years = [current_year - 1, current_year]
     daily = load_daily(data_root, years)
@@ -357,13 +357,18 @@ def build_scanner(data_root: Path, min_adv: float, limit: int) -> dict:
         | ((work["strength_score"] >= 76) & (work["crowding_score"] >= 72))
     ].sort_values(["strength_score", "breakout_score"], ascending=False).head(limit).copy()
 
-    def to_rows(df: pd.DataFrame, bucket: str) -> list[dict]:
+    def scanner_bucket(score: float, crowding: float) -> str:
+        if score >= 75:
+            return "hot" if crowding >= 72 else "watch"
+        return "avoid" if score < 55 else "neutral"
+
+    def to_rows(df: pd.DataFrame, bucket: str | None) -> list[dict]:
         rows = []
         for rank, row in enumerate(df.itertuples(index=False), start=1):
             rows.append(
                 {
                     "rank": rank,
-                    "bucket": bucket,
+                    "bucket": bucket or scanner_bucket(float(row.strength_score), float(row.crowding_score)),
                     "symbol": row.symbol,
                     "name": row.name,
                     "exchange": row.exchange,
@@ -401,6 +406,12 @@ def build_scanner(data_root: Path, min_adv: float, limit: int) -> dict:
     rows = to_rows(strongest, "strongest") + to_rows(weakest, "weakest") + to_rows(watchlist, "watchlist")
     for row in rows:
         row["onBoard"] = {"label": "已入榜", "days": None, "streak": None, "firstSeen": latest_date}
+    bucket_counts = {
+        "watch": int(((work["strength_score"] >= 75) & (work["crowding_score"] < 72)).sum()),
+        "hot": int(((work["strength_score"] >= 75) & (work["crowding_score"] >= 72)).sum()),
+        "neutral": int(work["strength_score"].between(55, 74, inclusive="both").sum()),
+        "avoid": int((work["strength_score"] < 55).sum()),
+    }
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "asOf": latest_date,
@@ -422,6 +433,7 @@ def build_scanner(data_root: Path, min_adv: float, limit: int) -> dict:
             "medianScore": int(work["strength_score"].median()),
             "hotCrowdingCount": int((work["crowding_score"] >= 72).sum()),
         },
+        "bucketCounts": {"all": int(len(work)), **bucket_counts},
         "rows": rows,
         "themes": themes,
         "review": {"summary": "", "labels": [], "factors": []},
@@ -431,6 +443,11 @@ def build_scanner(data_root: Path, min_adv: float, limit: int) -> dict:
             "“风险回避”里的股票，除非有新的基本面变化，否则只做低频复盘。",
         ],
     }
+    if include_all_rows:
+        payload["_allRows"] = to_rows(
+            work.reset_index(drop=True).sort_values(["strength_score", "symbol"], ascending=[False, True]),
+            None,
+        )
 
     return payload
 

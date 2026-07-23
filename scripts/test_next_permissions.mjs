@@ -5,6 +5,7 @@ import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { readProductDataset } from "./product_db_test_data.mjs";
+import { strengthPageFixture } from "./strength_page_fixture.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
@@ -96,7 +97,7 @@ async function apiPayload(url, authProfile) {
 
   if (url.pathname === "/api/product/raw/market-temperature") return marketTemperature;
   if (url.pathname === "/api/product/raw/macro-series") return macroSeries;
-  if (url.pathname === "/api/product/raw/strength-scanner") return strength;
+  if (url.pathname === "/api/product/strength") return strengthPageFixture(strength, url);
 
   if (url.pathname === "/api/product/opinions") {
     const items = (opinions.items || []).filter((item) => item.status === "published");
@@ -276,7 +277,7 @@ try {
           }
         }
       }
-      const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/raw/strength-scanner").length;
+      const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
       if (profileName === "anonymous" || profileName === "free") {
         assert(strengthRequestCount === 0, `${profileName} should not request the paid strength dataset`);
       }
@@ -284,6 +285,19 @@ try {
         assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
       }
       if (profileName === "monthly") {
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
+        const strengthTabs = page.locator(".strengthListHead .marketToolTabs button");
+        assert(await strengthTabs.count() === 4, "strength page should show three focused lists and all stocks");
+        const allStocksTab = page.locator(".strengthListHead .marketToolTabs button", { hasText: "全部股票" });
+        assert(await allStocksTab.count() === 1, "strength page should show one all-stocks tab");
+        await Promise.all([
+          page.waitForResponse((response) => response.url().includes("/api/product/strength?") && response.url().includes("bucket=all")),
+          allStocksTab.click(),
+        ]);
+        await page.waitForFunction(() => document.querySelector(".strengthTable")?.getAttribute("aria-busy") === "false");
+        assert((await page.locator(".strengthPagination").innerText()).includes("共"), "all-stocks view should show server-side pagination");
+
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
         await page.waitForSelector("[data-testid='market-strength-page']");

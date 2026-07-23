@@ -290,7 +290,9 @@
 .marketToolSkeleton { min-height: 280px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: center; color: #718096; font-size: 14px; }
 .marketToolError { gap: 12px; }
 .marketToolError button { min-height: 34px; padding: 0 12px; border: 1px solid #bcd7fb; border-radius: 5px; background: #edf5ff; color: #1268d5; cursor: pointer; }
+.marketToolLoading.compact,
 .marketToolEmpty.compact { min-height: 100px; border: 0; }
+.marketToolError.compact { min-height: 48px; margin-bottom: 10px; border-radius: 6px; }
 
 @media (max-width: 1080px) {
   .temperatureSnapshot { grid-template-columns: 190px 1fr; }
@@ -306,7 +308,7 @@
 @media (max-width: 1100px) {
   .strengthMetrics { grid-template-columns: 1fr 1fr; }
   .strengthListHead { position: sticky; top: 58px; z-index: 8; align-items: stretch; flex-direction: column; gap: 10px; padding: 10px 12px; background: #fff; }
-  .strengthListHead .marketToolTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; overflow: visible; }
+  .strengthListHead .marketToolTabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; overflow: visible; }
   .strengthListHead .marketToolTabs button { min-width: 0; padding: 0 5px; font-size: 12px; white-space: nowrap; }
   .strengthListHead .marketToolTabs button small { margin-left: 3px; font-size: 10px; }
   .strengthDesktopFilters,

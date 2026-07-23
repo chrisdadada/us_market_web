@@ -357,6 +357,101 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["rows"][0]["symbol"], "MU")
 
+    def test_product_strength_supports_paid_pagination_search_and_filters(self) -> None:
+        db_path = Path(self.tempdir.name) / "product.db"
+        rows = [
+            ("watch", "AAPL", "Apple Inc.", "科技", 90, 12.0, 10.0, 50, {"symbol": "AAPL", "name": "Apple Inc.", "score": 90}),
+            ("watch", "AMD", "Advanced Micro Devices", "科技", 80, 8.0, 6.0, 60, {"symbol": "AMD", "name": "Advanced Micro Devices", "score": 80}),
+            ("hot", "NVDA", "NVIDIA Corp.", "科技", 95, 20.0, 18.0, 80, {"symbol": "NVDA", "name": "NVIDIA Corp.", "score": 95}),
+            ("neutral", "MSFT", "Microsoft Corp.", "科技", 60, 2.0, 1.0, 40, {"symbol": "MSFT", "name": "Microsoft Corp.", "score": 60}),
+            ("avoid", "INTC", "Intel Corp.", "科技", 30, -8.0, -10.0, 45, {"symbol": "INTC", "name": "Intel Corp.", "score": 30}),
+        ]
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                """
+                CREATE TABLE raw_payloads (
+                  name TEXT PRIMARY KEY,
+                  source_path TEXT NOT NULL,
+                  payload_json TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE strength_rows (
+                  bucket TEXT,
+                  symbol TEXT PRIMARY KEY,
+                  company TEXT,
+                  sector TEXT,
+                  score REAL,
+                  return_20d_pct REAL,
+                  relative_spy_pct REAL,
+                  crowding_score REAL,
+                  payload_json TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                "INSERT INTO raw_payloads (name, source_path, payload_json) VALUES (?, ?, ?)",
+                (
+                    "strength-scanner",
+                    "db-test",
+                    json.dumps(
+                        {
+                            "asOf": "2026-07-22",
+                            "summary": {"medianScore": 60},
+                            "themes": {"leaders": [{"name": "科技"}], "risk": []},
+                        },
+                        ensure_ascii=False,
+                    ),
+                ),
+            )
+            conn.executemany(
+                """
+                INSERT INTO strength_rows
+                (bucket, symbol, company, sector, score, return_20d_pct, relative_spy_pct, crowding_score, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [(*row[:-1], json.dumps(row[-1], ensure_ascii=False)) for row in rows],
+            )
+        auth_api.PRODUCT_DB_ENV = str(db_path)
+
+        free = self.client()
+        status, payload = free.post(
+            "/api/auth/register",
+            {"email": "strength-free@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = free.get("/api/product/strength")
+        self.assertEqual(status, 403, payload)
+        self.assertEqual(payload["code"], "membership_required")
+
+        admin = self.login("admin@example.test", "admin-password")
+        expires_at = (date.today() + timedelta(days=30)).isoformat()
+        self.create_user(admin, "strength-monthly@example.test", "monthly", expires_at=expires_at)
+        monthly = self.login("strength-monthly@example.test", "user-password")
+
+        status, payload = monthly.get("/api/product/strength?bucket=watch&limit=1&offset=0")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["total"], 2)
+        self.assertEqual(payload["rows"][0]["symbol"], "AAPL")
+        self.assertEqual(payload["counts"], {"all": 5, "watch": 2, "hot": 1, "neutral": 1, "avoid": 1})
+        self.assertEqual(payload["asOf"], "2026-07-22")
+
+        status, payload = monthly.get("/api/product/strength?bucket=watch&limit=1&offset=1")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"][0]["symbol"], "AMD")
+
+        status, payload = monthly.get("/api/product/strength?bucket=all&q=MSFT")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["total"], 1)
+        self.assertEqual(payload["rows"][0]["symbol"], "MSFT")
+
+        status, payload = monthly.get("/api/product/strength?bucket=all&heat=hot")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["total"], 1)
+        self.assertEqual(payload["rows"][0]["symbol"], "NVDA")
+
     def test_product_calendar_supports_db_pagination_and_filters(self) -> None:
         db_path = Path(self.tempdir.name) / "product.db"
         today = date.today()
@@ -522,7 +617,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = client.get("/api/product/health")
         self.assertEqual(status, 200, payload)
         self.assertTrue(payload["ok"])
-        self.assertEqual(payload["schemaVersion"], "1")
+        self.assertEqual(payload["schemaVersion"], "2")
         self.assertGreaterEqual(payload["counts"]["market_board_rows"], 800)
 
         status, payload = client.get("/api/product/coverage")
