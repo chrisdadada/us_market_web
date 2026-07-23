@@ -4142,7 +4142,6 @@ body,
 .membershipGate span,
 .opinionInlineLock i,
 .readerLockPanel i,
-.lockedStockName i,
 .frontInlineLock i,
 .frontMaskedValue i {
   position: relative;
@@ -4154,7 +4153,6 @@ body,
 .membershipGate span::before,
 .opinionInlineLock i::before,
 .readerLockPanel i::before,
-.lockedStockName i::before,
 .frontInlineLock i::before,
 .frontMaskedValue i::before {
   content: "";
@@ -4171,7 +4169,6 @@ body,
 .membershipGate span::after,
 .opinionInlineLock i::after,
 .readerLockPanel i::after,
-.lockedStockName i::after,
 .frontInlineLock i::after,
 .frontMaskedValue i::after {
   content: "";
@@ -4233,57 +4230,27 @@ body,
 }
 
 .lockedStockName {
-  position: relative;
-  display: grid !important;
-  gap: 5px;
-  overflow: hidden;
-  width: 210px;
-  min-height: 42px;
-  padding-right: 34px;
-  color: transparent !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 9px;
+  width: 150px;
+  min-height: 32px;
   user-select: none;
 }
 
-.lockedStockName b,
-.lockedStockName small {
-  display: block;
-  overflow: hidden;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #dfe8f3, #f3f7fc 46%, #dfe8f3);
-  text-indent: -999px;
+.lockedStockPlaceholder {
+  width: 70px;
+  height: 10px;
+  border-radius: 3px;
+  background: #dfe6ef;
+}
+
+.lockedStockName small,
+.trackingAddLocked {
+  color: #8390a2;
+  font-size: 11px;
+  font-weight: 520;
   white-space: nowrap;
-}
-
-.lockedStockName b {
-  width: 76px;
-  height: 15px;
-}
-
-.lockedStockName small {
-  width: 168px;
-  height: 11px;
-  opacity: .86;
-}
-
-.lockedStockName::before {
-  content: "";
-  position: absolute;
-  inset: -3px 20px -3px 44%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 68%);
-  pointer-events: none;
-}
-
-.lockedStockName i {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  width: 26px;
-  height: 26px;
-  border: 1px solid #d7e4f2;
-  border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 8px 16px rgba(31, 45, 61, 0.08);
-  transform: translateY(-50%);
 }
 
 /* Current market-opinion pages only. */
@@ -7419,20 +7386,60 @@ body,
   background: #fff;
 }
 
-.metricHelp {
+.infoTip {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 15px;
   height: 15px;
   margin-left: 4px;
-  border: 1px solid #c9d6e6;
-  border-radius: 999px;
-  color: #718096;
-  font-size: 10px;
-  font-weight: 560;
-  line-height: 1;
   vertical-align: middle;
+}
+
+.infoTipIcon {
+  display: inline-grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9eef5;
+  color: #63748a;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.infoTipBubble {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 7px);
+  left: 50%;
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  border: 1px solid #dbe3ed;
+  border-radius: 6px;
+  background: #263244;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, .16);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -2px);
+  transition: opacity .08s ease, transform .08s ease;
+  visibility: hidden;
+  white-space: normal;
+}
+
+.infoTip:hover .infoTipBubble,
+.infoTip:focus .infoTipBubble,
+.tableSortButton:focus-visible .infoTipBubble {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
 }
 
 .stocksPage .pager button {
@@ -9890,7 +9897,7 @@ body,
   color: #1677ff;
 }
 
-.tableSortButton span {
+.tableSortButton > .tableSortIndicator {
   display: inline-flex;
   width: 10px;
   justify-content: center;
@@ -11441,22 +11448,6 @@ body,
   display: inline;
 }
 
-.trackingKeyLevelsHead > i,
-.trackingLevelPanelHead h2 i {
-  display: inline-grid;
-  width: 16px;
-  height: 16px;
-  margin-left: 5px;
-  place-items: center;
-  border: 1px solid #cbd8e7;
-  border-radius: 50%;
-  color: #718096;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: 600;
-  cursor: help;
-}
-
 .trackingPage .screenerTable td.trackingKeyLevelsData {
   height: 66px;
   padding-top: 6px;
@@ -11515,7 +11506,7 @@ body,
 }
 
 .trackingKeyLevelsCell.locked strong {
-  color: #1677d2;
+  color: #8390a2;
 }
 
 .levelStrength {

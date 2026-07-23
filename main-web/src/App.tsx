@@ -93,6 +93,7 @@ const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
 const volumeRatioHelp = "当前成交额相对近20日平均成交额的倍数，越高代表成交越活跃。";
+const keyLevelsHelp = "根据近120个交易日的价格拐点、波动区间和均线自动计算，仅作观察参考。";
 
 type RouteState = {
   page: PageKey;
@@ -102,8 +103,17 @@ type RouteState = {
   resetToken: string;
 };
 
+function InfoTip({ text, focusable = false }: { text: string; focusable?: boolean }) {
+  return (
+    <span className="infoTip" aria-label={text} tabIndex={focusable ? 0 : undefined}>
+      <span className="infoTipIcon" aria-hidden="true">i</span>
+      <span className="infoTipBubble" role="tooltip">{text}</span>
+    </span>
+  );
+}
+
 function VolumeRatioLabel() {
-  return <>成交倍数<span className="metricHelp" title={volumeRatioHelp} aria-label={volumeRatioHelp}>?</span></>;
+  return <>成交倍数<InfoTip text={volumeRatioHelp} /></>;
 }
 
 function readRouteState(): RouteState {
@@ -1752,7 +1762,7 @@ function TrackingKeyLevelsCell({
   locked: boolean;
 }) {
   if (locked) {
-    return <div className="trackingKeyLevelsCell locked"><strong>开通查看</strong></div>;
+    return <div className="trackingKeyLevelsCell locked"><strong>会员可见</strong></div>;
   }
   if (levels?.status === "insufficient") {
     return (
@@ -1891,7 +1901,7 @@ function TrackingPage({
         });
       }}
     >
-      {label}<span>{sortKey === key ? (sortDir === "asc" ? "↑" : "↓") : ""}</span>
+      {label}<span className="tableSortIndicator">{sortKey === key ? (sortDir === "asc" ? "↑" : "↓") : ""}</span>
     </button>
   );
   const visibleRows = useMemo(() => {
@@ -1908,8 +1918,10 @@ function TrackingPage({
         <div className="trackingAddStrip">
           <span>本次新增</span>
           <div>
-            {trackingAddedSymbols.map((symbol) => (
-              locked ? <LockedStockName key={symbol} symbol={symbol} name={trackingSymbolNames[symbol] || symbol} /> : <b key={symbol}>{symbol}</b>
+            {locked ? (
+              <span className="trackingAddLocked">会员可见</span>
+            ) : trackingAddedSymbols.map((symbol) => (
+              <b key={symbol}>{symbol}</b>
             ))}
           </div>
           <time>更新 {formatStoredDateTime(asOf)}</time>
@@ -1927,7 +1939,10 @@ function TrackingPage({
                 <th>{sortHeader("volume", <VolumeRatioLabel />)}</th>
                 <th>{sortHeader("marketCap", "市值")}</th>
                 <th>{sortHeader("signal", "趋势策略方向")}</th>
-                <th className="trackingKeyLevelsHead"><span>关键点位</span><i title="根据日线拐点、ATR 与均线自动计算">?</i></th>
+                <th className="trackingKeyLevelsHead">
+                  <span>关键点位</span>
+                  <InfoTip text={keyLevelsHelp} focusable />
+                </th>
                 <th className="trackingSignalTimeCell">{sortHeader("signalFirstSeen", "信号时间")}</th>
                 <th className="trackingActionCell">操作</th>
               </tr>
@@ -2089,7 +2104,7 @@ function TrackingStockDetailPage({
       <section className="trackingKeyLevelsPanel">
         <div className="trackingLevelPanelHead">
           <div>
-            <h2>关键点位 <i title="根据日线拐点、ATR 与均线自动计算">?</i></h2>
+            <h2>关键点位 <InfoTip text={keyLevelsHelp} focusable /></h2>
             <span>{keyLevels?.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</span>
           </div>
           {keyLevels?.status === "ready" ? (

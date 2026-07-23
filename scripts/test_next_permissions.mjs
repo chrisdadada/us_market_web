@@ -321,6 +321,15 @@ try {
           if (scenario.absentSelector) {
             assert(await page.locator(scenario.absentSelector).count() === 0, `${profileName}/${baseUrl}/${scenario.page} should hide ${scenario.absentSelector}`);
           }
+          if (scenario.page === "tracking" && !authProfile.entitlements.paid && !authProfile.entitlements.admin) {
+            assert(text.includes("会员可见"), `${profileName}/${baseUrl}/tracking should use the member preview label`);
+            assert(await page.locator(".lockedStockName i").count() === 0, `${profileName}/${baseUrl}/tracking should not repeat lock icons`);
+            if (profileName === "free" && baseUrl === server.rootUrl && process.env.MOBILE_QA_SCREENSHOT_PREFIX) {
+              const continueButton = page.getByRole("button", { name: "同意并继续" });
+              if (await continueButton.isVisible()) await continueButton.click();
+              await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-free.png`, fullPage: true });
+            }
+          }
         }
       }
       const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
@@ -333,6 +342,10 @@ try {
       if (profileName === "monthly") {
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=tracking`, { waitUntil: "networkidle" });
+        const keyLevelHelp = page.locator(".trackingKeyLevelsHead .infoTip");
+        await keyLevelHelp.hover();
+        assert(await keyLevelHelp.locator(".infoTipBubble").isVisible(), "tracking help should appear immediately on hover");
+        assert(await page.locator(".trackingKeyLevelsHead [title]").count() === 0, "tracking help should not use delayed native tooltips");
         const aaplRow = page.locator(".trackingPage .screenerTable tbody tr", { hasText: "AAPL" });
         assert((await aaplRow.innerText()).includes("$100.00"), "paid tracking row should show support");
         assert((await aaplRow.innerText()).includes("$110.00"), "paid tracking row should show resistance");
