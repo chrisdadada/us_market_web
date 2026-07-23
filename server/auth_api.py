@@ -786,7 +786,7 @@ def product_stock_library_payload(row: sqlite3.Row) -> dict[str, Any]:
     return payload
 
 
-def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
+def product_market_row_payload(row: sqlite3.Row, include_tracking_analysis: bool = False) -> dict[str, Any]:
     payload = {
         "board": row["board"],
         "rank": row["rank"],
@@ -809,6 +809,14 @@ def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
         payload["changeYtd"] = row["change_pct"]
     else:
         payload["change"] = row["change_pct"]
+    raw_payload = parse_json_field(row["payload_json"], {})
+    if include_tracking_analysis and isinstance(raw_payload, dict):
+        key_levels = raw_payload.get("keyLevels")
+        price_history = raw_payload.get("priceHistory")
+        if isinstance(key_levels, dict):
+            payload["keyLevels"] = key_levels
+        if isinstance(price_history, list):
+            payload["priceHistory"] = price_history
     return payload
 
 
@@ -841,6 +849,7 @@ def product_market_board_payload(
     board: str,
     limit: int = 500,
     symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
 ) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
@@ -867,7 +876,7 @@ def product_market_board_payload(
             (board, *extra_symbols),
         ).fetchall()
         merged.extend(extra_rows)
-    payloads = [product_market_row_payload(row) for row in merged]
+    payloads = [product_market_row_payload(row, include_tracking_analysis) for row in merged]
     missing_cap_symbols = [
         payload["symbol"]
         for payload in payloads
@@ -895,7 +904,12 @@ def product_market_board_payload(
     return payloads
 
 
-def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, symbols: list[str] | None = None) -> dict[str, Any]:
+def product_bootstrap_payload(
+    conn: sqlite3.Connection,
+    board_limit: int = 500,
+    symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
+) -> dict[str, Any]:
     meta = product_dataset_meta(conn)
     core_raw = product_raw_payload(conn, "core-signals")
     strength_raw = product_raw_payload(conn, "strength-scanner")
@@ -904,7 +918,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     sector_flow_raw = product_raw_payload(conn, "sector-flow")
     generated_at = meta.get("generatedAt")
 
-    ytd_rows = product_market_board_payload(conn, "ytd", board_limit, symbols)
+    ytd_rows = product_market_board_payload(
+        conn, "ytd", board_limit, symbols, include_tracking_analysis
+    )
     ytd = {
         "updatedAt": generated_at,
         "rows": ytd_rows,
@@ -913,7 +929,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     boards: dict[str, Any] = {}
     for board in ["day", "week", "month", "volume"]:
         boards[board] = {
-            "rows": product_market_board_payload(conn, board, board_limit, symbols),
+            "rows": product_market_board_payload(
+                conn, board, board_limit, symbols, include_tracking_analysis
+            ),
         }
     movers = {
         "updatedAt": generated_at,
@@ -3331,11 +3349,14 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts) >= 3 and parts[2] == "bootstrap":
                     board_limit = int_param(params, "limit", 500, maximum=500)
                     symbols = market_opinion_list(params.get("symbols", [""])[0], upper=True)
-                    payload = product_bootstrap_payload(conn, board_limit, symbols)
                     user = self.current_user()
+                    can_view_paid_data = bool(user and entitlements(user)["paid"])
+                    payload = product_bootstrap_payload(
+                        conn, board_limit, symbols, can_view_paid_data
+                    )
                     if not user:
                         payload["marketTemperature"] = None
-                    if not user or not entitlements(user)["paid"]:
+                    if not can_view_paid_data:
                         payload["strength"] = None
                         payload["strengthReview"] = None
                     self.send_json(payload)
@@ -3603,7 +3624,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(
             {
                 "profile": product_symbol_payload(profile),
-                "marketRows": [product_market_row_payload(row) for row in market_rows],
+                "marketRows": [
+                    product_market_row_payload(row, can_view_strength) for row in market_rows
+                ],
                 "peers": [product_symbol_payload(row) for row in peers],
                 "events": [product_event_payload(row) for row in events],
                 "earnings": [product_earnings_payload(row) for row in earnings],
@@ -3642,7 +3665,19 @@ class Handler(BaseHTTPRequestHandler):
             """,
             (*values, limit, offset),
         ).fetchall()
-        self.send_json({"board": board, "rows": [product_market_row_payload(row) for row in rows], "total": total, "limit": limit, "offset": offset})
+        user = self.current_user()
+        can_view_paid_data = bool(user and entitlements(user)["paid"])
+        self.send_json(
+            {
+                "board": board,
+                "rows": [
+                    product_market_row_payload(row, can_view_paid_data) for row in rows
+                ],
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            }
+        )
 
     def send_product_sectors(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
         limit = int_param(params, "limit", 20, maximum=100)
