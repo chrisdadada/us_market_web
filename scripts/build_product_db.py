@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 TMP_DIR = ROOT / ".tmp"
 DEFAULT_OUTPUT = DATA_DIR / "product.db"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 KNOWN_SECTORS = {
     "ETF",
     "科技",
@@ -439,6 +439,10 @@ def create_schema(conn: sqlite3.Connection) -> None:
           liquidity_label TEXT,
           market_cap_label TEXT,
           market_cap_value REAL,
+          return_20d_pct REAL,
+          relative_spy_pct REAL,
+          crowding_score REAL,
+          volume_ratio REAL,
           periods_json TEXT NOT NULL,
           relative_json TEXT NOT NULL,
           payload_json TEXT NOT NULL
@@ -495,6 +499,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_calendar_events_date ON calendar_events(event_date);
         CREATE INDEX idx_earnings_quality_symbol ON earnings_quality_rows(symbol);
         CREATE INDEX idx_strength_sector ON strength_rows(sector);
+        CREATE INDEX idx_strength_bucket_score ON strength_rows(bucket, score DESC);
         CREATE INDEX idx_market_opinion_section ON market_opinion_items(section, trade_date);
         """
     )
@@ -685,6 +690,9 @@ def import_tracking_pool(conn: sqlite3.Connection) -> int:
                 "changeYtd": change,
                 "actionNote": "跟踪池标的，按趋势、成交额和事件节奏复盘。",
             }
+            if board != "day":
+                board_row.pop("keyLevels", None)
+                board_row.pop("priceHistory", None)
             import_market_row(conn, board, as_of, board_row, "tracking-pool")
             count += 1
     for row in missing:
@@ -926,25 +934,32 @@ def import_strength(conn: sqlite3.Connection) -> int:
             sys.path.insert(0, str(ROOT / "scripts"))
             from build_strength_scanner import build_scanner
 
-            payload = build_scanner(data_root, 5_000_000, 40)
+            payload = build_scanner(data_root, 5_000_000, 40, include_all_rows=True)
             path = Path("direct:strength-scanner")
         except Exception as exc:
             print(f"WARN: strength scanner direct import skipped: {exc}")
     if not payload:
         payload, path = load_existing_dataset_payload("strength-scanner")
-    rows = payload.get("rows") or []
+    rows = payload.pop("_allRows", None) or payload.get("rows") or []
+    known_symbols = {
+        row["symbol"]
+        for row in conn.execute("SELECT symbol FROM symbols").fetchall()
+    }
     for row in rows:
         symbol = symbol_value(row.get("symbol"))
         if not symbol:
             continue
-        upsert_symbol(conn, row, "strength-scanner")
+        if symbol not in known_symbols:
+            upsert_symbol(conn, row, "strength-scanner")
+            known_symbols.add(symbol)
         conn.execute(
             """
             INSERT OR REPLACE INTO strength_rows
             (rank, bucket, symbol, company, exchange, sector, price, score, label,
              action, primary_factor, liquidity_label, market_cap_label, market_cap_value,
+             return_20d_pct, relative_spy_pct, crowding_score, volume_ratio,
              periods_json, relative_json, payload_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 row.get("rank"),
@@ -961,6 +976,10 @@ def import_strength(conn: sqlite3.Connection) -> int:
                 text_value(row.get("liquidity")),
                 text_value(row.get("marketCap")),
                 float_value(row.get("marketCap")),
+                percent_value((row.get("periods") or {}).get("20d")),
+                percent_value((row.get("relative") or {}).get("spy")),
+                float_value((row.get("crowding") or {}).get("score")),
+                ratio_value((row.get("crowding") or {}).get("volumeRatio")),
                 json_text(row.get("periods") or {}),
                 json_text(row.get("relative") or {}),
                 json_text(row),

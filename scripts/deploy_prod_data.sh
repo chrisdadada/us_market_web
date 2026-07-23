@@ -41,6 +41,11 @@ prod="/opt/dongbimao-prod/data/product.db"
 next="/tmp/dongbimao-product-new.db"
 preserver="/tmp/dongbimao-preserve-product-runtime.py"
 backup="/opt/dongbimao-prod/data/product.db.bak.$(date +%Y%m%d%H%M%S)"
+exec 9>/var/lock/dongbimao-prod-deploy.lock
+if ! flock -n 9; then
+  echo "ERROR: another production deployment is running" >&2
+  exit 1
+fi
 test -f "$next"
 test -f "$preserver"
 mkdir -p /opt/dongbimao-prod/data

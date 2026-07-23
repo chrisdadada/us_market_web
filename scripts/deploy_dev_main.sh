@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 npm --prefix main-web install
 npm --prefix main-web run build
 
-COPYFILE_DISABLE=1 tar -czf "${ARCHIVE}" main-web/dist
+COPYFILE_DISABLE=1 tar -czf "${ARCHIVE}" main-web/dist assets/dongbimao-logo.jpg assets/dongbimao-logo.png
 rsync --partial "${ARCHIVE}" "${SERVER}:${REMOTE_ARCHIVE}"
 
 ssh "${SERVER}" 'set -e
@@ -19,6 +19,7 @@ mkdir -p /opt/dongbimao-dev/main-web
 tar -xzf /tmp/dongbimao-main-dev.tar.gz -C /opt/dongbimao-dev
 find /var/www/dongbimao-dev -mindepth 1 -maxdepth 1 ! -name admin ! -name legacy -exec rm -rf {} +
 cp -a /opt/dongbimao-dev/main-web/dist/. /var/www/dongbimao-dev/
+cp -a /opt/dongbimao-dev/assets/dongbimao-logo.jpg /opt/dongbimao-dev/assets/dongbimao-logo.png /var/www/dongbimao-dev/assets/
 cp -a /opt/dongbimao-dev/main-web/dist /var/www/dongbimao-dev/next
 '
 

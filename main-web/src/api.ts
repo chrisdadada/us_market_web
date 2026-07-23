@@ -18,9 +18,47 @@ export type AuthStatus = {
   };
 };
 
+export type KeyLevel = {
+  center?: number | null;
+  lower?: number | null;
+  upper?: number | null;
+  strength?: "strong" | "medium" | "weak" | "converting" | string;
+  strengthText?: string;
+  touches?: number;
+  basis?: string;
+  lastConfirmedAt?: string;
+};
+
+export type TrackingKeyLevels = {
+  status?: "ready" | "insufficient" | "unavailable" | string;
+  asOf?: string;
+  availableBars?: number;
+  requiredBars?: number;
+  currentPrice?: number | null;
+  support?: KeyLevel | null;
+  secondarySupport?: KeyLevel | null;
+  resistance?: KeyLevel | null;
+  position?: string;
+  positionText?: string;
+  supportDistancePct?: number | null;
+  resistanceDistancePct?: number | null;
+  atr14?: number | null;
+  atrPct?: number | null;
+  ma20?: number | null;
+  ma60?: number | null;
+  trend?: string;
+  trendText?: string;
+};
+
+export type PriceHistoryPoint = {
+  date: string;
+  close: number;
+};
+
 export type MarketRow = {
   rank?: number;
   symbol: string;
+  tradeDate?: string;
   company?: string;
   chineseName?: string;
   sector?: string;
@@ -31,6 +69,8 @@ export type MarketRow = {
   dollarVolume?: number;
   marketCap?: string;
   marketCapValue?: number;
+  keyLevels?: TrackingKeyLevels;
+  priceHistory?: PriceHistoryPoint[];
 };
 
 export type StrengthRow = {
@@ -106,7 +146,13 @@ export type StrengthScannerPayload = {
     weakestScore?: number;
   };
   themes?: { leaders?: StrengthTheme[]; risk?: StrengthTheme[]; hot?: StrengthTheme[] };
+  counts?: { all?: number; watch?: number; hot?: number; neutral?: number; avoid?: number };
+  sectors?: string[];
   rows?: StrengthRow[];
+  total?: number;
+  limit?: number;
+  offset?: number;
+  bucket?: "all" | "watch" | "hot" | "neutral" | "avoid";
 };
 
 export type BootstrapPayload = {
@@ -259,6 +305,8 @@ export type MarketBoardRow = {
   dollarVolume?: number | null;
   volumeRatio?: number | null;
   marketCap?: string | null;
+  keyLevels?: TrackingKeyLevels;
+  priceHistory?: PriceHistoryPoint[];
 };
 
 export type MarketBoardPayload = {
@@ -504,7 +552,18 @@ export const api = {
   },
   marketTemperature: () => request<MarketTemperaturePayload>("/api/product/raw/market-temperature"),
   macroSeries: () => request<MacroSeriesPayload>("/api/product/raw/macro-series"),
-  strengthScanner: () => request<StrengthScannerPayload>("/api/product/raw/strength-scanner"),
+  strengthScanner: (options?: { limit?: number; offset?: number; bucket?: string; q?: string; sector?: string; heat?: string; sort?: string }) => {
+    const params = new URLSearchParams({
+      limit: String(options?.limit || 20),
+      offset: String(options?.offset || 0),
+      bucket: options?.bucket || "watch",
+      heat: options?.heat || "all",
+      sort: options?.sort || "score"
+    });
+    if (options?.q) params.set("q", options.q);
+    if (options?.sector && options.sector !== "all") params.set("sector", options.sector);
+    return request<StrengthScannerPayload>(`/api/product/strength?${params.toString()}`);
+  },
   opinions: (limit = 60, options?: { offset?: number; section?: string }) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (options?.offset) params.set("offset", String(options.offset));

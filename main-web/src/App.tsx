@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import {
   api,
   AuthStatus,
@@ -6,17 +6,20 @@ import {
   CalendarEvent,
   CourseSeries,
   FundingScannerRow,
+  KeyLevel,
   MacroSeriesIndicator,
   MacroSeriesPayload,
   MarketRow,
   MarketTemperaturePayload,
   OpenPortfolioPayload,
   Opinion,
+  PriceHistoryPoint,
   SectorFlowPayload,
   SignalState,
   StrengthRow,
   StrengthScannerPayload,
   TemperatureIndicator,
+  TrackingKeyLevels,
   SymbolDetailPayload,
   SymbolRow
 } from "./api";
@@ -56,13 +59,11 @@ const primaryNavItems: NavItem[] = [
   { key: "opinions", label: "美股热点风向标" },
   { key: "tracking", label: "股票机会跟踪榜单" },
   { key: "stocks", label: "股票库" },
-  { key: "calendar", label: "美股重点财经前瞻" }
-];
-
-const marketToolNavItems: NavItem[] = [
+  { key: "calendar", label: "美股重点财经前瞻" },
   { key: "market", label: "市场与资金" },
   { key: "risk", label: "市场温度计" },
-  { key: "strength", label: "全市场强弱" }
+  { key: "strength", label: "全市场强弱" },
+  { key: "courses", label: "交易实战课程" }
 ];
 
 const secondaryNavItems: NavItem[] = [
@@ -87,11 +88,12 @@ const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
   { key: "funding", label: "资金费套利扫描" }
 ];
 
-const allPageNavItems = [...primaryNavItems, ...marketToolNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems, { key: "courses" as const, label: "交易实战课程" }];
+const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems];
 const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
 const volumeRatioHelp = "当前成交额相对近20日平均成交额的倍数，越高代表成交越活跃。";
+const keyLevelsHelp = "根据近120个交易日的价格拐点、波动区间和均线自动计算，仅作观察参考。";
 
 type RouteState = {
   page: PageKey;
@@ -101,8 +103,17 @@ type RouteState = {
   resetToken: string;
 };
 
+function InfoTip({ text, focusable = false }: { text: string; focusable?: boolean }) {
+  return (
+    <span className="infoTip" aria-label={text} tabIndex={focusable ? 0 : undefined}>
+      <span className="infoTipIcon" aria-hidden="true">i</span>
+      <span className="infoTipBubble" role="tooltip">{text}</span>
+    </span>
+  );
+}
+
 function VolumeRatioLabel() {
-  return <>成交倍数<span className="metricHelp" title={volumeRatioHelp} aria-label={volumeRatioHelp}>?</span></>;
+  return <>成交倍数<InfoTip text={volumeRatioHelp} /></>;
 }
 
 function readRouteState(): RouteState {
@@ -720,6 +731,8 @@ function mergedTrackingRows(bootstrap: BootstrapPayload | null, signalStates: Si
         liquidity: strength?.liquidity || money(dayMarket?.dollarVolume || monthMarket?.dollarVolume),
         marketCap: strength?.marketCap || market?.marketCap || "--",
         marketCapValue: market?.marketCapValue ?? null,
+        keyLevels: dayMarket?.keyLevels,
+        priceHistory: dayMarket?.priceHistory || [],
         scoreValue: Number(String(month).replace("%", "").replace("+", "")) || -999
       };
     })
@@ -1023,10 +1036,6 @@ function App() {
           <button ref={mobileNavCloseRef} type="button" className="mobileNavClose mobileNavigationControl" aria-label="关闭菜单" onClick={() => setMobileNavOpen(false)}>×</button>
         </div>
         <nav>{renderNavItems(primaryNavItems)}</nav>
-        <div className="navToolGroup">
-          <p className="navGroupTitle">工具数据</p>
-          {renderNavItems(marketToolNavItems)}
-        </div>
         <div className="navToolGroup">
           <p className="navGroupTitle">其他</p>
           {renderNavItems(secondaryNavItems)}
@@ -1711,6 +1720,153 @@ function OpinionsPage({
   );
 }
 
+function keyLevelStrengthClass(level?: KeyLevel | null) {
+  return `levelStrength ${level?.strength || "weak"}`;
+}
+
+function keyLevelZone(level?: KeyLevel | null) {
+  if (!level || !Number.isFinite(level.lower) || !Number.isFinite(level.upper)) return "--";
+  return `${priceDisplay(level.lower)} – ${priceDisplay(level.upper)}`;
+}
+
+function keyLevelDistance(levels?: TrackingKeyLevels) {
+  if (!levels) return "";
+  const support = levels.supportDistancePct;
+  const resistance = levels.resistanceDistancePct;
+  if (levels.position === "at_support" || levels.position === "at_resistance") return "";
+  if (levels.position === "near_support" && Number.isFinite(support)) return ` · 距支撑 ${support}%`;
+  if (levels.position === "near_resistance" && Number.isFinite(resistance)) return ` · 距阻力 ${resistance}%`;
+  return "";
+}
+
+function keyLevelObservation(direction: string, levels?: TrackingKeyLevels) {
+  if (!levels || levels.status !== "ready") return "";
+  const prefix = direction && direction !== "--" ? `趋势策略方向为${direction}。` : "";
+  const messages: Record<string, string> = {
+    at_support: "价格进入支撑区，先观察该区域能否守住。",
+    near_support: "价格靠近支撑区，先观察回落时是否出现承接。",
+    at_resistance: "价格进入阻力区，先观察能否有效突破。",
+    near_resistance: "价格靠近阻力区，先观察突破力度和回踩表现。",
+    above_resistance: "价格已越过近期阻力，关注回踩后能否站稳。",
+    below_support: "价格已跌破近期支撑，先观察能否收回失守区域。",
+    middle: "价格位于支撑与阻力之间，等待接近关键区域后再观察。"
+  };
+  return `${prefix}${messages[levels.position || "middle"] || messages.middle}`;
+}
+
+function TrackingKeyLevelsCell({
+  levels,
+  locked
+}: {
+  levels?: TrackingKeyLevels;
+  locked: boolean;
+}) {
+  if (locked) {
+    return <div className="trackingKeyLevelsCell locked"><strong>会员可见</strong></div>;
+  }
+  if (levels?.status === "insufficient") {
+    return (
+      <div className="trackingKeyLevelsCell unavailable">
+        <strong>历史数据不足</strong>
+        <small>{levels.availableBars || 0} / {levels.requiredBars || 90} 个交易日</small>
+      </div>
+    );
+  }
+  if (!levels || levels.status !== "ready" || (!levels.support && !levels.resistance)) {
+    return <div className="trackingKeyLevelsCell unavailable"><strong>暂不可用</strong></div>;
+  }
+  return (
+    <div className="trackingKeyLevelsCell">
+      <div>
+        <span>支撑</span>
+        <b>{priceDisplay(levels.support?.center)}</b>
+        <em className={keyLevelStrengthClass(levels.support)}>{levels.support?.strengthText || "--"}</em>
+      </div>
+      <div>
+        <span>阻力</span>
+        <b>{priceDisplay(levels.resistance?.center)}</b>
+        <em className={keyLevelStrengthClass(levels.resistance)}>{levels.resistance?.strengthText || "--"}</em>
+      </div>
+      <small>{levels.positionText || "区间中部"}{keyLevelDistance(levels)}</small>
+    </div>
+  );
+}
+
+function TrackingPriceChart({
+  points,
+  levels
+}: {
+  points: PriceHistoryPoint[];
+  levels: TrackingKeyLevels;
+}) {
+  const visible = points.filter((point) => Number.isFinite(point.close)).slice(-60);
+  if (visible.length < 2) return <div className="trackingLevelEmpty compact">暂无走势数据</div>;
+  const width = 760;
+  const height = 280;
+  const margin = { top: 18, right: 70, bottom: 34, left: 18 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const levelValues = [levels.support?.lower, levels.support?.upper, levels.resistance?.lower, levels.resistance?.upper]
+    .filter((value): value is number => Number.isFinite(value));
+  const values = [...visible.map((point) => point.close), ...levelValues];
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const padding = Math.max((rawMax - rawMin) * 0.08, rawMax * 0.005, 1);
+  const min = rawMin - padding;
+  const max = rawMax + padding;
+  const x = (index: number) => margin.left + (index / (visible.length - 1)) * plotWidth;
+  const y = (value: number) => margin.top + ((max - value) / (max - min)) * plotHeight;
+  const path = visible.map((point, index) => `${index ? "L" : "M"} ${x(index)} ${y(point.close)}`).join(" ");
+  const zone = (level: KeyLevel | null | undefined, className: string, label: string) => {
+    if (!level || !Number.isFinite(level.lower) || !Number.isFinite(level.upper)) return null;
+    const top = y(Number(level.upper));
+    const bottom = y(Number(level.lower));
+    return (
+      <g className={className}>
+        <rect x={margin.left} y={top} width={plotWidth} height={Math.max(3, bottom - top)} />
+        <text x={width - margin.right + 6} y={(top + bottom) / 2 + 4}>{label}</text>
+      </g>
+    );
+  };
+  const dateIndexes = [0, Math.floor((visible.length - 1) / 2), visible.length - 1];
+  const last = visible.at(-1)!;
+
+  return (
+    <div className="trackingPriceChart">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="近60个交易日价格走势与关键点位">
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+          const gridY = margin.top + ratio * plotHeight;
+          return <line key={ratio} className="chartGridLine" x1={margin.left} x2={width - margin.right} y1={gridY} y2={gridY} />;
+        })}
+        {zone(levels.resistance, "resistanceZone", "阻力区")}
+        {zone(levels.support, "supportZone", "支撑区")}
+        <path className="trackingPriceLine" d={path} />
+        <line className="currentPriceLine" x1={margin.left} x2={width - margin.right} y1={y(last.close)} y2={y(last.close)} />
+        <circle className="currentPriceDot" cx={x(visible.length - 1)} cy={y(last.close)} r="4" />
+        <text
+          className="currentPriceLabel"
+          x={width - margin.right - 8}
+          y={Math.max(margin.top + 12, y(last.close) - 8)}
+          textAnchor="end"
+        >
+          {priceDisplay(last.close)}
+        </text>
+        {dateIndexes.map((index) => (
+          <text
+            key={index}
+            className="chartDateLabel"
+            x={x(index)}
+            y={height - 10}
+            textAnchor={index === 0 ? "start" : index === visible.length - 1 ? "end" : "middle"}
+          >
+            {formatDate(visible[index].date)}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 function TrackingPage({
   rows,
   asOf,
@@ -1745,7 +1901,7 @@ function TrackingPage({
         });
       }}
     >
-      {label}<span>{sortKey === key ? (sortDir === "asc" ? "↑" : "↓") : ""}</span>
+      {label}<span className="tableSortIndicator">{sortKey === key ? (sortDir === "asc" ? "↑" : "↓") : ""}</span>
     </button>
   );
   const visibleRows = useMemo(() => {
@@ -1762,8 +1918,10 @@ function TrackingPage({
         <div className="trackingAddStrip">
           <span>本次新增</span>
           <div>
-            {trackingAddedSymbols.map((symbol) => (
-              locked ? <LockedStockName key={symbol} symbol={symbol} name={trackingSymbolNames[symbol] || symbol} /> : <b key={symbol}>{symbol}</b>
+            {locked ? (
+              <span className="trackingAddLocked">会员可见</span>
+            ) : trackingAddedSymbols.map((symbol) => (
+              <b key={symbol}>{symbol}</b>
             ))}
           </div>
           <time>更新 {formatStoredDateTime(asOf)}</time>
@@ -1781,8 +1939,12 @@ function TrackingPage({
                 <th>{sortHeader("volume", <VolumeRatioLabel />)}</th>
                 <th>{sortHeader("marketCap", "市值")}</th>
                 <th>{sortHeader("signal", "趋势策略方向")}</th>
-                <th>{sortHeader("signalFirstSeen", "信号时间")}</th>
-                <th>操作</th>
+                <th className="trackingKeyLevelsHead">
+                  <span>关键点位</span>
+                  <InfoTip text={keyLevelsHelp} focusable />
+                </th>
+                <th className="trackingSignalTimeCell">{sortHeader("signalFirstSeen", "信号时间")}</th>
+                <th className="trackingActionCell">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -1809,8 +1971,9 @@ function TrackingPage({
                     <td>{row.volume || "--"}</td>
                     <td>{marketCapDisplay(row)}</td>
                     <td><SignalDirectionBadge label={directionLabel} /></td>
-                    <td>{row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</td>
-                    <td>
+                    <td className="trackingKeyLevelsData"><TrackingKeyLevelsCell levels={row.keyLevels} locked={locked} /></td>
+                    <td className="trackingSignalTimeCell">{row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</td>
+                    <td className="trackingActionCell">
                       <button
                         type="button"
                         className="screenerLink"
@@ -1865,6 +2028,14 @@ function TrackingStockDetailPage({
   const profile = detail?.profile;
   const displayName = profile?.company || profile?.chineseName || row?.name || row?.symbol || "--";
   const direction = trackingDirection(row || undefined);
+  const detailDay = detail?.marketRows.find((item) => item.board === "day");
+  const keyLevels = detailDay?.keyLevels || row?.keyLevels;
+  const priceHistory = detailDay?.priceHistory || row?.priceHistory || [];
+  const levelRows: Array<[string, KeyLevel | null | undefined]> = [
+    ["主要支撑", keyLevels?.support],
+    ["次级支撑", keyLevels?.secondarySupport],
+    ["主要阻力", keyLevels?.resistance]
+  ];
   const sameList = rows
     .filter((item) => item.symbol !== activeSymbol)
     .slice(0, 5);
@@ -1930,6 +2101,66 @@ function TrackingStockDetailPage({
         </div>
       </section>
 
+      <section className="trackingKeyLevelsPanel">
+        <div className="trackingLevelPanelHead">
+          <div>
+            <h2>关键点位 <InfoTip text={keyLevelsHelp} focusable /></h2>
+            <span>{keyLevels?.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</span>
+          </div>
+          {keyLevels?.status === "ready" ? (
+            <strong className={`trackingPositionTag ${keyLevels.position || "middle"}`}>
+              {keyLevels.positionText || "区间中部"}{keyLevelDistance(keyLevels)}
+            </strong>
+          ) : null}
+        </div>
+        {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance) ? (
+          <>
+            <div className="trackingLevelWorkspace">
+              <div className="trackingChartColumn">
+                <TrackingPriceChart points={priceHistory} levels={keyLevels} />
+                <div className="trackingObservation">
+                  <span>观察提示</span>
+                  <strong>{keyLevelObservation(direction, keyLevels)}</strong>
+                </div>
+              </div>
+              <aside className="trackingLevelFacts">
+                <section>
+                  <h3>点位依据</h3>
+                  {levelRows.map(([label, level]) => (
+                    <div className="trackingLevelFact" key={label}>
+                      <span>{label}</span>
+                      {level ? (
+                        <>
+                          <strong>{keyLevelZone(level)}</strong>
+                          <em className={keyLevelStrengthClass(level)}>{level.strengthText || "--"}</em>
+                          <small>{level.basis || "--"}{level.lastConfirmedAt ? ` · ${formatDate(level.lastConfirmedAt)}` : ""}</small>
+                        </>
+                      ) : <strong>--</strong>}
+                    </div>
+                  ))}
+                </section>
+                <section>
+                  <h3>趋势参考</h3>
+                  <dl>
+                    <div><dt>趋势状态</dt><dd>{keyLevels.trendText || "--"}</dd></div>
+                    <div><dt>MA20</dt><dd>{priceDisplay(keyLevels.ma20)}</dd></div>
+                    <div><dt>MA60</dt><dd>{priceDisplay(keyLevels.ma60)}</dd></div>
+                    <div><dt>ATR14</dt><dd>{priceDisplay(keyLevels.atr14)}{Number.isFinite(keyLevels.atrPct) ? ` · ${keyLevels.atrPct}%` : ""}</dd></div>
+                  </dl>
+                </section>
+              </aside>
+            </div>
+          </>
+        ) : (
+          <div className="trackingLevelEmpty">
+            <strong>{keyLevels?.status === "insufficient" ? "历史数据不足" : "关键点位暂不可用"}</strong>
+            {keyLevels?.status === "insufficient" ? (
+              <span>当前 {keyLevels.availableBars || 0} 个交易日，满 {keyLevels.requiredBars || 90} 个交易日后自动计算。</span>
+            ) : null}
+          </div>
+        )}
+      </section>
+
       <div className="trackingStockGrid">
         <section className="trackingStockPanel">
           <h2>榜单位置</h2>
@@ -1963,7 +2194,8 @@ function TrackingStockDetailPage({
   );
 }
 
-type StrengthView = "watch" | "hot" | "avoid";
+type StrengthBucket = "watch" | "hot" | "neutral" | "avoid";
+type StrengthView = StrengthBucket | "all";
 type StrengthSort = "score" | "return20d" | "relative" | "crowding";
 
 function numericValue(value?: string | number | null) {
@@ -2139,13 +2371,20 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
   );
 }
 
-function strengthBucket(row: StrengthRow): StrengthView | "other" {
+function strengthBucket(row: StrengthRow): StrengthBucket {
   const score = row.score || 0;
   const heat = row.crowding?.score || 0;
   if (score >= 75 && heat < 72) return "watch";
   if (score >= 75 && heat >= 72) return "hot";
   if (score < 55) return "avoid";
-  return "other";
+  return "neutral";
+}
+
+function strengthTone(row: StrengthRow) {
+  const bucket = strengthBucket(row);
+  if (bucket === "avoid") return "negative";
+  if (bucket === "watch") return "positive";
+  return "neutral";
 }
 
 function StrengthFilterFields({
@@ -2189,45 +2428,37 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
   const [heat, setHeat] = useState("all");
   const [sort, setSort] = useState<StrengthSort>("score");
   const [page, setPage] = useState(1);
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [state, setState] = useState<"idle" | "loading" | "refreshing" | "error">("idle");
   const [reload, setReload] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const filterCloseRef = useRef<HTMLButtonElement>(null);
   const filterSheetRef = useRef<HTMLElement>(null);
+  const pageSize = 20;
+  const deferredQuery = useDeferredValue(query.trim());
 
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    setState("loading");
-    api.strengthScanner().then((value) => { if (active) { setPayload(value); setState("idle"); } }).catch(() => active && setState("error"));
+    setState(payload ? "refreshing" : "loading");
+    api.strengthScanner({
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      bucket: view,
+      q: deferredQuery,
+      sector,
+      heat,
+      sort
+    }).then((value) => {
+      if (!active) return;
+      setPayload(value);
+      setState("idle");
+    }).catch(() => active && setState("error"));
     return () => { active = false; };
-  }, [enabled, reload]);
+  }, [deferredQuery, enabled, heat, page, reload, sector, sort, view]);
 
-  const rows = useMemo(() => {
-    const unique = new Map<string, StrengthRow>();
-    for (const row of payload?.rows || []) {
-      const existing = unique.get(row.symbol);
-      if (!existing || (row.score || 0) > (existing.score || 0)) unique.set(row.symbol, row);
-    }
-    return Array.from(unique.values());
-  }, [payload]);
-  const sectors = Array.from(new Set(rows.map((row) => row.sectorProxy).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "zh-CN"));
-  const filtered = rows.filter((row) => {
-    const crowding = row.crowding?.score || 0;
-    const heatMatch = heat === "all" || (heat === "normal" && crowding < 55) || (heat === "rising" && crowding >= 55 && crowding < 72) || (heat === "hot" && crowding >= 72);
-    const text = `${row.symbol} ${row.name || ""}`.toLowerCase();
-    return strengthBucket(row) === view && (sector === "all" || row.sectorProxy === sector) && heatMatch && text.includes(query.trim().toLowerCase());
-  }).sort((a, b) => {
-    const values: Record<StrengthSort, (row: StrengthRow) => number> = {
-      score: (row) => row.score || 0,
-      return20d: (row) => numericValue(row.periods?.["20d"]),
-      relative: (row) => numericValue(row.relative?.spy),
-      crowding: (row) => row.crowding?.score || 0
-    };
-    return values[sort](b) - values[sort](a) || a.symbol.localeCompare(b.symbol);
-  });
-  useEffect(() => setPage(1), [view, query, sector, heat, sort]);
+  const visibleRows = payload?.rows || [];
+  const sectors = payload?.sectors || [];
   useEffect(() => {
     if (!filterOpen) return;
     window.requestAnimationFrame(() => filterCloseRef.current?.focus());
@@ -2258,75 +2489,81 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
       window.requestAnimationFrame(() => filterTriggerRef.current?.focus());
     };
   }, [filterOpen]);
-  const pageSize = 20;
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const total = payload?.total || 0;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const visibleRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const themes = [...(payload?.themes?.leaders || []).slice(0, 3), ...(payload?.themes?.risk || []).slice(0, 3)];
   const maxTheme = Math.max(1, ...themes.map((item) => Math.abs(numericValue(item.vsMarket))));
-  const firstByBucket = (bucket: StrengthView) => rows.filter((row) => strengthBucket(row) === bucket).sort((a, b) => (b.score || 0) - (a.score || 0))[0];
-  const bucketCount = (bucket: StrengthView) => rows.filter((row) => strengthBucket(row) === bucket).length;
+  const bucketCount = (bucket: StrengthView) => payload?.counts?.[bucket] ?? 0;
   const activeFilterCount = Number(Boolean(query.trim())) + Number(sector !== "all") + Number(heat !== "all") + Number(sort !== "score");
+  const changeView = (value: StrengthView) => { setView(value); setPage(1); };
+  const changeQuery = (value: string) => { setQuery(value); setPage(1); };
+  const changeSector = (value: string) => { setSector(value); setPage(1); };
+  const changeHeat = (value: string) => { setHeat(value); setPage(1); };
+  const changeSort = (value: StrengthSort) => { setSort(value); setPage(1); };
   const resetFilters = () => {
     setQuery("");
     setSector("all");
     setHeat("all");
     setSort("score");
+    setPage(1);
   };
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
       <header className="marketToolHeading"><div><h1>全市场强弱</h1><span>{formatDate(payload?.asOf)}</span></div></header>
-      {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载强弱数据...</div> : state === "error" ? (
+      {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载强弱数据...</div> : state === "error" && !payload ? (
         <div className="marketToolError"><span>强弱数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无全市场强弱数据</div> : (
         <>
           <section className="strengthMetrics">
             <article><span>市场中位强度</span><strong>{payload.summary?.medianScore ?? "--"}</strong></article>
             <article><span>领先板块</span><strong>{marketSectorName(payload.themes?.leaders?.[0]?.name)}</strong></article>
-            <article><span>偏热标的</span><strong>{payload.summary?.hotCrowdingCount ?? "--"}</strong></article>
+            <article><span>强但偏热</span><strong>{bucketCount("hot")}</strong></article>
             <article><span>落后板块</span><strong>{marketSectorName(payload.themes?.risk?.[0]?.name)}</strong></article>
           </section>
           <div className="strengthTopGrid">
             <section className="marketToolPanel"><div className="marketToolPanelHead"><h2>行业强弱</h2><span>相对大盘</span></div><div className="sectorStrengthBars">{themes.map((item) => { const value = numericValue(item.vsMarket); const barWidth = Math.max(2, Math.abs(value) / maxTheme * 50); return <div key={`${item.name}-${item.vsMarket}`}><strong>{marketSectorName(item.name)}</strong><span><i className={value >= 0 ? "positive" : "negative"} style={{ left: `${value >= 0 ? 50 : 50 - barWidth}%`, width: `${barWidth}%` }} /></span><em className={signedClass(value)}>{item.vsMarket || "--"}</em></div>; })}</div></section>
             <section className="marketToolPanel"><div className="marketToolPanelHead"><h2>今日先看</h2></div><div className="strengthFocusList">
-              <button onClick={() => setView("watch")}><span>强势但不过热</span><strong>{firstByBucket("watch")?.symbol || "--"}</strong></button>
-              <button onClick={() => setView("hot")}><span>强势但偏热</span><strong>{firstByBucket("hot")?.symbol || "--"}</strong></button>
-              <button onClick={() => setView("avoid")}><span>降低优先级</span><strong>{firstByBucket("avoid")?.symbol || "--"}</strong></button>
+              <button onClick={() => changeView("watch")}><span>值得观察</span><strong>{bucketCount("watch")} 只</strong></button>
+              <button onClick={() => changeView("hot")}><span>强势但偏热</span><strong>{bucketCount("hot")} 只</strong></button>
+              <button onClick={() => changeView("avoid")}><span>降低优先级</span><strong>{bucketCount("avoid")} 只</strong></button>
             </div></section>
           </div>
+          {state === "error" ? <div className="marketToolError compact"><span>更新失败，当前显示上次结果</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div> : null}
           <section className="marketToolPanel">
             <div className="marketToolPanelHead strengthListHead">
-              <div className="marketToolTabs">{([["watch", "值得观察"], ["hot", "强但偏热"], ["avoid", "风险回避"]] as const).map(([key, label]) => <button key={key} className={view === key ? "active" : ""} onClick={() => setView(key)}>{label}<small>{bucketCount(key)}</small></button>)}</div>
-              <StrengthFilterFields query={query} sector={sector} heat={heat} sort={sort} sectors={sectors} className="strengthDesktopFilters" onQuery={setQuery} onSector={setSector} onHeat={setHeat} onSort={setSort} />
+              <div className="marketToolTabs">{([["watch", "值得观察"], ["hot", "强但偏热"], ["avoid", "风险回避"], ["all", "全部股票"]] as const).map(([key, label]) => <button key={key} className={view === key ? "active" : ""} onClick={() => changeView(key)}>{label}<small>{bucketCount(key)}</small></button>)}</div>
+              <StrengthFilterFields query={query} sector={sector} heat={heat} sort={sort} sectors={sectors} className="strengthDesktopFilters" onQuery={changeQuery} onSector={changeSector} onHeat={changeHeat} onSort={changeSort} />
               <div className="strengthMobileControls">
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票" aria-label="搜索股票" />
+                <input value={query} onChange={(event) => changeQuery(event.target.value)} placeholder="搜索股票" aria-label="搜索股票" />
                 <button ref={filterTriggerRef} type="button" onClick={() => setFilterOpen(true)}>筛选{activeFilterCount ? <b>{activeFilterCount}</b> : null}</button>
               </div>
             </div>
-            <div className="marketToolTable strengthTable"><table><thead><tr><th>强度</th><th>股票</th><th>板块</th><th>近20日</th><th>相对大盘</th><th>成交热度</th><th>状态</th><th>观察建议</th></tr></thead><tbody>
-              {visibleRows.map((row) => <tr key={row.symbol} onClick={() => onOpenStock(row.symbol, "stocks")}><td><strong>{row.score ?? "--"}</strong></td><td><strong>{row.symbol}</strong><small>{row.name || ""}</small></td><td>{marketSectorName(row.sectorProxy || row.sector)}</td><td className={signedClass(row.periods?.["20d"])}>{row.periods?.["20d"] || "--"}</td><td className={signedClass(row.relative?.spy)}>{row.relative?.spy || "--"}</td><td>{ratioDisplay(row.crowding?.volumeRatio)}</td><td><b className={`toolStatus ${strengthBucket(row) === "avoid" ? "negative" : strengthBucket(row) === "hot" ? "neutral" : "positive"}`}>{row.label || "--"}</b></td><td>{row.action || "--"}</td></tr>)}
-              {!filtered.length ? <tr><td colSpan={8}><div className="marketToolEmpty compact">当前筛选下没有标的</div></td></tr> : null}
+            <div className="marketToolTable strengthTable" aria-busy={state === "refreshing"}><table><thead><tr><th>强度</th><th>股票</th><th>板块</th><th>近20日</th><th>相对大盘</th><th>成交热度</th><th>状态</th><th>观察建议</th></tr></thead><tbody>
+              {state !== "refreshing" ? visibleRows.map((row) => <tr key={row.symbol} onClick={() => onOpenStock(row.symbol, "stocks")}><td><strong>{row.score ?? "--"}</strong></td><td><strong>{row.symbol}</strong><small>{row.name || ""}</small></td><td>{marketSectorName(row.sectorProxy || row.sector)}</td><td className={signedClass(row.periods?.["20d"])}>{row.periods?.["20d"] || "--"}</td><td className={signedClass(row.relative?.spy)}>{row.relative?.spy || "--"}</td><td>{ratioDisplay(row.crowding?.volumeRatio)}</td><td><b className={`toolStatus ${strengthTone(row)}`}>{row.label || "--"}</b></td><td>{row.action || "--"}</td></tr>) : null}
+              {state === "refreshing" ? <tr><td colSpan={8}><div className="marketToolLoading compact">正在更新...</div></td></tr> : null}
+              {state !== "refreshing" && !visibleRows.length ? <tr><td colSpan={8}><div className="marketToolEmpty compact">当前筛选下没有标的</div></td></tr> : null}
             </tbody></table></div>
             <div className="strengthMobileList">
-              {visibleRows.map((row) => (
+              {state !== "refreshing" ? visibleRows.map((row) => (
                 <button type="button" className="strengthMobileRow" key={row.symbol} onClick={() => onOpenStock(row.symbol, "stocks")}>
                   <strong className="strengthMobileScore">{row.score ?? "--"}</strong>
-                  <span className="strengthMobileIdentity"><strong>{row.symbol}</strong><small>{row.name || marketSectorName(row.sectorProxy || row.sector)}</small><b className={`toolStatus ${strengthBucket(row) === "avoid" ? "negative" : strengthBucket(row) === "hot" ? "neutral" : "positive"}`}>{row.label || "--"}</b></span>
+                  <span className="strengthMobileIdentity"><strong>{row.symbol}</strong><small>{row.name || marketSectorName(row.sectorProxy || row.sector)}</small><b className={`toolStatus ${strengthTone(row)}`}>{row.label || "--"}</b></span>
                   <span className="strengthMobileDatum"><small>近20日</small><strong className={signedClass(row.periods?.["20d"])}>{row.periods?.["20d"] || "--"}</strong></span>
                   <span className="strengthMobileDatum"><small>相对大盘</small><strong className={signedClass(row.relative?.spy)}>{row.relative?.spy || "--"}</strong></span>
                 </button>
-              ))}
-              {!filtered.length ? <div className="marketToolEmpty compact">当前筛选下没有标的</div> : null}
+              )) : <div className="marketToolLoading compact">正在更新...</div>}
+              {state !== "refreshing" && !visibleRows.length ? <div className="marketToolEmpty compact">当前筛选下没有标的</div> : null}
             </div>
-            {filtered.length ? <footer className="strengthPagination"><span>共 {filtered.length} 只，每页 {pageSize} 只</span><div><button type="button" aria-label="上一页" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button><strong>{currentPage} / {pageCount}</strong><button type="button" aria-label="下一页" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>›</button></div></footer> : null}
+            {total ? <footer className="strengthPagination"><span>共 {total.toLocaleString("zh-CN")} 只，每页 {pageSize} 只</span><div><button type="button" aria-label="上一页" disabled={currentPage <= 1 || state === "refreshing"} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button><strong>{currentPage} / {pageCount}</strong><button type="button" aria-label="下一页" disabled={currentPage >= pageCount || state === "refreshing"} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>›</button></div></footer> : null}
           </section>
           {filterOpen ? (
             <div className="strengthFilterOverlay" role="presentation" onMouseDown={() => setFilterOpen(false)}>
               <section ref={filterSheetRef} className="strengthFilterSheet" role="dialog" aria-modal="true" aria-label="筛选股票" onMouseDown={(event) => event.stopPropagation()}>
                 <header><strong>筛选股票</strong><button ref={filterCloseRef} type="button" aria-label="关闭筛选" onClick={() => setFilterOpen(false)}>×</button></header>
-                <StrengthFilterFields query={query} sector={sector} heat={heat} sort={sort} sectors={sectors} className="strengthSheetFilters" onQuery={setQuery} onSector={setSector} onHeat={setHeat} onSort={setSort} />
-                <footer><button type="button" className="strengthFilterReset" onClick={resetFilters}>重置</button><button type="button" className="strengthFilterApply" onClick={() => setFilterOpen(false)}>查看 {filtered.length} 只股票</button></footer>
+                <StrengthFilterFields query={query} sector={sector} heat={heat} sort={sort} sectors={sectors} className="strengthSheetFilters" onQuery={changeQuery} onSector={changeSector} onHeat={changeHeat} onSort={changeSort} />
+                <footer><button type="button" className="strengthFilterReset" onClick={resetFilters}>重置</button><button type="button" className="strengthFilterApply" onClick={() => setFilterOpen(false)}>查看 {total.toLocaleString("zh-CN")} 只股票</button></footer>
               </section>
             </div>
           ) : null}

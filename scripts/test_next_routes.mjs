@@ -5,6 +5,7 @@ import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { readProductDataset } from "./product_db_test_data.mjs";
+import { strengthPageFixture } from "./strength_page_fixture.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
@@ -87,6 +88,8 @@ async function apiPayload(url) {
     const rows = calendar.events || [];
     return { rows: rows.slice(offset, offset + limit), total: rows.length, limit, offset };
   }
+
+  if (url.pathname === "/api/product/strength") return strengthPageFixture(strength, url);
 
   if (url.pathname === "/api/product/symbols/meta") {
     return { total: 3, sectors: [{ sector: "科技", count: 3 }] };

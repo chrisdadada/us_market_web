@@ -797,7 +797,7 @@ def product_stock_library_payload(row: sqlite3.Row) -> dict[str, Any]:
     return payload
 
 
-def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
+def product_market_row_payload(row: sqlite3.Row, include_tracking_analysis: bool = False) -> dict[str, Any]:
     payload = {
         "board": row["board"],
         "rank": row["rank"],
@@ -820,6 +820,14 @@ def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
         payload["changeYtd"] = row["change_pct"]
     else:
         payload["change"] = row["change_pct"]
+    raw_payload = parse_json_field(row["payload_json"], {})
+    if include_tracking_analysis and isinstance(raw_payload, dict):
+        key_levels = raw_payload.get("keyLevels")
+        price_history = raw_payload.get("priceHistory")
+        if isinstance(key_levels, dict):
+            payload["keyLevels"] = key_levels
+        if isinstance(price_history, list):
+            payload["priceHistory"] = price_history
     return payload
 
 
@@ -852,6 +860,7 @@ def product_market_board_payload(
     board: str,
     limit: int = 500,
     symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
 ) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
@@ -878,7 +887,7 @@ def product_market_board_payload(
             (board, *extra_symbols),
         ).fetchall()
         merged.extend(extra_rows)
-    payloads = [product_market_row_payload(row) for row in merged]
+    payloads = [product_market_row_payload(row, include_tracking_analysis) for row in merged]
     missing_cap_symbols = [
         payload["symbol"]
         for payload in payloads
@@ -906,7 +915,12 @@ def product_market_board_payload(
     return payloads
 
 
-def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, symbols: list[str] | None = None) -> dict[str, Any]:
+def product_bootstrap_payload(
+    conn: sqlite3.Connection,
+    board_limit: int = 500,
+    symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
+) -> dict[str, Any]:
     meta = product_dataset_meta(conn)
     core_raw = product_raw_payload(conn, "core-signals")
     strength_raw = product_raw_payload(conn, "strength-scanner")
@@ -915,7 +929,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     sector_flow_raw = product_raw_payload(conn, "sector-flow")
     generated_at = meta.get("generatedAt")
 
-    ytd_rows = product_market_board_payload(conn, "ytd", board_limit, symbols)
+    ytd_rows = product_market_board_payload(
+        conn, "ytd", board_limit, symbols, include_tracking_analysis
+    )
     ytd = {
         "updatedAt": generated_at,
         "rows": ytd_rows,
@@ -924,7 +940,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     boards: dict[str, Any] = {}
     for board in ["day", "week", "month", "volume"]:
         boards[board] = {
-            "rows": product_market_board_payload(conn, board, board_limit, symbols),
+            "rows": product_market_board_payload(
+                conn, board, board_limit, symbols, include_tracking_analysis
+            ),
         }
     movers = {
         "updatedAt": generated_at,
@@ -958,6 +976,93 @@ def product_sector_payload(row: sqlite3.Row) -> dict[str, Any]:
         "inflowProxy": row["inflow_proxy"],
         "outflowProxy": row["outflow_proxy"],
         "leaders": parse_json_field(row["leaders_json"], []),
+    }
+
+
+def product_strength_page_payload(conn: sqlite3.Connection, params: dict[str, list[str]]) -> dict[str, Any]:
+    limit = int_param(params, "limit", 20, maximum=100)
+    offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
+    bucket = str(params.get("bucket", ["watch"])[0] or "watch").strip().lower()
+    if bucket not in {"all", "watch", "hot", "neutral", "avoid"}:
+        bucket = "watch"
+    query = str(params.get("q", [""])[0] or params.get("query", [""])[0]).strip().upper()
+    sector = str(params.get("sector", [""])[0]).strip()
+    heat = str(params.get("heat", ["all"])[0] or "all").strip().lower()
+    if heat not in {"all", "normal", "rising", "hot"}:
+        heat = "all"
+    sort_key = str(params.get("sort", ["score"])[0] or "score").strip()
+    order_by = {
+        "score": "score DESC",
+        "return20d": "return_20d_pct DESC",
+        "relative": "relative_spy_pct DESC",
+        "crowding": "crowding_score DESC",
+    }.get(sort_key, "score DESC")
+    if sort_key not in {"score", "return20d", "relative", "crowding"}:
+        sort_key = "score"
+
+    where = []
+    values: list[Any] = []
+    if bucket != "all":
+        where.append("bucket = ?")
+        values.append(bucket)
+    if query:
+        like = f"%{query}%"
+        where.append("(symbol LIKE ? OR UPPER(COALESCE(company, '')) LIKE ?)")
+        values.extend([like, like])
+    if sector and sector.lower() != "all":
+        where.append("sector = ?")
+        values.append(sector)
+    if heat == "normal":
+        where.append("COALESCE(crowding_score, 0) < 55")
+    elif heat == "rising":
+        where.append("COALESCE(crowding_score, 0) >= 55 AND COALESCE(crowding_score, 0) < 72")
+    elif heat == "hot":
+        where.append("COALESCE(crowding_score, 0) >= 72")
+    where_sql = "WHERE " + " AND ".join(where) if where else ""
+
+    total = conn.execute(f"SELECT COUNT(*) AS count FROM strength_rows {where_sql}", values).fetchone()["count"]
+    page_rows = conn.execute(
+        f"""
+        SELECT payload_json
+        FROM strength_rows
+        {where_sql}
+        ORDER BY {order_by}, symbol ASC
+        LIMIT ? OFFSET ?
+        """,
+        (*values, limit, offset),
+    ).fetchall()
+    counts = {"all": 0, "watch": 0, "hot": 0, "neutral": 0, "avoid": 0}
+    for row in conn.execute("SELECT bucket, COUNT(*) AS count FROM strength_rows GROUP BY bucket").fetchall():
+        if row["bucket"] in counts:
+            counts[row["bucket"]] = row["count"]
+        counts["all"] += row["count"]
+    sectors = [
+        row["sector"]
+        for row in conn.execute(
+            """
+            SELECT DISTINCT sector
+            FROM strength_rows
+            WHERE COALESCE(sector, '') NOT IN ('', '--', '未分类', '板块待补')
+            ORDER BY sector ASC
+            """
+        ).fetchall()
+    ]
+    summary_payload = product_raw_payload(conn, "strength-scanner") or {}
+    return {
+        "asOf": summary_payload.get("asOf"),
+        "summary": summary_payload.get("summary") or {},
+        "themes": summary_payload.get("themes") or {},
+        "counts": counts,
+        "sectors": sectors,
+        "rows": [parse_json_field(row["payload_json"], {}) for row in page_rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "bucket": bucket,
+        "query": query,
+        "sector": sector or "all",
+        "heat": heat,
+        "sort": sort_key,
     }
 
 
@@ -3416,14 +3521,23 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(product_coverage_payload(conn))
                     return
 
+                if len(parts) >= 3 and parts[2] == "strength":
+                    if not self.require_dataset_access("strength-scanner"):
+                        return
+                    self.send_json(product_strength_page_payload(conn, params))
+                    return
+
                 if len(parts) >= 3 and parts[2] == "bootstrap":
                     board_limit = int_param(params, "limit", 500, maximum=500)
                     symbols = market_opinion_list(params.get("symbols", [""])[0], upper=True)
-                    payload = product_bootstrap_payload(conn, board_limit, symbols)
                     user = self.current_user()
+                    can_view_paid_data = bool(user and entitlements(user)["paid"])
+                    payload = product_bootstrap_payload(
+                        conn, board_limit, symbols, can_view_paid_data
+                    )
                     if not user:
                         payload["marketTemperature"] = None
-                    if not user or not entitlements(user)["paid"]:
+                    if not can_view_paid_data:
                         payload["strength"] = None
                         payload["strengthReview"] = None
                     self.send_json(payload)
@@ -3691,7 +3805,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(
             {
                 "profile": product_symbol_payload(profile),
-                "marketRows": [product_market_row_payload(row) for row in market_rows],
+                "marketRows": [
+                    product_market_row_payload(row, can_view_strength) for row in market_rows
+                ],
                 "peers": [product_symbol_payload(row) for row in peers],
                 "events": [product_event_payload(row) for row in events],
                 "earnings": [product_earnings_payload(row) for row in earnings],
@@ -3730,7 +3846,19 @@ class Handler(BaseHTTPRequestHandler):
             """,
             (*values, limit, offset),
         ).fetchall()
-        self.send_json({"board": board, "rows": [product_market_row_payload(row) for row in rows], "total": total, "limit": limit, "offset": offset})
+        user = self.current_user()
+        can_view_paid_data = bool(user and entitlements(user)["paid"])
+        self.send_json(
+            {
+                "board": board,
+                "rows": [
+                    product_market_row_payload(row, can_view_paid_data) for row in rows
+                ],
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            }
+        )
 
     def send_product_sectors(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
         limit = int_param(params, "limit", 20, maximum=100)
