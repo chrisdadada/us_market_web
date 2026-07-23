@@ -26,7 +26,6 @@ import {
 import { calculatePositionSizing, type PositionDirection, type PositionSizingResult } from "./positionSizing";
 import {
   LockedStockName,
-  MaskedValue,
   SignalDirectionBadge,
   compactMoney,
   exactMoney,
@@ -1419,7 +1418,13 @@ function HomePage({
 }) {
   const opinionRows = opinions.filter(isHomepageOpinion);
   const latest = opinionRows.find((item) => item.featured) || opinionRows.find((item) => (item.summary || item.body || "").length > 40) || opinionRows[0];
-  const focusRows = trackingRows.filter((row) => row.oneMonth !== "--").slice(0, 4);
+  const focusRows = trackingRows
+    .filter((row) => row.oneMonth !== "--")
+    .slice(0, 4)
+    .map((row) => ({
+      ...row,
+      displayName: row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol
+    }));
   const sectorRows = getSectorRows(bootstrap)
     .filter((row) => isDisplaySector(row.sector))
     .slice(0, 4);
@@ -1443,10 +1448,10 @@ function HomePage({
           <h1>{latest?.title || "美股热点风向标"}</h1>
           <div className={opinionsLocked ? "frontLeadPreview locked" : "frontLeadPreview"}>
             <p>{latest?.summary || compactText(latest?.body, 110) || "--"}</p>
-            {opinionsLocked ? <span className="frontInlineLock" aria-label="会员内容"><i aria-hidden="true" /></span> : null}
           </div>
           <div className="frontLeadActions">
-            <button type="button" onClick={() => onPage("opinions")}>进入美股热点风向标</button>
+            {opinionsLocked ? <span>会员可见</span> : null}
+            <button type="button" onClick={() => onPage("opinions")}>{opinionsLocked ? "查看完整观点" : "进入美股热点风向标"}</button>
           </div>
         </article>
 
@@ -1472,48 +1477,64 @@ function HomePage({
           <button type="button" onClick={() => onPage("tracking")}>查看机会</button>
         </div>
         <div className={trackingLocked ? "frontHomeLockedTable" : ""}>
-          <table className="frontHomeTable frontHomeStrengthTable">
-            <thead>
-              <tr>
-                <th>股票</th>
-                <th>现价</th>
-                <th>近1天</th>
-                <th>近1周</th>
-                <th>近1月</th>
-                <th>成交额</th>
-                <th>趋势策略方向</th>
-              </tr>
-            </thead>
-            <tbody>
-              {focusRows.map((row) => (
-                <tr key={row.symbol} onClick={() => !trackingLocked && onPage("tracking")}>
-                  <td>
-                    {trackingLocked ? (
-                      <MaskedValue value={`${row.symbol} ${row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol}`} />
-                    ) : (
-                      <>
-                        <strong>{row.symbol}</strong>
-                        <span>{row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol}</span>
-                      </>
-                    )}
-                  </td>
-                  <td>{priceDisplay(row.currentPrice)}</td>
-                  <td className={signedClass(row.oneDay)}>{signed(row.oneDay)}</td>
-                  <td className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</td>
-                  <td className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</td>
-                  <td>{isBlankValue(row.liquidity) ? "--" : row.liquidity}</td>
-                  <td>
-                    <SignalDirectionBadge label={trackingDirection(row)} />
-                  </td>
+          <div className="frontHomeDesktopTable">
+            <table className="frontHomeTable frontHomeStrengthTable">
+              <thead>
+                <tr>
+                  <th>股票</th>
+                  <th>现价</th>
+                  <th>近1天</th>
+                  <th>近1周</th>
+                  <th>近1月</th>
+                  <th>成交额</th>
+                  <th>趋势策略方向</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {focusRows.map((row) => (
+                  <tr key={row.symbol} onClick={() => !trackingLocked && onPage("tracking")}>
+                    <td>
+                      <strong>{row.symbol}</strong>
+                      <span>{row.displayName}</span>
+                    </td>
+                    <td>{priceDisplay(row.currentPrice)}</td>
+                    <td className={signedClass(row.oneDay)}>{signed(row.oneDay)}</td>
+                    <td className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</td>
+                    <td className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</td>
+                    <td>{isBlankValue(row.liquidity) ? "--" : row.liquidity}</td>
+                    <td><SignalDirectionBadge label={trackingDirection(row)} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="frontHomeMobileList">
+            {focusRows.map((row) => (
+              <button type="button" key={row.symbol} className="frontHomeMobileRow" disabled={trackingLocked} onClick={() => onPage("tracking")}>
+                <span className="frontHomeMobileStock">
+                  <span>
+                    <strong>{row.symbol}</strong>
+                    <small>{row.displayName}</small>
+                  </span>
+                  <b>{priceDisplay(row.currentPrice)}</b>
+                </span>
+                <span className="frontHomeMobileMetrics">
+                  <span><small>近1天</small><strong className={signedClass(row.oneDay)}>{signed(row.oneDay)}</strong></span>
+                  <span><small>近1周</small><strong className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</strong></span>
+                  <span><small>近1月</small><strong className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</strong></span>
+                </span>
+                <span className="frontHomeMobileMeta">
+                  <small>成交额 {isBlankValue(row.liquidity) ? "--" : row.liquidity}</small>
+                  <SignalDirectionBadge label={trackingDirection(row)} />
+                </span>
+              </button>
+            ))}
+          </div>
           {trackingLocked ? (
-            <button type="button" className="frontHomeTableLock" onClick={() => authenticated ? onUnlock() : onAuth("register")}>
-              <i aria-hidden="true" />
-              <span>开通查看股票机会跟踪榜单</span>
-            </button>
+            <div className="frontHomeMemberBar">
+              <span>完整榜单会员可见</span>
+              <button type="button" onClick={() => authenticated ? onUnlock() : onAuth("register")}>查看完整榜单</button>
+            </div>
           ) : null}
         </div>
       </section>
