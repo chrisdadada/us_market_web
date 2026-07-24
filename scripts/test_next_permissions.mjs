@@ -442,6 +442,18 @@ try {
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail-mobile.png`, fullPage: true });
 
         await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=risk`, { waitUntil: "networkidle" });
+        const temperatureHelp = page.locator(".temperatureScoreLabel .infoTip");
+        await temperatureHelp.hover();
+        assert(await temperatureHelp.locator(".infoTipBubble").isVisible(), "temperature help should appear immediately on hover");
+        assert(await page.locator(".temperatureAdvice").count() === 1, "temperature score should show one concise action");
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await temperatureHelp.click();
+        assert(await temperatureHelp.locator(".infoTipBubble").isVisible(), "temperature help should open on mobile tap");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile temperature page should not overflow horizontally");
+
+        await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
         await page.getByRole("button", { name: "热力图" }).click();
         const firstHeatTile = page.locator(".marketSectorHeatmap button").first();

@@ -93,6 +93,7 @@ const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
 const volumeRatioHelp = "当前成交额相对近20日平均成交额的倍数，越高代表成交越活跃。";
 const keyLevelsHelp = "根据近120个交易日的价格拐点、波动区间和均线自动计算，仅作观察参考。";
+const marketTemperatureHelp = "综合宏观压力和标普、纳指趋势，判断当前市场风险环境。\n偏强 70–100：环境相对有利，优先观察强势机会\n中性 50–69：多空信号交错，等待价格进一步确认\n防守 0–49：风险压力较高，减少追涨和高波动操作\n主要参考波动率、美债利率、通胀、美元、原油、信用风险，以及 SPY、QQQ 的中长期趋势。本指标用于辅助控制交易节奏，不预测未来涨跌。";
 
 type RouteState = {
   page: PageKey;
@@ -2399,8 +2400,9 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
         <>
           <section className="temperatureSnapshot">
             <article className="temperatureScore">
-              <span>市场温度</span><strong>{hasScore ? score : "--"}{hasScore ? <small>/100</small> : null}</strong><b className={scoreTone}>{payload.overall?.label || "--"}</b>
+              <span className="temperatureScoreLabel">市场温度<InfoTip text={marketTemperatureHelp} focusable /></span><strong>{hasScore ? score : "--"}{hasScore ? <small>/100</small> : null}</strong><b className={scoreTone}>{payload.overall?.label || "--"}</b>
               <div className="temperatureScale"><i /><i /><i />{hasScore ? <em style={{ left: `${score}%` }} /> : null}</div>
+              {payload.overall?.action ? <small className="temperatureAdvice">{payload.overall.action}</small> : null}
             </article>
             <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{formatDate(item.asOf)}</small></button>)}</div>
             <article className="temperatureFreshness"><span>数据日期</span><strong>{formatDate(payload.asOf)}</strong><small>{indicators.length} 项指标</small></article>
