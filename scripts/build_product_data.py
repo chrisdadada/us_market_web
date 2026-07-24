@@ -508,6 +508,96 @@ def risk_for_indicator(series_id: str, value: float | None, change: float | None
     return "neutral", "中", 1, "这个指标用于辅助判断市场风险偏好。"
 
 
+def market_temperature_v2_score(
+    risks: dict[str, float | int | None],
+    trends: dict[str, bool | None],
+) -> tuple[int, str] | None:
+    def values(*keys: str) -> list[float]:
+        return [
+            number
+            for key in keys
+            if (number := clean_number(risks.get(key))) is not None
+        ]
+
+    def mean(*keys: str) -> float | None:
+        available = values(*keys)
+        return sum(available) / len(available) if available else None
+
+    stress_values = values("VIXCLS", "BAMLH0A0HYM2")
+    oil_values = values("DCOILWTICO", "DCOILBRENTEU")
+    cpi = clean_number(risks.get("CPIAUCSL"))
+    stress = max(stress_values) / 3 if stress_values else None
+    rates = mean("DGS10", "DGS30", "DGS2")
+    oil = max(oil_values) / 2 if oil_values else None
+    inflation_values = [
+        value
+        for value in (
+            cpi / 2 if cpi is not None else None,
+            oil,
+        )
+        if value is not None
+    ]
+    growth = mean("T10Y2Y", "UNRATE")
+    dollar = clean_number(risks.get("DTWEXBGS"))
+    required_trends = ("spy_above_50", "spy_above_200", "qqq_above_50", "qqq_above_200")
+    if (
+        stress is None
+        or rates is None
+        or not inflation_values
+        or growth is None
+        or dollar is None
+        or any(trends.get(key) is None for key in required_trends)
+    ):
+        return None
+
+    macro_risk = (
+        stress * 0.35
+        + (rates / 2) * 0.20
+        + (sum(inflation_values) / len(inflation_values)) * 0.15
+        + (growth / 2) * 0.15
+        + (dollar / 2) * 0.15
+    )
+    trend_penalty = sum(
+        penalty
+        for key, penalty in (
+            ("spy_above_50", 12),
+            ("spy_above_200", 15),
+            ("qqq_above_50", 8),
+            ("qqq_above_200", 10),
+        )
+        if not trends[key]
+    )
+    score = 100 - trend_penalty - macro_risk * 30
+    if max(stress_values) >= 3 and not trends["spy_above_50"]:
+        score = min(score, 49)
+    score = round(max(0, min(100, score)))
+    return score, "偏强" if score >= 70 else "中性" if score >= 50 else "防守"
+
+
+def latest_benchmark_trends() -> dict[str, bool | None]:
+    current_year = datetime.now(timezone.utc).year
+    prices = load_daily_prices_range(current_year - 1, current_year, ["SPY", "QQQ"])
+    trends: dict[str, bool | None] = {
+        f"{symbol.lower()}_above_{window}": None
+        for symbol in ("SPY", "QQQ")
+        for window in (50, 200)
+    }
+    if not {"symbol", "adj_close"}.issubset(prices.columns):
+        return trends
+    for symbol in ("SPY", "QQQ"):
+        closes = pd.to_numeric(
+            prices.loc[prices["symbol"] == symbol, "adj_close"],
+            errors="coerce",
+        ).dropna()
+        for window in (50, 200):
+            trends[f"{symbol.lower()}_above_{window}"] = (
+                bool(closes.iloc[-1] > closes.iloc[-window:].mean())
+                if len(closes) >= window
+                else None
+            )
+    return trends
+
+
 def build_market_temperature() -> dict[str, Any]:
     configs = [
         ("VIXCLS", "VIX 波动率", "波动率", "%", False, "市场波动"),
@@ -524,7 +614,7 @@ def build_market_temperature() -> dict[str, Any]:
         ("BAMLH0A0HYM2", "高收益债利差", "信用", "%", False, "信用风险"),
     ]
     indicators: list[dict[str, Any]] = []
-    risk_scores: list[int] = []
+    risks: dict[str, int] = {}
     as_of_values: list[str] = []
     for series_id, name, category, unit, percent_yoy, impact in configs:
         item = read_fred_series(series_id, percent_yoy=percent_yoy)
@@ -543,7 +633,7 @@ def build_market_temperature() -> dict[str, Any]:
             })
             continue
         status, level, risk_score, explain = risk_for_indicator(series_id, item["value"], item["change"])
-        risk_scores.append(risk_score)
+        risks[series_id] = risk_score
         as_of_values.append(item["asOf"])
         value_label = f"{item['value']}{unit}" if unit != "美元" else f"${item['value']}"
         previous_label = f"{item['previous']}{unit}" if unit != "美元" else f"${item['previous']}"
@@ -561,16 +651,16 @@ def build_market_temperature() -> dict[str, Any]:
             "level": level,
             "explain": explain,
         })
-    avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 1.5
-    score = round(max(0, min(100, 100 - avg_risk * 28)))
-    if score >= 70:
-        label = "偏强"
+    v2 = market_temperature_v2_score(risks, latest_benchmark_trends())
+    if v2:
+        score, label = v2
+    else:
+        score, label = 50, "中性"
+    if label == "偏强":
         action = "优先观察强势股和机构共振线索"
-    elif score >= 50:
-        label = "中性"
+    elif label == "中性":
         action = "保持观察，等价格确认"
     else:
-        label = "防守"
         action = "降低观察频率，少看高热度线索"
     return {
         "generatedAt": now_iso(),

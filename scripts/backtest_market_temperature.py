@@ -14,7 +14,7 @@ import pandas as pd
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from build_product_data import risk_for_indicator  # noqa: E402
+from build_product_data import market_temperature_v2_score, risk_for_indicator  # noqa: E402
 
 
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
@@ -129,12 +129,8 @@ def add_forward_metrics(frame: pd.DataFrame, prices: pd.DataFrame) -> pd.DataFra
 
 def add_candidate_v2(frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
-    trend_penalty = pd.Series(0.0, index=out.index)
     trend_ready = pd.Series(True, index=out.index)
-    for symbol, short_penalty, long_penalty in [
-        ("SPY", 12, 15),
-        ("QQQ", 8, 10),
-    ]:
+    for symbol in ("SPY", "QQQ"):
         lagged = out[symbol].shift(1)
         ma50 = lagged.rolling(50, min_periods=50).mean()
         ma200 = lagged.rolling(200, min_periods=200).mean()
@@ -142,35 +138,29 @@ def add_candidate_v2(frame: pd.DataFrame) -> pd.DataFrame:
         above200 = lagged > ma200
         out[f"v2_{symbol.lower()}_above_50"] = above50
         out[f"v2_{symbol.lower()}_above_200"] = above200
-        trend_penalty += (~above50).astype(float) * short_penalty
-        trend_penalty += (~above200).astype(float) * long_penalty
         trend_ready &= ma200.notna()
 
-    stress = out[["risk_VIXCLS", "risk_BAMLH0A0HYM2"]].max(axis=1) / 3
-    rates = out[["risk_DGS10", "risk_DGS30", "risk_DGS2"]].mean(axis=1) / 2
-    oil = out[["risk_DCOILWTICO", "risk_DCOILBRENTEU"]].max(axis=1) / 2
-    inflation = pd.concat([out["risk_CPIAUCSL"] / 2, oil], axis=1).mean(axis=1)
-    growth = out[["risk_T10Y2Y", "risk_UNRATE"]].mean(axis=1) / 2
-    dollar = out["risk_DTWEXBGS"] / 2
-    macro_risk = (
-        stress * 0.35
-        + rates * 0.20
-        + inflation * 0.15
-        + growth * 0.15
-        + dollar * 0.15
-    )
-    score = 100 - trend_penalty - macro_risk * 30
-    extreme_stress = (
-        out[["risk_VIXCLS", "risk_BAMLH0A0HYM2"]].max(axis=1).ge(3)
-        & ~out["v2_spy_above_50"]
-    )
-    score = score.mask(extreme_stress, np.minimum(score, 49))
-    score = score.where(trend_ready & macro_risk.notna()).clip(0, 100).round()
-    out["v2_score"] = score
-    out["v2_label"] = pd.Series(
-        np.select([score >= 70, score >= 50], ["偏强", "中性"], default="防守"),
-        index=out.index,
-    ).where(score.notna())
+    def calculate(row: pd.Series) -> tuple[float, str | None]:
+        result = market_temperature_v2_score(
+            {
+                series_id: row.get(f"risk_{series_id}")
+                for series_id in SERIES_IDS
+            },
+            {
+                f"{symbol.lower()}_above_{window}": (
+                    bool(row[f"v2_{symbol.lower()}_above_{window}"])
+                    if trend_ready.loc[row.name]
+                    else None
+                )
+                for symbol in ("SPY", "QQQ")
+                for window in (50, 200)
+            },
+        )
+        return result if result else (np.nan, None)
+
+    scored = out.apply(calculate, axis=1, result_type="expand")
+    out["v2_score"] = scored[0]
+    out["v2_label"] = scored[1]
     return out
 
 

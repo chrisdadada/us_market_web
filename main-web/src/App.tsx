@@ -2387,7 +2387,7 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
     setSelectedKey(firstPressure?.key || seriesItems[0].key);
   }, [selectedKey, seriesItems, priority]);
   const score = Math.max(0, Math.min(100, payload?.overall?.score ?? 0));
-  const scoreTone = temperatureTone(payload?.overall?.label === "偏强" ? "positive" : payload?.overall?.label === "偏弱" ? "watch" : "neutral");
+  const scoreTone = temperatureTone(payload?.overall?.label === "偏强" ? "positive" : payload?.overall?.label === "防守" ? "watch" : "neutral");
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">

@@ -14,9 +14,35 @@ from backtest_market_temperature import (  # noqa: E402
     add_forward_metrics,
     build_temperature_history,
 )
+from build_product_data import market_temperature_v2_score  # noqa: E402
 
 
 class MarketTemperatureBacktestTests(unittest.TestCase):
+    def test_candidate_v2_shared_score_handles_strong_and_stress_states(self) -> None:
+        risks = {
+            key: 0
+            for key in [
+                "VIXCLS", "DGS10", "DGS30", "DGS2", "T10Y2Y", "CPIAUCSL",
+                "DTWEXBGS", "DCOILWTICO", "DCOILBRENTEU", "UNRATE", "BAMLH0A0HYM2",
+            ]
+        }
+        trends = {
+            "spy_above_50": True,
+            "spy_above_200": True,
+            "qqq_above_50": True,
+            "qqq_above_200": True,
+        }
+        self.assertEqual(market_temperature_v2_score(risks, trends), (100, "偏强"))
+
+        risks["VIXCLS"] = 3
+        trends["spy_above_50"] = False
+        score, label = market_temperature_v2_score(risks, trends) or (None, None)
+        self.assertLessEqual(score, 49)
+        self.assertEqual(label, "防守")
+
+        trends["spy_above_200"] = None
+        self.assertIsNone(market_temperature_v2_score(risks, trends))
+
     def test_history_uses_release_lags_and_current_score_formula(self) -> None:
         frames = {
             "CPIAUCSL": pd.DataFrame({
