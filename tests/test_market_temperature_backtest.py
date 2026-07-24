@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from backtest_market_temperature import (  # noqa: E402
+    add_candidate_v2,
     add_forward_metrics,
     build_temperature_history,
 )
@@ -67,6 +68,22 @@ class MarketTemperatureBacktestTests(unittest.TestCase):
         self.assertAlmostEqual(result.iloc[0]["SPY_5d_return"], 0.05)
         self.assertAlmostEqual(result.iloc[0]["QQQ_5d_drawdown"], -0.10)
         self.assertTrue(pd.isna(result.iloc[-1]["SPY_5d_return"]))
+
+    def test_candidate_v2_waits_for_next_day_before_using_price_break(self) -> None:
+        dates = pd.date_range("2024-01-01", periods=222, freq="B")
+        rising = list(range(100, 320))
+        frame = pd.DataFrame({"SPY": [*rising, 1, 1], "QQQ": [*rising, 1, 1]}, index=dates)
+        for column in [
+            "VIXCLS", "DGS10", "DGS30", "DGS2", "T10Y2Y", "CPIAUCSL",
+            "DTWEXBGS", "DCOILWTICO", "DCOILBRENTEU", "UNRATE", "BAMLH0A0HYM2",
+        ]:
+            frame[f"risk_{column}"] = 0.0
+        frame.loc[dates[-1], "risk_VIXCLS"] = 3.0
+
+        result = add_candidate_v2(frame)
+
+        self.assertEqual(result.loc[dates[-2], "v2_label"], "偏强")
+        self.assertEqual(result.loc[dates[-1], "v2_label"], "防守")
 
 
 if __name__ == "__main__":
