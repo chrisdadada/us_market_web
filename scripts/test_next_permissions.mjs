@@ -144,9 +144,18 @@ async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/product/raw/market-temperature") return marketTemperature;
   if (url.pathname === "/api/product/raw/macro-series") return macroSeries;
   if (url.pathname === "/api/product/strength") return strengthPageFixture(strength, url);
+  if (url.pathname === "/api/product/sectors") {
+    return {
+      ...sectorFlow,
+      board: url.searchParams.get("board") || "day",
+      rows: sectorFlow.rows || [],
+    };
+  }
 
   if (url.pathname === "/api/product/opinions") {
-    const items = (opinions.items || []).filter((item) => item.status === "published");
+    const items = (opinions.items || [])
+      .map((item) => ({ ...item, status: item.status || "published" }))
+      .filter((item) => item.status === "published");
     const limit = Number(url.searchParams.get("limit") || 8);
     const offset = Number(url.searchParams.get("offset") || 0);
     const section = String(url.searchParams.get("section") || "");
