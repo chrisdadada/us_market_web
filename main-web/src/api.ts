@@ -113,7 +113,7 @@ export type TemperatureIndicator = {
 
 export type MarketTemperaturePayload = {
   asOf?: string;
-  overall?: { score?: number; label?: string; summary?: string; action?: string };
+  overall?: { score?: number | null; label?: string; summary?: string; action?: string };
   indicators?: TemperatureIndicator[];
 };
 

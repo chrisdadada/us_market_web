@@ -577,25 +577,32 @@ def market_temperature_v2_score(
 def latest_benchmark_trends() -> dict[str, bool | None]:
     current_year = datetime.now(timezone.utc).year
     prices = load_daily_prices_range(current_year - 1, current_year, ["SPY", "QQQ"])
-    trends: dict[str, bool | None] = {
+    unavailable: dict[str, bool | None] = {
         f"{symbol.lower()}_above_{window}": None
         for symbol in ("SPY", "QQQ")
         for window in (50, 200)
     }
-    if not {"symbol", "adj_close"}.issubset(prices.columns):
-        return trends
+    if not {"symbol", "trade_date", "adj_close"}.issubset(prices.columns):
+        return unavailable
+    trends: dict[str, bool | None] = {}
+    latest_dates: set[date] = set()
     for symbol in ("SPY", "QQQ"):
-        closes = pd.to_numeric(
-            prices.loc[prices["symbol"] == symbol, "adj_close"],
-            errors="coerce",
-        ).dropna()
+        rows = prices.loc[prices["symbol"] == symbol, ["trade_date", "adj_close"]].copy()
+        rows["trade_date"] = pd.to_datetime(rows["trade_date"], errors="coerce")
+        rows["adj_close"] = pd.to_numeric(rows["adj_close"], errors="coerce")
+        rows = rows.dropna().sort_values("trade_date")
+        if len(rows) < 200:
+            return unavailable
+        closes = rows["adj_close"]
+        latest_dates.add(rows["trade_date"].iloc[-1].date())
         for window in (50, 200):
-            trends[f"{symbol.lower()}_above_{window}"] = (
-                bool(closes.iloc[-1] > closes.iloc[-window:].mean())
-                if len(closes) >= window
-                else None
+            trends[f"{symbol.lower()}_above_{window}"] = bool(
+                closes.iloc[-1] > closes.iloc[-window:].mean()
             )
-    return trends
+    if len(latest_dates) != 1:
+        return unavailable
+    age_days = (datetime.now(timezone.utc).date() - latest_dates.pop()).days
+    return trends if 0 <= age_days <= 7 else unavailable
 
 
 def build_market_temperature() -> dict[str, Any]:
@@ -655,13 +662,13 @@ def build_market_temperature() -> dict[str, Any]:
     if v2:
         score, label = v2
     else:
-        score, label = 50, "中性"
+        score, label = None, "待更新"
     if label == "偏强":
         action = "优先观察强势股和机构共振线索"
     elif label == "中性":
         action = "保持观察，等价格确认"
     else:
-        action = "降低观察频率，少看高热度线索"
+        action = "等待市场价格更新" if label == "待更新" else "降低观察频率，少看高热度线索"
     return {
         "generatedAt": now_iso(),
         "asOf": max(as_of_values) if as_of_values else "",

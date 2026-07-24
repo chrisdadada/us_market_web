@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -14,10 +15,27 @@ from backtest_market_temperature import (  # noqa: E402
     add_forward_metrics,
     build_temperature_history,
 )
-from build_product_data import market_temperature_v2_score  # noqa: E402
+from build_product_data import latest_benchmark_trends, market_temperature_v2_score  # noqa: E402
 
 
 class MarketTemperatureBacktestTests(unittest.TestCase):
+    def test_latest_benchmark_trends_rejects_mismatched_or_stale_prices(self) -> None:
+        dates = pd.date_range(end=pd.Timestamp.now(tz="UTC").tz_localize(None), periods=210, freq="B")
+        rows = pd.concat([
+            pd.DataFrame({"symbol": symbol, "trade_date": dates, "adj_close": range(100, 310)})
+            for symbol in ("SPY", "QQQ")
+        ], ignore_index=True)
+        with patch("build_product_data.load_daily_prices_range", return_value=rows):
+            self.assertTrue(all(value is not None for value in latest_benchmark_trends().values()))
+
+        mismatched = rows[~((rows["symbol"] == "QQQ") & (rows["trade_date"] == dates[-1]))]
+        with patch("build_product_data.load_daily_prices_range", return_value=mismatched):
+            self.assertTrue(all(value is None for value in latest_benchmark_trends().values()))
+
+        stale = rows.assign(trade_date=rows["trade_date"] - pd.Timedelta(days=10))
+        with patch("build_product_data.load_daily_prices_range", return_value=stale):
+            self.assertTrue(all(value is None for value in latest_benchmark_trends().values()))
+
     def test_candidate_v2_shared_score_handles_strong_and_stress_states(self) -> None:
         risks = {
             key: 0

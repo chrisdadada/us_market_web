@@ -2386,7 +2386,8 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
     const firstPressure = priority.find((indicator) => seriesItems.some((item) => item.key === indicator.key));
     setSelectedKey(firstPressure?.key || seriesItems[0].key);
   }, [selectedKey, seriesItems, priority]);
-  const score = Math.max(0, Math.min(100, payload?.overall?.score ?? 0));
+  const hasScore = typeof payload?.overall?.score === "number" && Number.isFinite(payload.overall.score);
+  const score = hasScore ? Math.max(0, Math.min(100, payload.overall?.score ?? 0)) : 0;
   const scoreTone = temperatureTone(payload?.overall?.label === "偏强" ? "positive" : payload?.overall?.label === "防守" ? "watch" : "neutral");
 
   return (
@@ -2398,8 +2399,8 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
         <>
           <section className="temperatureSnapshot">
             <article className="temperatureScore">
-              <span>市场温度</span><strong>{score}<small>/100</small></strong><b className={scoreTone}>{payload.overall?.label || "--"}</b>
-              <div className="temperatureScale"><i /><i /><i /><em style={{ left: `${score}%` }} /></div>
+              <span>市场温度</span><strong>{hasScore ? score : "--"}{hasScore ? <small>/100</small> : null}</strong><b className={scoreTone}>{payload.overall?.label || "--"}</b>
+              <div className="temperatureScale"><i /><i /><i />{hasScore ? <em style={{ left: `${score}%` }} /> : null}</div>
             </article>
             <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{formatDate(item.asOf)}</small></button>)}</div>
             <article className="temperatureFreshness"><span>数据日期</span><strong>{formatDate(payload.asOf)}</strong><small>{indicators.length} 项指标</small></article>
