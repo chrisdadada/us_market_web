@@ -461,10 +461,29 @@ try {
         await keyLevelHelp.hover();
         assert(await keyLevelHelp.locator(".infoTipBubble").isVisible(), "tracking help should appear immediately on hover");
         assert(await page.locator(".trackingKeyLevelsHead [title]").count() === 0, "tracking help should not use delayed native tooltips");
+        const trackingHeadText = await page.locator(".trackingDesktopTable thead").innerText();
+        assert(trackingHeadText.includes("关键点位") && trackingHeadText.includes("操作"), "desktop tracking list should keep key levels and actions visible");
+        assert(!trackingHeadText.includes("市值") && !trackingHeadText.includes("信号时间"), "desktop tracking list should move secondary fields into detail");
+        assert(await page.locator(".trackingDesktopTable").isVisible(), "desktop tracking list should show the compact table");
+        assert(!(await page.locator(".trackingMobileList").isVisible()), "desktop tracking list should hide mobile cards");
+        await page.mouse.move(0, 0);
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-list.png`, fullPage: true });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(200);
+        assert(!(await page.locator(".trackingDesktopTable").isVisible()), "mobile tracking list should hide the desktop table");
+        assert(await page.locator(".trackingMobileList").isVisible(), "mobile tracking list should show compact stock rows");
+        const mobileTrackingText = await page.locator(".trackingMobileRow").first().innerText();
+        for (const label of ["近1月", "近1周", "成交倍数", "支撑", "阻力", "查看详情"]) {
+          assert(mobileTrackingText.includes(label), `mobile tracking row should keep ${label}`);
+        }
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile tracking list should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-list-mobile.png`, fullPage: true });
+
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.waitForTimeout(200);
         const aaplRow = page.locator(".trackingPage .screenerTable tbody tr", { hasText: "AAPL" });
         assert((await aaplRow.innerText()).includes("$100.00"), "paid tracking row should show support");
         assert((await aaplRow.innerText()).includes("$110.00"), "paid tracking row should show resistance");
-        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-list.png`, fullPage: true });
         await aaplRow.locator(".screenerLink").click();
         await page.waitForSelector(".trackingKeyLevelsPanel");
         assert(await page.locator(".trackingPriceChart svg").count() === 1, "tracking detail should show the price chart");

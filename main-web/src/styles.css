@@ -12239,26 +12239,60 @@ body,
 
 /* Tracking key levels: compact terminal data, shared by list and detail. */
 .trackingPage .screenerTable {
-  min-width: 1540px;
+  width: 100%;
+  min-width: 980px;
+}
+
+.trackingPage .screenerTable th:nth-child(1),
+.trackingPage .screenerTable td:nth-child(1) {
+  width: 36px;
+}
+
+.trackingPage .screenerTable th:nth-child(2),
+.trackingPage .screenerTable td:nth-child(2) {
+  width: 190px;
+}
+
+.trackingPage .screenerTable th:nth-child(3),
+.trackingPage .screenerTable td:nth-child(3) {
+  width: 82px;
+}
+
+.trackingPage .screenerTable th:nth-child(4),
+.trackingPage .screenerTable td:nth-child(4),
+.trackingPage .screenerTable th:nth-child(5),
+.trackingPage .screenerTable td:nth-child(5),
+.trackingPage .screenerTable th:nth-child(6),
+.trackingPage .screenerTable td:nth-child(6) {
+  width: 76px;
+}
+
+.trackingPage .screenerTable th:nth-child(7),
+.trackingPage .screenerTable td:nth-child(7) {
+  width: 86px;
+}
+
+.trackingPage .screenerTable th:nth-child(8),
+.trackingPage .screenerTable td:nth-child(8) {
+  width: 110px;
+  text-align: center;
 }
 
 .trackingPage .screenerTable th.trackingKeyLevelsHead,
 .trackingPage .screenerTable td.trackingKeyLevelsData {
-  width: 214px;
+  width: 190px;
   text-align: left;
   white-space: normal;
 }
 
-.trackingPage .screenerTable th.trackingSignalTimeCell,
-.trackingPage .screenerTable td.trackingSignalTimeCell {
-  width: 150px;
-  text-align: center;
-}
-
 .trackingPage .screenerTable th.trackingActionCell,
 .trackingPage .screenerTable td.trackingActionCell {
-  width: 72px;
+  width: 64px;
   text-align: right;
+}
+
+.trackingMobileList {
+  display: none;
 }
 
 .trackingKeyLevelsHead > span {
@@ -12324,6 +12358,157 @@ body,
 
 .trackingKeyLevelsCell.locked strong {
   color: #8390a2;
+}
+
+@media (max-width: 760px) {
+  .trackingHeading .infoTipBubble {
+    left: 50%;
+    width: min(260px, calc(100vw - 40px));
+    transform: translate(-65%, -2px);
+  }
+
+  .trackingHeading .infoTip:hover .infoTipBubble,
+  .trackingHeading .infoTip:focus .infoTipBubble {
+    transform: translate(-65%, 0);
+  }
+
+  .trackingPage .trackingAddStrip {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px 9px;
+    padding: 10px 12px;
+  }
+
+  .trackingPage .trackingAddStrip time {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+
+  .trackingDesktopTable {
+    display: none;
+  }
+
+  .trackingMobileList {
+    display: block;
+  }
+
+  .trackingMobileRow {
+    border-top: 1px solid var(--line-soft);
+    padding: 15px;
+  }
+
+  .trackingMobileRow:first-child {
+    border-top: 0;
+  }
+
+  .trackingMobileHead,
+  .trackingMobileFoot {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .trackingMobileHead > div {
+    min-width: 0;
+  }
+
+  .trackingMobileHead > div:first-child > strong {
+    display: block;
+    color: #172033;
+    font-size: 17px;
+    font-weight: 680;
+  }
+
+  .trackingMobileHead > div:first-child > span {
+    display: block;
+    overflow: hidden;
+    max-width: 210px;
+    margin-top: 3px;
+    color: #718198;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .trackingMobileHead > div:last-child {
+    display: grid;
+    justify-items: end;
+    gap: 5px;
+  }
+
+  .trackingMobileHead > div:last-child > strong {
+    color: #172033;
+    font-size: 16px;
+    font-weight: 680;
+  }
+
+  .trackingMobileMetrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 13px;
+  }
+
+  .trackingMobileMetrics > div {
+    min-width: 0;
+    border-right: 1px solid #e4eaf2;
+    padding-right: 8px;
+  }
+
+  .trackingMobileMetrics > div + div {
+    padding-left: 15px;
+  }
+
+  .trackingMobileMetrics > div:last-child {
+    border-right: 0;
+  }
+
+  .trackingMobileMetrics span {
+    display: block;
+    color: #7b899d;
+    font-size: 11px;
+  }
+
+  .trackingMobileMetrics strong {
+    display: block;
+    margin-top: 4px;
+    color: #172033;
+    font-size: 14px;
+    font-weight: 680;
+  }
+
+  .trackingMobileMetrics strong.positive {
+    color: var(--green);
+  }
+
+  .trackingMobileMetrics strong.negative {
+    color: var(--red);
+  }
+
+  .trackingMobileFoot {
+    align-items: flex-end;
+    margin-top: 14px;
+    border-top: 1px solid #edf1f6;
+    padding-top: 12px;
+  }
+
+  .trackingMobileFoot .trackingKeyLevelsCell {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .trackingMobileFoot .trackingKeyLevelsCell > div {
+    grid-template-columns: 34px 72px auto;
+  }
+
+  .trackingMobileFoot .screenerLink {
+    flex: 0 0 auto;
+    padding: 5px 0;
+  }
+
+  .trackingMobileRow .lockedStockName {
+    width: 150px;
+  }
 }
 
 .levelStrength {

@@ -2001,6 +2001,17 @@ function TrackingPage({
   }, [rows, sortDir, sortKey]);
   const pagedRows = visibleRows.slice(pageIndex * pageSize, pageIndex * pageSize + pageSize);
   const pageCount = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+  const openTrackingRow = (symbol: string) => {
+    if (!locked) {
+      onOpenStock(symbol, "tracking");
+      return;
+    }
+    if (authenticated) {
+      onUnlock();
+      return;
+    }
+    onAuth("register");
+  };
 
   return (
     <div className="trackingPage">
@@ -2020,7 +2031,7 @@ function TrackingPage({
           </div>
           <time>更新 {formatStoredDateTime(asOf)}</time>
         </div>
-        <div className={locked ? "screenerTableWrap trackingLockedTable" : "screenerTableWrap"}>
+        <div className={locked ? "screenerTableWrap trackingLockedTable trackingDesktopTable" : "screenerTableWrap trackingDesktopTable"}>
           <table className="screenerTable">
             <thead>
               <tr>
@@ -2031,13 +2042,11 @@ function TrackingPage({
                 <th>{sortHeader("oneDay", "近1天")}</th>
                 <th>{sortHeader("oneWeek", "近1周")}</th>
                 <th>{sortHeader("volume", <VolumeRatioLabel />)}</th>
-                <th>{sortHeader("marketCap", "市值")}</th>
                 <th>{sortHeader("signal", "趋势策略方向")}</th>
                 <th className="trackingKeyLevelsHead">
                   <span>关键点位</span>
                   <InfoTip text={keyLevelsHelp} focusable />
                 </th>
-                <th className="trackingSignalTimeCell">{sortHeader("signalFirstSeen", "信号时间")}</th>
                 <th className="trackingActionCell">操作</th>
               </tr>
             </thead>
@@ -2063,25 +2072,13 @@ function TrackingPage({
                     <td className={signedClass(row.oneDay)}>{signed(row.oneDay)}</td>
                     <td className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</td>
                     <td>{row.volume || "--"}</td>
-                    <td>{marketCapDisplay(row)}</td>
                     <td><SignalDirectionBadge label={directionLabel} /></td>
                     <td className="trackingKeyLevelsData"><TrackingKeyLevelsCell levels={row.keyLevels} locked={locked} /></td>
-                    <td className="trackingSignalTimeCell">{row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</td>
                     <td className="trackingActionCell">
                       <button
                         type="button"
                         className="screenerLink"
-                        onClick={() => {
-                          if (!locked) {
-                            onOpenStock(row.symbol, "tracking");
-                            return;
-                          }
-                          if (authenticated) {
-                            onUnlock();
-                            return;
-                          }
-                          onAuth("register");
-                        }}
+                        onClick={() => openTrackingRow(row.symbol)}
                       >
                         详情
                       </button>
@@ -2091,6 +2088,34 @@ function TrackingPage({
               })}
             </tbody>
           </table>
+        </div>
+        <div className="trackingMobileList">
+          {pagedRows.map((row) => {
+            const directionLabel = trackingDirection(row);
+            const visibleName = row.name && row.name !== row.symbol ? row.name : trackingSymbolNames[row.symbol] || row.name || row.symbol;
+            return (
+              <article className="trackingMobileRow" key={row.symbol}>
+                <div className="trackingMobileHead">
+                  <div>
+                    {locked ? <LockedStockName symbol={row.symbol} name={visibleName} /> : <><strong>{row.symbol}</strong><span>{visibleName}</span></>}
+                  </div>
+                  <div>
+                    <strong>{priceDisplay(row.currentPrice)}</strong>
+                    <SignalDirectionBadge label={directionLabel} />
+                  </div>
+                </div>
+                <div className="trackingMobileMetrics">
+                  <div><span>近1月</span><strong className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</strong></div>
+                  <div><span>近1周</span><strong className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</strong></div>
+                  <div><span>成交倍数</span><strong>{row.volume || "--"}</strong></div>
+                </div>
+                <div className="trackingMobileFoot">
+                  <TrackingKeyLevelsCell levels={row.keyLevels} locked={locked} />
+                  <button type="button" className="screenerLink" onClick={() => openTrackingRow(row.symbol)}>查看详情</button>
+                </div>
+              </article>
+            );
+          })}
         </div>
         <div className="pager">
           <button disabled={pageIndex <= 0} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>
