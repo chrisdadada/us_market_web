@@ -446,7 +446,12 @@ try {
         const temperatureHelp = page.locator(".temperatureScoreLabel .infoTip");
         await temperatureHelp.hover();
         assert(await temperatureHelp.locator(".infoTipBubble").isVisible(), "temperature help should appear immediately on hover");
+        const temperatureHelpText = await temperatureHelp.locator(".infoTipBubble").innerText();
+        assert(temperatureHelpText.includes("分数越高，市场整体越强"), "temperature help should explain the score directly");
+        assert(temperatureHelpText.includes("不代表未来一定上涨或下跌"), "temperature help should state the indicator boundary");
         assert(await page.locator(".temperatureAdvice").count() === 1, "temperature score should show one concise action");
+        const temperatureAdvice = await page.locator(".temperatureAdvice").innerText();
+        assert(["市场较强，可重点观察强势股", "方向不清，等待走势确认", "风险较高，少追涨、控仓位", "数据更新中"].includes(temperatureAdvice), "temperature action should use the approved plain-language copy");
 
         await page.setViewportSize({ width: 390, height: 844 });
         await temperatureHelp.click();
