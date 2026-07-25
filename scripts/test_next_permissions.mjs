@@ -419,6 +419,36 @@ try {
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile home should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-home-mobile.png`, fullPage: true });
 
+        await page.goto(`${server.rootUrl}?page=opinions`, { waitUntil: "networkidle" });
+        await page.waitForSelector(".opinionProductDay");
+        assert(await page.locator(".opinionProductFeed > button.featured").count() === 1, "opinion list should highlight one latest item");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile opinion list should not overflow horizontally");
+        const mobileOpinionLayout = await page.locator(".opinionProductFeed > button").first().evaluate((element) => {
+          const style = getComputedStyle(element);
+          const titleRow = element.querySelector(".opinionProductTitle");
+          const title = element.querySelector(".opinionProductTitle strong");
+          return {
+            display: style.display,
+            width: element.getBoundingClientRect().width,
+            feedWidth: element.parentElement.getBoundingClientRect().width,
+            titleDisplay: titleRow ? getComputedStyle(titleRow).display : "",
+            titleAlign: title ? getComputedStyle(title).textAlign : "",
+            titleFontSize: title ? Number.parseFloat(getComputedStyle(title).fontSize) : 0,
+          };
+        });
+        assert(mobileOpinionLayout.display === "block", "mobile opinion item should use a single-column layout");
+        assert(Math.abs(mobileOpinionLayout.width - mobileOpinionLayout.feedWidth) <= 2, "mobile opinion item should use the full feed width");
+        assert(mobileOpinionLayout.titleDisplay === "block" && mobileOpinionLayout.titleAlign === "left", "mobile opinion title should use a full-width left-aligned row");
+        assert(mobileOpinionLayout.titleFontSize >= 16, "mobile opinion title should remain readable");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-opinions-mobile.png`, fullPage: true });
+
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.reload({ waitUntil: "networkidle" });
+        const opinionDayCount = await page.locator(".opinionProductDay").count();
+        const opinionItemCount = await page.locator(".opinionProductFeed > button").count();
+        assert(opinionDayCount > 0 && opinionDayCount < opinionItemCount, "desktop opinion list should group repeated dates");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-opinions-desktop.png`, fullPage: true });
+
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=tracking`, { waitUntil: "networkidle" });
         const trackingGuideHelp = page.locator(".trackingHeading .infoTip");

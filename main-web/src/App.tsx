@@ -422,6 +422,12 @@ function formatOpinionTime(value?: string | null) {
   return /\d{2}:\d{2}/.test(text) ? formatDateTime(text) : formatDate(text);
 }
 
+function formatOpinionClock(value?: string | null) {
+  const date = formatDate(value);
+  const dateTime = formatOpinionTime(value);
+  return dateTime.startsWith(`${date} `) ? dateTime.slice(date.length + 1) : "";
+}
+
 function normalizeImageUrl(url: string) {
   const clean = url.trim();
   if (clean.startsWith("/api/uploads/")) {
@@ -1677,10 +1683,21 @@ function OpinionsPage({
   const previousItem = selectedIndex >= 0 ? sectionRows[selectedIndex + 1] : null;
   const nextItem = selectedIndex > 0 ? sectionRows[selectedIndex - 1] : null;
   const displayRows = rows;
+  const groupedRows = displayRows.reduce<Array<{ date: string; rows: Opinion[] }>>((groups, item) => {
+    const date = formatDate(item.tradeDate);
+    const current = groups[groups.length - 1];
+    if (current?.date === date) current.rows.push(item);
+    else groups.push({ date, rows: [item] });
+    return groups;
+  }, []);
 
   if (!selectedId) {
     return (
       <div className="opinionProductPage">
+        <header className="opinionProductHeading">
+          <h1>美股热点风向标</h1>
+          <span>{displayRows[0]?.tradeDate ? `更新 ${formatOpinionTime(displayRows[0].tradeDate)}` : ""}</span>
+        </header>
         <div className="opinionProductTabs">
           {sectionOptions.map((item) => (
             <button key={item.key} type="button" className={item.key === section ? "active" : ""} onClick={() => changeSection(item.key)}>
@@ -1692,20 +1709,33 @@ function OpinionsPage({
         <section className="opinionProductLayout single">
           <article className="opinionProductFeed">
             {!loading && !displayRows.length ? <div className="opinionLoading">--</div> : null}
-            {!loading ? displayRows.map((item) => (
-              <button type="button" key={item.id} onClick={() => onSelect(item)}>
-                <p className="opinionProductMeta"><time>{formatOpinionTime(item.tradeDate)}</time><b>{opinionSectionLabel(item)}</b></p>
-                <div>
-                  <strong>{opinionDisplayTitle(item)}</strong>
-                  <div className={locked ? "opinionLockedExcerpt opinionListPreview" : "opinionListPreview"}>
-                    <p>{compactText(item.summary || item.body, 96)}</p>
-                  </div>
-                  <div className="opinionProductTags compact">
-                    {[...(item.symbols || []), ...(item.topics || [])].slice(0, 5).map((tag) => <b key={tag}>{tag}</b>)}
-                  </div>
-                </div>
-                {locked ? <span className="opinionMemberLabel">会员可见</span> : null}
-              </button>
+            {!loading ? groupedRows.map((group, groupIndex) => (
+              <Fragment key={group.date}>
+                <div className="opinionProductDay">{group.date}</div>
+                {group.rows.map((item, itemIndex) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={pageIndex === 0 && groupIndex === 0 && itemIndex === 0 ? "featured" : ""}
+                    onClick={() => onSelect(item)}
+                  >
+                    <div className="opinionProductItem">
+                      <div className="opinionProductTitle">
+                        <b>{opinionSectionLabel(item)}</b>
+                        <strong>{opinionDisplayTitle(item)}</strong>
+                      </div>
+                      <div className={locked ? "opinionLockedExcerpt opinionListPreview" : "opinionListPreview"}>
+                        <p>{compactText(item.summary || item.body, 96)}</p>
+                      </div>
+                      <div className="opinionProductTags compact">
+                        {[...(item.symbols || []), ...(item.topics || [])].slice(0, 5).map((tag) => <b key={tag}>{tag}</b>)}
+                      </div>
+                    </div>
+                    <time>{formatOpinionClock(item.tradeDate)}</time>
+                    {locked ? <span className="opinionMemberLabel">会员可见</span> : null}
+                  </button>
+                ))}
+              </Fragment>
             )) : null}
             <div className="opinionPager">
               <button type="button" disabled={pageIndex <= 0 || loading} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>

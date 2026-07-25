@@ -6197,137 +6197,281 @@ body,
   padding: 24px 28px 48px;
 }
 
+.opinionProductHeading,
+.opinionProductTabs,
+.opinionProductLayout.single {
+  width: min(1120px, 100%);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.opinionProductHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.opinionProductHeading h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+
+.opinionProductHeading span {
+  color: #7e8ca0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .opinionProductTabs {
+  display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
-  margin-bottom: 12px;
+  overflow-x: auto;
+  margin-bottom: 14px;
   border-bottom: 1px solid #dfe7f2;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.opinionProductTabs::-webkit-scrollbar {
+  display: none;
 }
 
 .opinionProductTabs button {
-  height: 38px;
-  padding: 0 14px;
+  flex: 0 0 auto;
+  height: 34px;
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 12px;
   font-size: 13px;
   font-weight: 600;
-  border-radius: 10px 10px 0 0;
 }
 
 .opinionProductFeed {
-  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #dce5f0;
+  border-radius: 7px;
   background: #fff;
-  border-color: #dfe7f2;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+  box-shadow: 0 8px 24px rgba(31, 59, 92, .05);
 }
 
-.opinionProductFeedHead {
-  min-height: 42px;
-  padding: 0 18px;
-  border-bottom-color: #e3eaf3;
-}
-
-.opinionProductFeedHead span {
+.opinionProductDay {
+  border-top: 1px solid #e5ebf3;
+  padding: 18px 22px 6px;
+  color: #61728a;
   font-size: 13px;
-  font-weight: 520;
-  color: #52627a;
+  font-weight: 700;
 }
 
-.opinionProductFeed > button {
-  grid-template-columns: 160px minmax(0, 1fr) 56px;
-  gap: 14px;
-  padding: 17px 18px;
-  border-bottom-color: #e5ecf5;
-  background: #fff;
-}
-
-.opinionProductFeed > button:hover {
-  background: #f7fbff;
-}
-
-.opinionProductMeta {
-  gap: 4px;
-}
-
-.opinionProductMeta time {
-  font-size: 13px;
-  line-height: 1.35;
-  color: #697891;
-}
-
-.opinionProductMeta b {
-  font-size: 12px;
-  color: #1d8cff;
-}
-
-.opinionProductFeed button strong {
-  font-size: 19px;
-  line-height: 1.35;
-  font-weight: 520;
-  color: #172033;
-}
-
-.opinionListPreview p,
-.opinionProductFeed button p {
-  margin-top: 7px;
-  font-size: 14px;
-  line-height: 1.65;
-  font-weight: 420;
-  color: #52627a;
-}
-
-.opinionProductTags.compact {
-  margin-top: 8px;
-}
-
-.opinionProductTags.compact b {
-  font-size: 12px;
-  font-weight: 550;
-  color: #738298;
-}
-
-/* Opinion list finish: content feed, not an admin table. */
-.opinionProductFeed {
-  border-radius: 16px;
-}
-
-.opinionProductFeedHead {
-  display: none;
+.opinionProductDay:first-child {
+  border-top: 0;
 }
 
 .opinionProductFeed > button {
   position: relative;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 20px;
-  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #e5ebf3;
+  background: #fff;
+  padding: 17px 22px;
+  color: #172033;
+  text-align: left;
+  cursor: pointer;
 }
 
-.opinionProductFeed > button > div {
+.opinionProductDay + button {
+  border-top: 0;
+}
+
+.opinionProductFeed > button:hover {
+  background: #f8fbff;
+}
+
+.opinionProductFeed > button.featured {
+  width: calc(100% - 24px);
+  margin: 0 12px 8px;
+  border: 1px solid #cfe2fb;
+  border-radius: 6px;
+  background: #f5f9ff;
+  box-shadow: inset 3px 0 0 #1677ff;
+}
+
+.opinionProductItem {
   min-width: 0;
-  padding-right: 70px;
 }
 
-.opinionProductFeed button strong {
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.42;
+.opinionProductTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
 }
 
-.opinionListPreview p,
-.opinionProductFeed button p {
-  font-size: 13.5px;
-  line-height: 1.62;
-}
-
-.opinionProductMeta time {
-  color: #506176;
-  font-size: 12.5px;
-}
-
-.opinionProductMeta b {
-  width: fit-content;
-  border-radius: 999px;
-  background: #eef6ff;
-  padding: 3px 8px;
+.opinionProductTitle > b {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: #0875ed;
   font-size: 12px;
-  font-weight: 560;
+  font-weight: 700;
+}
+
+.opinionProductFeed .opinionProductTitle strong {
+  min-width: 0;
+  color: #172033;
+  font-size: 17px;
+  font-weight: 680;
+  line-height: 1.45;
+}
+
+.opinionProductFeed > button.featured .opinionProductTitle strong {
+  font-size: 19px;
+}
+
+.opinionProductFeed .opinionListPreview {
+  margin-top: 7px;
+}
+
+.opinionProductFeed .opinionListPreview p {
+  margin: 0;
+  color: #566780;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+.opinionProductFeed .opinionProductTags.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.opinionProductFeed .opinionProductTags.compact b {
+  border: 1px solid #d8e2ee;
+  border-radius: 999px;
+  background: #f8fafc;
+  padding: 2px 8px;
+  color: #687a91;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.opinionProductFeed > button > time {
+  align-self: center;
+  color: #8795a7;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.opinionProductFeed .opinionMemberLabel {
+  top: 12px;
+  right: 18px;
+}
+
+@media (max-width: 760px) {
+  .opinionProductPage {
+    padding: 20px 14px 30px;
+  }
+
+  .opinionProductHeading {
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .opinionProductHeading h1 {
+    font-size: 20px;
+  }
+
+  .opinionProductHeading span {
+    font-size: 11px;
+  }
+
+  .opinionProductTabs {
+    width: auto;
+    margin-right: -14px;
+    margin-bottom: 12px;
+    margin-left: -14px;
+    padding-right: 14px;
+    padding-bottom: 12px;
+    padding-left: 14px;
+  }
+
+  .opinionProductTabs button {
+    padding: 0 10px;
+  }
+
+  .opinionProductFeed {
+    border-radius: 7px;
+    box-shadow: none;
+  }
+
+  .opinionProductDay {
+    padding: 16px 15px 6px;
+  }
+
+  .opinionProductFeed > button,
+  .opinionProductFeed > button.featured {
+    display: block;
+    width: 100%;
+    margin: 0;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    padding: 15px;
+  }
+
+  .opinionProductFeed > button.featured {
+    border-top: 1px solid #cfe2fb;
+    border-bottom: 1px solid #cfe2fb;
+    box-shadow: inset 3px 0 0 #1677ff;
+  }
+
+  .opinionProductTitle {
+    display: block;
+  }
+
+  .opinionProductTitle > b {
+    display: block;
+    margin: 0 0 4px;
+  }
+
+  .opinionProductFeed .opinionProductTitle strong,
+  .opinionProductFeed > button.featured .opinionProductTitle strong {
+    display: block;
+    font-size: 17px;
+  }
+
+  .opinionProductFeed .opinionListPreview p {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .opinionProductFeed .opinionProductTags.compact {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    padding-right: 78px;
+  }
+
+  .opinionProductFeed > button > time {
+    position: absolute;
+    right: 15px;
+    bottom: 18px;
+  }
 }
 
 .readerMetaLine span,
