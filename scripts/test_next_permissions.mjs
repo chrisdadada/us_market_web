@@ -421,6 +421,12 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=tracking`, { waitUntil: "networkidle" });
+        const trackingGuideHelp = page.locator(".trackingHeading .infoTip");
+        await trackingGuideHelp.hover();
+        assert(await trackingGuideHelp.locator(".infoTipBubble").isVisible(), "tracking guide should appear immediately on hover");
+        const trackingGuideText = await trackingGuideHelp.locator(".infoTipBubble").innerText();
+        assert(trackingGuideText.includes("先看近1月和近1周谁更强"), "tracking guide should explain the first comparison");
+        assert(trackingGuideText.includes("不代表可以买入"), "tracking guide should state the product boundary");
         const keyLevelHelp = page.locator(".trackingKeyLevelsHead .infoTip");
         await keyLevelHelp.hover();
         assert(await keyLevelHelp.locator(".infoTipBubble").isVisible(), "tracking help should appear immediately on hover");

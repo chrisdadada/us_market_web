@@ -93,6 +93,7 @@ const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
 const volumeRatioHelp = "当前成交额相对近20日平均成交额的倍数，越高代表成交越活跃。";
 const keyLevelsHelp = "根据近120个交易日的价格拐点、波动区间和均线自动计算，仅作观察参考。";
+const trackingGuideHelp = "先看近1月和近1周谁更强，再看趋势方向有没有信号，最后看支撑和阻力。榜单只用于缩小观察范围，不代表可以买入。";
 const marketTemperatureHelp = "市场温度怎么看\n分数越高，市场整体越强；分数越低，市场风险越高。\n70–100 偏强：市场较强，可以积极找机会，但不要盲目追高\n50–69 中性：方向不清，等走势更明确再操作\n0–49 防守：风险较高，少追涨、控制仓位\n根据恐慌指数、利率、通胀、美元、原油及标普和纳指趋势综合计算，仅用于判断市场环境，不代表未来一定上涨或下跌。";
 const marketTemperatureAdvice: Record<string, string> = {
   偏强: "市场较强，可重点观察强势股",
@@ -1973,6 +1974,10 @@ function TrackingPage({
 
   return (
     <div className="trackingPage">
+      <header className="trackingHeading">
+        <h1>股票机会跟踪榜单</h1>
+        <InfoTip text={trackingGuideHelp} focusable />
+      </header>
       <section className="screenerCard">
         <div className="trackingAddStrip">
           <span>本次新增</span>
