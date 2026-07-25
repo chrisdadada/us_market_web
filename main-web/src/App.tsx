@@ -3335,7 +3335,7 @@ function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | 
 
 function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const pageSize = 30;
-  const [windowDays, setWindowDays] = useState("7");
+  const [windowDays, setWindowDays] = useState("30");
   const [impact, setImpact] = useState("all");
   const [pageIndex, setPageIndex] = useState(0);
   const [macroRows, setMacroRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "macro"));
@@ -3343,6 +3343,10 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [total, setTotal] = useState(initialEvents.filter((event) => event.type === "earnings").length);
   const [macroLoading, setMacroLoading] = useState(false);
   const [earningsLoading, setEarningsLoading] = useState(false);
+  const [macroError, setMacroError] = useState(false);
+  const [earningsError, setEarningsError] = useState(false);
+  const [macroRetry, setMacroRetry] = useState(0);
+  const [earningsRetry, setEarningsRetry] = useState(0);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
@@ -3352,6 +3356,7 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   useEffect(() => {
     let cancelled = false;
     setMacroLoading(true);
+    setMacroError(false);
     api.calendar({
       limit: 50,
       windowDays,
@@ -3359,17 +3364,20 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
       type: "macro"
     }).then((payload) => {
       if (!cancelled) setMacroRows(payload.rows || []);
+    }).catch(() => {
+      if (!cancelled) setMacroError(true);
     }).finally(() => {
       if (!cancelled) setMacroLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [impact, windowDays]);
+  }, [impact, macroRetry, windowDays]);
 
   useEffect(() => {
     let cancelled = false;
     setEarningsLoading(true);
+    setEarningsError(false);
     api.calendar({
       limit: pageSize,
       offset: pageIndex * pageSize,
@@ -3380,18 +3388,24 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
       if (cancelled) return;
       setEarningsRows(payload.rows || []);
       setTotal(payload.total || 0);
+    }).catch(() => {
+      if (!cancelled) setEarningsError(true);
     }).finally(() => {
       if (!cancelled) setEarningsLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [impact, pageIndex, windowDays]);
+  }, [earningsRetry, impact, pageIndex, windowDays]);
 
-	  return (
-	    <div className="calendarPage calendarV3">
-	      <section className="calendarWorkbench">
-	        <div className="calendarFilters">
+  return (
+    <div className="calendarPage calendarV3">
+      <header className="calendarPageHead">
+        <h1>美股重点财经前瞻</h1>
+        <span>北京时间</span>
+      </header>
+      <section className="calendarWorkbench">
+        <div className="calendarFilters">
           <div className="calendarWindowTabs">
             {[
               ["7", "未来7天"],
@@ -3410,19 +3424,31 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
             <option value="low">低</option>
           </select>
         </div>
-        <section className="calendarBlock">
-          <div className="calendarBlockHead">
+        <section className="calendarSection">
+          <div className="calendarSectionHead">
             <h2>宏观重点</h2>
-            <span>优先看利率、通胀、就业</span>
+            {!macroError ? <span>{macroRows.length} 项</span> : null}
           </div>
-          <MacroEventsTable rows={macroRows} loading={macroLoading} />
+          <CalendarEventsTable
+            kind="macro"
+            rows={macroRows}
+            loading={macroLoading}
+            error={macroError}
+            onRetry={() => setMacroRetry((value) => value + 1)}
+          />
         </section>
-        <section className="calendarBlock">
-          <div className="calendarBlockHead">
+        <section className="calendarSection calendarEarningsSection">
+          <div className="calendarSectionHead">
             <h2>财报日历</h2>
-            <span>按日期分组展示</span>
+            <span>按日期排列</span>
           </div>
-          <EarningsEventsTable rows={earningsRows} loading={earningsLoading} />
+          <CalendarEventsTable
+            kind="earnings"
+            rows={earningsRows}
+            loading={earningsLoading}
+            error={earningsError}
+            onRetry={() => setEarningsRetry((value) => value + 1)}
+          />
           <div className="calendarPager">
             <span>第 {pageIndex + 1} 页</span>
             <div>
@@ -3436,32 +3462,40 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   );
 }
 
-function MacroEventsTable({ rows, loading }: { rows: CalendarEvent[]; loading: boolean }) {
-  return (
-    <section className="calendarMacroPanel">
-      {rows.map((event) => (
-        <article className={event.impact === "high" ? "highImpact" : ""} key={event.id}>
-          <div className="calendarMacroDate">
-            <strong>{formatDate(event.date).slice(5)}</strong>
-            <span>{weekdayLabel(event.date)}</span>
-          </div>
-          <span className="calendarTimeCell">{calendarTime24(event.time)}</span>
-          <div className="calendarEventCell">
-            <strong>{calendarTitle(event.title)}</strong>
-          </div>
-          <span className="calendarTextCell calendarDataCell">{calendarDataText(event) || calendarSummaryText(event) || "--"}</span>
-          <span className={impactClass(event.impact)}>{impactLabel(event.impact)}</span>
-        </article>
-      ))}
-      {!loading && rows.length === 0 ? <div className="calendarEmpty">--</div> : null}
-      {loading && rows.length === 0 ? <div className="calendarEmpty" /> : null}
-    </section>
-  );
-}
+function CalendarEventsTable({
+  kind,
+  rows,
+  loading,
+  error,
+  onRetry
+}: {
+  kind: "macro" | "earnings";
+  rows: CalendarEvent[];
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
+}) {
+  if (!rows.length) {
+    if (loading) return <div className="calendarState calendarStateLoading" aria-label="正在加载" />;
+    if (error) {
+      return (
+        <div className="calendarState">
+          <span>加载失败</span>
+          <button type="button" onClick={onRetry}>重新加载</button>
+        </div>
+      );
+    }
+    return <div className="calendarState">{kind === "macro" ? "这段时间暂无重点宏观事件" : "这段时间暂无财报安排"}</div>;
+  }
 
-function EarningsEventsTable({ rows, loading }: { rows: CalendarEvent[]; loading: boolean }) {
   return (
-    <section className="calendarTablePanel">
+    <section className={`calendarTablePanel ${kind === "macro" ? "calendarMacroTable" : "calendarEarningsTable"}`}>
+      {error ? (
+        <div className="calendarInlineError">
+          <span>更新失败，当前显示上次结果</span>
+          <button type="button" onClick={onRetry}>重新加载</button>
+        </div>
+      ) : null}
       <div className="calendarTableHead">
         <span>时间</span>
         <span>事件</span>
@@ -3470,35 +3504,45 @@ function EarningsEventsTable({ rows, loading }: { rows: CalendarEvent[]; loading
         <span>数据</span>
         <span>影响</span>
       </div>
-      <div className="calendarTableBody">
+      <div className={`calendarTableBody ${loading ? "isLoading" : ""}`}>
         {rows.map((event, index) => {
-          const dataText = calendarDataText(event) || calendarSummaryText(event) || "--";
+          const dataText = calendarDataText(event) || calendarSummaryText(event);
           const subtext = calendarEventSubtext(event);
+          const mobileMeta = [
+            eventTypeLabel(event.type),
+            subtext,
+            dataText && dataText !== subtext && !subtext.includes(dataText) ? dataText : ""
+          ].filter(Boolean).join(" · ");
           const showDate = formatDate(event.date) !== formatDate(rows[index - 1]?.date);
+          const dateCount = rows.filter((row) => formatDate(row.date) === formatDate(event.date)).length;
           const rowClassName = [
             event.impact === "high" ? "highImpact" : "",
             event.type === "macro" ? "macroEvent" : ""
           ].filter(Boolean).join(" ");
           return (
             <Fragment key={event.id}>
-              {showDate ? <div className="calendarDateDivider">{formatDate(event.date).slice(5)} <span>{weekdayLabel(event.date)}</span></div> : null}
+              {showDate ? (
+                <div className="calendarDateDivider">
+                  <strong>{formatDate(event.date).slice(5)}　{weekdayLabel(event.date)}</strong>
+                  <span>{dateCount} 项</span>
+                </div>
+              ) : null}
               <article className={rowClassName} key={event.id}>
                 <span className="calendarTimeCell">{calendarTime24(event.time)}</span>
                 <div className="calendarEventCell">
                   <strong>{calendarTitle(event.title)}</strong>
+                  {mobileMeta ? <small className="calendarMobileMeta">{mobileMeta}</small> : null}
                 </div>
-                <span className="calendarType">{eventTypeLabel(event.type)}</span>
+                <span className={`calendarType ${event.type === "macro" ? "macro" : ""}`}>{eventTypeLabel(event.type)}</span>
                 <div className="calendarEventCell">
                   {subtext ? <small>{subtext}</small> : null}
                 </div>
-                <span className="calendarTextCell calendarDataCell">{dataText}</span>
+                <span className="calendarTextCell calendarDataCell">{dataText || ""}</span>
                 <span className={impactClass(event.impact)}>{impactLabel(event.impact)}</span>
               </article>
             </Fragment>
           );
         })}
-        {!loading && rows.length === 0 ? <div className="calendarEmpty">--</div> : null}
-        {loading && rows.length === 0 ? <div className="calendarEmpty" /> : null}
       </div>
     </section>
   );

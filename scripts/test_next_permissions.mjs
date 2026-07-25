@@ -166,7 +166,18 @@ async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/product/calendar") {
     const limit = Number(url.searchParams.get("limit") || 50);
     const offset = Number(url.searchParams.get("offset") || 0);
-    const rows = calendar.events || [];
+    const type = String(url.searchParams.get("type") || "");
+    const impact = String(url.searchParams.get("impact") || "");
+    const windowDays = Number(url.searchParams.get("windowDays") || 0);
+    const fixtureToday = new Date("2026-07-25T00:00:00Z");
+    const startDate = fixtureToday.toISOString().slice(0, 10);
+    const endDate = new Date(fixtureToday.getTime() + windowDays * 86400000).toISOString().slice(0, 10);
+    const rows = (calendar.events || []).filter((event) => {
+      if (type && event.type !== type) return false;
+      if (impact && event.impact !== impact) return false;
+      if (windowDays && (event.date < startDate || event.date > endDate)) return false;
+      return true;
+    });
     return { rows: rows.slice(offset, offset + limit), total: rows.length, limit, offset };
   }
 
@@ -533,6 +544,27 @@ try {
         await page.keyboard.press("Escape");
         assert(await page.locator(".stockPreviewDrawer").count() === 0, "Escape should close the stock overview");
         assert(await page.locator("body.stockPreviewOpen").count() === 0, "closing stock overview should unlock background scrolling");
+
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=calendar`, { waitUntil: "networkidle" });
+        assert((await page.locator(".calendarPageHead h1").innerText()) === "美股重点财经前瞻", "calendar should show the approved page title");
+        assert(await page.locator(".calendarMacroTable").count() === 1, "calendar should keep macro events in their own section");
+        assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
+        const calendarSectionOrder = await page.evaluate(() => {
+          const macro = document.querySelector(".calendarMacroTable");
+          const earnings = document.querySelector(".calendarEarningsTable");
+          return Boolean(macro && earnings && (macro.compareDocumentPosition(earnings) & Node.DOCUMENT_POSITION_FOLLOWING));
+        });
+        assert(calendarSectionOrder, "macro events should remain above the earnings calendar");
+        assert(!(await page.locator("body").innerText()).includes("优先看利率、通胀、就业"), "calendar should remove explanatory filler");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-calendar-desktop.png`, fullPage: true });
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(200);
+        assert(!(await page.locator(".calendarTableHead").first().isVisible()), "mobile calendar should hide desktop table headings");
+        assert(await page.locator(".calendarMobileMeta").first().isVisible(), "mobile calendar should show compact event context");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile calendar should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-calendar-mobile.png`, fullPage: true });
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=risk`, { waitUntil: "networkidle" });
