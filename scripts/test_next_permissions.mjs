@@ -497,6 +497,44 @@ try {
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail-mobile.png`, fullPage: true });
 
         await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=stocks`, { waitUntil: "networkidle" });
+        assert(await page.locator(".stocksSignalStrip").count() === 0, "stock library should remove page-local market summaries");
+        assert(await page.locator(".stockLibraryDesktopTable").isVisible(), "desktop stock library should show the comparison table");
+        assert(!(await page.locator(".stockLibraryMobileList").isVisible()), "desktop stock library should hide mobile rows");
+        const stockLibraryHead = await page.locator(".stockLibraryTable thead").innerText();
+        assert(stockLibraryHead.includes("现价") && stockLibraryHead.includes("操作"), "stock library should keep price and the overview action");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop stock library should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-desktop.png`, fullPage: true });
+
+        const firstStockView = page.locator(".stockLibraryTable tbody .stockLibraryView").first();
+        await firstStockView.click();
+        await page.waitForSelector(".stockPreviewDrawer");
+        assert((await page.locator(".stockPreviewDrawer").innerText()).includes("股票概览"), "stock overview should open on demand");
+        assert(await page.locator("body.stockPreviewOpen").count() === 1, "stock overview should lock background scrolling");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-overview-desktop.png`, fullPage: true });
+        await page.locator(".stockPreviewDrawer > header button").click();
+        assert(await page.locator(".stockPreviewDrawer").count() === 0, "stock overview should close back to the list");
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(200);
+        assert(!(await page.locator(".stockLibraryDesktopTable").isVisible()), "mobile stock library should hide the desktop table");
+        assert(await page.locator(".stockLibraryMobileList").isVisible(), "mobile stock library should show compact rows");
+        const firstMobileStockText = await page.locator(".stockLibraryMobileRow").first().innerText();
+        for (const label of ["近1天", "近1周", "近1月", "成交额", "市值", "查看概览"]) {
+          assert(firstMobileStockText.includes(label), `mobile stock library should keep ${label}`);
+        }
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock library should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-mobile.png`, fullPage: true });
+        await page.locator(".stockLibraryMobileRow .stockLibraryMobileFoot button").first().click();
+        await page.waitForSelector(".stockPreviewDrawer");
+        assert(await page.locator(".stockPreviewDrawer").evaluate((element) => Math.abs(element.getBoundingClientRect().width - window.innerWidth) <= 1), "mobile stock overview should use the full viewport width");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock overview should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-overview-mobile.png`, fullPage: true });
+        await page.keyboard.press("Escape");
+        assert(await page.locator(".stockPreviewDrawer").count() === 0, "Escape should close the stock overview");
+        assert(await page.locator("body.stockPreviewOpen").count() === 0, "closing stock overview should unlock background scrolling");
+
+        await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=risk`, { waitUntil: "networkidle" });
         const temperatureHelp = page.locator(".temperatureScoreLabel .infoTip");
         await temperatureHelp.hover();

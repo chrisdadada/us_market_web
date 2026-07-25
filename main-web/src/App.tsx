@@ -2979,15 +2979,12 @@ function StocksPage({
   const [sectorOptions, setSectorOptions] = useState<Array<{ sector: string; count: number }>>([]);
   const [detail, setDetail] = useState<SymbolDetailPayload | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [detailAttempt, setDetailAttempt] = useState(0);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const selectedRow = rows.find((row) => row.symbol === selectedSymbol) || null;
-  const activeRow = selectedRow || rows[0] || null;
-  const activeSymbol = activeRow?.symbol || "";
-  const mostActive = useMemo(() => [...rows].sort((a, b) => Number(b.dollarVolume || 0) - Number(a.dollarVolume || 0))[0], [rows]);
-  const strongestMonth = useMemo(() => [...rows].sort((a, b) => Number(b.monthChange || -Infinity) - Number(a.monthChange || -Infinity))[0], [rows]);
+  const activeSymbol = selectedSymbol.trim().toUpperCase();
   const signalMap = useMemo(() => new Map(signalStates.map((item) => [item.symbol, item])), [signalStates]);
-  const firstSignal = useMemo(() => signalStates.find((signal) => rows.some((row) => row.symbol === signal.symbol)), [rows, signalStates]);
-  const firstEvent = useMemo(() => rows.find((row) => row.hasEvent || row.eventLabel), [rows]);
   const stockSortHeader = (key: StockSortKey, label: string) => (
     <button
       type="button"
@@ -3007,6 +3004,14 @@ function StocksPage({
   const changeStockSort = (key: StockSortKey) => {
     setSort(key);
     setSortDir(key === "symbol" ? "asc" : "desc");
+  };
+  const resetStockFilters = () => {
+    setQuery("");
+    setPreset("all");
+    setSector("all");
+    setCap("all");
+    setSort("dollarVolume");
+    setSortDir("desc");
   };
 
   useEffect(() => {
@@ -3047,40 +3052,52 @@ function StocksPage({
   useEffect(() => {
     if (!activeSymbol) {
       setDetail(null);
+      setDetailError("");
+      setDetailLoading(false);
       return;
     }
+    let cancelled = false;
+    setDetail(null);
     setDetailLoading(true);
+    setDetailError("");
     api.symbolDetail(activeSymbol)
-      .then((payload) => setDetail(payload))
-      .catch(() => setDetail(null))
-      .finally(() => setDetailLoading(false));
-  }, [activeSymbol]);
+      .then((payload) => {
+        if (!cancelled) setDetail(payload);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDetail(null);
+        setDetailError("股票概览加载失败，请稍后重试");
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSymbol, detailAttempt]);
+
+  useEffect(() => {
+    if (!activeSymbol) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onSelectSymbol("");
+    };
+    document.body.classList.add("stockPreviewOpen");
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.classList.remove("stockPreviewOpen");
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [activeSymbol, onSelectSymbol]);
 
   return (
     <div className="stocksPage">
-      <section className="stocksTerminalLayout">
-        <div className="screenerCard stocksScreenerCard">
-        <div className="stocksSignalStrip">
-          <button type="button" disabled={!mostActive} onClick={() => mostActive && onSelectSymbol(mostActive.symbol)}>
-            <span>成交最活跃</span>
-            <strong>{mostActive ? `${mostActive.symbol} · ${compactMoney(mostActive.dollarVolume)}` : "--"}</strong>
-          </button>
-          <button type="button" disabled={!strongestMonth} onClick={() => strongestMonth && onSelectSymbol(strongestMonth.symbol)}>
-            <span>近1月最强</span>
-            <strong className={signedClass(strongestMonth?.monthChange)}>{strongestMonth ? `${strongestMonth.symbol} ${signed(strongestMonth.monthChange)}` : "--"}</strong>
-          </button>
-          <button type="button" disabled={!firstSignal} onClick={() => firstSignal && onSelectSymbol(firstSignal.symbol)}>
-            <span>趋势信号</span>
-            <strong className={trackingDirectionClass(trackingDirection({ signalDirection: firstSignal?.direction, signalDirectionText: firstSignal?.directionText }))}>
-              {firstSignal ? `${firstSignal.symbol} ${trackingDirection({ signalDirection: firstSignal.direction, signalDirectionText: firstSignal.directionText })}` : "--"}
-            </strong>
-          </button>
-          <button type="button" disabled={!firstEvent} onClick={() => firstEvent && onSelectSymbol(firstEvent.symbol)}>
-            <span>最近事件</span>
-            <strong>{firstEvent ? `${firstEvent.symbol} ${firstEvent.eventLabel || "事件"}` : "--"}</strong>
-          </button>
-        </div>
-        <div className="screenerTabs">
+      <div className="stockLibraryHead">
+        <h1>股票库</h1>
+      </div>
+      <section className="stockLibraryWorkbench" aria-busy={loadingRows}>
+        <div className="stockLibraryPresetRow">
+          <div className="stockLibraryTabs">
           {[
             ["all", "全部"],
             ["liquid", "高成交"],
@@ -3097,9 +3114,11 @@ function StocksPage({
               {label}
             </button>
           ))}
+          </div>
+          <span>{loadingRows ? "加载中..." : `共 ${total} 只`}</span>
         </div>
-        <div className="stocksToolbar">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索代码 / 公司" />
+        <div className="stockLibraryToolbar">
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票代码或公司" />
           <select value={sector} onChange={(event) => setSector(event.target.value)}>
             <option value="all">全部板块</option>
             {sectorOptions.map((item) => <option key={item.sector} value={item.sector}>{item.sector}</option>)}
@@ -3118,55 +3137,104 @@ function StocksPage({
             <option value="monthChange">按1月</option>
             <option value="symbol">按代码</option>
           </select>
+          <button type="button" className="stockLibraryReset" onClick={resetStockFilters}>重置</button>
         </div>
 
-        <article className="stocksTablePanel">
+        <article className="stockLibraryTablePanel">
           {error ? <div className="tableError">{error}</div> : null}
-          <div className="screenerTableWrap">
-            <table className="screenerTable stocksListTable">
+          <div className="stockLibraryDesktopTable">
+            <table className="stockLibraryTable">
               <thead>
                 <tr>
                   <th>#</th>
                   <th>{stockSortHeader("symbol", "股票")}</th>
                   <th>板块</th>
+                  <th>现价</th>
                   <th>{stockSortHeader("dayChange", "近1天")}</th>
                   <th>{stockSortHeader("weekChange", "近1周")}</th>
                   <th>{stockSortHeader("monthChange", "近1月")}</th>
                   <th>{stockSortHeader("dollarVolume", "成交")}</th>
                   <th>{stockSortHeader("marketCap", "市值")}</th>
-                  <th>趋势策略方向</th>
+                  <th>趋势</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, index) => {
                   const signal = signalMap.get(row.symbol);
                   const direction = trackingDirection({ signalDirection: signal?.direction, signalDirectionText: signal?.directionText });
+                  const volumeRatio = ratioDisplay(row.volumeRatio);
                   return (
                     <tr key={row.symbol} className={row.symbol === activeSymbol ? "selectedRow" : ""} onClick={() => onSelectSymbol(row.symbol)}>
                       <td>{pageIndex * pageSize + index + 1}</td>
                       <td><strong>{row.symbol}</strong><span>{stockCompany(row)}</span></td>
                       <td>{row.sector || "--"}</td>
+                      <td>{priceDisplay(row.price)}</td>
                       <td className={signedClass(row.dayChange)}>{signed(row.dayChange)}</td>
                       <td className={signedClass(row.weekChange)}>{signed(row.weekChange)}</td>
                       <td className={signedClass(row.monthChange)}>{signed(row.monthChange)}</td>
-                      <td>{compactMoney(row.dollarVolume)}<span>{ratioDisplay(row.volumeRatio)}</span></td>
+                      <td>{compactMoney(row.dollarVolume)}{volumeRatio !== "--" ? <span>{volumeRatio}</span> : null}</td>
                       <td>{marketCapDisplay(row)}</td>
                       <td><SignalDirectionBadge label={direction} /></td>
+                      <td><button type="button" className="stockLibraryView" onClick={(event) => { event.stopPropagation(); onSelectSymbol(row.symbol); }}>查看</button></td>
                     </tr>
                   );
                 })}
+                {loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={11}>正在加载股票...</td></tr> : null}
+                {!loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={11}>没有符合条件的股票</td></tr> : null}
               </tbody>
             </table>
           </div>
+          <div className="stockLibraryMobileList">
+            {rows.map((row) => {
+              const signal = signalMap.get(row.symbol);
+              const direction = trackingDirection({ signalDirection: signal?.direction, signalDirectionText: signal?.directionText });
+              return (
+                <article className="stockLibraryMobileRow" key={row.symbol}>
+                  <div className="stockLibraryMobileHead">
+                    <div><strong>{row.symbol}</strong><span>{stockCompany(row)}</span></div>
+                    <div><strong>{priceDisplay(row.price)}</strong><span>{row.sector || "--"} · {direction}</span></div>
+                  </div>
+                  <div className="stockLibraryMobileMetrics">
+                    <div><span>近1天</span><strong className={signedClass(row.dayChange)}>{signed(row.dayChange)}</strong></div>
+                    <div><span>近1周</span><strong className={signedClass(row.weekChange)}>{signed(row.weekChange)}</strong></div>
+                    <div><span>近1月</span><strong className={signedClass(row.monthChange)}>{signed(row.monthChange)}</strong></div>
+                  </div>
+                  <div className="stockLibraryMobileFoot">
+                    <span>成交额 {compactMoney(row.dollarVolume)} · 市值 {marketCapDisplay(row)}</span>
+                    <button type="button" onClick={() => onSelectSymbol(row.symbol)}>查看概览</button>
+                  </div>
+                </article>
+              );
+            })}
+            {loadingRows && !rows.length ? <div className="stockLibraryEmpty">正在加载股票...</div> : null}
+            {!loadingRows && !rows.length ? <div className="stockLibraryEmpty">没有符合条件的股票</div> : null}
+          </div>
           <div className="pager">
             <button disabled={pageIndex <= 0 || loadingRows} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>
-            <span>第 {pageIndex + 1} 页</span>
+            <span>第 {pageIndex + 1} / {pageCount} 页</span>
             <button disabled={pageIndex >= pageCount - 1 || loadingRows} onClick={() => setPageIndex((value) => Math.min(pageCount - 1, value + 1))}>下一页</button>
           </div>
         </article>
-        </div>
-        <StockPreviewPanel row={activeRow} detail={detail} loading={detailLoading} signal={signalForSymbol(signalStates, activeSymbol)} />
       </section>
+      {activeSymbol ? (
+        <div className="stockPreviewOverlay" role="dialog" aria-modal="true" aria-label={`${activeSymbol} 股票概览`} onMouseDown={() => onSelectSymbol("")}>
+          <section className="stockPreviewDrawer" onMouseDown={(event) => event.stopPropagation()}>
+            <header>
+              <strong>股票概览</strong>
+              <button type="button" aria-label="关闭股票概览" autoFocus onClick={() => onSelectSymbol("")}>×</button>
+            </header>
+            {detailError ? (
+              <div className="stockPreviewError">
+                <strong>{detailError}</strong>
+                <button type="button" onClick={() => setDetailAttempt((value) => value + 1)}>重新加载</button>
+              </div>
+            ) : (
+              <StockPreviewPanel row={selectedRow} detail={detail} loading={detailLoading || !detail} signal={signalForSymbol(signalStates, activeSymbol)} />
+            )}
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3242,7 +3310,7 @@ function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | 
             <strong>{event.eventLabel || event.eventType || "--"}</strong>
           </div>
         ))}
-        {!events.length ? <div className="previewFact"><span>--</span><strong>--</strong></div> : null}
+        {!events.length ? <div className="stockPreviewEmpty">暂无近期事件</div> : null}
       </section>
 
       <section className="stockPreviewCard">
@@ -3257,7 +3325,7 @@ function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | 
                 <td>{compactMoney(peer.dollarVolume)}</td>
               </tr>
             ))}
-            {!peers.length ? <tr><td colSpan={3}>--</td></tr> : null}
+            {!peers.length ? <tr><td className="stockPreviewEmpty" colSpan={3}>暂无同板块数据</td></tr> : null}
           </tbody>
         </table>
       </section>
