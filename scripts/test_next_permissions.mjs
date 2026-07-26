@@ -585,14 +585,33 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
-        await page.getByRole("button", { name: "热力图" }).click();
-        const firstHeatTile = page.locator(".marketSectorHeatmap button").first();
+        assert((await page.locator(".marketPageHeadV3 h1").innerText()) === "市场与资金", "market page should show the approved page title");
+        assert(await page.locator(".marketSegmentV3 button.active", { hasText: "热力图" }).count() === 1, "market page should open with the heatmap");
+        const firstHeatTile = page.locator(".marketHeatmapV3 > button").first();
         await firstHeatTile.hover();
-        const heatTooltip = page.locator(".marketHeatTooltip");
+        const heatTooltip = page.locator(".marketHeatTooltipV3");
         await heatTooltip.waitFor();
         assert((await heatTooltip.innerText()).includes("均涨跌"), "market heatmap should show the average change immediately");
         assert((await heatTooltip.innerText()).includes("资金方向"), "market heatmap should show the fund direction immediately");
-        assert(await page.locator(".marketSectorHeatmap button[title]").count() === 0, "market heatmap should not use delayed native tooltips");
+        assert(await page.locator(".marketHeatmapV3 > button[title]").count() === 0, "market heatmap should not use delayed native tooltips");
+        assert(!(await page.locator(".marketLeadersV3").innerText()).match(/\b\d{8,}\b/), "market leaders should format raw liquidity values");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-market-desktop.png`, fullPage: true });
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(200);
+        const marketControlRows = await page.locator(".marketToolGroupV3").evaluateAll((elements) => elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom };
+        }));
+        assert(marketControlRows.length === 2 && marketControlRows[0].bottom <= marketControlRows[1].top, "mobile market controls should not overlap");
+        assert(await page.locator(".marketVolumeMobileV3").isVisible(), "mobile market page should use compact volume rows");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile market page should not overflow horizontally");
+        await page.getByRole("button", { name: "排行", exact: true }).click();
+        assert(await page.locator(".marketRankMobileV3").isVisible(), "mobile market ranking should use compact rows");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile market ranking should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-market-rank-mobile.png`, fullPage: true });
+        await page.getByRole("button", { name: "热力图", exact: true }).click();
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-market-mobile.png`, fullPage: true });
 
         await page.goto(`${server.rootUrl}?page=strength`, { waitUntil: "networkidle" });
         const strengthTabs = page.locator(".strengthListHead .marketToolTabs button");

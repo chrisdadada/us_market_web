@@ -2698,7 +2698,8 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
 function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null; onPage: (page: PageKey) => void }) {
   const [sectorRange, setSectorRange] = useState<"day" | "week" | "month">("day");
   const [sectorPayload, setSectorPayload] = useState<SectorFlowPayload | null>(null);
-  const [sectorLoading, setSectorLoading] = useState(false);
+  const [sectorState, setSectorState] = useState<"loading" | "idle" | "error">("loading");
+  const [sectorReload, setSectorReload] = useState(0);
   const activeSectorPayload = sectorPayload?.board === sectorRange ? sectorPayload : null;
   const sectors = useMemo(() => {
     const rows = activeSectorPayload?.rows?.length
@@ -2708,7 +2709,7 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
         : [];
     return rows.filter((item) => isDisplaySector(item.sector));
   }, [activeSectorPayload, bootstrap, sectorPayload, sectorRange]);
-  const [viewMode, setViewMode] = useState<"rank" | "map">("rank");
+  const [viewMode, setViewMode] = useState<"rank" | "map">("map");
   const [selectedSector, setSelectedSector] = useState(sectors[0]?.sector || "");
   const [heatTooltip, setHeatTooltip] = useState<{
     sector: string;
@@ -2723,21 +2724,22 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
     let alive = true;
     setSectorPayload(null);
     setSelectedSector("");
-    setSectorLoading(true);
+    setSectorState("loading");
     api.sectors({ board: sectorRange, limit: 30 })
       .then((payload) => {
-        if (alive) setSectorPayload(payload);
+        if (!alive) return;
+        setSectorPayload(payload);
+        setSectorState("idle");
       })
       .catch(() => {
-        if (alive) setSectorPayload(null);
-      })
-      .finally(() => {
-        if (alive) setSectorLoading(false);
+        if (!alive) return;
+        setSectorPayload(null);
+        setSectorState("error");
       });
     return () => {
       alive = false;
     };
-  }, [sectorRange]);
+  }, [sectorRange, sectorReload]);
   useEffect(() => {
     if (!sectors.length) return;
     if (!selectedSector || !sectors.some((item) => item.sector === selectedSector)) {
@@ -2746,9 +2748,10 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors, selectedSector]);
   const selected = sectors.find((item) => item.sector === selectedSector) || sectors[0];
   const volumeRows = (bootstrap?.movers?.boards?.volume?.rows || []).slice(0, 8);
-  const sectorDate = formatStoredDateTime(activeSectorPayload?.asOf || (sectorRange === "day" ? bootstrap?.movers?.updatedAt || bootstrap?.sectorFlow?.asOf : ""));
+  const sectorDate = formatDate(activeSectorPayload?.asOf || (sectorRange === "day" ? bootstrap?.movers?.updatedAt || bootstrap?.sectorFlow?.asOf : ""));
   const sectorChange = (sector?: typeof sectors[number]) => Number(sector?.avgChangePct ?? sector?.avgChange ?? 0);
   const sectorFlowTone = (sector?: typeof sectors[number]) => sectorChange(sector) >= 0 ? "up" : "down";
+  const sectorFlowLabel = (sector?: typeof sectors[number]) => Number(sector?.netFlowProxy || 0) >= 0 ? "资金流入" : "资金流出";
   const showHeatTooltip = (target: HTMLButtonElement, sector: typeof sectors[number]) => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     const rect = target.getBoundingClientRect();
@@ -2763,94 +2766,117 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
     });
   };
   const heatTiles = useMemo(() => {
-    const values = sectors.map((sector) => ({
+    const rawValues = sectors.map((sector) => ({
       value: Math.max(1, Math.abs(Number(sector.netFlowProxy || 0)) || Number(sector.activeValue || 0))
     }));
-    const max = Math.max(1, ...values.map((item) => item.value));
+    const max = Math.max(1, ...rawValues.map((item) => item.value));
+    // Keep the smallest sectors readable and tappable without changing their order.
+    const values = rawValues.map((item) => ({ value: Math.max(item.value, max * 0.03) }));
     const rects = treemapRects(values);
     return sectors.map((sector, index) => {
       const rect = rects[index] || { x: 0, y: 0, w: 100, h: 100 };
       const ratio = values[index].value / max;
       const area = rect.w * rect.h;
       const style: CSSProperties = {
-        left: `calc(${rect.x}% + 3px)`,
-        top: `calc(${rect.y}% + 3px)`,
-        width: `calc(${rect.w}% - 6px)`,
-        height: `calc(${rect.h}% - 6px)`
+        left: `calc(${rect.x}% + 1px)`,
+        top: `calc(${rect.y}% + 1px)`,
+        width: `calc(${rect.w}% - 2px)`,
+        height: `calc(${rect.h}% - 2px)`
       };
       return {
         sector,
         style,
         sizeClass: area > 1500 ? "heatLarge" : area > 650 ? "heatMedium" : "heatSmall",
-        contentClass: area > 1100 && rect.w >= 18 && rect.h >= 18
+        contentClass: area > 500 && rect.w >= 14 && rect.h >= 10
           ? "heatFull"
-          : area > 420 && rect.w >= 12 && rect.h >= 12
+          : area > 180 && rect.w >= 9 && rect.h >= 7
             ? "heatCompact"
-            : area > 160 && rect.w >= 9 && rect.h >= 9
-              ? "heatLabelOnly"
-              : "heatBlank",
+            : "heatLabelOnly",
         strengthClass: ratio > 0.58 || Math.abs(sectorChange(sector)) >= 2 ? "heatStrong" : ratio > 0.25 || Math.abs(sectorChange(sector)) >= 0.8 ? "heatMid" : "heatSoft"
       };
     });
   }, [sectors]);
   return (
-    <div className="marketPage">
-      <div className="marketToolbar">
-        <div className="marketSegment">
-          <button type="button" className={viewMode === "rank" ? "active" : ""} onClick={() => setViewMode("rank")}>排行</button>
-          <button type="button" className={viewMode === "map" ? "active" : ""} onClick={() => setViewMode("map")}>热力图</button>
+    <div className="marketPageV3">
+      <header className="marketPageHeadV3">
+        <h1>市场与资金</h1>
+        <span>{sectorDate}</span>
+      </header>
+      <section className="marketWorkbenchV3">
+        <div className="marketToolbarV3">
+          <div className="marketToolGroupV3">
+            <span>视图</span>
+            <div className="marketSegmentV3">
+              <button type="button" className={viewMode === "map" ? "active" : ""} onClick={() => setViewMode("map")}>热力图</button>
+              <button type="button" className={viewMode === "rank" ? "active" : ""} onClick={() => setViewMode("rank")}>排行</button>
+            </div>
+          </div>
+          <div className="marketToolGroupV3">
+            <span>周期</span>
+            <div className="marketSegmentV3">
+              <button type="button" className={sectorRange === "day" ? "active" : ""} onClick={() => setSectorRange("day")}>当日</button>
+              <button type="button" className={sectorRange === "week" ? "active" : ""} onClick={() => setSectorRange("week")}>近1周</button>
+              <button type="button" className={sectorRange === "month" ? "active" : ""} onClick={() => setSectorRange("month")}>近1月</button>
+            </div>
+          </div>
         </div>
-        <div className="marketSegment">
-          <button type="button" className={sectorRange === "day" ? "active" : ""} onClick={() => setSectorRange("day")}>当日</button>
-          <button type="button" className={sectorRange === "week" ? "active" : ""} onClick={() => setSectorRange("week")}>近1周</button>
-          <button type="button" className={sectorRange === "month" ? "active" : ""} onClick={() => setSectorRange("month")}>近1月</button>
-        </div>
-        <span className="marketDate">{sectorDate}</span>
-      </div>
-
-      <section className="marketFundsWorkspace benchmark">
-        <div className="marketFundsBoard benchmark">
-          <div className="marketFundsMain">
-            <div className="marketPanelHead"><strong>板块</strong></div>
+        {sectorState === "error" && sectors.length ? (
+          <div className="marketInlineStateV3">
+            <span>板块数据更新失败，当前显示已有数据</span>
+            <button type="button" onClick={() => setSectorReload((value) => value + 1)}>重新加载</button>
+          </div>
+        ) : null}
+        <div className="marketBoardV3" aria-busy={sectorState === "loading"}>
+          <div className="marketMainV3">
             {viewMode === "rank" ? (
-              <div className="marketSectorTable benchmark">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>板块</th>
-                    <th>资金方向</th>
-                    <th>上涨广度</th>
-                    <th>成交活跃</th>
-                    <th>均涨跌</th>
-                    <th>代表标的</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <div className="marketRankV3">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>板块</th>
+                      <th>资金方向</th>
+                      <th>上涨广度</th>
+                      <th>成交活跃</th>
+                      <th>均涨跌</th>
+                      <th>代表股票</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sectors.map((sector, index) => (
+                      <tr
+                        key={sector.sector}
+                        className={sector.sector === selected?.sector ? "selected" : ""}
+                        onClick={() => setSelectedSector(sector.sector)}
+                      >
+                        <td>{String(index + 1).padStart(2, "0")}</td>
+                        <td><strong>{sector.sector}</strong></td>
+                        <td className={signedClass(sector.netFlowProxy)}>{money(sector.netFlowProxy)}</td>
+                        <td>{Number.isFinite(sector.breadthPct) ? `${sector.upCount || 0}涨 / ${sector.downCount || 0}跌` : "--"}</td>
+                        <td>{sector.activeValueLabel || compactMoney(sector.activeValue)}</td>
+                        <td className={signedClass(sectorChange(sector))}>{signed(sectorChange(sector))}</td>
+                        <td>{(sector.leaders || []).slice(0, 4).map((leader) => leader.symbol).join(" / ") || "--"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="marketRankMobileV3">
                   {sectors.map((sector, index) => (
-                    <tr
+                    <button
+                      type="button"
                       key={sector.sector}
-                      className={sector.sector === selected?.sector ? "selectedRow" : ""}
+                      className={sector.sector === selected?.sector ? "selected" : ""}
                       onClick={() => setSelectedSector(sector.sector)}
                     >
-                      <td>{String(index + 1).padStart(2, "0")}</td>
-                      <td><strong>{sector.sector}</strong></td>
-                      <td className={signedClass(sector.netFlowProxy)}>{money(sector.netFlowProxy)}</td>
-                      <td>
-                        {Number.isFinite(sector.breadthPct) ? `${sector.upCount || 0}涨 / ${sector.downCount || 0}跌` : "--"}
-                        <i><b style={{ width: `${Math.max(8, Math.min(100, Number(sector.breadthPct) || 0))}%` }} /></i>
-                      </td>
-                      <td>{sector.activeValueLabel || compactMoney(sector.activeValue)}</td>
-                      <td className={signedClass(sectorChange(sector))}>{signed(sectorChange(sector))}</td>
-                      <td>{(sector.leaders || []).slice(0, 4).map((leader) => leader.symbol).join(" / ") || "--"}</td>
-                    </tr>
+                      <span><small>{String(index + 1).padStart(2, "0")}</small><strong>{sector.sector}</strong></span>
+                      <span><small>资金方向</small><strong className={signedClass(sector.netFlowProxy)}>{money(sector.netFlowProxy)}</strong></span>
+                      <span><small>均涨跌</small><strong className={signedClass(sectorChange(sector))}>{signed(sectorChange(sector))}</strong></span>
+                    </button>
                   ))}
-                  {!sectors.length ? <tr><td colSpan={7}>{sectorLoading ? "加载中" : "--"}</td></tr> : null}
-                </tbody>
-              </table>
+                </div>
               </div>
             ) : (
-              <div className="marketSectorHeatmap">
+              <div className="marketHeatmapV3">
                 {heatTiles.map((tile) => {
                   const { sector } = tile;
                   const leaders = (sector.leaders || []).slice(0, 3).map((leader) => leader.symbol).join(" / ");
@@ -2875,13 +2901,17 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
                     </button>
                   );
                 })}
-                {!sectors.length ? <div className="marketEmpty">{sectorLoading ? "加载中" : "--"}</div> : null}
+                {!sectors.length ? (
+                  <div className="marketStateV3">
+                    {sectorState === "loading" ? <span>正在加载板块数据...</span> : sectorState === "error" ? <><span>板块数据加载失败</span><button type="button" onClick={() => setSectorReload((value) => value + 1)}>重新加载</button></> : <span>暂无板块数据</span>}
+                  </div>
+                ) : null}
               </div>
             )}
             {viewMode === "map" && heatTooltip ? (
               <div
                 id="market-heat-tooltip"
-                className="marketHeatTooltip"
+                className="marketHeatTooltipV3"
                 role="tooltip"
                 style={{ left: heatTooltip.x, top: heatTooltip.y }}
               >
@@ -2891,40 +2921,34 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
               </div>
             ) : null}
           </div>
-          <aside className="marketFundsSide">
+          <aside className="marketDetailV3">
             {selected ? (
               <>
-                <section>
-                  <div className="marketPanelHead"><strong>{selected.sector}</strong></div>
-                  <div className="marketSectorFacts">
-                    <article><span>资金方向</span><strong className={signedClass(selected.netFlowProxy)}>{money(selected.netFlowProxy)}</strong></article>
-                    <article><span>均涨跌</span><strong className={signedClass(sectorChange(selected))}>{signed(sectorChange(selected))}</strong></article>
-                    <article><span>上涨广度</span><strong>{`${selected.upCount || 0}涨 / ${selected.downCount || 0}跌`}</strong></article>
-                    <article><span>成交活跃</span><strong>{selected.activeValueLabel || compactMoney(selected.activeValue)}</strong></article>
-                  </div>
-                </section>
-                <section>
-                  <div className="marketPanelHead"><strong>前排标的</strong></div>
-                  <div className="marketLeaderList">
-                    {(selected.leaders || []).slice(0, 5).map((leader) => (
-                      <button key={leader.symbol} type="button" onClick={() => onPage("stocks")}>
-                        <b>{leader.symbol}</b>
-                        <span>{leader.name || "--"}</span>
-                        <small>{leader.liquidity || "--"}</small>
-                        <em className={signedClass(leader.changePct ?? leader.change)}>{signed(leader.changePct ?? leader.change)}</em>
-                      </button>
-                    ))}
-                  </div>
-                </section>
+                <header><strong>{selected.sector}</strong><span className={Number(selected.netFlowProxy || 0) >= 0 ? "positive" : "negative"}>{sectorFlowLabel(selected)}</span></header>
+                <div className="marketFactsV3">
+                  <article><span>资金方向</span><strong className={signedClass(selected.netFlowProxy)}>{money(selected.netFlowProxy)}</strong></article>
+                  <article><span>均涨跌</span><strong className={signedClass(sectorChange(selected))}>{signed(sectorChange(selected))}</strong></article>
+                  <article><span>上涨广度</span><strong>{`${selected.upCount || 0}涨 / ${selected.downCount || 0}跌`}</strong></article>
+                  <article><span>成交活跃</span><strong>{selected.activeValueLabel || compactMoney(selected.activeValue)}</strong></article>
+                </div>
+                <h2>代表股票</h2>
+                <div className="marketLeadersV3">
+                  {(selected.leaders || []).slice(0, 4).map((leader) => (
+                    <button key={leader.symbol} type="button" onClick={() => onPage("stocks")}>
+                      <span><b>{leader.symbol}</b><small>{leader.name || "--"}</small></span>
+                      <span><b>{compactMoney(moneyNumber(leader.liquidity))}</b><em className={signedClass(leader.changePct ?? leader.change)}>{signed(leader.changePct ?? leader.change)}</em></span>
+                    </button>
+                  ))}
+                </div>
               </>
-            ) : <section><div className="marketEmpty">{sectorLoading ? "加载中" : "--"}</div></section>}
+            ) : <div className="marketStateV3"><span>{sectorState === "loading" ? "正在加载..." : "暂无板块数据"}</span></div>}
           </aside>
         </div>
       </section>
 
-      <section className="marketVolumePanel">
-        <div className="marketPanelHead"><strong>成交异动</strong></div>
-        <table>
+      <section className="marketVolumeV3">
+        <header><strong>成交异动</strong><span>按成交倍数排序</span></header>
+        <table className="marketVolumeTableV3">
           <thead>
             <tr>
               <th>#</th>
@@ -2950,6 +2974,16 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
             ))}
           </tbody>
         </table>
+        <div className="marketVolumeMobileV3">
+          {volumeRows.map((row) => (
+            <button type="button" key={row.symbol} onClick={() => onPage("stocks")}>
+              <span><strong>{row.symbol}</strong><small>{row.sector || "--"} · {row.company || row.chineseName || "--"}</small></span>
+              <span><strong className={signedClass(row.change)}>{signed(row.change)}</strong><small>涨跌</small></span>
+              <span><strong>{ratioDisplay(row.volumeRatio)}</strong><small>成交倍数</small></span>
+            </button>
+          ))}
+          {!volumeRows.length ? <div className="marketStateV3"><span>暂无成交异动</span></div> : null}
+        </div>
       </section>
     </div>
   );
