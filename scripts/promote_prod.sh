@@ -34,12 +34,13 @@ trap 'rm -rf "${STAGE_DIR}" "${ARCHIVE}"' EXIT
 npm run check
 bash scripts/run_release_gate.sh
 
-mkdir -p "${STAGE_DIR}/release/static-assets"
+mkdir -p "${STAGE_DIR}/release/static-assets" "${STAGE_DIR}/release/server"
 cp -a main-web/dist "${STAGE_DIR}/release/main-web-dist"
 cp -a admin-web/dist "${STAGE_DIR}/release/admin-web-dist"
 cp -a assets/dongbimao-logo.jpg assets/dongbimao-logo.png "${STAGE_DIR}/release/static-assets/"
 cp -a scripts/preserve_product_runtime_tables.py "${STAGE_DIR}/release/"
-(cd server && find . -type f -name '*.py' -print0 | sort -z | xargs -0 sha256sum) \
+find server -maxdepth 1 -type f -name '*.py' -exec cp -a {} "${STAGE_DIR}/release/server/" \;
+(cd "${STAGE_DIR}/release/server" && find . -type f -name '*.py' -print0 | sort -z | xargs -0 sha256sum) \
   > "${STAGE_DIR}/release/server.sha256"
 printf 'commit=%s\nbuilt_at=%s\n' "${COMMIT}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   > "${STAGE_DIR}/release/RELEASE"
@@ -66,10 +67,12 @@ release_dir="$(mktemp -d /tmp/dongbimao-prod-release.XXXXXX)"
 next_web="$(mktemp -d /var/www/.dongbimao-prod.next.XXXXXX)"
 next_main="$(mktemp -d "$prod_root/main-web/.dist.next.XXXXXX")"
 next_admin="$(mktemp -d "$prod_root/admin-web/.dist.next.XXXXXX")"
+next_server="$(mktemp -d "$prod_root/.server.next.XXXXXX")"
 old_web=""
 web_swapped=0
 main_swapped=0
 admin_swapped=0
+server_swapped=0
 
 exchange_dirs() {
   python3 - "$1" "$2" <<'PY'
@@ -119,7 +122,7 @@ finish() {
   trap - EXIT
   rollback_failed=0
   if [ "$rc" -ne 0 ]; then
-    if [ "$web_swapped" -eq 1 ] || [ "$main_swapped" -eq 1 ] || [ "$admin_swapped" -eq 1 ]; then
+    if [ "$web_swapped" -eq 1 ] || [ "$main_swapped" -eq 1 ] || [ "$admin_swapped" -eq 1 ] || [ "$server_swapped" -eq 1 ]; then
       echo "Deployment failed; restoring previous release." >&2
     fi
     if [ "$admin_swapped" -eq 1 ] && ! exchange_dirs "$prod_root/admin-web/dist" "$next_admin"; then
@@ -131,13 +134,20 @@ finish() {
     if [ "$web_swapped" -eq 1 ] && ! exchange_dirs "$prod_web" "$old_web"; then
       rollback_failed=1
     fi
+    if [ "$server_swapped" -eq 1 ]; then
+      if ! exchange_dirs "$prod_root/server" "$next_server"; then
+        rollback_failed=1
+      elif ! systemctl restart ytd-gainers-auth || ! systemctl is-active ytd-gainers-auth >/dev/null; then
+        rollback_failed=1
+      fi
+    fi
     if [ "$rollback_failed" -eq 1 ]; then
       echo "CRITICAL: rollback failed; release directories were retained for recovery" >&2
       rm -rf "$release_dir" "$archive"
       exit 2
     fi
   fi
-  rm -rf "$release_dir" "$next_web" "$next_main" "$next_admin" "$archive"
+  rm -rf "$release_dir" "$next_web" "$next_main" "$next_admin" "$next_server" "$archive"
   exit "$rc"
 }
 trap finish EXIT
@@ -150,11 +160,18 @@ source_root="$release_dir/release"
 
 test -f "$source_root/main-web-dist/index.html"
 test -f "$source_root/admin-web-dist/index.html"
+test -f "$source_root/server/auth_api.py"
 test -f "$source_root/preserve_product_runtime_tables.py"
 grep -qx "commit=$expected_commit" "$source_root/RELEASE"
-(cd "$prod_root/server" && sha256sum -c "$source_root/server.sha256")
 
 before_fingerprint="$(python3 "$source_root/preserve_product_runtime_tables.py" fingerprint --db "$prod_db")"
+
+rsync -a "$source_root/server/" "$next_server/"
+chown -R root:root "$next_server"
+find "$next_server" -type d -exec chmod 755 {} +
+find "$next_server" -type f -name '*.py' -exec chmod 644 {} +
+(cd "$next_server" && sha256sum -c "$source_root/server.sha256")
+python3 -m py_compile "$next_server"/*.py
 
 cp -a "$prod_web/." "$next_web/"
 chmod --reference="$prod_web" "$next_web"
@@ -178,6 +195,14 @@ check_index_assets
 prod_web="$check_root"
 
 nginx -t
+
+exchange_dirs "$prod_root/server" "$next_server"
+server_swapped=1
+systemctl restart ytd-gainers-auth
+systemctl is-active ytd-gainers-auth >/dev/null
+curl --fail --silent --show-error --max-time 15 https://www.dongbimao.org/api/health >/dev/null
+curl --fail --silent --show-error --max-time 15 https://www.dongbimao.org/api/auth/status >/dev/null
+
 old_web="$next_web"
 exchange_dirs "$prod_web" "$old_web"
 web_swapped=1
@@ -205,9 +230,10 @@ mv "$prod_root/RELEASE.next" "$prod_root/RELEASE"
 web_swapped=0
 main_swapped=0
 admin_swapped=0
-if ! rm -rf "$old_web" "$next_main" "$next_admin"; then
+server_swapped=0
+if ! rm -rf "$old_web" "$next_main" "$next_admin" "$next_server"; then
   echo "WARNING: deployed successfully, but old release cleanup needs attention" >&2
 fi
 REMOTE
 
-echo "Prod frontends deployed from ${COMMIT}: https://www.dongbimao.org/"
+echo "Prod code deployed from ${COMMIT}: https://www.dongbimao.org/"

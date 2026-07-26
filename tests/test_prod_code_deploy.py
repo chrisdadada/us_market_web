@@ -19,11 +19,14 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
         self.assertIn("npm run check", SCRIPT)
         self.assertIn("bash scripts/run_release_gate.sh", SCRIPT)
 
-    def test_deploys_frontends_only_when_backend_matches(self) -> None:
+    def test_packages_and_atomically_deploys_backend(self) -> None:
+        self.assertIn('"${STAGE_DIR}/release/server"', SCRIPT)
         self.assertIn("server.sha256", SCRIPT)
         self.assertIn('sha256sum -c "$source_root/server.sha256"', SCRIPT)
-        self.assertNotIn("systemctl restart ytd-gainers-auth", SCRIPT)
-        self.assertNotIn('rsync -a --delete "$source_root/server/', SCRIPT)
+        self.assertIn('python3 -m py_compile "$next_server"/*.py', SCRIPT)
+        self.assertIn('exchange_dirs "$prod_root/server" "$next_server"', SCRIPT)
+        self.assertIn("systemctl restart ytd-gainers-auth", SCRIPT)
+        self.assertIn("systemctl is-active ytd-gainers-auth", SCRIPT)
 
     def test_uses_shared_lock_and_atomic_web_exchange(self) -> None:
         lock = "dongbimao-prod-deploy.lock"
@@ -44,6 +47,8 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
     def test_rollback_failure_is_not_suppressed(self) -> None:
         self.assertIn("CRITICAL: rollback failed", SCRIPT)
         self.assertNotIn("restore_code || true", SCRIPT)
+        self.assertIn('if [ "$server_swapped" -eq 1 ]', SCRIPT)
+        self.assertIn('exchange_dirs "$prod_root/server" "$next_server"', SCRIPT)
         self.assertIn("exit 2", SCRIPT)
 
 
