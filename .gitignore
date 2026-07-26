@@ -23,6 +23,7 @@ vite.config.d.ts
 *.tar.gz
 *.tgz
 *.zip
+.release-artifacts/
 
 # Large/local data products
 market-data-lab/data/

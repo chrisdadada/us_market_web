@@ -8,7 +8,6 @@ DATA_ROOT="${DATA_ROOT:-/Volumes/Extreme SSD/market-data-lab/data}"
 LOG_DIR="${ROOT}/logs/automation"
 LOCK_DIR="${ROOT}/.automated_refresh.lock"
 LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-${HOME}/.dongbimao/refresh.env}"
-REQUESTED_MANUAL_PROD_APPROVAL="${MANUAL_PROD_APPROVAL:-0}"
 
 mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/refresh-$(date +%Y%m%d-%H%M%S).log"
@@ -60,9 +59,8 @@ OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"
 DEPLOY_AFTER_REFRESH="${DEPLOY_AFTER_REFRESH:-1}"
 DEPLOY_PROD_DATA_AFTER_REFRESH="${DEPLOY_PROD_DATA_AFTER_REFRESH:-1}"
 PROMOTE_PROD_AFTER_DEPLOY="${PROMOTE_PROD_AFTER_DEPLOY:-0}"
-MANUAL_PROD_APPROVAL="${REQUESTED_MANUAL_PROD_APPROVAL}"
-if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" && ( "${ALLOW_PROD_PROMOTE:-0}" != "1" || "${MANUAL_PROD_APPROVAL}" != "1" ) ]]; then
-  echo "Production promote blocked. Set MANUAL_PROD_APPROVAL=1 and ALLOW_PROD_PROMOTE=1 only after explicit user approval."
+if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
+  echo "Production code promotion is manual only. Use prepare_prod_release.sh and promote_prod.sh."
   exit 2
 fi
 if [[ -z "${REQUIRE_FRESH_ASOF:-}" ]]; then
@@ -370,12 +368,7 @@ if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   run_root "deploy product DB to dev" \
     env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_dev_data.sh
 
-  if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
-    run_root "promote latest build to production" \
-      bash scripts/promote_prod.sh
-  fi
-
-  if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" || "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]]; then
+  if [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]]; then
     run_root "deploy product DB to production" \
       env ALLOW_VALIDATED_AUTOMATION_PROD_DATA_DEPLOY=1 SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
   fi

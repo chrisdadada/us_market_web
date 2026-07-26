@@ -10,6 +10,7 @@ python3 -m unittest \
   tests.test_media_cost_report \
   tests.test_preserve_product_runtime_tables \
   tests.test_prod_code_deploy \
+  tests.test_prod_release_validator \
   -v
 npm run test:routes
 npm run test:next:permissions

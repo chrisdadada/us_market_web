@@ -3,53 +3,82 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = (ROOT / "scripts" / "promote_prod.sh").read_text(encoding="utf-8")
+PREPARE = (ROOT / "scripts" / "prepare_prod_release.sh").read_text(encoding="utf-8")
+PROMOTE = (ROOT / "scripts" / "promote_prod.sh").read_text(encoding="utf-8")
+ROLLBACK = (ROOT / "scripts" / "rollback_prod.sh").read_text(encoding="utf-8")
 DATA_SCRIPT = (ROOT / "scripts" / "deploy_prod_data.sh").read_text(encoding="utf-8")
+AUTOMATED_REFRESH = (ROOT / "scripts" / "automated_refresh.sh").read_text(encoding="utf-8")
+OPTIONS_REFRESH = (ROOT / "scripts" / "options_refresh.sh").read_text(encoding="utf-8")
 
 
 class ProdCodeDeployScriptTests(unittest.TestCase):
-    def test_requires_commit_specific_manual_approval(self) -> None:
-        self.assertIn("MANUAL_PROD_APPROVAL", SCRIPT)
-        self.assertIn("ALLOW_PROD_CODE_DEPLOY", SCRIPT)
-        self.assertIn("PROD_APPROVED_COMMIT", SCRIPT)
-        self.assertIn("git branch --show-current", SCRIPT)
-        self.assertIn("git status --porcelain", SCRIPT)
+    def test_prepare_runs_checks_once_and_builds_commit_artifact(self) -> None:
+        self.assertIn("npm run check", PREPARE)
+        self.assertIn("bash scripts/run_release_gate.sh", PREPARE)
+        self.assertIn("dongbimao-prod-${commit}.tar.gz", PREPARE)
+        self.assertIn("checks=passed", PREPARE)
+        self.assertIn("validate_prod_release.py", PREPARE)
+        self.assertNotIn("ssh ", PREPARE)
+        self.assertNotIn("rsync ", PREPARE)
 
-    def test_runs_complete_release_gate(self) -> None:
-        self.assertIn("npm run check", SCRIPT)
-        self.assertIn("bash scripts/run_release_gate.sh", SCRIPT)
+    def test_promote_requires_commit_specific_manual_approval(self) -> None:
+        self.assertIn("MANUAL_PROD_APPROVAL", PROMOTE)
+        self.assertIn("ALLOW_PROD_CODE_DEPLOY", PROMOTE)
+        self.assertIn("PROD_APPROVED_COMMIT", PROMOTE)
+        self.assertIn("git branch --show-current", PROMOTE)
+        self.assertIn("git status --porcelain", PROMOTE)
 
-    def test_packages_and_atomically_deploys_backend(self) -> None:
-        self.assertIn('"${STAGE_DIR}/release/server"', SCRIPT)
-        self.assertIn("server.sha256", SCRIPT)
-        self.assertIn('sha256sum -c "$source_root/server.sha256"', SCRIPT)
-        self.assertIn('python3 -m py_compile "$next_server"/*.py', SCRIPT)
-        self.assertIn('exchange_dirs "$prod_root/server" "$next_server"', SCRIPT)
-        self.assertIn("systemctl restart ytd-gainers-auth", SCRIPT)
-        self.assertIn("systemctl is-active ytd-gainers-auth", SCRIPT)
+    def test_promote_reuses_verified_artifact_without_rebuilding(self) -> None:
+        self.assertIn("sha256sum -c", PROMOTE)
+        self.assertIn("validate_prod_release.py", PROMOTE)
+        self.assertNotIn("npm run check", PROMOTE)
+        self.assertNotIn("scripts/run_release_gate.sh", PROMOTE)
+        self.assertNotIn("vite build", PROMOTE)
 
-    def test_uses_shared_lock_and_atomic_web_exchange(self) -> None:
+    def test_components_are_checked_and_only_changed_code_is_swapped(self) -> None:
+        self.assertIn("component_matches", PROMOTE)
+        self.assertIn("main_changed", PROMOTE)
+        self.assertIn("admin_changed", PROMOTE)
+        self.assertIn("static_changed", PROMOTE)
+        self.assertIn("server_changed", PROMOTE)
+        self.assertIn('if [ "$server_changed" -eq 1 ]', PROMOTE)
+        self.assertIn('if [ "$web_changed" -eq 1 ]', PROMOTE)
+
+    def test_uses_shared_lock_and_atomic_directory_exchange(self) -> None:
         lock = "dongbimao-prod-deploy.lock"
-        self.assertIn(lock, SCRIPT)
+        self.assertIn(lock, PROMOTE)
         self.assertIn(lock, DATA_SCRIPT)
-        self.assertIn("renameat2", SCRIPT)
-        self.assertIn('exchange_dirs "$prod_web" "$old_web"', SCRIPT)
-        self.assertIn('cp -a "$prod_web/." "$next_web/"', SCRIPT)
-        self.assertIn('chmod --reference="$prod_web" "$next_web"', SCRIPT)
+        self.assertIn("renameat2", PROMOTE)
+        self.assertIn('exchange_dirs "$prod_web" "$old_web"', PROMOTE)
+        self.assertIn('exchange_dirs "$prod_root/server" "$next_server"', PROMOTE)
 
-    def test_verifies_static_assets_apis_and_product_db(self) -> None:
-        self.assertIn("check_index_assets", SCRIPT)
-        self.assertIn("/api/auth/status", SCRIPT)
-        self.assertIn("/api/product/health", SCRIPT)
-        self.assertGreaterEqual(SCRIPT.count("fingerprint --db"), 2)
-        self.assertNotIn('rsync -a "$source_root/data', SCRIPT)
+    def test_verifies_apis_and_product_db_without_packaging_data(self) -> None:
+        self.assertIn("check_index_assets", PROMOTE)
+        self.assertIn("/api/auth/status", PROMOTE)
+        self.assertIn("/api/product/health", PROMOTE)
+        self.assertGreaterEqual(PROMOTE.count("fingerprint --db"), 2)
+        self.assertNotIn('rsync -a "$source_root/data', PROMOTE)
+        self.assertNotIn("app.db", PREPARE)
+        self.assertNotIn("product.db", PREPARE)
 
-    def test_rollback_failure_is_not_suppressed(self) -> None:
-        self.assertIn("CRITICAL: rollback failed", SCRIPT)
-        self.assertNotIn("restore_code || true", SCRIPT)
-        self.assertIn('if [ "$server_swapped" -eq 1 ]', SCRIPT)
-        self.assertIn('exchange_dirs "$prod_root/server" "$next_server"', SCRIPT)
-        self.assertIn("exit 2", SCRIPT)
+    def test_failed_release_rolls_back_backend_and_frontends(self) -> None:
+        self.assertIn("CRITICAL: rollback failed", PROMOTE)
+        self.assertIn('if [ "$server_swapped" -eq 1 ]', PROMOTE)
+        self.assertIn("systemctl restart ytd-gainers-auth", PROMOTE)
+        self.assertIn("exit 2", PROMOTE)
+
+    def test_recent_release_artifacts_are_retained_for_rollback(self) -> None:
+        self.assertIn('release_store="$prod_root/releases"', PROMOTE)
+        self.assertIn("archives[3:]", PROMOTE)
+        self.assertIn("ALLOW_PROD_CODE_ROLLBACK", ROLLBACK)
+        self.assertIn("PROD_APPROVED_COMMIT", ROLLBACK)
+        self.assertIn("/opt/dongbimao-prod/releases/", ROLLBACK)
+
+    def test_automated_data_jobs_cannot_promote_prod_code(self) -> None:
+        self.assertNotIn("bash scripts/promote_prod.sh", AUTOMATED_REFRESH)
+        self.assertNotIn("bash scripts/promote_prod.sh", OPTIONS_REFRESH)
+        self.assertIn("Production code promotion is manual only", AUTOMATED_REFRESH)
+        self.assertIn("Production code promotion is manual only", OPTIONS_REFRESH)
 
 
 if __name__ == "__main__":

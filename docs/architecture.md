@@ -154,7 +154,9 @@ React 标准：
 - `scripts/update_product_data.sh`：更新产品数据。
 - `scripts/automated_refresh.sh`：完整自动刷新入口。
 - `scripts/deploy_dev.sh`：部署 dev 代码和静态构建，默认不重建产品 DB。
-- `scripts/promote_prod.sh`：promote production。
+- `scripts/prepare_prod_release.sh`：构建、测试并生成 commit 对应的不可变代码发版包。
+- `scripts/promote_prod.sh`：仅校验并切换已验收的 production 代码发版包。
+- `scripts/rollback_prod.sh`：按当次明确授权回滚到服务器保留的历史代码发版包。
 
 新增脚本必须说明输入、输出、失败条件。
 

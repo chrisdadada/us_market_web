@@ -60,16 +60,9 @@ To deploy dev but skip the production product DB update:
 DEPLOY_PROD_DATA_AFTER_REFRESH=0 ./scripts/automated_refresh.sh
 ```
 
-Production promotion is blocked unless explicitly enabled in the manual command
-for that run:
-
-```bash
-MANUAL_PROD_APPROVAL=1 ALLOW_PROD_PROMOTE=1 PROMOTE_PROD_AFTER_DEPLOY=1 ./scripts/automated_refresh.sh
-```
-
-Do not put prod promotion approval in `~/.dongbimao/refresh.env`. Scheduled
-refresh jobs may deploy dev, but production data and production site promotion
-still require the user to manually request that specific production update.
+Scheduled refresh jobs may deploy dev and the separately authorized DB-only
+product data release. They cannot promote production code. Production code
+always uses the manual, commit-bound release flow below.
 
 Options flow refresh is part of this automation by default. It uses Polygon REST
 options aggregates, so it intentionally advances slowly to avoid rate limits:
@@ -88,13 +81,47 @@ OPTIONS_START_DATE=2026-05-18 OPTIONS_END_DATE=2026-05-26 OPTIONS_MAX_DAYS=5 ./s
 The options step imports aggregates into `data/product.db` and the release gate
 checks that the page shell and product API payload are present before deployment.
 
-## Promote To Production
+## Prepare Production Release
 
-Manual promotion is still available when a build has already been checked on
-the test domain:
+After dev is confirmed and the code is committed, build and verify one immutable
+release artifact:
 
 ```bash
+./scripts/prepare_prod_release.sh
+```
+
+The artifact is stored under `.release-artifacts/` and is bound to the exact Git
+commit. Re-running this command for the same verified commit reuses the artifact.
+
+## Promote To Production
+
+After the user explicitly approves that exact commit, promote the already
+verified artifact. This step does not rebuild or rerun the full test suite:
+
+```bash
+COMMIT="$(git rev-parse HEAD)"
+MANUAL_PROD_APPROVAL=1 \
+ALLOW_PROD_CODE_DEPLOY=1 \
+PROD_APPROVED_COMMIT="$COMMIT" \
 ./scripts/promote_prod.sh
+```
+
+The remote step verifies the artifact checksum, skips unchanged components,
+checks product DB fingerprints, switches directories atomically, checks public
+health endpoints, and automatically restores the previous code if a check
+fails. The three most recent code artifacts are retained on the production
+server.
+
+## Roll Back Production
+
+Rollback also requires explicit approval for the exact retained commit:
+
+```bash
+TARGET="<full-40-character-commit>"
+MANUAL_PROD_APPROVAL=1 \
+ALLOW_PROD_CODE_ROLLBACK=1 \
+PROD_APPROVED_COMMIT="$TARGET" \
+./scripts/rollback_prod.sh "$TARGET"
 ```
 
 ## HTTPS
