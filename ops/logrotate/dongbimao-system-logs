@@ -1,0 +1,16 @@
+/var/log/messages
+/var/log/secure
+/var/log/cron
+{
+    daily
+    rotate 7
+    maxsize 100M
+    compress
+    missingok
+    notifempty
+    create 0600 root root
+    sharedscripts
+    postrotate
+        /bin/systemctl kill -s HUP rsyslog.service >/dev/null 2>&1 || true
+    endscript
+}

@@ -132,3 +132,13 @@ After the domain `clientHold` status is removed and public DNS resolves normally
 - `https://dev.dongbimao.org`
 - `https://www.dongbimao.org`
 - `https://admin.dongbimao.org`
+
+## Production Log Retention
+
+Production system log limits are tracked in:
+
+- `ops/systemd/99-dongbimao-journal-limits.conf`
+- `ops/logrotate/dongbimao-system-logs`
+
+They cap persistent journal usage at 512 MB and rotate compressed
+`messages/secure/cron` logs daily, retaining seven rotations.
