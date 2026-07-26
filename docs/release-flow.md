@@ -110,7 +110,8 @@ The remote step verifies the artifact checksum, skips unchanged components,
 checks product DB fingerprints, switches directories atomically, checks public
 health endpoints, and automatically restores the previous code if a check
 fails. The three most recent code artifacts are retained on the production
-server.
+server. On the first run, the currently deployed production code is archived
+before any switch, so it is immediately available as the first rollback target.
 
 ## Roll Back Production
 

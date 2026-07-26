@@ -69,6 +69,8 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
 
     def test_recent_release_artifacts_are_retained_for_rollback(self) -> None:
         self.assertIn('release_store="$prod_root/releases"', PROMOTE)
+        self.assertIn("snapshot_current_release", PROMOTE)
+        self.assertIn("Current production baseline retained", PROMOTE)
         self.assertIn("archives[3:]", PROMOTE)
         self.assertIn("ALLOW_PROD_CODE_ROLLBACK", ROLLBACK)
         self.assertIn("PROD_APPROVED_COMMIT", ROLLBACK)

@@ -135,6 +135,50 @@ component_matches() {
   test -d "$root" && (cd "$root" && sha256sum -c "$manifest" >/dev/null 2>&1)
 }
 
+write_manifest() {
+  local root="$1"
+  local output="$2"
+  (cd "$root" && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$output"
+}
+
+snapshot_current_release() {
+  local current_commit baseline_dir baseline_archive baseline_checksum
+  current_commit="$(sed -n 's/^commit=//p' "$prod_root/RELEASE")"
+  if ! [[ "$current_commit" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "ERROR: current production release commit is invalid" >&2
+    return 1
+  fi
+
+  baseline_archive="$release_store/dongbimao-prod-${current_commit}.tar.gz"
+  baseline_checksum="$baseline_archive.sha256"
+  if [ -f "$baseline_archive" ] && [ -f "$baseline_checksum" ]; then
+    (cd "$release_store" && sha256sum -c "$(basename "$baseline_checksum")")
+    return
+  fi
+
+  baseline_dir="$(mktemp -d "$release_dir/baseline.XXXXXX")"
+  mkdir -p "$baseline_dir/release/server" "$baseline_dir/release/static-assets"
+  cp -a "$prod_root/main-web/dist" "$baseline_dir/release/main-web-dist"
+  cp -a "$prod_root/admin-web/dist" "$baseline_dir/release/admin-web-dist"
+  find "$prod_root/server" -maxdepth 1 -type f -name '*.py' \
+    -exec cp -a {} "$baseline_dir/release/server/" \;
+  cp -a "$prod_web/assets/dongbimao-logo.jpg" "$prod_web/assets/dongbimao-logo.png" \
+    "$baseline_dir/release/static-assets/"
+  cp -a "$source_root/preserve_product_runtime_tables.py" "$baseline_dir/release/"
+
+  write_manifest "$baseline_dir/release/main-web-dist" "$baseline_dir/release/main-web.sha256"
+  write_manifest "$baseline_dir/release/admin-web-dist" "$baseline_dir/release/admin-web.sha256"
+  write_manifest "$baseline_dir/release/static-assets" "$baseline_dir/release/static-assets.sha256"
+  write_manifest "$baseline_dir/release/server" "$baseline_dir/release/server.sha256"
+  grep -v '^checks=' "$prod_root/RELEASE" > "$baseline_dir/release/RELEASE"
+  printf 'checks=passed\n' >> "$baseline_dir/release/RELEASE"
+
+  tar -C "$baseline_dir" -czf "$release_dir/baseline.tar.gz" release
+  install -m 0644 "$release_dir/baseline.tar.gz" "$baseline_archive"
+  (cd "$release_store" && sha256sum "$(basename "$baseline_archive")" > "$(basename "$baseline_checksum")")
+  echo "Current production baseline retained: $current_commit"
+}
+
 finish() {
   rc=$?
   trap - EXIT
@@ -187,6 +231,9 @@ test -f "$source_root/static-assets.sha256"
 test -f "$source_root/server.sha256"
 grep -qx "commit=$expected_commit" "$source_root/RELEASE"
 grep -qx "checks=passed" "$source_root/RELEASE"
+
+mkdir -p "$release_store"
+snapshot_current_release
 
 if component_matches "$prod_root/main-web/dist" "$source_root/main-web.sha256"; then
   main_changed=0
@@ -272,7 +319,6 @@ if [ "$before_fingerprint" != "$after_fingerprint" ]; then
   exit 1
 fi
 
-mkdir -p "$release_store"
 install -m 0644 "$archive" "$release_store/$(basename "$archive")"
 install -m 0644 "$checksum" "$release_store/$(basename "$checksum")"
 python3 - "$release_store" <<'PY'
