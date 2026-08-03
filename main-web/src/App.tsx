@@ -4,6 +4,7 @@ import {
   AuthStatus,
   BootstrapPayload,
   CalendarEvent,
+  CryptoEtfFlowPayload,
   CourseSeries,
   FundingScannerRow,
   MacroSeriesIndicator,
@@ -2329,7 +2330,108 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
   );
 }
 
+function cryptoEtfMoney(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "--";
+  const absolute = Math.abs(value);
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  if (absolute >= 1_000_000_000) return `${sign}$${(absolute / 1_000_000_000).toFixed(2)}B`;
+  return `${sign}$${(absolute / 1_000_000).toFixed(1)}M`;
+}
+
+function CryptoEtfFlowView() {
+  const [payload, setPayload] = useState<CryptoEtfFlowPayload | null>(null);
+  const [asset, setAsset] = useState<"BTC" | "ETH">("BTC");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [requestId, setRequestId] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError("");
+    api.cryptoEtfFlows()
+      .then((data) => {
+        if (alive) setPayload(data);
+      })
+      .catch((reason) => {
+        if (alive) setError(reason instanceof Error ? reason.message : "加载失败");
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [requestId]);
+
+  if (loading) return <div className="cryptoEtfState">加载中</div>;
+  if (error || !payload?.assets?.BTC || !payload?.assets?.ETH) {
+    return <div className="cryptoEtfState"><span>{error || "暂无数据"}</span><button type="button" onClick={() => setRequestId((value) => value + 1)}>重新加载</button></div>;
+  }
+
+  const chartRows = payload.assets[asset].history.slice(-30);
+  const chartMax = Math.max(1, ...chartRows.map((row) => Math.abs(row.flowUsd)));
+  const tableRows = payload.history.slice(-5).reverse();
+  return (
+    <div className="cryptoEtfView">
+      <section className="cryptoEtfSummary">
+        {(["BTC", "ETH"] as const).map((key) => {
+          const item = payload.assets[key];
+          return (
+            <article key={key}>
+              <header><strong>{key}</strong><span>{key === "BTC" ? "比特币现货 ETF" : "以太坊现货 ETF"}</span></header>
+              <div>
+                <p><span>最近交易日</span><strong className={signedClass(item.latestFlowUsd)}>{cryptoEtfMoney(item.latestFlowUsd)}</strong><small>{item.latestDate}</small></p>
+                <p><span>近1周</span><strong className={signedClass(item.flow5dUsd)}>{cryptoEtfMoney(item.flow5dUsd)}</strong><small>5个交易日</small></p>
+                <p><span>近1月</span><strong className={signedClass(item.flow21dUsd)}>{cryptoEtfMoney(item.flow21dUsd)}</strong><small>21个交易日</small></p>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="cryptoEtfChartPanel">
+        <header className="cryptoEtfPanelHead">
+          <strong>每日净流量</strong>
+          <div className="marketSegment">
+            <button type="button" className={asset === "BTC" ? "active" : ""} onClick={() => setAsset("BTC")}>BTC</button>
+            <button type="button" className={asset === "ETH" ? "active" : ""} onClick={() => setAsset("ETH")}>ETH</button>
+          </div>
+        </header>
+        <div className="cryptoEtfChart" aria-label={`${asset} 最近30个交易日 ETF 净流量`}>
+          <i className="cryptoEtfZeroLine" />
+          {chartRows.map((row) => {
+            const height = `${Math.max(2, Math.abs(row.flowUsd) / chartMax * 47)}%`;
+            return (
+              <span className="cryptoEtfBarSlot" key={row.date} title={`${row.date} ${cryptoEtfMoney(row.flowUsd)}`}>
+                <b className={row.flowUsd >= 0 ? "positive" : "negative"} style={row.flowUsd >= 0 ? { height, bottom: "50%" } : { height, top: "50%" }} />
+              </span>
+            );
+          })}
+        </div>
+        <footer><span>{chartRows[0]?.date || "--"}</span><span>{payload.asOf}</span></footer>
+      </section>
+
+      <section className="cryptoEtfHistory">
+        <div className="cryptoEtfPanelHead"><strong>最近5个交易日</strong></div>
+        <table>
+          <thead><tr><th>日期</th><th>BTC</th><th>ETH</th><th>合计</th><th>方向</th></tr></thead>
+          <tbody>{tableRows.map((row) => (
+            <tr key={row.date}>
+              <td>{row.date}</td>
+              <td className={signedClass(row.btcFlowUsd)}>{cryptoEtfMoney(row.btcFlowUsd)}</td>
+              <td className={signedClass(row.ethFlowUsd)}>{cryptoEtfMoney(row.ethFlowUsd)}</td>
+              <td className={signedClass(row.totalFlowUsd)}>{cryptoEtfMoney(row.totalFlowUsd)}</td>
+              <td className={signedClass(row.totalFlowUsd)}>{row.totalFlowUsd > 0 ? "净流入" : row.totalFlowUsd < 0 ? "净流出" : "持平"}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
+
 function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null; onPage: (page: PageKey) => void }) {
+  const [marketView, setMarketView] = useState<"sectors" | "crypto">("sectors");
   const [sectorRange, setSectorRange] = useState<"day" | "week" | "month">("day");
   const [sectorPayload, setSectorPayload] = useState<SectorFlowPayload | null>(null);
   const [sectorLoading, setSectorLoading] = useState(false);
@@ -2407,6 +2509,12 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors]);
   return (
     <div className="marketPage">
+      <div className="marketViewTabs" role="tablist" aria-label="市场与资金分类">
+        <button type="button" role="tab" aria-selected={marketView === "sectors"} className={marketView === "sectors" ? "active" : ""} onClick={() => setMarketView("sectors")}>板块资金</button>
+        <button type="button" role="tab" aria-selected={marketView === "crypto"} className={marketView === "crypto" ? "active" : ""} onClick={() => setMarketView("crypto")}>加密 ETF</button>
+      </div>
+      {marketView === "sectors" ? (
+      <>
       <div className="marketToolbar">
         <div className="marketSegment">
           <button type="button" className={viewMode === "rank" ? "active" : ""} onClick={() => setViewMode("rank")}>排行</button>
@@ -2547,6 +2655,8 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
           </tbody>
         </table>
       </section>
+      </>
+      ) : <CryptoEtfFlowView />}
     </div>
   );
 }
