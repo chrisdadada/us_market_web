@@ -6,6 +6,14 @@ This project now has one main refresh entrypoint:
 bash "/Users/linlifu/Documents/New project/scripts/automated_refresh.sh"
 ```
 
+Install or repair the weekday launchd schedule:
+
+```bash
+bash "/Users/linlifu/Documents/New project/scripts/install_refresh_automation.sh"
+```
+
+It runs Tuesday-Saturday at 13:31 Beijing time, after each completed US trading day.
+
 It updates recent Polygon daily stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, rebuilds the product DB, and runs the release gate.
 
 After DB-first validation, release gate, product DB coverage, and packaging pass,
