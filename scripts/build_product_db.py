@@ -95,6 +95,8 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
         return load_product_data_payload(name)
     if name == "strength-review":
         return load_strength_review_payload()
+    if name == "crypto-etf-flows":
+        return load_crypto_etf_flows_payload()
     try:
         sys.path.insert(0, str(ROOT / "scripts"))
         if name == "macro-series":
@@ -170,6 +172,29 @@ def load_site_data_index_payload() -> tuple[dict[str, Any], Path]:
 
 def load_strength_review_payload() -> tuple[dict[str, Any], Path]:
     return load_existing_dataset_payload("strength-review")
+
+
+def load_crypto_etf_flows_payload() -> tuple[dict[str, Any], Path]:
+    cache_path = DATA_DIR / "crypto-etf-flows.json"
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from build_crypto_etf_flows import fetch_payload
+
+        payload = fetch_payload()
+        cache_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        return payload, Path("direct:crypto-etf-flows")
+    except Exception as exc:
+        print(f"WARN: crypto-etf-flows direct import skipped: {exc}")
+    payload, path = load_existing_dataset_payload("crypto-etf-flows")
+    if payload.get("assets"):
+        return payload, path
+    try:
+        cached = parse_json_text(cache_path.read_text(encoding="utf-8"), {})
+    except OSError:
+        cached = {}
+    if cached.get("assets"):
+        return cached, cache_path
+    raise RuntimeError("crypto-etf-flows has no valid live, database, or cached payload")
 
 
 def json_text(value: Any) -> str:
@@ -1144,7 +1169,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "options_flow_rows": import_options_flow(conn),
                 "market_opinion_items": import_market_opinion(conn, output if output.exists() else None),
             }
-            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review"])
+            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review", "crypto-etf-flows"])
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('generated_at', ?)", (now_iso(),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('source_data_dir', ?)", (str(DATA_DIR),))

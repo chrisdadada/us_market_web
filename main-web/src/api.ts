@@ -326,6 +326,27 @@ export type SectorFlowPayload = {
   board?: string;
 };
 
+export type CryptoEtfAsset = {
+  latestDate: string;
+  latestFlowUsd: number;
+  flow5dUsd: number;
+  flow21dUsd: number;
+  history: Array<{ date: string; flowUsd: number }>;
+};
+
+export type CryptoEtfFlowPayload = {
+  asOf: string;
+  generatedAt?: string;
+  source?: { name?: string; url?: string; providerUpdatedAt?: string };
+  assets: { BTC: CryptoEtfAsset; ETH: CryptoEtfAsset };
+  history: Array<{
+    date: string;
+    btcFlowUsd: number | null;
+    ethFlowUsd: number | null;
+    totalFlowUsd: number;
+  }>;
+};
+
 export type StockEventRow = {
   board?: string;
   rank?: number;
@@ -552,6 +573,7 @@ export const api = {
   },
   marketTemperature: () => request<MarketTemperaturePayload>("/api/product/raw/market-temperature"),
   macroSeries: () => request<MacroSeriesPayload>("/api/product/raw/macro-series"),
+  cryptoEtfFlows: () => request<CryptoEtfFlowPayload>("/api/product/raw/crypto-etf-flows"),
   strengthScanner: (options?: { limit?: number; offset?: number; bucket?: string; q?: string; sector?: string; heat?: string; sort?: string }) => {
     const params = new URLSearchParams({
       limit: String(options?.limit || 20),
