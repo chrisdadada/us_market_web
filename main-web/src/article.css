@@ -107,14 +107,6 @@
   object-fit: contain;
 }
 
-.articleProse .readerFigure figcaption {
-  border-top: 1px solid #e2e8f0;
-  padding: 8px 12px;
-  color: #718096;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .articleReaderPanel .readerLockedArea {
   position: relative;
 }

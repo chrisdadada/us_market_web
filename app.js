@@ -6017,7 +6017,6 @@ const renderMarketOpinionImage = (alt = "", src = "") => {
   return `
     <figure class="market-opinion-inline-image">
       <img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(alt || "观点配图")}" loading="lazy" />
-      ${alt ? `<figcaption>${escapeHtml(alt)}</figcaption>` : ""}
     </figure>
   `;
 };
