@@ -476,7 +476,6 @@ function richBodyNodes(markdown?: string | null) {
       nodes.push(
         <figure key={`img-${blockIndex}-${localIndex}`} className="readerFigure">
           <img src={normalizeImageUrl(match[2])} alt={match[1] || "观点配图"} loading="lazy" />
-          {match[1] && match[1] !== "image" ? <figcaption>{match[1]}</figcaption> : null}
         </figure>
       );
       lastIndex = match.index + match[0].length;

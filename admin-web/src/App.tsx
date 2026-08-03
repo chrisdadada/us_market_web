@@ -2705,10 +2705,6 @@ function splitTextList(value: string) {
     .filter(Boolean);
 }
 
-function imageAlt(file: File) {
-  return (file.name || "image").replace(/\.[^.]+$/, "") || "image";
-}
-
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -3114,7 +3110,7 @@ function ContentPage() {
     }
     const data = await fileToDataUrl(file);
     const payload = await api.uploadImage({ name: file.name || "image", type: file.type, data });
-    insertMarkdown(`![${imageAlt(file)}](${payload.image.url})`);
+    insertMarkdown(`![](${payload.image.url})`);
   }
 
   async function handleImageFile(file: File) {
