@@ -1,6 +1,11 @@
 import unittest
+import sys
+import tempfile
+import types
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
+import scripts.build_product_db as build_product_db
 from scripts.build_crypto_etf_flows import build_payload, parse_page_props
 
 
@@ -27,6 +32,30 @@ class CryptoEtfFlowsTests(unittest.TestCase):
         self.assertEqual(payload["assets"]["ETH"]["flow5dUsd"], -57_500_000)
         self.assertIsNone(payload["history"][0]["ethFlowUsd"])
         self.assertEqual(payload["history"][0]["totalFlowUsd"], 1_000_000)
+
+    def test_product_db_live_import_does_not_write_json_cache(self) -> None:
+        fake = types.SimpleNamespace(
+            fetch_payload=lambda: {
+                "asOf": datetime.now(UTC).date().isoformat(),
+                "assets": {"BTC": {}, "ETH": {}},
+            }
+        )
+        original = sys.modules.get("build_crypto_etf_flows")
+        original_data_dir = build_product_db.DATA_DIR
+        sys.modules["build_crypto_etf_flows"] = fake
+        try:
+            with tempfile.TemporaryDirectory() as tempdir:
+                build_product_db.DATA_DIR = Path(tempdir)
+                payload, source = build_product_db.load_crypto_etf_flows_payload()
+                self.assertEqual(source, Path("direct:crypto-etf-flows"))
+                self.assertIn("assets", payload)
+                self.assertFalse((Path(tempdir) / "crypto-etf-flows.json").exists())
+        finally:
+            build_product_db.DATA_DIR = original_data_dir
+            if original is None:
+                sys.modules.pop("build_crypto_etf_flows", None)
+            else:
+                sys.modules["build_crypto_etf_flows"] = original
 
 
 if __name__ == "__main__":

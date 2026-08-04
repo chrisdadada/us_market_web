@@ -181,7 +181,6 @@ def load_crypto_etf_flows_payload() -> tuple[dict[str, Any], Path]:
         from build_crypto_etf_flows import fetch_payload
 
         payload = fetch_payload()
-        cache_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         return payload, Path("direct:crypto-etf-flows")
     except Exception as exc:
         print(f"WARN: crypto-etf-flows direct import skipped: {exc}")
