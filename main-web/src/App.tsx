@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import {
   api,
   AuthStatus,
@@ -22,6 +22,7 @@ import {
   SymbolRow
 } from "./api";
 import { calculatePositionSizing, type PositionDirection, type PositionSizingResult } from "./positionSizing";
+import type { CryptoEtfAssetKey, CryptoEtfInterval } from "./CryptoEtfChart";
 import {
   LockedStockName,
   MaskedValue,
@@ -49,6 +50,8 @@ import {
 type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "stocks" | "calendar" | "open" | "position" | "funding" | "forum" | "courses";
 type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
+
+const CryptoEtfChart = lazy(() => import("./CryptoEtfChart"));
 
 type NavItem = { key: PageKey; label: string; status?: string; disabled?: boolean };
 
@@ -2338,12 +2341,31 @@ function cryptoEtfMoney(value: number | null | undefined) {
   return `${sign}$${(absolute / 1_000_000).toFixed(1)}M`;
 }
 
+function cryptoEtfStreak(history: CryptoEtfFlowPayload["assets"]["BTC"]["history"]) {
+  const latest = history.at(-1)?.flowUsd || 0;
+  if (!latest) return "持平";
+  const direction = latest > 0 ? 1 : -1;
+  let count = 0;
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const flow = history[index].flowUsd;
+    if ((flow > 0 ? 1 : flow < 0 ? -1 : 0) !== direction) break;
+    count += 1;
+  }
+  return `连续 ${count} 日净${direction > 0 ? "流入" : "流出"}`;
+}
+
 function CryptoEtfFlowView() {
   const [payload, setPayload] = useState<CryptoEtfFlowPayload | null>(null);
-  const [asset, setAsset] = useState<"BTC" | "ETH">("BTC");
+  const [asset, setAsset] = useState<CryptoEtfAssetKey>("BTC");
+  const [interval, setInterval] = useState<CryptoEtfInterval>("day");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [tableAsset, setTableAsset] = useState<"all" | CryptoEtfAssetKey>("all");
+  const [tablePage, setTablePage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [requestId, setRequestId] = useState(0);
+  const dateRangeRef = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -2362,69 +2384,90 @@ function CryptoEtfFlowView() {
       alive = false;
     };
   }, [requestId]);
+  useEffect(() => setTablePage(0), [tableAsset]);
 
   if (loading) return <div className="cryptoEtfState">加载中</div>;
   if (error || !payload?.assets?.BTC || !payload?.assets?.ETH) {
     return <div className="cryptoEtfState"><span>{error || "暂无数据"}</span><button type="button" onClick={() => setRequestId((value) => value + 1)}>重新加载</button></div>;
   }
 
-  const chartRows = payload.assets[asset].history.slice(-30);
-  const chartMax = Math.max(1, ...chartRows.map((row) => Math.abs(row.flowUsd)));
-  const tableRows = payload.history.slice(-5).reverse();
+  const rangeInvalid = Boolean(startDate && endDate && startDate > endDate);
+  const firstDate = payload.history[0]?.date || "";
+  const latestDate = payload.history.at(-1)?.date || payload.asOf;
+  const recentRows = payload.history.slice(-20).reverse();
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(recentRows.length / pageSize));
+  const tableRows = recentRows.slice(tablePage * pageSize, (tablePage + 1) * pageSize);
+  const tableValue = (row: CryptoEtfFlowPayload["history"][number]) => tableAsset === "BTC"
+    ? row.btcFlowUsd
+    : tableAsset === "ETH"
+      ? row.ethFlowUsd
+      : row.totalFlowUsd;
   return (
     <div className="cryptoEtfView">
-      <section className="cryptoEtfSummary">
-        {(["BTC", "ETH"] as const).map((key) => {
-          const item = payload.assets[key];
-          return (
-            <article key={key}>
-              <header><strong>{key}</strong><span>{key === "BTC" ? "比特币现货 ETF" : "以太坊现货 ETF"}</span></header>
-              <div>
-                <p><span>最近交易日</span><strong className={signedClass(item.latestFlowUsd)}>{cryptoEtfMoney(item.latestFlowUsd)}</strong><small>{item.latestDate}</small></p>
-                <p><span>近1周</span><strong className={signedClass(item.flow5dUsd)}>{cryptoEtfMoney(item.flow5dUsd)}</strong><small>5个交易日</small></p>
-                <p><span>近1月</span><strong className={signedClass(item.flow21dUsd)}>{cryptoEtfMoney(item.flow21dUsd)}</strong><small>21个交易日</small></p>
-              </div>
-            </article>
-          );
-        })}
+      <section className="cryptoEtfOverview">
+        <div className="cryptoEtfPanelHead"><strong>资金概览</strong><span>数据截至 {payload.asOf}</span></div>
+        <div className="cryptoEtfTableScroll">
+          <table>
+            <thead><tr><th>资产</th><th>最近交易日</th><th>近1周</th><th>近1月</th><th>连续方向</th></tr></thead>
+            <tbody>{(["BTC", "ETH"] as const).map((key) => {
+              const item = payload.assets[key];
+              const streak = cryptoEtfStreak(item.history);
+              return (
+                <tr key={key}>
+                  <td><div className="cryptoEtfAsset"><i className={key.toLowerCase()}>{key === "BTC" ? "₿" : "◆"}</i><span><strong>{key}</strong><small>{key === "BTC" ? "比特币现货 ETF" : "以太坊现货 ETF"}</small></span></div></td>
+                  <td className={signedClass(item.latestFlowUsd)}>{cryptoEtfMoney(item.latestFlowUsd)}</td>
+                  <td className={signedClass(item.flow5dUsd)}>{cryptoEtfMoney(item.flow5dUsd)}</td>
+                  <td className={signedClass(item.flow21dUsd)}>{cryptoEtfMoney(item.flow21dUsd)}</td>
+                  <td><span className={`cryptoEtfDirection ${signedClass(item.latestFlowUsd)}`}>{streak}</span></td>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        </div>
       </section>
 
       <section className="cryptoEtfChartPanel">
         <header className="cryptoEtfPanelHead">
-          <strong>每日净流量</strong>
-          <div className="marketSegment">
-            <button type="button" className={asset === "BTC" ? "active" : ""} onClick={() => setAsset("BTC")}>BTC</button>
-            <button type="button" className={asset === "ETH" ? "active" : ""} onClick={() => setAsset("ETH")}>ETH</button>
+          <div className="cryptoEtfPanelTitle"><strong>资金趋势</strong><div className="marketSegment"><button type="button" className={asset === "BTC" ? "active" : ""} onClick={() => setAsset("BTC")}>BTC</button><button type="button" className={asset === "ETH" ? "active" : ""} onClick={() => setAsset("ETH")}>ETH</button></div></div>
+          <div className="cryptoEtfChartTools">
+            <div className="marketSegment">
+              {([['day', '单日'], ['week', '单周'], ['month', '单月']] as const).map(([value, label]) => <button type="button" key={value} className={interval === value ? "active" : ""} onClick={() => setInterval(value)}>{label}</button>)}
+            </div>
+            <details ref={dateRangeRef} className="cryptoEtfDateRange">
+              <summary className={startDate || endDate ? "active" : ""}>日期范围</summary>
+              <div>
+                <label>开始日期<input type="date" min={firstDate} max={latestDate} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
+                <label>结束日期<input type="date" min={firstDate} max={latestDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+                {rangeInvalid ? <small>开始日期不能晚于结束日期</small> : null}
+                <footer><button type="button" onClick={() => { setStartDate(""); setEndDate(""); }}>重置</button><button type="button" disabled={rangeInvalid} onClick={() => { if (dateRangeRef.current) dateRangeRef.current.open = false; }}>完成</button></footer>
+              </div>
+            </details>
           </div>
         </header>
-        <div className="cryptoEtfChart" aria-label={`${asset} 最近30个交易日 ETF 净流量`}>
-          <i className="cryptoEtfZeroLine" />
-          {chartRows.map((row) => {
-            const height = `${Math.max(2, Math.abs(row.flowUsd) / chartMax * 47)}%`;
-            return (
-              <span className="cryptoEtfBarSlot" key={row.date} title={`${row.date} ${cryptoEtfMoney(row.flowUsd)}`}>
-                <b className={row.flowUsd >= 0 ? "positive" : "negative"} style={row.flowUsd >= 0 ? { height, bottom: "50%" } : { height, top: "50%" }} />
-              </span>
-            );
-          })}
-        </div>
-        <footer><span>{chartRows[0]?.date || "--"}</span><span>{payload.asOf}</span></footer>
+        <Suspense fallback={<div className="cryptoEtfChartLoading">加载图表</div>}>
+          <CryptoEtfChart payload={payload} asset={asset} interval={interval} startDate={rangeInvalid ? "" : startDate} endDate={rangeInvalid ? "" : endDate} />
+        </Suspense>
       </section>
 
       <section className="cryptoEtfHistory">
-        <div className="cryptoEtfPanelHead"><strong>最近5个交易日</strong></div>
-        <table>
-          <thead><tr><th>日期</th><th>BTC</th><th>ETH</th><th>合计</th><th>方向</th></tr></thead>
-          <tbody>{tableRows.map((row) => (
-            <tr key={row.date}>
-              <td>{row.date}</td>
-              <td className={signedClass(row.btcFlowUsd)}>{cryptoEtfMoney(row.btcFlowUsd)}</td>
-              <td className={signedClass(row.ethFlowUsd)}>{cryptoEtfMoney(row.ethFlowUsd)}</td>
-              <td className={signedClass(row.totalFlowUsd)}>{cryptoEtfMoney(row.totalFlowUsd)}</td>
-              <td className={signedClass(row.totalFlowUsd)}>{row.totalFlowUsd > 0 ? "净流入" : row.totalFlowUsd < 0 ? "净流出" : "持平"}</td>
-            </tr>
-          ))}</tbody>
-        </table>
+        <div className="cryptoEtfPanelHead"><strong>资金明细</strong><div className="marketSegment"><button type="button" className={tableAsset === "BTC" ? "active" : ""} onClick={() => setTableAsset("BTC")}>BTC</button><button type="button" className={tableAsset === "ETH" ? "active" : ""} onClick={() => setTableAsset("ETH")}>ETH</button><button type="button" className={tableAsset === "all" ? "active" : ""} onClick={() => setTableAsset("all")}>全部</button></div></div>
+        <div className="cryptoEtfTableScroll"><table>
+          <thead><tr><th>日期</th>{tableAsset === "all" || tableAsset === "BTC" ? <th>BTC净流量</th> : null}{tableAsset === "all" || tableAsset === "ETH" ? <th>ETH净流量</th> : null}{tableAsset === "all" ? <th>合计</th> : null}<th>资金方向</th></tr></thead>
+          <tbody>{tableRows.map((row) => {
+            const value = tableValue(row);
+            return (
+              <tr key={row.date}>
+                <td>{row.date}</td>
+                {tableAsset === "all" || tableAsset === "BTC" ? <td className={signedClass(row.btcFlowUsd)}>{cryptoEtfMoney(row.btcFlowUsd)}</td> : null}
+                {tableAsset === "all" || tableAsset === "ETH" ? <td className={signedClass(row.ethFlowUsd)}>{cryptoEtfMoney(row.ethFlowUsd)}</td> : null}
+                {tableAsset === "all" ? <td className={signedClass(row.totalFlowUsd)}>{cryptoEtfMoney(row.totalFlowUsd)}</td> : null}
+                <td className={signedClass(value)}>{Number(value || 0) > 0 ? "净流入" : Number(value || 0) < 0 ? "净流出" : "持平"}</td>
+              </tr>
+            );
+          })}</tbody>
+        </table></div>
+        {pageCount > 1 ? <footer className="cryptoEtfPagination"><button type="button" title="上一页" aria-label="上一页" disabled={tablePage === 0} onClick={() => setTablePage((page) => Math.max(0, page - 1))}>←</button><span>{tablePage + 1} / {pageCount}</span><button type="button" title="下一页" aria-label="下一页" disabled={tablePage >= pageCount - 1} onClick={() => setTablePage((page) => Math.min(pageCount - 1, page + 1))}>→</button></footer> : null}
       </section>
     </div>
   );
