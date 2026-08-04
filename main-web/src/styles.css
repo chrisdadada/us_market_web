@@ -12699,13 +12699,7 @@ body.stockPreviewOpen {
   gap: 12px;
 }
 
-.cryptoEtfSummary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.cryptoEtfSummary article,
+.cryptoEtfOverview,
 .cryptoEtfChartPanel,
 .cryptoEtfHistory,
 .cryptoEtfState {
@@ -12715,64 +12709,17 @@ body.stockPreviewOpen {
   box-shadow: var(--front-card-shadow);
 }
 
-.cryptoEtfSummary article {
-  padding: 18px 20px;
-}
-
-.cryptoEtfSummary header {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-}
-
-.cryptoEtfSummary header strong {
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 680;
-}
-
-.cryptoEtfSummary header span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.cryptoEtfSummary article > div {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 16px;
-}
-
-.cryptoEtfSummary p {
-  margin: 0;
-  border-left: 1px solid var(--line-soft);
-  padding: 0 15px;
-}
-
-.cryptoEtfSummary p:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.cryptoEtfSummary p span,
-.cryptoEtfSummary p small {
-  display: block;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 400;
-}
-
-.cryptoEtfSummary p strong {
-  display: block;
-  margin: 7px 0 5px;
-  font-size: 18px;
-  font-weight: 650;
+.cryptoEtfOverview,
+.cryptoEtfHistory {
+  overflow: hidden;
 }
 
 .cryptoEtfPanelHead {
   display: flex;
-  min-height: 48px;
+  min-height: 50px;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   border-bottom: 1px solid var(--line-soft);
   padding: 0 16px;
 }
@@ -12780,79 +12727,26 @@ body.stockPreviewOpen {
 .cryptoEtfPanelHead > strong {
   color: var(--text);
   font-size: 13px;
-  font-weight: 620;
+  font-weight: 650;
 }
 
-.cryptoEtfChart {
-  position: relative;
-  display: flex;
-  height: 260px;
-  align-items: stretch;
-  gap: 4px;
-  margin: 16px 18px 0;
-}
-
-.cryptoEtfZeroLine {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: var(--line-soft);
-}
-
-.cryptoEtfBarSlot {
-  position: relative;
-  flex: 1 1 0;
-  min-width: 2px;
-}
-
-.cryptoEtfBarSlot b {
-  position: absolute;
-  right: 0;
-  left: 0;
-  min-height: 2px;
-  border-radius: 2px;
-}
-
-.cryptoEtfBarSlot b.positive {
-  background: var(--green);
-}
-
-.cryptoEtfBarSlot b.negative {
-  background: var(--red);
-}
-
-.cryptoEtfChartPanel footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 18px 14px;
+.cryptoEtfPanelHead > span {
   color: var(--muted);
   font-size: 11px;
 }
 
-.cryptoEtfHistory {
-  overflow: hidden;
+.cryptoEtfTableScroll {
+  overflow-x: auto;
 }
 
+.cryptoEtfOverview table,
 .cryptoEtfHistory table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-.cryptoEtfHistory th,
-.cryptoEtfHistory td {
-  height: 44px;
-  border-bottom: 1px solid var(--line-soft);
-  padding: 8px 16px;
-  color: var(--text);
-  font-size: var(--front-table-body-size);
-  font-weight: var(--front-table-value-weight);
-  text-align: right;
-  white-space: nowrap;
-}
-
+.cryptoEtfOverview th,
 .cryptoEtfHistory th {
   height: 36px;
   background: var(--panel-soft);
@@ -12861,13 +12755,326 @@ body.stockPreviewOpen {
   font-weight: var(--front-table-head-weight);
 }
 
+.cryptoEtfOverview th,
+.cryptoEtfOverview td,
+.cryptoEtfHistory th,
+.cryptoEtfHistory td {
+  border-bottom: 1px solid var(--line-soft);
+  padding: 8px 18px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cryptoEtfOverview td {
+  height: 64px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.cryptoEtfOverview th:first-child,
+.cryptoEtfOverview td:first-child,
 .cryptoEtfHistory th:first-child,
 .cryptoEtfHistory td:first-child {
   text-align: left;
 }
 
+.cryptoEtfOverview th:first-child,
+.cryptoEtfOverview td:first-child {
+  width: 25%;
+}
+
+.cryptoEtfOverview tbody tr:last-child td,
 .cryptoEtfHistory tbody tr:last-child td {
   border-bottom: 0;
+}
+
+.cryptoEtfAsset {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.cryptoEtfAsset > i {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.cryptoEtfAsset > i.btc {
+  background: #f7931a;
+}
+
+.cryptoEtfAsset > i.eth {
+  background: #64748b;
+}
+
+.cryptoEtfAsset strong,
+.cryptoEtfAsset small {
+  display: block;
+  text-align: left;
+}
+
+.cryptoEtfAsset strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.cryptoEtfAsset small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.cryptoEtfDirection {
+  display: inline-flex;
+  height: 26px;
+  align-items: center;
+  border-radius: 5px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cryptoEtfDirection.positive {
+  background: color-mix(in srgb, var(--green) 9%, white);
+}
+
+.cryptoEtfDirection.negative {
+  background: color-mix(in srgb, var(--red) 9%, white);
+}
+
+.cryptoEtfPanelTitle,
+.cryptoEtfChartTools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cryptoEtfPanelTitle > strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.cryptoEtfDateRange {
+  position: relative;
+}
+
+.cryptoEtfDateRange summary {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 11px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.cryptoEtfDateRange summary::-webkit-details-marker {
+  display: none;
+}
+
+.cryptoEtfDateRange summary.active,
+.cryptoEtfDateRange[open] summary {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.cryptoEtfDateRange > div {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  width: 300px;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 14px;
+  background: var(--panel);
+  box-shadow: 0 12px 32px rgba(24, 40, 64, .16);
+}
+
+.cryptoEtfDateRange label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.cryptoEtfDateRange input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 9px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.cryptoEtfDateRange small {
+  color: var(--red);
+  font-size: 11px;
+}
+
+.cryptoEtfDateRange footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cryptoEtfDateRange footer button {
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 12px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cryptoEtfDateRange footer button:last-child {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.cryptoEtfDateRange footer button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.cryptoEtfChartBody {
+  position: relative;
+  min-height: 340px;
+  padding-top: 38px;
+}
+
+.cryptoEtfChart {
+  width: 100%;
+  height: 310px;
+}
+
+.cryptoEtfChartLoading {
+  display: grid;
+  height: 348px;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cryptoEtfLegend {
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.cryptoEtfLegend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.cryptoEtfLegend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: #16bd79;
+}
+
+.cryptoEtfLegend i.btcLine,
+.cryptoEtfLegend i.ethLine {
+  width: 13px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.cryptoEtfLegend i.btcLine {
+  background: #c88a12;
+}
+
+.cryptoEtfLegend i.ethLine {
+  background: #52647b;
+}
+
+.cryptoEtfLegend b {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.cryptoEtfChartEmpty {
+  position: absolute;
+  inset: 38px 0 0;
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cryptoEtfHistory td {
+  height: 44px;
+  color: var(--text);
+  font-size: var(--front-table-body-size);
+  font-weight: var(--front-table-value-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.cryptoEtfPagination {
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--line-soft);
+  padding: 0 14px;
+}
+
+.cryptoEtfPagination button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cryptoEtfPagination button:disabled {
+  cursor: not-allowed;
+  opacity: .4;
+}
+
+.cryptoEtfPagination span {
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .cryptoEtfState {
@@ -12890,12 +13097,14 @@ body.stockPreviewOpen {
   cursor: pointer;
 }
 
-.cryptoEtfSummary .positive,
+.cryptoEtfOverview .positive,
+.cryptoEtfLegend .positive,
 .cryptoEtfHistory .positive {
   color: var(--green);
 }
 
-.cryptoEtfSummary .negative,
+.cryptoEtfOverview .negative,
+.cryptoEtfLegend .negative,
 .cryptoEtfHistory .negative {
   color: var(--red);
 }
@@ -12905,34 +13114,60 @@ body.stockPreviewOpen {
     gap: 18px;
   }
 
-  .cryptoEtfSummary {
-    grid-template-columns: 1fr;
+  .cryptoEtfPanelHead {
+    min-height: 50px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 
-  .cryptoEtfSummary article {
-    padding: 15px;
+  .cryptoEtfPanelHead > span {
+    align-self: flex-end;
   }
 
-  .cryptoEtfSummary p {
-    padding: 0 9px;
+  .cryptoEtfOverview table {
+    min-width: 760px;
   }
 
-  .cryptoEtfSummary p strong {
-    font-size: 15px;
+  .cryptoEtfChartTools {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .cryptoEtfChart {
-    height: 210px;
-    gap: 2px;
-    margin-right: 12px;
-    margin-left: 12px;
+    height: 270px;
   }
 
-  .cryptoEtfHistory {
-    overflow-x: auto;
+  .cryptoEtfChartBody {
+    min-height: 304px;
+  }
+
+  .cryptoEtfChartLoading {
+    height: 312px;
   }
 
   .cryptoEtfHistory table {
     min-width: 620px;
+  }
+
+  .cryptoEtfLegend {
+    left: 12px;
+    gap: 8px;
+  }
+
+  .cryptoEtfLegend span {
+    gap: 4px;
+    font-size: 9px;
+  }
+
+  .cryptoEtfLegend b {
+    font-size: 10px;
+  }
+
+  .cryptoEtfDateRange > div {
+    right: 0;
+    width: min(300px, calc(100vw - 32px));
   }
 }
