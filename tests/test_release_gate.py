@@ -87,6 +87,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_COS_DOMAIN = ""
         auth_api.COURSE_VIDEO_AUTO_PROCESS_ENABLED = False
         auth_api.COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS = 21600
+        auth_api.reset_course_play_observation()
         auth_api.init_db()
 
     def tearDown(self) -> None:
@@ -1581,6 +1582,26 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         )
         self.assertIn("q-sign-algorithm=sha1", url)
         self.assertIn("/lesson/demo.mp4?", url)
+
+    def test_course_play_observation_reuses_recent_grant_without_blocking(self) -> None:
+        auth_api.COURSE_PLAY_REUSE_SECONDS = 120
+        auth_api.COURSE_COS_SIGN_TTL = 1800
+        with (
+            patch.object(auth_api.time, "time", side_effect=[1_700_000_000, 1_700_000_030]),
+            patch.object(auth_api, "signed_course_video_url", side_effect=["https://video.example/first", "https://video.example/second"]) as signer,
+            patch("builtins.print") as output,
+        ):
+            first = auth_api.observed_course_play_url(7, 11, "lesson/demo.mp4", "1.2.3.4", "Test Browser")
+            second = auth_api.observed_course_play_url(7, 11, "lesson/demo.mp4", "5.6.7.8", "Test Browser")
+
+        self.assertEqual(first, ("https://video.example/first", 1800))
+        self.assertEqual(second, ("https://video.example/first", 1770))
+        self.assertEqual(signer.call_count, 1)
+        event = json.loads(output.call_args_list[-1].args[0].removeprefix("course_play_observation "))
+        self.assertTrue(event["reused"])
+        self.assertEqual(event["recentUserRequests"], 2)
+        self.assertEqual(event["recentUserNewGrants"], 1)
+        self.assertEqual(event["recentUserIps"], 2)
 
     def test_course_video_upload_puts_to_cos_and_returns_key(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"
