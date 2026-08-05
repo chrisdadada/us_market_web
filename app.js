@@ -1480,34 +1480,28 @@ const signalMetaText = (signal) => {
   return parts.join(" · ") || "趋势策略已接入";
 };
 
-const SIGNAL_STALE_DAYS = 3;
-const signalTimestamp = (signal) => {
-  const raw = signal?.updatedAt || signal?.currentTime || signal?.receivedAt || signal?.firstSignalAt || "";
-  const text = String(raw).trim().replace(" ", "T");
-  const parsed = Date.parse(text);
-  return Number.isFinite(parsed) ? parsed : null;
+const signalBatchDate = (signal) => {
+  const raw = signal?.updatedAt || "";
+  const match = String(raw).match(/\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : "";
 };
 
-const marketSignalReferenceTime = () => {
-  const raw = state.meta?.day?.updatedAt || state.meta?.ytd?.updatedAt || state.strength?.asOf || state.marketTemperature?.asOf || "";
-  const text = String(raw).trim();
-  if (!text) return Date.now();
-  const dayOnly = text.match(/^(\d{4}-\d{2}-\d{2})$/);
-  const parsed = Date.parse(dayOnly ? `${dayOnly[1]}T23:59:59` : text.replace(" ", "T"));
-  return Number.isFinite(parsed) ? parsed : Date.now();
-};
+const latestSignalBatchDate = () =>
+  (state.signals?.states || []).reduce((latest, item) => {
+    const date = signalBatchDate(item);
+    return date > latest ? date : latest;
+  }, "");
 
-const signalIsFresh = (signal) => {
-  const timestamp = signalTimestamp(signal);
-  if (!timestamp) return false;
-  return marketSignalReferenceTime() - timestamp <= SIGNAL_STALE_DAYS * 24 * 60 * 60 * 1000;
+const signalIsLatestBatch = (signal) => {
+  const latest = latestSignalBatchDate();
+  return Boolean(latest && signalBatchDate(signal) === latest);
 };
 
 const signalEventsForSymbol = (symbol) =>
   (state.signals?.feed || []).filter((item) => item.symbol === symbol);
 
 const signalStateForSymbol = (symbol) =>
-  (state.signals?.states || []).find((item) => item.symbol === symbol && signalIsFresh(item)) || null;
+  (state.signals?.states || []).find((item) => item.symbol === symbol && signalIsLatestBatch(item)) || null;
 
 const renderSignalDetail = (symbol) => {
   const panel = document.querySelector("#signalDetailPanel");

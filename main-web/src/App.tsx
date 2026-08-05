@@ -558,32 +558,24 @@ function opinionDisplayTitle(item?: Opinion | null, max = 56) {
   return title.length > max ? `${title.slice(0, max)}...` : title;
 }
 
-const SIGNAL_STALE_DAYS = 3;
-
-function signalTime(value?: string | null) {
-  const text = String(value || "").trim();
-  if (!text) return null;
-  const parsed = Date.parse(text.replace(" ", "T"));
-  return Number.isFinite(parsed) ? parsed : null;
+function signalBatchDate(signal: SignalState) {
+  return String(signal.updatedAt || "").match(/\d{4}-\d{2}-\d{2}/)?.[0] || "";
 }
 
-function signalReferenceTime(bootstrap?: BootstrapPayload | null) {
-  const raw = bootstrap?.movers?.updatedAt || bootstrap?.ytd?.updatedAt || bootstrap?.strength?.asOf || "";
-  const text = String(raw || "").trim();
-  if (!text) return Date.now();
-  const dayOnly = text.match(/^(\d{4}-\d{2}-\d{2})$/);
-  const parsed = Date.parse(dayOnly ? `${dayOnly[1]}T23:59:59` : text.replace(" ", "T"));
-  return Number.isFinite(parsed) ? parsed : Date.now();
+function latestSignalBatchDate(states: SignalState[]) {
+  return states.reduce((latest, item) => {
+    const date = signalBatchDate(item);
+    return date > latest ? date : latest;
+  }, "");
 }
 
-function isFreshSignal(signal: SignalState, bootstrap?: BootstrapPayload | null) {
-  const timestamp = signalTime(signal.updatedAt || signal.firstSignalAt);
-  if (!timestamp) return false;
-  return signalReferenceTime(bootstrap) - timestamp <= SIGNAL_STALE_DAYS * 24 * 60 * 60 * 1000;
+function latestSignalStates(states: SignalState[]) {
+  const latest = latestSignalBatchDate(states);
+  return latest ? states.filter((item) => signalBatchDate(item) === latest) : [];
 }
 
-function signalForSymbol(states: SignalState[], symbol?: string | null, bootstrap?: BootstrapPayload | null) {
-  return states.find((item) => item.symbol === symbol && isFreshSignal(item, bootstrap)) || null;
+function signalForSymbol(states: SignalState[], symbol?: string | null) {
+  return latestSignalStates(states).find((item) => item.symbol === symbol) || null;
 }
 
 type TrackingSortKey = "symbol" | "currentPrice" | "oneMonth" | "oneDay" | "oneWeek" | "volume" | "marketCap" | "signal" | "signalFirstSeen";
@@ -733,7 +725,7 @@ function rowName(row?: MarketRow | StrengthRow | null) {
 
 function mergedTrackingRows(bootstrap: BootstrapPayload | null, signalStates: SignalState[] = []) {
   if (!bootstrap) return [];
-  const signalMap = new Map(signalStates.filter((item) => isFreshSignal(item, bootstrap)).map((item) => [item.symbol, item]));
+  const signalMap = new Map(latestSignalStates(signalStates).map((item) => [item.symbol, item]));
   const dayMap = new Map((bootstrap.movers?.boards?.day?.rows || []).map((row) => [row.symbol, row]));
   const weekMap = new Map((bootstrap.movers?.boards?.week?.rows || []).map((row) => [row.symbol, row]));
   const monthMap = new Map((bootstrap.movers?.boards?.month?.rows || []).map((row) => [row.symbol, row]));
@@ -3196,7 +3188,8 @@ function StocksPage({
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const selectedRow = rows.find((row) => row.symbol === selectedSymbol) || null;
   const activeSymbol = selectedSymbol.trim().toUpperCase();
-  const signalMap = useMemo(() => new Map(signalStates.filter((item) => isFreshSignal(item, bootstrap)).map((item) => [item.symbol, item])), [bootstrap, signalStates]);
+  const latestSignals = useMemo(() => latestSignalStates(signalStates), [signalStates]);
+  const signalMap = useMemo(() => new Map(latestSignals.map((item) => [item.symbol, item])), [latestSignals]);
   const stockSortHeader = (key: StockSortKey, label: string) => (
     <button
       type="button"
@@ -3442,7 +3435,7 @@ function StocksPage({
                 <button type="button" onClick={() => setDetailAttempt((value) => value + 1)}>重新加载</button>
               </div>
             ) : (
-              <StockPreviewPanel row={selectedRow} detail={detail} loading={detailLoading || !detail} signal={signalForSymbol(signalStates, activeSymbol, bootstrap)} />
+              <StockPreviewPanel row={selectedRow} detail={detail} loading={detailLoading || !detail} signal={signalForSymbol(signalStates, activeSymbol)} />
             )}
           </section>
         </div>
