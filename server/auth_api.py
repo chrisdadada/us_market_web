@@ -116,7 +116,7 @@ LOGIN_FAIL_BUCKETS: dict[str, list[float]] = {}
 LOGIN_FAIL_LOCK = threading.Lock()
 PASSWORD_RESET_BUCKETS: dict[str, list[float]] = {}
 PASSWORD_RESET_LOCK = threading.Lock()
-COURSE_PLAY_GRANTS: dict[tuple[int, int, str, str], dict[str, Any]] = {}
+COURSE_PLAY_GRANTS: dict[tuple[int, int, str, str, str], dict[str, Any]] = {}
 COURSE_PLAY_EVENTS: list[dict[str, Any]] = []
 COURSE_PLAY_LOCK = threading.Lock()
 
@@ -313,7 +313,14 @@ def observed_course_play_url(
     now = int(time.time())
     ip_key = course_play_fingerprint(client_ip)
     device_key = course_play_fingerprint(user_agent)
-    cache_key = (int(user_id), int(lesson_id), str(video_key), device_key)
+    delivery_key = (
+        "hls"
+        if course_video_is_hls(video_key)
+        else f"cdn:{COURSE_CDN_DOMAIN}"
+        if course_video_uses_cdn(video_key)
+        else f"cos:{COURSE_COS_BUCKET}:{COURSE_COS_REGION}:{COURSE_COS_DOMAIN}"
+    )
+    cache_key = (int(user_id), int(lesson_id), str(video_key), device_key, delivery_key)
     window_start = now - COURSE_PLAY_OBSERVATION_WINDOW_SECONDS
 
     with COURSE_PLAY_LOCK:
