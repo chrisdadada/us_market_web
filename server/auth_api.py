@@ -101,6 +101,8 @@ COURSE_CDN_VIDEO_KEYS = {
     for key in re.split(r"[,\n]+", os.environ.get("COURSE_CDN_VIDEO_KEYS", ""))
     if key.strip()
 }
+COURSE_PLAY_REUSE_SECONDS = max(0, int(os.environ.get("COURSE_PLAY_REUSE_SECONDS", "120")))
+COURSE_PLAY_OBSERVATION_WINDOW_SECONDS = max(60, int(os.environ.get("COURSE_PLAY_OBSERVATION_WINDOW_SECONDS", "600")))
 COURSE_VIDEO_UPLOAD_MAX_BYTES = int(os.environ.get("COURSE_VIDEO_UPLOAD_MAX_BYTES", str(5 * 1024 * 1024 * 1024)))
 COURSE_VIDEO_AUTO_PROCESS_ENABLED = os.environ.get("COURSE_VIDEO_AUTO_PROCESS_ENABLED", "0") == "1"
 COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS = int(os.environ.get("COURSE_VIDEO_OPTIMIZE_BITRATE_KBPS", "3000"))
@@ -114,6 +116,9 @@ LOGIN_FAIL_BUCKETS: dict[str, list[float]] = {}
 LOGIN_FAIL_LOCK = threading.Lock()
 PASSWORD_RESET_BUCKETS: dict[str, list[float]] = {}
 PASSWORD_RESET_LOCK = threading.Lock()
+COURSE_PLAY_GRANTS: dict[tuple[int, int, str, str], dict[str, Any]] = {}
+COURSE_PLAY_EVENTS: list[dict[str, Any]] = []
+COURSE_PLAY_LOCK = threading.Lock()
 
 
 def now_iso() -> str:
@@ -286,6 +291,81 @@ def verify_session(token: str) -> dict[str, Any] | None:
         return payload
     except Exception:
         return None
+
+
+def reset_course_play_observation() -> None:
+    with COURSE_PLAY_LOCK:
+        COURSE_PLAY_GRANTS.clear()
+        COURSE_PLAY_EVENTS.clear()
+
+
+def course_play_fingerprint(value: str) -> str:
+    return hmac.new(get_secret(), str(value or "unknown").encode("utf-8"), hashlib.sha256).hexdigest()[:16]
+
+
+def observed_course_play_url(
+    user_id: int,
+    lesson_id: int,
+    video_key: str,
+    client_ip: str,
+    user_agent: str,
+) -> tuple[str, int]:
+    now = int(time.time())
+    ip_key = course_play_fingerprint(client_ip)
+    device_key = course_play_fingerprint(user_agent)
+    cache_key = (int(user_id), int(lesson_id), str(video_key), device_key)
+    window_start = now - COURSE_PLAY_OBSERVATION_WINDOW_SECONDS
+
+    with COURSE_PLAY_LOCK:
+        for key in [key for key, value in COURSE_PLAY_GRANTS.items() if int(value["reuseUntil"]) < now]:
+            COURSE_PLAY_GRANTS.pop(key, None)
+        COURSE_PLAY_EVENTS[:] = [event for event in COURSE_PLAY_EVENTS if int(event["at"]) >= window_start]
+
+        grant = COURSE_PLAY_GRANTS.get(cache_key)
+        reused = bool(COURSE_PLAY_REUSE_SECONDS > 0 and grant and int(grant["reuseUntil"]) >= now)
+        if not reused:
+            url = course_hls_playlist_url(lesson_id, video_key) if course_video_is_hls(video_key) else signed_course_video_url(video_key, now=now)
+            ttl = course_video_url_ttl(video_key)
+            grant = {
+                "id": secrets.token_hex(8),
+                "url": url,
+                "urlHash": hashlib.sha256(url.encode("utf-8")).hexdigest()[:16],
+                "issuedAt": now,
+                "reuseUntil": now + COURSE_PLAY_REUSE_SECONDS,
+                "expiresAt": now + ttl,
+            }
+            COURSE_PLAY_GRANTS[cache_key] = grant
+
+        event = {
+            "at": now,
+            "userId": int(user_id),
+            "lessonId": int(lesson_id),
+            "ip": ip_key,
+            "device": device_key,
+            "newGrant": not reused,
+        }
+        COURSE_PLAY_EVENTS.append(event)
+        user_events = [item for item in COURSE_PLAY_EVENTS if item["userId"] == int(user_id)]
+        ip_events = [item for item in COURSE_PLAY_EVENTS if item["ip"] == ip_key]
+        observation = {
+            "event": "course_play_grant",
+            "at": datetime.fromtimestamp(now, timezone.utc).isoformat(),
+            "userId": int(user_id),
+            "lessonId": int(lesson_id),
+            "grantId": grant["id"],
+            "urlHash": grant["urlHash"],
+            "ipHash": ip_key,
+            "deviceHash": device_key,
+            "reused": reused,
+            "recentUserRequests": len(user_events),
+            "recentUserNewGrants": sum(bool(item["newGrant"]) for item in user_events),
+            "recentUserIps": len({item["ip"] for item in user_events}),
+            "recentIpRequests": len(ip_events),
+            "recentIpUsers": len({item["userId"] for item in ip_events}),
+        }
+
+    print("course_play_observation " + json.dumps(observation, separators=(",", ":")), flush=True)
+    return str(grant["url"]), max(60, int(grant["expiresAt"]) - now)
 
 
 def timestamp_epoch(value: Any) -> int:
@@ -4147,12 +4227,13 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 is_hls = course_video_is_hls(lesson["video_key"])
-                play_url = (
-                    course_hls_playlist_url(lesson_id, lesson["video_key"])
-                    if is_hls
-                    else signed_course_video_url(lesson["video_key"])
+                play_url, play_ttl = observed_course_play_url(
+                    int(user["id"]),
+                    lesson_id,
+                    str(lesson["video_key"]),
+                    self.client_ip(),
+                    str(self.headers.get("User-Agent", "")),
                 )
-                play_ttl = course_video_url_ttl(lesson["video_key"])
             except Exception as exc:
                 self.send_json({"error": f"播放地址不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
