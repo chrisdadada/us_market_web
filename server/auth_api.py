@@ -1138,12 +1138,52 @@ def product_earnings_payload(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def macro_result_interpretation(
+    title: str,
+    actual: float | None,
+    forecast: float | None,
+    previous: float | None,
+) -> dict[str, str]:
+    text = (title or "").lower()
+    if actual is None:
+        return {}
+    if "fomc" in text or "利率决议" in title:
+        if previous is None:
+            return {}
+        change = actual - previous
+        if abs(change) < 1e-9:
+            meaning = "借钱成本没有变化，美股影响偏中性"
+            if forecast is not None and abs(actual - forecast) < 1e-9:
+                meaning = "符合预期，美股影响偏中性"
+            return {"resultKind": "rate", "resultHeadline": "利率不变", "resultMeaning": meaning, "resultTone": "neutral"}
+        amount = f"{abs(change):.2f}".rstrip("0").rstrip(".")
+        if change > 0:
+            return {"resultKind": "rate", "resultHeadline": f"加息 {amount}%", "resultMeaning": "借钱更贵，美股短线通常偏利空", "resultTone": "watch"}
+        return {"resultKind": "rate", "resultHeadline": f"降息 {amount}%", "resultMeaning": "借钱更便宜，美股短线通常偏利好", "resultTone": "positive"}
+    if forecast is None:
+        return {}
+    comparison = 0 if abs(actual - forecast) < 1e-9 else (1 if actual > forecast else -1)
+    if "cpi" in text or "consumer price" in text:
+        if comparison > 0:
+            return {"resultKind": "cpi", "resultHeadline": "高于预期", "resultMeaning": "通胀更高，美股短线通常偏利空", "resultTone": "watch"}
+        if comparison < 0:
+            return {"resultKind": "cpi", "resultHeadline": "低于预期", "resultMeaning": "通胀更低，美股短线通常偏利好", "resultTone": "positive"}
+        return {"resultKind": "cpi", "resultHeadline": "符合预期", "resultMeaning": "通胀变化不大，美股影响偏中性", "resultTone": "neutral"}
+    if "非农" in title or "employment situation" in text or "nonfarm" in text:
+        if comparison > 0:
+            return {"resultKind": "jobs", "resultHeadline": "高于预期", "resultMeaning": "就业更强，降息可能推迟", "resultTone": "neutral"}
+        if comparison < 0:
+            return {"resultKind": "jobs", "resultHeadline": "低于预期", "resultMeaning": "就业降温，降息预期可能升温", "resultTone": "watch"}
+        return {"resultKind": "jobs", "resultHeadline": "符合预期", "resultMeaning": "就业变化不大，美股影响偏中性", "resultTone": "neutral"}
+    return {}
+
+
 def product_calendar_payload(row: sqlite3.Row) -> dict[str, Any]:
     def clean_label(value):
         text = "" if value is None else str(value).strip()
         return None if text.lower() in {"", "null", "undefined"} else text
 
-    return {
+    payload = {
         "id": row["event_id"],
         "date": row["event_date"],
         "time": row["event_time"],
@@ -1162,6 +1202,8 @@ def product_calendar_payload(row: sqlite3.Row) -> dict[str, Any]:
         "relatedAssets": parse_json_field(row["related_assets_json"], []),
         "summary": row["summary"],
     }
+    payload.update(macro_result_interpretation(row["title"], row["actual_value"], row["forecast_value"], row["previous_value"]))
+    return payload
 
 
 def product_strength_payload(row: sqlite3.Row) -> dict[str, Any]:
@@ -3685,6 +3727,8 @@ class Handler(BaseHTTPRequestHandler):
             values.extend([today, end])
         if results_only:
             where.append("(actual_label IS NOT NULL AND actual_label != '' OR actual_value IS NOT NULL)")
+            where.append("event_date <= ?")
+            values.append(datetime.now(timezone(timedelta(hours=8))).date().isoformat())
         if query:
             like = f"%{query}%"
             where.append(

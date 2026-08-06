@@ -11058,6 +11058,174 @@ body,
   font-size: 12px;
 }
 
+.calendarV3 .calendarResultsBlock {
+  background: #f7fbff;
+}
+
+.calendarV3 .calendarResultList {
+  display: grid;
+  gap: 12px;
+}
+
+.calendarV3 .calendarResultCard {
+  --result-tone: #1677ff;
+  overflow: hidden;
+  border: 1px solid #dce6f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(40, 68, 98, .06);
+}
+
+.calendarV3 .calendarResultCard.positive {
+  --result-tone: #128055;
+}
+
+.calendarV3 .calendarResultCard.watch {
+  --result-tone: #a46500;
+}
+
+.calendarV3 .calendarResultHead {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #e7edf4;
+  padding: 0 16px;
+}
+
+.calendarV3 .calendarResultHead strong {
+  color: #202a3b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.calendarV3 .calendarResultHead span {
+  color: #7a8799;
+  font-size: 12px;
+}
+
+.calendarV3 .calendarResultBody {
+  display: grid;
+  grid-template-columns: 132px minmax(260px, 1fr) 340px;
+  min-height: 154px;
+  box-shadow: inset 4px 0 0 var(--result-tone);
+}
+
+.calendarV3 .calendarResultDate {
+  padding: 22px;
+  border-right: 1px solid #e7edf4;
+}
+
+.calendarV3 .calendarResultDate strong,
+.calendarV3 .calendarResultDate span {
+  display: block;
+}
+
+.calendarV3 .calendarResultDate strong {
+  color: #202a3b;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.calendarV3 .calendarResultDate span {
+  margin-top: 6px;
+  color: #718096;
+  font-size: 12px;
+}
+
+.calendarV3 .calendarResultDate em {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  margin-top: 16px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--result-tone) 10%, white);
+  color: var(--result-tone);
+  padding: 0 9px;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.calendarV3 .calendarResultMessage {
+  align-self: center;
+  padding: 20px 28px;
+}
+
+.calendarV3 .calendarResultMessage h3 {
+  margin: 0;
+  color: var(--result-tone);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+}
+
+.calendarV3 .calendarResultMessage p {
+  margin: 10px 0 0;
+  color: #37455a;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.calendarV3 .calendarResultMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: center;
+  margin-right: 22px;
+  border: 1px solid #e3eaf2;
+  border-radius: 11px;
+  background: #fbfdff;
+}
+
+.calendarV3 .calendarResultMetrics.count2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.calendarV3 .calendarResultMetrics > div {
+  min-width: 0;
+  padding: 18px 8px;
+  text-align: center;
+}
+
+.calendarV3 .calendarResultMetrics > div + div {
+  border-left: 1px solid #e5ebf2;
+}
+
+.calendarV3 .calendarResultMetrics span,
+.calendarV3 .calendarResultMetrics strong {
+  display: block;
+}
+
+.calendarV3 .calendarResultMetrics span {
+  color: #8290a3;
+  font-size: 12px;
+}
+
+.calendarV3 .calendarResultMetrics strong {
+  margin-top: 9px;
+  overflow-wrap: anywhere;
+  color: #253248;
+  font-size: 19px;
+  font-weight: 650;
+}
+
+.calendarV3 .calendarResultMetrics > div:first-child strong {
+  color: var(--result-tone);
+}
+
+.calendarV3 .calendarResultLoading {
+  display: grid;
+  gap: 12px;
+}
+
+.calendarV3 .calendarResultLoading i {
+  display: block;
+  height: 154px;
+  border: 1px solid #e4ebf3;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
 .calendarV3 .calendarMacroPanel {
   overflow: hidden;
   border: 1px solid #e6edf5;
@@ -11311,6 +11479,35 @@ body,
   .calendarV3 .calendarTableHead,
   .calendarV3 .calendarTableBody article {
     min-width: 820px;
+  }
+
+  .calendarV3 .calendarResultBody {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .calendarV3 .calendarResultDate {
+    padding: 18px;
+  }
+
+  .calendarV3 .calendarResultMessage {
+    padding: 20px;
+  }
+
+  .calendarV3 .calendarResultMessage h3 {
+    font-size: 24px;
+  }
+
+  .calendarV3 .calendarResultMessage p {
+    font-size: 14px;
+  }
+
+  .calendarV3 .calendarResultMetrics {
+    grid-column: 1 / -1;
+    margin: 0 14px 14px;
+  }
+
+  .calendarV3 .calendarResultMetrics.count2 strong {
+    font-size: 16px;
   }
 }
 

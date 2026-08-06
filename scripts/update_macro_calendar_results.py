@@ -3,15 +3,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import os
 import sqlite3
 import urllib.request
 from datetime import UTC, date, datetime, timedelta
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -224,8 +227,91 @@ def trading_economics_kind(row: dict[str, Any]) -> str:
     return ""
 
 
+class PublicCalendarParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.in_calendar = False
+        self.in_row = False
+        self.cell: list[str] | None = None
+        self.cells: list[str] = []
+        self.rows: list[dict[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if tag == "table" and attributes.get("id") == "calendar":
+            self.in_calendar = True
+        elif self.in_calendar and tag == "tr":
+            self.in_row = True
+            self.cells = []
+        elif self.in_row and tag == "td":
+            self.cell = []
+
+    def handle_data(self, data: str) -> None:
+        if self.cell is not None:
+            self.cell.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "td" and self.cell is not None:
+            self.cells.append(" ".join("".join(self.cell).split()))
+            self.cell = None
+        elif tag == "tr" and self.in_row:
+            self.in_row = False
+            if len(self.cells) >= 7:
+                try:
+                    released = datetime.strptime(
+                        f"{self.cells[0]} {self.cells[1]}", "%Y-%m-%d %I:%M %p"
+                    ).replace(tzinfo=UTC).astimezone(ZoneInfo("Asia/Shanghai"))
+                except ValueError:
+                    return
+                self.rows.append({
+                    "Date": released.date().isoformat(),
+                    "Time": released.strftime("%H:%M"),
+                    "Event": self.cells[2],
+                    "Actual": self.cells[4],
+                    "Previous": self.cells[5],
+                    "Forecast": self.cells[6],
+                })
+        elif tag == "table" and self.in_calendar:
+            self.in_calendar = False
+
+
+PUBLIC_CONSENSUS_PAGES = (
+    "https://tradingeconomics.com/united-states/inflation-cpi",
+    "https://tradingeconomics.com/united-states/non-farm-payrolls",
+    "https://tradingeconomics.com/united-states/interest-rate",
+)
+
+
+def fetch_public_consensus_calendar(timeout: int) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for url in PUBLIC_CONSENSUS_PAGES:
+        req = urllib.request.Request(url, headers={"User-Agent": "dongbimao/1.0"})
+        try:
+            parser = PublicCalendarParser()
+            parser.feed(urllib.request.urlopen(req, timeout=timeout).read(2_000_001).decode(errors="ignore"))
+        except Exception:
+            continue
+        rows.extend(parser.rows)
+    return rows
+
+
 def event_date(value: Any) -> str:
     return str(value or "")[:10]
+
+
+def provider_match_score(kind: str, event: dict[str, Any]) -> int:
+    text = " ".join(str(value or "") for value in event.values()).lower()
+    if kind != "cpi":
+        return 1
+    if "core" in text or "核心" in text:
+        return -1
+    if "mom" in text or "month over month" in text or "monthly" in text:
+        return -1
+    if "yoy" in text or "year over year" in text or "annual" in text:
+        return 30
+    if "inflation rate" in text or "consumer price" in text or "cpi" in text:
+        return 10
+    return -1
 
 
 def update_provider_events(conn: sqlite3.Connection, events: list[dict[str, Any]], kind_fn, date_key: str, forecast_key: str, actual_key: str, previous_key: str) -> int:
@@ -236,18 +322,22 @@ def update_provider_events(conn: sqlite3.Connection, events: list[dict[str, Any]
         WHERE event_type = 'macro'
         """
     ).fetchall()
-    by_date_kind: dict[tuple[str, str], dict[str, Any]] = {}
+    by_date_kind: dict[tuple[str, str], tuple[int, dict[str, Any]]] = {}
     for event in events:
         kind = kind_fn(event)
         day = event_date(event.get(date_key))
         if day and kind:
-            by_date_kind.setdefault((day, kind), event)
+            score = provider_match_score(kind, event)
+            existing = by_date_kind.get((day, kind))
+            if score >= 0 and (existing is None or score > existing[0]):
+                by_date_kind[(day, kind)] = (score, event)
     updated = 0
     for row in rows:
         kind = macro_kind(row["title"] or "")
-        event = by_date_kind.get((row["event_date"], kind))
-        if not event:
+        match = by_date_kind.get((row["event_date"], kind))
+        if not match:
             continue
+        event = match[1]
         suffix = "%" if kind in {"cpi", "fomc"} else "K"
         actual = number_value(event.get(actual_key))
         forecast = number_value(event.get(forecast_key))
@@ -294,6 +384,95 @@ def update_trading_economics_events(conn: sqlite3.Connection, api_key: str, time
         return 0
     events = fetch_trading_economics_calendar(api_key, min(dates) - timedelta(days=1), max(dates) + timedelta(days=1), timeout)
     return update_provider_events(conn, events, trading_economics_kind, "Date", "Forecast", "Actual", "Previous")
+
+
+def ensure_public_macro_events(conn: sqlite3.Connection, events: list[dict[str, Any]]) -> int:
+    window = conn.execute(
+        "SELECT MIN(event_date), MAX(event_date) FROM calendar_events WHERE event_type = 'macro'"
+    ).fetchone()
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
+    start = date.fromisoformat(window[0]) if window and window[0] else today - timedelta(days=45)
+    end = date.fromisoformat(window[1]) if window and window[1] else today + timedelta(days=90)
+    existing = {
+        (row["event_date"], macro_kind(row["title"] or ""))
+        for row in conn.execute("SELECT event_date, title FROM calendar_events WHERE event_type = 'macro'")
+    }
+    details = {
+        "cpi": ("美国 CPI", "通胀数据会影响降息预期、成长股估值和美债利率交易。"),
+        "payrolls": ("美国非农就业", "就业数据会影响降息预期、小盘风险偏好和美元利率交易。"),
+    }
+    inserted = 0
+    for event in events:
+        kind = trading_economics_kind(event)
+        day = event_date(event.get("Date"))
+        if kind not in details or not day or not (start <= date.fromisoformat(day) <= end) or (day, kind) in existing:
+            continue
+        title, summary = details[kind]
+        event_time = str(event.get("Time") or "")
+        source = "Trading Economics"
+        payload = {
+            "date": day, "time": event_time, "title": title, "type": "macro", "impact": "high",
+            "sourceName": source, "relatedModules": ["美股重点财经前瞻"], "relatedAssets": [], "summary": summary,
+        }
+        basis = json.dumps([day, event_time, title, source], ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO calendar_events
+            (event_id, event_date, event_time, title, event_type, impact, source_name,
+             related_modules_json, related_assets_json, summary, payload_json)
+            VALUES (?, ?, ?, ?, 'macro', 'high', ?, ?, '[]', ?, ?)
+            """,
+            (
+                hashlib.sha1(basis.encode()).hexdigest(), day, event_time, title, source,
+                '["美股重点财经前瞻"]', summary,
+                json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
+            ),
+        )
+        if conn.execute("SELECT changes()").fetchone()[0]:
+            inserted += 1
+            existing.add((day, kind))
+    return inserted
+
+
+def update_public_consensus_events(
+    conn: sqlite3.Connection,
+    timeout: int,
+    events: list[dict[str, Any]] | None = None,
+) -> int:
+    events = fetch_public_consensus_calendar(timeout) if events is None else events
+    by_date_kind: dict[tuple[str, str], tuple[int, dict[str, Any]]] = {}
+    for event in events:
+        kind = trading_economics_kind(event)
+        day = event_date(event.get("Date"))
+        score = provider_match_score(kind, event)
+        existing = by_date_kind.get((day, kind))
+        if day and kind and score >= 0 and (existing is None or score > existing[0]):
+            by_date_kind[(day, kind)] = (score, event)
+
+    updated = 0
+    for row in conn.execute(
+        "SELECT event_id, event_date, title, previous_value FROM calendar_events WHERE event_type = 'macro'"
+    ):
+        kind = macro_kind(row["title"] or "")
+        match = by_date_kind.get((row["event_date"], kind))
+        if not match:
+            continue
+        event = match[1]
+        forecast = number_value(event.get("Forecast"))
+        if forecast is None:
+            continue
+        previous = number_value(event.get("Previous")) if row["previous_value"] is None else None
+        suffix = "%" if kind in {"cpi", "fomc"} else "K"
+        update_event(
+            conn,
+            row["event_id"],
+            forecast=forecast,
+            forecast_label=label_value(forecast, suffix),
+            previous=previous,
+            previous_label=label_value(previous, suffix),
+        )
+        updated += 1
+    return updated
 
 
 def update_bls_events(conn: sqlite3.Connection, timeout: int) -> int:
@@ -345,12 +524,26 @@ def update_bls_events(conn: sqlite3.Connection, timeout: int) -> int:
 
 
 def update_fomc_events(conn: sqlite3.Connection, timeout: int) -> int:
+    now = datetime.now(ZoneInfo("Asia/Shanghai"))
+    rows = list(conn.execute(
+        "SELECT event_id, event_date, event_time, title FROM calendar_events WHERE event_type = 'macro' AND title LIKE '%FOMC%'"
+    ))
+    for row in rows:
+        release_at = datetime.strptime(f"{row['event_date']} {row['event_time'] or '23:59'}", "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+        if release_at > now:
+            conn.execute(
+                "UPDATE calendar_events SET actual_value = NULL, actual_label = NULL WHERE event_id = ?",
+                (row["event_id"],),
+            )
     upper = fetch_fred("DFEDTARU", timeout)
     lower = fetch_fred("DFEDTARL", timeout)
     if not upper or not lower:
         return 0
     updated = 0
-    for row in conn.execute("SELECT event_id, event_date, title FROM calendar_events WHERE event_type = 'macro' AND title LIKE '%FOMC%'"):
+    for row in rows:
+        release_at = datetime.strptime(f"{row['event_date']} {row['event_time'] or '23:59'}", "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+        if release_at > now:
+            continue
         day = date.fromisoformat(row["event_date"]) + timedelta(days=2)
         up = latest_on_or_before(upper, day)
         low = latest_on_or_before(lower, day)
@@ -375,11 +568,14 @@ def main() -> None:
     with sqlite3.connect(args.db) as conn:
         conn.row_factory = sqlite3.Row
         ensure_columns(conn)
+        public_events = fetch_public_consensus_calendar(args.timeout)
+        inserted_count = ensure_public_macro_events(conn, public_events)
         bls_count = update_bls_events(conn, args.timeout)
         fomc_count = update_fomc_events(conn, args.timeout)
+        public_count = update_public_consensus_events(conn, args.timeout, public_events)
         fmp_count = update_fmp_events(conn, args.fmp_api_key, args.timeout)
         te_count = update_trading_economics_events(conn, args.trading_economics_key, args.timeout)
-    print(f"Macro calendar results updated: BLS={bls_count}, FOMC={fomc_count}, FMP={fmp_count}, TE={te_count}")
+    print(f"Macro calendar results updated: Added={inserted_count}, BLS={bls_count}, FOMC={fomc_count}, Public={public_count}, FMP={fmp_count}, TE={te_count}")
 
 
 if __name__ == "__main__":
