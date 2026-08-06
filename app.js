@@ -945,7 +945,7 @@ const pageAccessRules = {
   },
   tracking: {
     level: "monthly",
-    title: "会员可看完整股票机会跟踪榜单",
+    title: "会员可看完整机会跟踪榜单",
     text: "免费账号可看到榜单入口和部分结构，完整标的池、趋势策略方向和历史表现开通后查看。",
   },
   live: {
@@ -955,12 +955,12 @@ const pageAccessRules = {
   },
   risk: {
     level: "registered",
-    title: "登录后可看市场温度计",
+    title: "登录后可看市场活跃指数",
     text: "注册或登录后可查看市场温度、复盘强度和风险环境。",
   },
   strength: {
     level: "monthly",
-    title: "会员可看全市场强弱",
+    title: "会员可看行业板块强弱",
     text: "月度或年度会员可查看强弱榜单、筛选和完整跟踪数据。",
   },
 };
@@ -2061,7 +2061,7 @@ const globalCalendarSearchItems = () =>
     .map((item) => ({
       type: "calendar",
       id: item.id || `${item.date}-${item.title}`,
-      title: item.title || "美股重点财经前瞻",
+      title: item.title || "重点财经前瞻",
       summary: `${eventTypeLabel(item.type)} · ${calendarDayDistanceLabel(item)} · ${calendarScopeText(item)}`,
       metric: eventImpactLabel(item.impact),
       tone: item.impact === "high" ? "is-negative" : item.impact === "medium" ? "is-neutral" : "",
@@ -2264,7 +2264,7 @@ const renderGlobalSearchResults = () => {
     input.setAttribute("aria-expanded", "true");
     panel.innerHTML = `
       <div class="global-search-empty">
-        <strong>正在搜索股票库</strong>
+        <strong>正在搜索美股行情</strong>
         <span>稍后会显示匹配的股票和页面。</span>
       </div>
     `;
@@ -2277,7 +2277,7 @@ const renderGlobalSearchResults = () => {
     panel.innerHTML = `
       <div class="global-search-empty">
         <strong>未找到匹配结果</strong>
-        <span>可以输入股票代码、公司名、板块名、事件名称，或进入股票库查看覆盖范围。</span>
+        <span>可以输入股票代码、公司名、板块名、事件名称，或进入美股行情查看覆盖范围。</span>
       </div>
     `;
     state.globalSearchIndex = -1;
@@ -2297,7 +2297,7 @@ const renderGlobalSearchResults = () => {
             <span>${escapeHtml(context.profile || item.sources.join(" / "))}</span>
             <em class="${escapeHtml(context.changeClass)}">${escapeHtml(Number.isFinite(context.change) ? formatSignedPct(context.change) : context.row.sources[0] || "股票")}</em>
             <small class="global-search-flow">资金 ${escapeHtml(context.sectorFlow.netFlow)} · ${escapeHtml(context.sectorFlow.label)} · 广度 ${escapeHtml(context.sectorFlow.breadth)}</small>
-            <small class="global-search-calendar">日程 ${escapeHtml(context.calendarText || "先看美股重点财经前瞻")}</small>
+            <small class="global-search-calendar">日程 ${escapeHtml(context.calendarText || "先看重点财经前瞻")}</small>
             <i class="${escapeHtml(context.decision.className)}">${escapeHtml(context.decision.title)}</i>
             <span class="global-search-source-chips">${sourceChips}</span>
           </button>
@@ -2315,7 +2315,7 @@ const renderGlobalSearchResults = () => {
       `).join("")}
     ` : ""}
     ${calendar.length ? `
-      <div class="global-search-group">美股重点财经前瞻</div>
+      <div class="global-search-group">重点财经前瞻</div>
       ${calendar.map((item) => `
         <button class="global-search-result global-search-compact-result" type="button" role="option" data-global-search-result data-result-type="calendar" data-calendar-id="${escapeHtml(item.id)}">
           <strong>${escapeHtml(compactText(item.title, 14))}</strong>
@@ -2663,7 +2663,7 @@ const stockLibraryCalendarSummary = (item) => {
   if (!direct) {
     return {
       title: item.eventLabel || item.qualityLabel || "暂无日程",
-      meta: item.eventDate || item.quality?.latestEarningsDate || "先看美股重点财经前瞻整体事件",
+      meta: item.eventDate || item.quality?.latestEarningsDate || "先看重点财经前瞻整体事件",
       className: "is-muted",
     };
   }
@@ -2937,7 +2937,7 @@ const renderStocksPage = () => {
   renderStocksRankStrip(rows);
   if (!rows.length) {
     if (loadingCurrentApiRows && !state.productStockLibrary?.ok) {
-      body.innerHTML = `<tr><td colspan="14">正在加载股票库。</td></tr>`;
+      body.innerHTML = `<tr><td colspan="14">正在加载美股行情。</td></tr>`;
     } else {
       body.innerHTML = `<tr><td colspan="14">当前筛选下暂无结果。</td></tr>`;
     }
@@ -2995,7 +2995,7 @@ const renderStocksPage = () => {
           </td>
           <td class="stocks-action-cell" data-label="操作">
             <button class="table-action" type="button" data-stock-open="${escapeHtml(item.symbol)}">详情</button>
-            <button class="table-action" type="button" data-watchlist-toggle="${escapeHtml(item.symbol)}" data-watchlist-source="股票库">${item.inWatchlist ? "已自选" : "自选"}</button>
+            <button class="table-action" type="button" data-watchlist-toggle="${escapeHtml(item.symbol)}" data-watchlist-source="美股行情">${item.inWatchlist ? "已自选" : "自选"}</button>
           </td>
         </tr>
       `;
@@ -3712,7 +3712,7 @@ const stockPrimarySource = ({ market, strength, quality, eventRow, signal }) => 
   if (eventRow) return displayEventLabel(eventRow, "股票事件");
   if (quality) return quality.userAngle || "财报观察";
   if (signal) return "趋势信号";
-  if (strength) return "全市场强弱";
+  if (strength) return "行业板块强弱";
   if (market) return "涨跌幅榜";
   return "等待数据";
 };
@@ -4046,7 +4046,7 @@ const watchlistCalendarSummary = (item) => {
   const macroExposure = stockMacroExposure(profile, item.market || findMarketRow(target));
   const rows = stockLinkedCalendarRows({ target, profile, macroExposure, quality: item.quality || findQualityRow(target) });
   const first = rows[0];
-  if (!first) return { label: "暂无日程", detail: "先看美股重点财经前瞻整体事件", count: 0 };
+  if (!first) return { label: "暂无日程", detail: "先看重点财经前瞻整体事件", count: 0 };
   return {
     label: `${formatDisplayDate(first.date)} · ${eventTypeLabel(first.type)}`,
     detail: first.title || first.summary || "关联日程",
@@ -4246,7 +4246,7 @@ const renderWatchlist = () => {
   empty.querySelector("strong").textContent = allRows.length ? "当前筛选没有结果" : "还没有加入自选";
   empty.querySelector("p").textContent = allRows.length
     ? "换一个复盘状态、加入来源或搜索词再看。"
-    : "在涨跌幅榜、全市场强弱、财报观察或股票详情页点击“加入自选”。";
+    : "在涨跌幅榜、行业板块强弱、财报观察或股票详情页点击“加入自选”。";
 
   body.innerHTML = rows.length
     ? `
@@ -4375,7 +4375,7 @@ const calendarEarningsFactForSymbol = (symbol, quality) => {
       event,
       dateLabel: formatDisplayDate(event.date),
       estimate,
-      source: event.sourceName || "美股重点财经前瞻",
+      source: event.sourceName || "重点财经前瞻",
       title: event.title || "财报日期",
       note: compactText(`${estimate}${event.sourceName ? ` · ${event.sourceName}` : ""}`, 96),
       isFuture: isFutureCalendarEvent(event),
@@ -4492,7 +4492,7 @@ const stockSectorFlowDetail = (profile, sectorRankRows) => {
 
 const renderStockCalendarRows = (rows) => {
   if (!rows.length) {
-    return `<div class="stock-linked-empty">暂无直接关联日程。宏观事件可先回到美股重点财经前瞻整体观察。</div>`;
+    return `<div class="stock-linked-empty">暂无直接关联日程。宏观事件可先回到重点财经前瞻整体观察。</div>`;
   }
   return rows.map((row) => {
     const impactClass = row.impact === "high" ? "is-high" : row.impact === "medium" ? "is-medium" : "is-low";
@@ -4519,7 +4519,7 @@ const renderStockHub = (symbol) => {
     content.innerHTML = `
       <div class="empty-detail">
         <strong>选择一只股票</strong>
-        <p>从股票事件、涨跌幅榜、全市场强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
+        <p>从股票事件、涨跌幅榜、行业板块强弱或财报观察进入后，会自动汇总这只股票的关键数据。</p>
       </div>
     `;
     return;
@@ -4800,7 +4800,7 @@ const renderStockHub = (symbol) => {
   const eventReturnClass = eventRow?.return20dPct == null ? "" : signedNumberClass(eventRow.return20dPct);
   const targetUpsideClass = quality?.avgPriceTargetUpsidePct == null ? "" : signedNumberClass(quality.avgPriceTargetUpsidePct);
   const eventFactRows = [
-    stockFactRow("美股重点财经前瞻", calendarFactValue, primaryCalendarRow?.title || `直接 ${directCalendarCount} 条，宏观 ${macroCalendarCount} 条`),
+    stockFactRow("重点财经前瞻", calendarFactValue, primaryCalendarRow?.title || `直接 ${directCalendarCount} 条，宏观 ${macroCalendarCount} 条`),
     stockFactRow("下一次财报", earningsFact.label, earningsFact.note),
     stockFactRow("事件类型", eventRow ? displayEventLabel(eventRow) : "--", eventRow?.eventDate ? `事件日期 ${formatDisplayDate(eventRow.eventDate)}` : "暂无独立事件日期"),
     stockFactRow("事件后20日", eventRow?.return20dPct == null ? "--" : formatSignedPct(eventRow.return20dPct), compactText(eventRow?.reason, 96) || "暂无事件表现数据", eventReturnClass),
@@ -5041,7 +5041,7 @@ const renderStockHub = (symbol) => {
         </div>
         <div class="stock-linked-calendar">
           <div class="stock-linked-summary">
-            <span>美股重点财经前瞻关联</span>
+            <span>重点财经前瞻关联</span>
             <strong>${escapeHtml(primaryCalendarRow ? primaryCalendarRow.title : "暂无直接日程")}</strong>
             <em>${escapeHtml(`直接 ${directCalendarCount} · 宏观 ${macroCalendarCount}`)}</em>
           </div>
@@ -5705,13 +5705,13 @@ const pageModules = [
     kicker: "",
     title: "首页",
     nav: "首页",
-    summary: "先看最新观点、强势股和关键事件。",
+    summary: "先看猫言猫语、强势股和关键事件。",
     status: "入口",
   },
   {
     id: "risk",
     kicker: "市场温度",
-    title: "市场温度计",
+    title: "市场活跃指数",
     nav: "温度",
     summary: "用几项公开指标看当前市场偏强、偏中性还是偏防守。",
     status: "已上线",
@@ -5719,7 +5719,7 @@ const pageModules = [
   {
     id: "events",
     kicker: "事件时间",
-    title: "美股重点财经前瞻",
+    title: "重点财经前瞻",
     nav: "日历",
     summary: "查看宏观事件和财报日期的时间、影响范围和关联模块。",
     status: "数据驱动",
@@ -5742,7 +5742,7 @@ const pageModules = [
   },
   {
     id: "strength",
-    kicker: "全市场强弱",
+    kicker: "行业板块强弱",
     title: "今日强弱榜",
     nav: "强弱",
     summary: "把全市场压缩为重点观察、风险回避和等回踩清单。",
@@ -5751,15 +5751,15 @@ const pageModules = [
   {
     id: "tracking",
     kicker: "重点跟踪",
-    title: "股票机会跟踪榜单",
+    title: "机会跟踪榜单",
     nav: "跟踪",
     summary: "把确认名单、趋势策略方向、涨跌强度和成交活跃度放在一张表里。",
     status: "数据驱动",
   },
   {
     id: "stocks",
-    kicker: "股票库",
-    title: "股票库",
+    kicker: "美股行情",
+    title: "美股行情",
     nav: "股票",
     summary: "搜索和筛选可研究股票，进入个股详情继续复盘。",
     status: "搜索入口",
@@ -5831,13 +5831,13 @@ const pageModules = [
 ];
 
 const pageMeta = Object.fromEntries(pageModules.map((item) => [item.id, [item.kicker, item.title]]));
-pageMeta.market = ["市场与资金", "市场与资金"];
-pageMeta.flows = ["市场与资金", "资金流向"];
+pageMeta.market = ["市场资金走向", "市场资金走向"];
+pageMeta.flows = ["市场资金走向", "资金流向"];
 pageMeta.stock = ["股票详情", "股票详情"];
 
 const visiblePageModules = () =>
   pageModules.filter((item) => !superAdminToolPages.has(item.id) || state.auth.user?.role === "super_admin");
-pageMeta.courses = ["交易实战课程"];
+pageMeta.courses = ["实战课程"];
 pageMeta.live = ["持仓参考", "Open 持仓参考"];
 
 const dataFreshnessLabel = (value, item = {}) => {
@@ -6164,7 +6164,7 @@ const renderMarketOpinionOverview = () => {
   const lead = page.querySelector(".market-opinion-lead");
   if (lead) {
     lead.innerHTML = `
-      <span>最新观点 · ${escapeHtml(formatMarketOpinionDateTime(latest.tradeDate))}</span>
+      <span>更新于 ${escapeHtml(formatMarketOpinionDateTime(latest.tradeDate))}</span>
       <h2>${escapeHtml(latestTitle)}</h2>
       <p>${escapeHtml(latest.summary || "")}</p>
       ${latestTags.length ? `
@@ -6178,7 +6178,7 @@ const renderMarketOpinionOverview = () => {
   const focus = page.querySelector(".market-opinion-focus");
   if (focus) {
     focus.innerHTML = `
-      <span>最新观点</span>
+      <span>猫言猫语</span>
       <strong>${escapeHtml(latest.highlights?.[0] || latest.summary || latestTitle)}</strong>
       <a href="#market-opinion/${escapeHtml(latest.section)}/${escapeHtml(encodeURIComponent(latest.id))}">阅读全文</a>
     `;
@@ -6386,8 +6386,8 @@ const renderMarketOpinionPage = () => {
 
 const renderTodayWorkbench = () => {
   const latestOpinion = marketOpinionRows()[0];
-  const title = latestOpinion?.title || "最新观点";
-  const summary = latestOpinion?.summary || compactText(latestOpinion?.body, 96) || "最新观点、强势股和关键事件放在这里。";
+  const title = latestOpinion?.title || "美股热点风向标";
+  const summary = latestOpinion?.summary || compactText(latestOpinion?.body, 96) || "等待猫言猫语更新。";
   setText("#todayOpinionTitle", title);
   setText("#todayOpinionSummary", summary);
   setText(
@@ -6588,8 +6588,8 @@ const renderTodayWorkbench = () => {
     const highEvent = events.find((item) => item.impact === "high") || allEvents.find((item) => item.impact === "high");
     const macroEvent = allEvents.find((item) => item.type === "macro");
     focus.innerHTML = `
-      <div><span>最强方向</span><strong>${escapeHtml(firstStock ? `${firstStock.symbol} ${firstStock.periods?.["20d"] || ""}` : "股票机会跟踪榜单")}</strong><p>${escapeHtml(firstStock ? `${sectorDisplayName(firstStock.sectorProxy || firstStock.sector || firstStock.theme || "重点跟踪")}，趋势策略：${firstStockSide}` : "等待强势股数据")}</p></div>
-      <div><span>最近事件</span><strong>${escapeHtml(highEvent ? `${homeCalendarTitle(highEvent)} ${eventTypeLabel(highEvent.type)}` : firstEvent ? `${homeCalendarTitle(firstEvent)} ${eventTypeLabel(firstEvent.type)}` : "美股重点财经前瞻")}</strong><p>${escapeHtml((highEvent || firstEvent) ? `${calendarDayDistanceOnly(highEvent || firstEvent) || (highEvent || firstEvent).date || "--"} · ${homeCalendarTimeText(highEvent || firstEvent)}${(highEvent || firstEvent).impact === "high" ? " · 高影响" : ""}` : "事件时间")}</p></div>
+      <div><span>最强方向</span><strong>${escapeHtml(firstStock ? `${firstStock.symbol} ${firstStock.periods?.["20d"] || ""}` : "机会跟踪榜单")}</strong><p>${escapeHtml(firstStock ? `${sectorDisplayName(firstStock.sectorProxy || firstStock.sector || firstStock.theme || "重点跟踪")}，趋势策略：${firstStockSide}` : "等待强势股数据")}</p></div>
+      <div><span>最近事件</span><strong>${escapeHtml(highEvent ? `${homeCalendarTitle(highEvent)} ${eventTypeLabel(highEvent.type)}` : firstEvent ? `${homeCalendarTitle(firstEvent)} ${eventTypeLabel(firstEvent.type)}` : "重点财经前瞻")}</strong><p>${escapeHtml((highEvent || firstEvent) ? `${calendarDayDistanceOnly(highEvent || firstEvent) || (highEvent || firstEvent).date || "--"} · ${homeCalendarTimeText(highEvent || firstEvent)}${(highEvent || firstEvent).impact === "high" ? " · 高影响" : ""}` : "事件时间")}</p></div>
       <div><span>宏观窗口</span><strong>${escapeHtml(macroEvent ? homeCalendarTitle(macroEvent) : firstSector ? sectorDisplayName(firstSector.sector) : "板块表现")}</strong><p>${escapeHtml(macroEvent ? `${calendarDayDistanceOnly(macroEvent) || macroEvent.date || "--"} · ${homeCalendarTimeText(macroEvent)}` : firstSector ? `${firstSector.upCount || 0}涨 / ${firstSector.downCount || 0}跌` : "等待宏观事件")}</p></div>
     `;
   }
@@ -6837,7 +6837,7 @@ const renderDashboardVisualBoard = () => {
 
     <article class="dashboard-snapshot-card">
       <div class="dashboard-snapshot-head">
-        <span>美股重点财经前瞻</span>
+        <span>重点财经前瞻</span>
         <strong>${eventTotal ? `${eventTotal}条` : "--"}</strong>
       </div>
       <div class="dashboard-event-bars">
@@ -6847,7 +6847,7 @@ const renderDashboardVisualBoard = () => {
             <i style="--level:${Math.max(8, (value / maxEvent) * 100).toFixed(1)}%"></i>
             <b>${escapeHtml(String(value))}</b>
           </div>
-        `).join("") : '<em>等待美股重点财经前瞻</em>'}
+        `).join("") : '<em>等待重点财经前瞻</em>'}
       </div>
     </article>
   `;
@@ -6970,7 +6970,7 @@ const renderDashboardIntelligence = () => {
   const events = dashboardEventRows();
   const highCount = (state.eventsCalendar?.events || []).filter((item) => item.impact === "high").length;
   const first = events[0];
-  setText("#dashboardCalendarLead", first ? `${first.date} · ${first.title}` : "等待美股重点财经前瞻");
+  setText("#dashboardCalendarLead", first ? `${first.date} · ${first.title}` : "等待重点财经前瞻");
   if (calendarLog) {
     calendarLog.innerHTML = events.length
       ? `
@@ -7002,14 +7002,14 @@ const dataStatusItems = () => [
     note: "查看财报、指引和机构观点变化后的股票事件。",
   },
   {
-    label: "市场温度计",
+    label: "市场活跃指数",
     date: state.marketTemperature?.asOf,
     generatedAt: state.marketTemperature?.generatedAt,
     cadence: "宏观数据更新后刷新",
     note: "观察波动率、利率、美元、原油和通胀环境。",
   },
   {
-    label: "全市场强弱",
+    label: "行业板块强弱",
     date: state.strength?.asOf,
     generatedAt: state.strength?.generatedAt,
     cadence: "行情批次更新",
@@ -11161,17 +11161,17 @@ const defaultCalendarImpactRules = [
   {
     trigger: "通胀数据",
     effect: "先看 10Y 美债和美元是否上行，再判断成长股估值压力。",
-    modules: ["市场温度", "指数估值", "股票库"],
+    modules: ["市场活跃指数", "指数估值", "美股行情"],
   },
   {
     trigger: "利率会议",
     effect: "先看政策措辞和长端利率，再决定复盘范围是否收缩。",
-    modules: ["市场温度", "市场与资金"],
+    modules: ["市场活跃指数", "市场资金走向"],
   },
   {
     trigger: "公司财报",
     effect: "进入个股工作台，确认预期、成交额、同板块扩散和价格承接。",
-    modules: ["股票库", "个股详情"],
+    modules: ["美股行情", "个股详情"],
   },
 ];
 
@@ -11311,7 +11311,7 @@ const renderCalendarEarningsSummary = (filteredEvents, allEvents) => {
 
 const calendarScopeText = (item) => {
   const relatedAssets = (item.relatedAssets || []).slice(0, 4).join(" / ");
-  const relatedModules = (item.relatedModules || []).filter((label) => label !== "美股重点财经前瞻").slice(0, 3).join(" / ");
+  const relatedModules = (item.relatedModules || []).filter((label) => !["美股重点财经前瞻", "重点财经前瞻"].includes(label)).slice(0, 3).join(" / ");
   return relatedAssets || relatedModules || item.sourceName || eventTypeLabel(item.type);
 };
 
@@ -11416,20 +11416,20 @@ const calendarImpactFacts = (events, manualEvents, rules) => {
       ? {
           trigger: "下一条宏观事件",
           effect: `${compactCalendarDate(macro)} · ${macro.title}`,
-          modules: ["市场温度", "市场与资金"],
+          modules: ["市场活跃指数", "市场资金走向"],
         }
       : null,
     earnings
       ? {
           trigger: "下一条财报日期",
           effect: `${compactCalendarDate(earnings)} · ${earnings.title}`,
-          modules: ["股票库", "个股详情"],
+          modules: ["美股行情", "个股详情"],
         }
       : null,
     {
       trigger: "人工财经日志",
       effect: manualEvents.length ? `${manualEvents.length}条` : "暂无",
-      modules: ["美股重点财经前瞻"],
+      modules: ["重点财经前瞻"],
     },
   ].filter(Boolean);
   return facts.length ? facts : rules;
@@ -11752,7 +11752,7 @@ const renderExpectationEvidence = () => {
     "#expectationHeroLead",
     rows.length
       ? "这里把事件落到可复盘股票，先看理由，再看价格、成交和市场环境是否确认。"
-      : "股票事件等待数据生成后再进入复盘；美股重点财经前瞻只保留事件时间和影响范围。",
+      : "股票事件等待数据生成后再进入复盘；重点财经前瞻只保留事件时间和影响范围。",
   );
 };
 
@@ -11869,7 +11869,7 @@ const renderEventTable = () => {
   setText("#eventBoardTitle", board.title || eventBoardFallbacks[state.eventBoard]?.title || "--");
   setText(
     "#eventBoardSubtitle",
-    board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是独立的股票事件页面，不属于美股重点财经前瞻。",
+    board.subtitle || eventBoardFallbacks[state.eventBoard]?.subtitle || "这里是独立的股票事件页面，不属于重点财经前瞻。",
   );
   setText("#eventActiveTitle", board.title || "--");
   setText("#eventActiveSubtitle", board.subtitle || "加载后显示当前线索口径。");

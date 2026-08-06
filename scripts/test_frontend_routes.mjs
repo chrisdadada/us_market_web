@@ -31,14 +31,14 @@ const routeCases = [
   { hash: "#market", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#market/flows", view: "market", text: "板块资金方向", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#events", view: "events", text: "美股重点财经前瞻", absentText: "股票事件" },
-  { hash: "#stocks", view: "stocks", text: "股票库" },
+  { hash: "#events", view: "events", text: "重点财经前瞻", absentText: "股票事件" },
+  { hash: "#stocks", view: "stocks", text: "美股行情" },
   { hash: "#tracking", view: "tracking", text: "本次新增" },
   { hash: "#stock-events", view: "dashboard", text: "最新" },
   { hash: "#stock-events/guidance_up", view: "dashboard", text: "最新" },
   { hash: "#events/guidance_up", view: "dashboard", text: "最新" },
-  { hash: "#risk", view: "risk", text: "登录后可看市场温度计", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#strength", view: "strength", text: "会员可看全市场强弱", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "#risk", view: "risk", text: "登录后可看市场活跃指数", maxHeight: workspaceMaxDocumentHeight },
+  { hash: "#strength", view: "strength", text: "会员可看行业板块强弱", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#watchlist", view: "dashboard", text: "最新", absentText: "观察池" },
 ];
 

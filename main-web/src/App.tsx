@@ -57,21 +57,37 @@ const CryptoEtfChart = lazy(() => import("./CryptoEtfChart"));
 
 type NavItem = { key: PageKey; label: string; status?: string; disabled?: boolean };
 
+const pageLabels: Record<PageKey, string> = {
+  home: "首页",
+  opinions: "美股热点风向标",
+  calendar: "重点财经前瞻",
+  tracking: "机会跟踪榜单",
+  stocks: "美股行情",
+  market: "市场资金走向",
+  risk: "市场活跃指数",
+  strength: "行业板块强弱",
+  courses: "实战课程",
+  open: "Open 持仓参考",
+  forum: "论坛讨论区",
+  position: "以损定仓",
+  funding: "资金费套利扫描"
+};
+
 const primaryNavItems: NavItem[] = [
-  { key: "home", label: "首页" },
-  { key: "opinions", label: "美股热点风向标" },
-  { key: "tracking", label: "股票机会跟踪榜单" },
-  { key: "stocks", label: "股票库" },
-  { key: "calendar", label: "美股重点财经前瞻" },
-  { key: "market", label: "市场与资金" },
-  { key: "risk", label: "市场温度计" },
-  { key: "strength", label: "全市场强弱" },
-  { key: "courses", label: "交易实战课程" }
+  { key: "home", label: pageLabels.home },
+  { key: "opinions", label: pageLabels.opinions },
+  { key: "calendar", label: pageLabels.calendar },
+  { key: "tracking", label: pageLabels.tracking },
+  { key: "stocks", label: pageLabels.stocks },
+  { key: "market", label: pageLabels.market },
+  { key: "risk", label: pageLabels.risk },
+  { key: "strength", label: pageLabels.strength },
+  { key: "courses", label: pageLabels.courses }
 ];
 
 const secondaryNavItems: NavItem[] = [
-  { key: "open", label: "Open 持仓参考" },
-  { key: "forum", label: "论坛讨论区", status: "待开放", disabled: true }
+  { key: "open", label: pageLabels.open },
+  { key: "forum", label: pageLabels.forum, status: "待开放", disabled: true }
 ];
 
 const adminToolDataNavItems: Array<{ href: string; label: string }> = [
@@ -84,11 +100,11 @@ const adminToolDataNavItems: Array<{ href: string; label: string }> = [
 ];
 
 const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
-  { key: "position", label: "以损定仓" }
+  { key: "position", label: pageLabels.position }
 ];
 
 const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
-  { key: "funding", label: "资金费套利扫描" }
+  { key: "funding", label: pageLabels.funding }
 ];
 
 const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems];
@@ -221,8 +237,8 @@ const sectionLabels: Record<string, string> = {
 };
 
 function opinionSectionLabel(item?: Pick<Opinion, "section" | "sectionLabel"> | null) {
-  if (!item) return "美股热点风向标";
-  return sectionLabels[item.section] || item.sectionLabel || "美股热点风向标";
+  if (!item) return pageLabels.opinions;
+  return sectionLabels[item.section] || item.sectionLabel || pageLabels.opinions;
 }
 
 function isHomepageOpinion(item: Opinion) {
@@ -234,17 +250,17 @@ function isHomepageOpinion(item: Opinion) {
 const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: string; text: string }>> = {
   opinions: {
     level: "monthly",
-    title: "会员可看完整美股热点风向标",
+    title: `会员可看完整${pageLabels.opinions}`,
     text: "免费账号可预览最新方向，完整正文、历史观点和栏目内容开通后查看。"
   },
   tracking: {
     level: "monthly",
-    title: "会员可看完整股票机会跟踪榜单",
+    title: `会员可看完整${pageLabels.tracking}`,
     text: "免费账号可看到涨幅和强弱线索，标的名称开通后查看。"
   },
   market: {
     level: "monthly",
-    title: "会员可看市场与资金",
+    title: `会员可看${pageLabels.market}`,
     text: "开通后查看板块排行、资金方向和热门股票板块。"
   },
   open: {
@@ -259,12 +275,12 @@ const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: stri
   },
   risk: {
     level: "registered",
-    title: "注册后查看市场温度计",
+    title: `注册后查看${pageLabels.risk}`,
     text: "登录后查看完整市场温度与指标走势。"
   },
   strength: {
     level: "monthly",
-    title: "会员可看全市场强弱",
+    title: `会员可看${pageLabels.strength}`,
     text: "月度和年度会员可查看完整榜单。"
   }
 };
@@ -553,7 +569,7 @@ function opinionDisplayTitle(item?: Opinion | null, max = 56) {
   if (sectionLabel && title.startsWith(sectionLabel)) title = title.slice(sectionLabel.length).trim();
   title = title.replace(/#[^\s#]+/g, "").replace(/\s+/g, " ").trim();
   if (!title || title === sectionLabel || Object.values(sectionLabels).includes(title)) {
-    title = firstReadableParagraph(item.body, item.summary) || sectionLabel || "美股热点风向标";
+    title = firstReadableParagraph(item.body, item.summary) || sectionLabel || pageLabels.opinions;
   }
   return title.length > max ? `${title.slice(0, max)}...` : title;
 }
@@ -1481,22 +1497,22 @@ function HomePage({
       <section className="frontHomeBoard">
         <article className="frontLeadPanel">
           <div className="frontLeadMeta">
-            <span>最新观点</span>
-            {latest?.tradeDate ? <time>{formatOpinionTime(latest.tradeDate)}</time> : null}
+            <span>猫言猫语</span>
+            {latest?.tradeDate ? <time>更新于 {formatOpinionTime(latest.tradeDate)}</time> : null}
           </div>
-          <h1>{latest?.title || "美股热点风向标"}</h1>
+          <h1>{latest?.title || pageLabels.opinions}</h1>
           <div className={opinionsLocked ? "frontLeadPreview locked" : "frontLeadPreview"}>
             <p>{latest?.summary || compactText(latest?.body, 110) || "--"}</p>
           </div>
           <div className="frontLeadActions">
             {opinionsLocked ? <span>会员可见</span> : null}
-            <button type="button" onClick={() => onPage("opinions")}>{opinionsLocked ? "查看完整观点" : "进入美股热点风向标"}</button>
+            <button type="button" onClick={() => onPage("opinions")}>{opinionsLocked ? "查看完整观点" : `进入${pageLabels.opinions}`}</button>
           </div>
         </article>
 
         <aside className="frontQuickPanel">
           <div className="frontPanelHead">
-            <strong>美股重点财经前瞻</strong>
+            <strong>{pageLabels.calendar}</strong>
             <button type="button" onClick={() => onPage("calendar")}>查看日历</button>
           </div>
           {eventRows.map((item) => (
@@ -1513,7 +1529,7 @@ function HomePage({
       <section className="frontHomeStrengthPanel">
         <div className="frontPanelHead">
           <div className="frontPanelTitle">
-            <strong>股票机会跟踪榜单</strong>
+            <strong>{pageLabels.tracking}</strong>
             {trackingUpdatedAt ? <time>更新 {formatStoredDateTime(trackingUpdatedAt)}</time> : null}
           </div>
           <button type="button" onClick={() => onPage("tracking")}>查看机会</button>
@@ -1621,10 +1637,10 @@ function HomePage({
         <article className="frontMiniPanel">
           <div className="frontPanelHead">
             <div className="frontPanelTitle">
-              <strong>股票库精选</strong>
+              <strong>{pageLabels.stocks}精选</strong>
               {stocksUpdatedAt ? <time>更新 {formatStoredDateTime(stocksUpdatedAt)}</time> : null}
             </div>
-            <button type="button" onClick={() => onPage("stocks")}>打开股票库</button>
+            <button type="button" onClick={() => onPage("stocks")}>打开{pageLabels.stocks}</button>
           </div>
           <div className="frontStockList">
             {stockRows.map((row) => (
@@ -1714,7 +1730,7 @@ function OpinionsPage({
     return (
       <div className="opinionProductPage">
         <header className="opinionProductHeading">
-          <h1>美股热点风向标</h1>
+          <h1>{pageLabels.opinions}</h1>
           <span>{displayRows[0]?.tradeDate ? `更新 ${formatOpinionTime(displayRows[0].tradeDate)}` : ""}</span>
         </header>
         <div className="opinionProductTabs">
@@ -1772,7 +1788,7 @@ function OpinionsPage({
     <div className="opinionReaderPage">
       <article className="readerPanel articleReaderPanel">
         <div className="readerTop">
-          <button type="button" onClick={onBack}>返回美股热点风向标</button>
+          <button type="button" onClick={onBack}>返回{pageLabels.opinions}</button>
           <button type="button" onClick={() => onPage("home")}>返回首页</button>
         </div>
         <div className="readerShell opinionReaderSingle">
@@ -2035,7 +2051,7 @@ function TrackingPage({
   return (
     <div className="trackingPage">
       <header className="trackingHeading">
-        <h1>股票机会跟踪榜单</h1>
+        <h1>{pageLabels.tracking}</h1>
         <InfoTip text={trackingGuideHelp} focusable />
       </header>
       <section className="screenerCard">
@@ -2216,7 +2232,7 @@ function TrackingStockDetailPage({
   return (
     <div className="trackingStockDetailPage">
       <section className="trackingStockHero">
-        <button type="button" className="detailBackLink" onClick={onBack}>返回股票机会跟踪榜单</button>
+        <button type="button" className="detailBackLink" onClick={onBack}>返回{pageLabels.tracking}</button>
         <div className="trackingStockHead">
           <div>
             <h1>{row.symbol}</h1>
@@ -2235,7 +2251,7 @@ function TrackingStockDetailPage({
           <div><span>市值</span><strong>{marketCapDisplay(profile || row)}</strong></div>
         </div>
         <div className="trackingStockActions">
-          <button type="button" onClick={onStocks}>查看股票库</button>
+          <button type="button" onClick={onStocks}>查看{pageLabels.stocks}</button>
         </div>
       </section>
 
@@ -2479,7 +2495,7 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
-      <header className="marketToolHeading"><div><h1>市场温度计</h1><span>{formatDate(payload?.asOf)}</span></div></header>
+      <header className="marketToolHeading"><div><h1>{pageLabels.risk}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载市场数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>市场数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无市场温度数据</div> : (
@@ -2652,10 +2668,10 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
-      <header className="marketToolHeading"><div><h1>全市场强弱</h1><span>{formatDate(payload?.asOf)}</span></div></header>
+      <header className="marketToolHeading"><div><h1>{pageLabels.strength}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载强弱数据...</div> : state === "error" && !payload ? (
         <div className="marketToolError"><span>强弱数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
-      ) : !payload ? <div className="marketToolEmpty">暂无全市场强弱数据</div> : (
+      ) : !payload ? <div className="marketToolEmpty">暂无行业板块强弱数据</div> : (
         <>
           <section className="strengthMetrics">
             <article><span>市场中位强度</span><strong>{payload.summary?.medianScore ?? "--"}</strong></article>
@@ -2959,10 +2975,10 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   return (
     <div className="marketPageV3">
       <header className="marketPageHeadV3">
-        <h1>市场与资金</h1>
+        <h1>{pageLabels.market}</h1>
         <span>{sectorDate}</span>
       </header>
-      <div className="marketViewTabs" role="tablist" aria-label="市场与资金分类">
+      <div className="marketViewTabs" role="tablist" aria-label={`${pageLabels.market}分类`}>
         <button type="button" role="tab" aria-selected={marketView === "sectors"} className={marketView === "sectors" ? "active" : ""} onClick={() => setMarketView("sectors")}>板块资金</button>
         <button type="button" role="tab" aria-selected={marketView === "crypto"} className={marketView === "crypto" ? "active" : ""} onClick={() => setMarketView("crypto")}>加密 ETF</button>
       </div>
@@ -3244,7 +3260,7 @@ function StocksPage({
           setRows(payload.rows || []);
           setTotal(payload.total || 0);
         })
-        .catch((err) => setError(err?.message || "股票库加载失败"))
+        .catch((err) => setError(err?.message || `${pageLabels.stocks}加载失败`))
         .finally(() => setLoadingRows(false));
     }, query.trim() ? 260 : 0);
     return () => window.clearTimeout(timer);
@@ -3298,7 +3314,7 @@ function StocksPage({
   return (
     <div className="stocksPage">
       <div className="stockLibraryHead">
-        <h1>股票库</h1>
+        <h1>{pageLabels.stocks}</h1>
       </div>
       <section className="stockLibraryWorkbench" aria-busy={loadingRows}>
         <div className="stockLibraryPresetRow">
@@ -3606,7 +3622,7 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   return (
     <div className="calendarPage calendarV3">
       <header className="calendarPageHead">
-        <h1>美股重点财经前瞻</h1>
+        <h1>{pageLabels.calendar}</h1>
         <span>北京时间</span>
       </header>
       <section className="calendarWorkbench">
@@ -4474,7 +4490,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
       return (
         <div className="coursesPage">
           <button type="button" className="courseBackButton" onClick={onBack}>返回课程</button>
-          <section className="coursesEmpty">交易实战课程不存在</section>
+          <section className="coursesEmpty">实战课程不存在</section>
         </div>
       );
     }

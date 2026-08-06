@@ -178,12 +178,12 @@ function assert(condition, message) {
 const routeCases = [
   { query: "", text: "首页" },
   { query: "?page=opinions", text: "美股热点风向标" },
-  { query: "?page=tracking", text: "股票机会跟踪榜单" },
-  { query: "?page=market", text: "市场与资金" },
+  { query: "?page=tracking", text: "机会跟踪榜单" },
+  { query: "?page=market", text: "市场资金走向" },
   { query: "?page=risk", text: "注册后查看" },
   { query: "?page=strength", text: "开通查看完整内容" },
-  { query: "?page=stocks&symbol=MU", text: "股票库" },
-  { query: "?page=calendar", text: "美股重点财经前瞻" },
+  { query: "?page=stocks&symbol=MU", text: "美股行情" },
+  { query: "?page=calendar", text: "重点财经前瞻" },
   { query: "?page=open", text: "Open 持仓参考" },
   { query: "?page=forum", text: "论坛讨论区" },
 ];

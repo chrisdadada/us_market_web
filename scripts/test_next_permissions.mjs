@@ -408,6 +408,10 @@ try {
         assert(homeTableText.includes("关键点位"), "desktop home should show the technical-analysis column");
         assert(homeTableText.includes("$100.00") && homeTableText.includes("$110.00"), "desktop home should show support and resistance");
         assert(await page.locator(".frontLeadMeta time").count() === 1, "home opinion should show its publish time");
+        assert((await page.locator(".frontLeadMeta span").innerText()) === "猫言猫语", "home opinion should use the approved column name");
+        const opinionUpdateTime = await page.locator(".frontLeadMeta time").innerText();
+        assert(opinionUpdateTime.startsWith("更新于 "), "home opinion should label the update time clearly");
+        assert(!opinionUpdateTime.includes("北京时间"), "home opinion should not repeat the Beijing-time label");
         assert(await page.locator(".frontPanelTitle time").count() >= 2, "home data panels should show real update times");
         const leadTitleStyle = await page.locator(".frontLeadPanel h1").evaluate((element) => {
           const style = getComputedStyle(element);
@@ -547,7 +551,7 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=calendar`, { waitUntil: "networkidle" });
-        assert((await page.locator(".calendarPageHead h1").innerText()) === "美股重点财经前瞻", "calendar should show the approved page title");
+        assert((await page.locator(".calendarPageHead h1").innerText()) === "重点财经前瞻", "calendar should show the approved page title");
         assert(await page.locator(".calendarMacroTable").count() === 1, "calendar should keep macro events in their own section");
         assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
         const calendarSectionOrder = await page.evaluate(() => {
@@ -585,7 +589,7 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
-        assert((await page.locator(".marketPageHeadV3 h1").innerText()) === "市场与资金", "market page should show the approved page title");
+        assert((await page.locator(".marketPageHeadV3 h1").innerText()) === "市场资金走向", "market page should show the approved page title");
         assert(await page.locator(".marketSegmentV3 button.active", { hasText: "热力图" }).count() === 1, "market page should open with the heatmap");
         const firstHeatTile = page.locator(".marketHeatmapV3 > button").first();
         await firstHeatTile.hover();
@@ -666,9 +670,9 @@ try {
         const navigationBox = await page.locator(".sideRail").boundingBox();
         assert(Boolean(navigationBox && navigationBox.x <= 1 && navigationBox.width >= 300), `mobile navigation should fully open: ${JSON.stringify(navigationBox)}`);
         const primaryLabels = await page.locator(".sideRail > nav button span").allTextContents();
-        assert(primaryLabels.join("|") === "首页|美股热点风向标|股票机会跟踪榜单|股票库|美股重点财经前瞻|市场与资金|市场温度计|全市场强弱|交易实战课程", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
+        assert(primaryLabels.join("|") === "首页|美股热点风向标|重点财经前瞻|机会跟踪榜单|美股行情|市场资金走向|市场活跃指数|行业板块强弱|实战课程", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
         assert(await page.locator(".sideRail", { hasText: "工具数据" }).count() === 0, "mobile navigation should not separate market pages into a tool-data group");
-        assert(await page.locator(".sideRail", { hasText: "交易实战课程" }).count() === 1, "courses should appear in mobile navigation");
+        assert(await page.locator(".sideRail", { hasText: "实战课程" }).count() === 1, "courses should appear in mobile navigation");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-navigation.png` });
         await page.locator(".mobileNavClose").click();
         await page.waitForTimeout(250);
