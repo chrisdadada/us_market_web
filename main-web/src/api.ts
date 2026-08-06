@@ -241,6 +241,10 @@ export type CalendarEvent = {
   previousValue?: number | null;
   previousLabel?: string | null;
   resultUpdatedAt?: string | null;
+  resultKind?: "cpi" | "rate" | "jobs";
+  resultHeadline?: string;
+  resultMeaning?: string;
+  resultTone?: "positive" | "neutral" | "watch";
   relatedModules?: string[];
   relatedAssets?: string[];
   summary?: string;

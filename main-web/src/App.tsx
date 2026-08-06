@@ -422,6 +422,36 @@ function calendarValue(label?: string | number | null, value?: string | number |
   return Number.isFinite(n) ? String(value).trim() : "";
 }
 
+function macroResultValue(event: CalendarEvent, label?: string | number | null, value?: string | number | null) {
+  const display = calendarValue(label, value);
+  if (!display || event.resultKind !== "jobs") return display;
+  const numeric = Number(String(value ?? display).replace(/[^\d.-]/g, ""));
+  if (!Number.isFinite(numeric)) return display;
+  const wan = numeric / 10;
+  return `${Number.isInteger(wan) ? wan.toFixed(0) : wan.toFixed(1)}万`;
+}
+
+function macroResultMetrics(event: CalendarEvent) {
+  const labels = event.resultKind === "rate"
+    ? ["当前利率", "市场预期", "上次利率"]
+    : ["实际", "预期", "前值"];
+  return [
+    macroResultValue(event, event.actualLabel, event.actualValue),
+    macroResultValue(event, event.forecastLabel, event.forecastValue),
+    macroResultValue(event, event.previousLabel, event.previousValue)
+  ].map((value, index) => ({ label: labels[index], value })).filter((item) => item.value);
+}
+
+function latestMacroResults(rows: CalendarEvent[]) {
+  const byKind = new Map<string, CalendarEvent>();
+  rows.forEach((event) => {
+    if (event.resultKind && event.resultHeadline && event.resultMeaning && !byKind.has(event.resultKind)) {
+      byKind.set(event.resultKind, event);
+    }
+  });
+  return ["cpi", "rate", "jobs"].map((kind) => byKind.get(kind)).filter((event): event is CalendarEvent => Boolean(event));
+}
+
 function compactText(value?: string | null, max = 88) {
   if (isBlankValue(value)) return "";
   const text = String(value || "")
@@ -3561,6 +3591,7 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [macroRows, setMacroRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "macro"));
   const [earningsRows, setEarningsRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "earnings"));
+  const [resultRows, setResultRows] = useState<CalendarEvent[]>([]);
   const [total, setTotal] = useState(initialEvents.filter((event) => event.type === "earnings").length);
   const [macroLoading, setMacroLoading] = useState(false);
   const [earningsLoading, setEarningsLoading] = useState(false);
@@ -3568,11 +3599,26 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [earningsError, setEarningsError] = useState(false);
   const [macroRetry, setMacroRetry] = useState(0);
   const [earningsRetry, setEarningsRetry] = useState(0);
+  const [resultLoading, setResultLoading] = useState(true);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
     setPageIndex(0);
   }, [impact, windowDays]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.calendar({ limit: 50, type: "macro", resultsOnly: true }).then((payload) => {
+      if (!cancelled) setResultRows(payload.rows || []);
+    }).catch(() => {
+      if (!cancelled) setResultRows([]);
+    }).finally(() => {
+      if (!cancelled) setResultLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -3621,11 +3667,8 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
 
   return (
     <div className="calendarPage calendarV3">
-      <header className="calendarPageHead">
-        <h1>{pageLabels.calendar}</h1>
-        <span>北京时间</span>
-      </header>
       <section className="calendarWorkbench">
+        <MacroResultCards rows={resultRows} loading={resultLoading} />
         <div className="calendarFilters">
           <div className="calendarWindowTabs">
             {[
@@ -3680,6 +3723,50 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
         </section>
       </section>
     </div>
+  );
+}
+
+function MacroResultCards({ rows, loading }: { rows: CalendarEvent[]; loading: boolean }) {
+  const events = latestMacroResults(rows);
+  if (!loading && events.length === 0) return null;
+  return (
+    <section className="calendarBlock calendarResultsBlock">
+      <div className="calendarBlockHead">
+        <h2>重要数据结果</h2>
+      </div>
+      {loading && events.length === 0 ? <div className="calendarResultLoading"><i /><i /><i /></div> : null}
+      {events.length ? (
+        <div className="calendarResultList">
+          {events.map((event) => {
+            const metrics = macroResultMetrics(event);
+            return (
+              <article className={`calendarResultCard ${event.resultTone || "neutral"}`} key={event.id}>
+                <div className="calendarResultHead">
+                  <strong>{calendarTitle(event.title)}</strong>
+                  <span>{formatDate(event.date)} {calendarTime24(event.time)}</span>
+                </div>
+                <div className="calendarResultBody">
+                  <div className="calendarResultDate">
+                    <strong>{formatDate(event.date).slice(5)}</strong>
+                    <span>{weekdayLabel(event.date)}</span>
+                    <em>已公布</em>
+                  </div>
+                  <div className="calendarResultMessage">
+                    <h3>{event.resultHeadline}</h3>
+                    <p>{event.resultMeaning}</p>
+                  </div>
+                  <div className={`calendarResultMetrics count${metrics.length}`}>
+                    {metrics.map((item) => (
+                      <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
+                    ))}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
