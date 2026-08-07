@@ -441,6 +441,75 @@ def read_price_history(market_data_root: Path, symbols: set[str], end: date | No
     return dict(history)
 
 
+def wilder_rsi(values: list[float], period: int = 14) -> float | None:
+    if period <= 0 or len(values) <= period:
+        return None
+    changes = [current - previous for previous, current in zip(values, values[1:])]
+    gains = [max(change, 0.0) for change in changes]
+    losses = [max(-change, 0.0) for change in changes]
+    average_gain = sum(gains[:period]) / period
+    average_loss = sum(losses[:period]) / period
+    for gain, loss in zip(gains[period:], losses[period:]):
+        average_gain = ((period - 1) * average_gain + gain) / period
+        average_loss = ((period - 1) * average_loss + loss) / period
+    if average_gain == 0 and average_loss == 0:
+        return 50.0
+    if average_loss == 0:
+        return 100.0
+    return 100.0 - (100.0 / (1.0 + average_gain / average_loss))
+
+
+def short_term_momentum(market_data_root: Path, symbol: str, as_of: date | None) -> dict[str, Any]:
+    if as_of is None:
+        as_of = parse_date(latest_stock_price_snapshot(market_data_root).get("asOf"))
+    history = read_price_history(market_data_root, {symbol}, as_of, lookback_days=180)
+    points = [
+        (trade_date, safe_float(prices.get(symbol)))
+        for trade_date, prices in sorted(history.items())
+    ]
+    points = [(trade_date, value) for trade_date, value in points if value is not None]
+    value = wilder_rsi([value for _, value in points], period=14)
+    if value is None or not points:
+        return {}
+    label = "偏热" if value >= 70 else "偏冷" if value <= 30 else "正常"
+    return {
+        "asOf": points[-1][0],
+        "value": pct(value, 2),
+        "periodDays": 14,
+        "label": label,
+    }
+
+
+def latest_vix(market_data_root: Path) -> dict[str, Any]:
+    path = market_data_root / "raw" / "fred" / "VIXCLS.parquet"
+    if not path.exists():
+        return {}
+    import pyarrow.parquet as pq  # type: ignore
+
+    rows = pq.read_table(path, columns=["date", "value"]).to_pylist()
+    points = [
+        (parse_date(row.get("date")), safe_float(row.get("value")))
+        for row in rows
+    ]
+    points = [(as_of, value) for as_of, value in points if as_of is not None and value is not None]
+    if not points:
+        return {}
+    as_of, value = max(points, key=lambda point: point[0])
+    label = "高波动" if value >= 28 else "波动升高" if value >= 18 else "平稳"
+    return {
+        "asOf": as_of.isoformat(),
+        "value": pct(value, 2),
+        "label": label,
+    }
+
+
+def build_market_indicators(market_data_root: Path, symbol: str, as_of: Any) -> dict[str, Any]:
+    return {
+        "shortTermMomentum": short_term_momentum(market_data_root, symbol, parse_date(as_of)),
+        "vix": latest_vix(market_data_root),
+    }
+
+
 def read_recent_dividends(market_data_root: Path, symbols: set[str], as_of: date) -> dict[str, float]:
     dividends_dir = market_data_root / "raw" / "polygon_rest" / "dividends_by_year"
     start = as_of - timedelta(days=365)
@@ -1247,6 +1316,7 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
             ]
             if key in forward_valuation
         },
+        "marketIndicators": payload.get("marketIndicators") or {},
         "holdingsCoverage": holdings_summary,
         "topHoldings": payload.get("topHoldings") or [],
         "dataReadiness": {
@@ -1279,6 +1349,7 @@ def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_
         qqq_payload["forwardValuation"] = build_qqq_forward_valuation(fetch_qqq_characteristics())
     except Exception as exc:
         qqq_payload["audit"]["forwardValuationError"] = f"{type(exc).__name__}: {exc}"
+    qqq_payload["marketIndicators"] = build_market_indicators(market_data_root, "QQQ", qqq_payload.get("priceAsOf"))
     spy_payload = build_single_index_payload(
         market_data_root,
         "SPY",
@@ -1291,7 +1362,7 @@ def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_
     qqq_frontend = frontend_index_payload(qqq_payload)
     spy_frontend = frontend_index_payload(spy_payload)
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "generatedAt": now_iso(),
         "asOf": qqq_frontend.get("asOf"),
         "module": "index-valuation",
