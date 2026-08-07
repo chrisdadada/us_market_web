@@ -5328,42 +5328,54 @@ const renderForwardValuation = (payload) => {
   const card = document.querySelector("#valuationForwardCard");
   const shell = document.querySelector(".valuation-shell");
   const data = payload?.forwardValuation || {};
+  const indicators = payload?.marketIndicators || {};
+  const momentum = indicators.shortTermMomentum || {};
+  const vix = indicators.vix || {};
   const forwardPe = parseValuationNumber(data.forwardPe);
   const averagePe = parseValuationNumber(data.tenYearAverageForwardPe);
   const premium = parseValuationNumber(data.premiumToTenYearAveragePct);
-  const growth = parseValuationNumber(data.impliedEarningsGrowthPct);
-  const ready = Boolean(card && Number.isFinite(forwardPe) && Number.isFinite(averagePe) && Number.isFinite(premium));
+  const momentumValue = parseValuationNumber(momentum.value);
+  const vixValue = parseValuationNumber(vix.value);
+  const forwardReady = Number.isFinite(forwardPe) && Number.isFinite(averagePe) && Number.isFinite(premium);
+  const momentumReady = Number.isFinite(momentumValue);
+  const vixReady = Number.isFinite(vixValue);
+  const ready = Boolean(card && (forwardReady || momentumReady || vixReady));
 
   shell?.classList.toggle("has-forward-card", ready);
   if (card) card.hidden = !ready;
   if (!ready) return false;
 
-  const aboveAverage = premium > 0;
-  const growthSupports = Number.isFinite(growth) && growth > 0;
-  const status = aboveAverage ? "估值偏高" : "估值低于历史平均";
-  const headline = aboveAverage ? `比10年平均水平高约${Math.round(Math.abs(premium))}%` : `比10年平均水平低约${Math.round(Math.abs(premium))}%`;
-  const summary = growthSupports
-    ? `但未来一年盈利预计增长${growth.toFixed(1)}%，对当前估值仍有一定支撑。`
-    : "未来盈利预期未对当前估值形成明显支撑。";
-  const judgment = aboveAverage
-    ? growthSupports
-      ? "估值偏高，但盈利预期仍有支撑；盈利能否兑现是关键。"
-      : "估值偏高，注意盈利预期不及预期的风险。"
-    : growthSupports
-      ? "估值压力较低，盈利预期同时向好。"
-      : "估值低于历史平均，但仍要观察盈利表现。";
+  const forwardMetric = document.querySelector("#valuationForwardMetric");
+  const momentumMetric = document.querySelector("#valuationMomentumMetric");
+  const vixMetric = document.querySelector("#valuationVixMetric");
+  if (forwardMetric) forwardMetric.hidden = !forwardReady;
+  if (momentumMetric) momentumMetric.hidden = !momentumReady;
+  if (vixMetric) vixMetric.hidden = !vixReady;
 
-  setText("#valuationForwardAsOf", `更新至 ${formatDisplayDate(data.asOf)}`);
-  setText("#valuationForwardPe", `${forwardPe.toFixed(2)}倍`);
-  setText("#valuationForwardStatus", status);
-  setText("#valuationForwardHeadline", headline);
-  setText("#valuationForwardSummary", summary);
-  setText("#valuationForwardPeMetric", `${forwardPe.toFixed(2)}倍`);
-  setText("#valuationForwardAverage", `约${averagePe.toFixed(1)}倍`);
-  setText("#valuationForwardGrowth", Number.isFinite(growth) ? `${growth >= 0 ? "+" : ""}${growth.toFixed(1)}%` : "--");
-  setText("#valuationForwardJudgment", judgment);
-  card.classList.toggle("is-below-average", !aboveAverage);
-  card.classList.toggle("is-growth-negative", Number.isFinite(growth) && growth < 0);
+  if (forwardReady) {
+    const aboveAverage = premium > 0;
+    setText("#valuationForwardPe", `${forwardPe.toFixed(2)}倍`);
+    setText("#valuationForwardStatus", aboveAverage ? "偏高" : "不高");
+    setText("#valuationForwardMeta", `10年平均 ${averagePe.toFixed(1)}倍 · ${formatDisplayDate(data.asOf)}`);
+    document.querySelector("#valuationForwardStatus")?.classList.toggle("is-watch", aboveAverage);
+  }
+  if (momentumReady) {
+    const label = momentum.label || (momentumValue >= 70 ? "偏热" : momentumValue <= 30 ? "偏冷" : "正常");
+    setText("#valuationMomentumValue", momentumValue.toFixed(2));
+    setText("#valuationMomentumStatus", label);
+    setText("#valuationMomentumMeta", `近${momentum.periodDays || 14}个交易日 · ${formatDisplayDate(momentum.asOf)}`);
+    document.querySelector("#valuationMomentumStatus")?.classList.toggle("is-watch", label !== "正常");
+  }
+  if (vixReady) {
+    const label = vix.label || "--";
+    setText("#valuationVixValue", vixValue.toFixed(2));
+    setText("#valuationVixStatus", label);
+    setText("#valuationVixMeta", `市场波动预期 · ${formatDisplayDate(vix.asOf)}`);
+    document.querySelector("#valuationVixStatus")?.classList.toggle("is-watch", label !== "平稳");
+  }
+
+  const dates = [data.asOf, momentum.asOf, vix.asOf].filter(Boolean).sort();
+  setText("#valuationIndicatorsAsOf", `更新至 ${formatDisplayDate(dates.at(-1))}`);
   return true;
 };
 
@@ -5693,7 +5705,7 @@ const renderIndexValuation = (payload) => {
   setText("#valuationPageTitle", `${shortIndexName} 估值`);
   setText(
     "#valuationPageSubtitle",
-    hasForwardValuation ? "看未来一年估值是否偏高，盈利预期能否支撑。" : `观察 ${shortIndexName} 当前所处的位置。`,
+    hasForwardValuation ? "看当前估值、短期涨跌和市场情绪。" : `观察 ${shortIndexName} 当前所处的位置。`,
   );
   setText("#valuationIndexLabel", indexName);
   setText("#valuationAsOf", ready ? formatDisplayDate(activePayload?.asOf || activePayload?.updatedAt || activePayload?.generatedAt) : "--");

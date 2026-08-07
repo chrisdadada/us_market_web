@@ -229,31 +229,27 @@
               </div>
             </div>
 
-            <section class="valuation-forward-card" id="valuationForwardCard" hidden aria-label="纳指100前瞻估值">
+            <section class="valuation-forward-card" id="valuationForwardCard" hidden aria-label="纳指100关键指标">
               <div class="valuation-forward-head">
-                <strong>未来一年估值</strong>
-                <span id="valuationForwardAsOf">--</span>
-              </div>
-              <div class="valuation-forward-hero">
-                <div class="valuation-forward-primary">
-                  <span>前瞻PE</span>
-                  <strong id="valuationForwardPe">--</strong>
-                  <small>未来一年每赚1美元，当前价格约为这个倍数</small>
-                </div>
-                <div class="valuation-forward-meaning">
-                  <em id="valuationForwardStatus">--</em>
-                  <h2 id="valuationForwardHeadline">--</h2>
-                  <p id="valuationForwardSummary">--</p>
-                </div>
+                <strong>关键指标</strong>
+                <span id="valuationIndicatorsAsOf">--</span>
               </div>
               <div class="valuation-forward-metrics">
-                <div><span>前瞻PE</span><strong id="valuationForwardPeMetric">--</strong></div>
-                <div><span>10年平均</span><strong id="valuationForwardAverage">--</strong></div>
-                <div><span>预期盈利变化</span><strong id="valuationForwardGrowth">--</strong></div>
-              </div>
-              <div class="valuation-forward-judgment">
-                <span>当前判断</span>
-                <strong id="valuationForwardJudgment">--</strong>
+                <article id="valuationForwardMetric" hidden>
+                  <span>前瞻 PE <button class="info-tip" type="button" aria-label="前瞻PE解释" data-tip="未来一年预期盈利对应的市盈率。">?</button></span>
+                  <div><strong id="valuationForwardPe">--</strong><em id="valuationForwardStatus">--</em></div>
+                  <small id="valuationForwardMeta">--</small>
+                </article>
+                <article id="valuationMomentumMetric" hidden>
+                  <span>短期涨跌动能 <button class="info-tip" type="button" aria-label="短期涨跌动能解释" data-tip="根据近14个交易日涨跌变化计算，70以上通常偏热，30以下通常偏冷。">?</button></span>
+                  <div><strong id="valuationMomentumValue">--</strong><em id="valuationMomentumStatus">--</em></div>
+                  <small id="valuationMomentumMeta">--</small>
+                </article>
+                <article id="valuationVixMetric" hidden>
+                  <span>VIX 恐慌指数 <button class="info-tip" type="button" aria-label="VIX恐慌指数解释" data-tip="数值越高，市场预计未来波动越大。">?</button></span>
+                  <div><strong id="valuationVixValue">--</strong><em id="valuationVixStatus">--</em></div>
+                  <small id="valuationVixMeta">--</small>
+                </article>
               </div>
             </section>
 

@@ -2966,190 +2966,88 @@ body :where(.is-negative) {
 }
 
 .valuation-forward-head span,
-.valuation-forward-primary span,
-.valuation-forward-metrics span,
-.valuation-forward-judgment span {
+.valuation-forward-metrics article > span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 620;
 }
 
-.valuation-forward-hero {
+.valuation-forward-metrics {
   display: grid;
-  grid-template-columns: 310px minmax(0, 1fr);
-  min-height: 210px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.valuation-forward-primary,
-.valuation-forward-meaning {
-  display: flex;
+.valuation-forward-metrics article {
   min-width: 0;
-  flex-direction: column;
-  justify-content: center;
-  padding: 30px 38px;
+  padding: 22px 20px 20px;
 }
 
-.valuation-forward-primary {
-  border-right: 1px solid #e7edf4;
-  box-shadow: inset 4px 0 0 var(--valuation-blue);
+.valuation-forward-metrics article[hidden] {
+  display: none;
 }
 
-.valuation-forward-primary strong {
-  margin-top: 8px;
-  color: var(--valuation-blue);
-  font-size: 48px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
+.valuation-forward-metrics article + article {
+  border-left: 1px solid #e7edf4;
 }
 
-.valuation-forward-primary small {
-  margin-top: 9px;
-  color: #8a97a9;
-  font-size: 12px;
+.valuation-forward-metrics article > div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 11px;
 }
 
-.valuation-forward-meaning {
-  padding-inline: 42px;
+.valuation-forward-metrics strong {
+  color: #172033;
+  font-size: 29px;
+  font-weight: 680;
+  letter-spacing: -0.025em;
 }
 
-.valuation-forward-meaning em {
-  width: max-content;
-  border-radius: 7px;
-  background: #fff4d7;
-  color: #8a5b00;
-  padding: 6px 10px;
+.valuation-forward-metrics em {
+  border-radius: 5px;
+  background: #e9f8f1;
+  color: #128055;
+  padding: 4px 7px;
   font-size: 12px;
   font-style: normal;
   font-weight: 620;
 }
 
-.valuation-forward-card.is-below-average .valuation-forward-meaning em {
-  background: #e9f8f1;
-  color: #128055;
+.valuation-forward-metrics em.is-watch {
+  background: #fff4d7;
+  color: #8a5b00;
 }
 
-.valuation-forward-meaning h2 {
-  margin: 13px 0 0;
-  color: #172033;
-  font-size: 27px;
-  font-weight: 680;
-  letter-spacing: -0.025em;
-}
-
-.valuation-forward-meaning p {
-  margin: 10px 0 0;
-  color: #526176;
-  font-size: 15px;
-  line-height: 1.65;
-}
-
-.valuation-forward-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0 28px 28px;
-  border: 1px solid #e3eaf2;
-  border-radius: 12px;
-  background: #fbfdff;
-}
-
-.valuation-forward-metrics > div {
-  min-width: 0;
-  padding: 20px 24px;
-}
-
-.valuation-forward-metrics > div + div {
-  border-left: 1px solid #e5ebf2;
-}
-
-.valuation-forward-metrics strong {
+.valuation-forward-metrics small {
   display: block;
-  margin-top: 8px;
-  color: #253248;
-  font-size: 24px;
-  font-weight: 650;
-}
-
-#valuationForwardGrowth {
-  color: var(--positive);
-}
-
-.valuation-forward-card.is-growth-negative #valuationForwardGrowth {
-  color: var(--negative);
-}
-
-.valuation-forward-judgment {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 0 28px 28px;
-  border-radius: 10px;
-  background: #f4f8fc;
-  padding: 16px 18px;
-}
-
-.valuation-forward-judgment strong {
-  color: #334158;
-  font-size: 14px;
-  font-weight: 600;
+  margin-top: 12px;
+  color: #7f8ca0;
+  font-size: 12px;
 }
 
 .valuation-shell.has-forward-card > .valuation-hero,
-.valuation-shell.has-forward-card > .valuation-chart-panel,
 .valuation-shell.has-forward-card > .valuation-metrics,
 .valuation-shell.has-forward-card > .valuation-holdings-panel {
   display: none;
 }
 
 @media (max-width: 720px) {
-  .valuation-forward-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .valuation-forward-primary {
-    border-right: 0;
-    border-bottom: 1px solid #e7edf4;
-    padding: 26px 24px;
-  }
-
-  .valuation-forward-primary strong {
-    font-size: 44px;
-  }
-
-  .valuation-forward-meaning {
-    padding: 26px 24px;
-  }
-
-  .valuation-forward-meaning h2 {
-    font-size: 23px;
-  }
-
   .valuation-forward-metrics {
     grid-template-columns: 1fr;
-    margin: 0 16px 16px;
   }
 
-  .valuation-forward-metrics > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 18px;
+  .valuation-forward-metrics article {
+    padding: 18px;
   }
 
-  .valuation-forward-metrics > div + div {
-    border-top: 1px solid #e5ebf2;
+  .valuation-forward-metrics article + article {
+    border-top: 1px solid #e7edf4;
     border-left: 0;
   }
 
   .valuation-forward-metrics strong {
-    margin-top: 0;
-    font-size: 20px;
-  }
-
-  .valuation-forward-judgment {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
-    margin: 0 16px 18px;
+    font-size: 25px;
   }
 }
 

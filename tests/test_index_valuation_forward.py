@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_index_valuation import build_qqq_forward_valuation  # noqa: E402
+from build_index_valuation import build_qqq_forward_valuation, wilder_rsi  # noqa: E402
 
 
 class ForwardValuationTest(unittest.TestCase):
@@ -27,6 +27,11 @@ class ForwardValuationTest(unittest.TestCase):
     def test_rejects_missing_or_non_positive_pe(self):
         with self.assertRaises(ValueError):
             build_qqq_forward_valuation({"priceToEarningsRatio": 30, "forwardPriceToEarningsRatio": 0})
+
+    def test_short_term_momentum_bounds(self):
+        self.assertEqual(wilder_rsi([100.0] * 15), 50.0)
+        self.assertEqual(wilder_rsi([float(value) for value in range(15)]), 100.0)
+        self.assertEqual(wilder_rsi([float(value) for value in range(15, 0, -1)]), 0.0)
 
 
 if __name__ == "__main__":
