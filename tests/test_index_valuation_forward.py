@@ -1,0 +1,33 @@
+import sys
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from build_index_valuation import build_qqq_forward_valuation  # noqa: E402
+
+
+class ForwardValuationTest(unittest.TestCase):
+    def test_builds_plain_language_inputs_from_official_snapshot(self):
+        result = build_qqq_forward_valuation(
+            {
+                "effectiveDate": "2026-07-31",
+                "priceToEarningsRatio": 29.997909,
+                "forwardPriceToEarningsRatio": 26.707899,
+            }
+        )
+
+        self.assertEqual(result["status"], "above_ten_year_average")
+        self.assertEqual(result["asOf"], "2026-07-31")
+        self.assertEqual(result["premiumToTenYearAveragePct"], 17.1)
+        self.assertEqual(result["impliedEarningsGrowthPct"], 12.3)
+
+    def test_rejects_missing_or_non_positive_pe(self):
+        with self.assertRaises(ValueError):
+            build_qqq_forward_valuation({"priceToEarningsRatio": 30, "forwardPriceToEarningsRatio": 0})
+
+
+if __name__ == "__main__":
+    unittest.main()

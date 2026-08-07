@@ -91,7 +91,6 @@ const secondaryNavItems: NavItem[] = [
 ];
 
 const adminToolDataNavItems: Array<{ href: string; label: string }> = [
-  { href: "/legacy/#valuation", label: "指数估值" },
   { href: "/legacy/#options", label: "期权流向" },
   { href: "/legacy/#signals", label: "趋势信号" },
   { href: "/legacy/#stock-events", label: "股票事件" },
@@ -105,6 +104,10 @@ const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
 
 const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
   { key: "funding", label: pageLabels.funding }
+];
+
+const publicToolDataNavItems: Array<{ href: string; label: string }> = [
+  { href: "/legacy/#valuation", label: "指数估值" }
 ];
 
 const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems];
@@ -1121,6 +1124,12 @@ function App() {
         <div className="navToolGroup">
           <p className="navGroupTitle">会员工具</p>
           {renderNavItems(memberToolNavItems)}
+        </div>
+        <div className="navToolGroup">
+          <p className="navGroupTitle">工具 / 数据</p>
+          {publicToolDataNavItems.map((item) => (
+            <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)}>{item.label}</a>
+          ))}
         </div>
         {auth?.entitlements?.admin ? (
           <div className="navToolGroup">

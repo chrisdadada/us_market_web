@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260721-market-tools1" />
+    <link rel="stylesheet" href="./styles.css?v=20260807-forward-pe1" />
   </head>
   <body>
     <div class="app-shell">
@@ -55,6 +55,10 @@
           </section>
 
           <section class="nav-section">
+            <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
+          </section>
+
+          <section class="nav-section">
             <a href="#" data-page-link="courses">实战课程</a>
           </section>
 
@@ -68,7 +72,6 @@
 
           <section class="nav-section nav-section-legacy is-hidden" data-super-admin-only>
             <p>管理员工具</p>
-            <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
             <a href="#" data-page-link="mag7">七姐妹雷达</a>
             <a href="#" data-page-link="options">期权流向</a>
             <a href="#" data-page-link="signals">趋势信号</a>
@@ -230,6 +233,34 @@
                 <p id="valuationCoverage">等待指数估值样本接入</p>
               </div>
             </div>
+
+            <section class="valuation-forward-card" id="valuationForwardCard" hidden aria-label="纳指100前瞻估值">
+              <div class="valuation-forward-head">
+                <strong>未来一年估值</strong>
+                <span id="valuationForwardAsOf">--</span>
+              </div>
+              <div class="valuation-forward-hero">
+                <div class="valuation-forward-primary">
+                  <span>前瞻PE</span>
+                  <strong id="valuationForwardPe">--</strong>
+                  <small>未来一年每赚1美元，当前价格约为这个倍数</small>
+                </div>
+                <div class="valuation-forward-meaning">
+                  <em id="valuationForwardStatus">--</em>
+                  <h2 id="valuationForwardHeadline">--</h2>
+                  <p id="valuationForwardSummary">--</p>
+                </div>
+              </div>
+              <div class="valuation-forward-metrics">
+                <div><span>前瞻PE</span><strong id="valuationForwardPeMetric">--</strong></div>
+                <div><span>10年平均</span><strong id="valuationForwardAverage">--</strong></div>
+                <div><span>预期盈利变化</span><strong id="valuationForwardGrowth">--</strong></div>
+              </div>
+              <div class="valuation-forward-judgment">
+                <span>当前判断</span>
+                <strong id="valuationForwardJudgment">--</strong>
+              </div>
+            </section>
 
             <section class="valuation-chart-panel">
               <div class="valuation-chart-head">
@@ -2838,6 +2869,6 @@
       </section>
     </div>
 
-          <script src="./app.js?v=20260721-market-tools1"></script>
+          <script src="./app.js?v=20260807-forward-pe1"></script>
   </body>
 </html>
