@@ -806,7 +806,7 @@ const roleLabel = (role) => {
   return "普通用户";
 };
 
-const superAdminToolPages = new Set(["valuation", "mag7", "options", "signals", "stock-events", "earnings", "watchlist"]);
+const superAdminToolPages = new Set(["mag7", "options", "signals", "stock-events", "earnings", "watchlist"]);
 
 const planLabel = (plan) => {
   if (plan === "monthly") return "月度";
@@ -5324,6 +5324,49 @@ const valuationIndexName = (symbol, fallback = "") => {
   return fallback || symbol || "指数";
 };
 
+const renderForwardValuation = (payload) => {
+  const card = document.querySelector("#valuationForwardCard");
+  const shell = document.querySelector(".valuation-shell");
+  const data = payload?.forwardValuation || {};
+  const forwardPe = parseValuationNumber(data.forwardPe);
+  const averagePe = parseValuationNumber(data.tenYearAverageForwardPe);
+  const premium = parseValuationNumber(data.premiumToTenYearAveragePct);
+  const growth = parseValuationNumber(data.impliedEarningsGrowthPct);
+  const ready = Boolean(card && Number.isFinite(forwardPe) && Number.isFinite(averagePe) && Number.isFinite(premium));
+
+  shell?.classList.toggle("has-forward-card", ready);
+  if (card) card.hidden = !ready;
+  if (!ready) return false;
+
+  const aboveAverage = premium > 0;
+  const growthSupports = Number.isFinite(growth) && growth > 0;
+  const status = aboveAverage ? "估值偏高" : "估值低于历史平均";
+  const headline = aboveAverage ? `比10年平均水平高约${Math.round(Math.abs(premium))}%` : `比10年平均水平低约${Math.round(Math.abs(premium))}%`;
+  const summary = growthSupports
+    ? `但未来一年盈利预计增长${growth.toFixed(1)}%，对当前估值仍有一定支撑。`
+    : "未来盈利预期未对当前估值形成明显支撑。";
+  const judgment = aboveAverage
+    ? growthSupports
+      ? "估值偏高，但盈利预期仍有支撑；盈利能否兑现是关键。"
+      : "估值偏高，注意盈利预期不及预期的风险。"
+    : growthSupports
+      ? "估值压力较低，盈利预期同时向好。"
+      : "估值低于历史平均，但仍要观察盈利表现。";
+
+  setText("#valuationForwardAsOf", `更新至 ${formatDisplayDate(data.asOf)}`);
+  setText("#valuationForwardPe", `${forwardPe.toFixed(2)}倍`);
+  setText("#valuationForwardStatus", status);
+  setText("#valuationForwardHeadline", headline);
+  setText("#valuationForwardSummary", summary);
+  setText("#valuationForwardPeMetric", `${forwardPe.toFixed(2)}倍`);
+  setText("#valuationForwardAverage", `约${averagePe.toFixed(1)}倍`);
+  setText("#valuationForwardGrowth", Number.isFinite(growth) ? `${growth >= 0 ? "+" : ""}${growth.toFixed(1)}%` : "--");
+  setText("#valuationForwardJudgment", judgment);
+  card.classList.toggle("is-below-average", !aboveAverage);
+  card.classList.toggle("is-growth-negative", Number.isFinite(growth) && growth < 0);
+  return true;
+};
+
 const valuationReferenceMarkers = (refs, geometry, min, max, unit) => {
   const markers = [
     ["P75", refs.p75 ?? refs.p70],
@@ -5626,6 +5669,7 @@ const renderIndexValuation = (payload) => {
   const selected = metrics[selectedKey];
   const indexName = activePayload?.index?.name || activePayload?.indexName || activePayload?.name || "Nasdaq 100";
   const shortIndexName = valuationIndexName(activeSymbol, indexName);
+  const hasForwardValuation = renderForwardValuation(activePayload);
 
   document.querySelectorAll("[data-valuation-metric]").forEach((button) => {
     const active = button.dataset.valuationMetric === selectedKey;
@@ -5647,7 +5691,10 @@ const renderIndexValuation = (payload) => {
   });
 
   setText("#valuationPageTitle", `${shortIndexName} 估值`);
-  setText("#valuationPageSubtitle", `用 PE、PB、ROE、股息率和 PEG 观察 ${shortIndexName} 当前所处的位置。`);
+  setText(
+    "#valuationPageSubtitle",
+    hasForwardValuation ? "看未来一年估值是否偏高，盈利预期能否支撑。" : `观察 ${shortIndexName} 当前所处的位置。`,
+  );
   setText("#valuationIndexLabel", indexName);
   setText("#valuationAsOf", ready ? formatDisplayDate(activePayload?.asOf || activePayload?.updatedAt || activePayload?.generatedAt) : "--");
   setText("#valuationCoverage", ready ? activePayload?.coverage || activePayload?.sample || "指数估值样本" : "等待指数估值样本接入");

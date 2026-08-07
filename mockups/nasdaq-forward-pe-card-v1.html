@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>纳指100估值卡片 v1</title>
+    <style>
+      * { box-sizing: border-box; }
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: #172033;
+        background: #f3f7fb;
+      }
+      body { margin: 0; background: #f3f7fb; }
+      .shell { display: grid; grid-template-columns: 224px minmax(0, 1fr); min-height: 100vh; }
+      .sidebar { padding: 24px 18px; border-right: 1px solid #dde6f0; background: #fff; }
+      .brand { display: flex; align-items: center; gap: 11px; margin: 0 8px 28px; font-size: 17px; font-weight: 700; }
+      .brand-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; background: #1677ff; color: #fff; font-size: 14px; }
+      .nav-title { margin: 22px 10px 8px; color: #9aa7b8; font-size: 11px; letter-spacing: .08em; }
+      .nav { display: grid; gap: 4px; }
+      .nav a { padding: 10px 12px; border-radius: 9px; color: #637188; font-size: 13px; text-decoration: none; }
+      .nav a.active { background: #eaf3ff; color: #1677ff; font-weight: 600; }
+      .topbar { display: flex; height: 62px; align-items: center; justify-content: space-between; padding: 0 30px; border-bottom: 1px solid #dde6f0; background: rgba(255, 255, 255, .94); }
+      .topbar strong { font-size: 15px; }
+      .account { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: #edf3fa; color: #65758b; font-size: 12px; }
+      .page { max-width: 1110px; margin: 0 auto; padding: 38px 30px 54px; }
+      .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; }
+      .page-head h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.02em; }
+      .page-head time { color: #8491a3; font-size: 12px; }
+      .panel { overflow: hidden; border: 1px solid #dbe5f0; border-radius: 14px; background: #fff; box-shadow: 0 12px 28px rgba(40, 68, 98, .06); }
+      .panel-head { display: flex; height: 50px; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #e7edf4; }
+      .panel-head strong { font-size: 14px; }
+      .panel-head span { color: #8491a3; font-size: 12px; }
+      .hero { display: grid; grid-template-columns: 310px minmax(0, 1fr); min-height: 210px; }
+      .primary { display: flex; flex-direction: column; justify-content: center; padding: 30px 38px; border-right: 1px solid #e7edf4; box-shadow: inset 4px 0 0 #1677ff; }
+      .primary span { color: #76859a; font-size: 13px; }
+      .primary strong { margin-top: 8px; color: #1677ff; font-size: 48px; font-weight: 700; letter-spacing: -.04em; }
+      .primary small { margin-top: 9px; color: #8a97a9; font-size: 12px; }
+      .meaning { display: flex; flex-direction: column; justify-content: center; padding: 30px 42px; }
+      .meaning em { width: max-content; border-radius: 7px; background: #fff4d7; color: #8a5b00; padding: 6px 10px; font-size: 12px; font-style: normal; }
+      .meaning h2 { margin: 13px 0 0; color: #18243a; font-size: 27px; font-weight: 680; letter-spacing: -.025em; }
+      .meaning p { margin: 10px 0 0; color: #526176; font-size: 15px; line-height: 1.65; }
+      .metrics { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 28px 28px; border: 1px solid #e3eaf2; border-radius: 12px; background: #fbfdff; }
+      .metric { min-width: 0; padding: 20px 24px; }
+      .metric + .metric { border-left: 1px solid #e5ebf2; }
+      .metric span { display: block; color: #8290a3; font-size: 12px; }
+      .metric strong { display: block; margin-top: 8px; color: #253248; font-size: 24px; font-weight: 650; }
+      .metric:last-child strong { color: #128055; }
+      .judgment { display: flex; align-items: center; gap: 14px; margin: 0 28px 28px; border-radius: 10px; background: #f4f8fc; padding: 16px 18px; }
+      .judgment span { flex: 0 0 auto; color: #76859a; font-size: 12px; }
+      .judgment strong { color: #334158; font-size: 14px; font-weight: 600; }
+      @media (max-width: 720px) {
+        .shell { display: block; }
+        .sidebar { display: none; }
+        .topbar { height: 54px; padding: 0 18px; }
+        .page { padding: 24px 14px 36px; }
+        .page-head { align-items: center; }
+        .page-head h1 { font-size: 20px; }
+        .hero { grid-template-columns: 1fr; }
+        .primary { border-right: 0; border-bottom: 1px solid #e7edf4; padding: 26px 24px; }
+        .primary strong { font-size: 44px; }
+        .meaning { padding: 26px 24px; }
+        .meaning h2 { font-size: 23px; }
+        .metrics { grid-template-columns: 1fr; margin: 0 16px 16px; }
+        .metric { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; }
+        .metric + .metric { border-top: 1px solid #e5ebf2; border-left: 0; }
+        .metric strong { margin: 0; font-size: 20px; }
+        .judgment { align-items: flex-start; flex-direction: column; gap: 6px; margin: 0 16px 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark">DB</span>懂彼猫</div>
+        <div class="nav-title">主要功能</div>
+        <nav class="nav">
+          <a href="#">首页</a>
+          <a href="#">美股热点风向标</a>
+          <a href="#">股票机会跟踪榜单</a>
+          <a href="#">股票库</a>
+          <a href="#">美股重点财经前瞻</a>
+        </nav>
+        <div class="nav-title">工具数据</div>
+        <nav class="nav">
+          <a class="active" href="#">指数估值</a>
+          <a href="#">市场与资金</a>
+        </nav>
+      </aside>
+
+      <main>
+        <header class="topbar"><strong>指数估值</strong><div class="account">用户</div></header>
+        <div class="page">
+          <div class="page-head">
+            <h1>纳指100估值</h1>
+            <time datetime="2026-07-31">更新至 2026-07-31</time>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head"><strong>未来一年估值</strong><span>QQQ · 纳指100</span></div>
+            <div class="hero">
+              <div class="primary">
+                <span>前瞻PE</span>
+                <strong>26.71倍</strong>
+                <small>未来一年每赚1美元，当前价格约26.71美元</small>
+              </div>
+              <div class="meaning">
+                <em>估值偏高</em>
+                <h2>比10年平均水平高约17%</h2>
+                <p>但未来一年盈利预计增长12.3%，对当前估值仍有一定支撑。</p>
+              </div>
+            </div>
+
+            <div class="metrics">
+              <div class="metric"><span>前瞻PE</span><strong>26.71倍</strong></div>
+              <div class="metric"><span>10年平均</span><strong>约22.8倍</strong></div>
+              <div class="metric"><span>预期盈利变化</span><strong>+12.3%</strong></div>
+            </div>
+
+            <div class="judgment">
+              <span>当前判断</span>
+              <strong>估值偏高，但并非极端高位；盈利能否兑现是关键。</strong>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

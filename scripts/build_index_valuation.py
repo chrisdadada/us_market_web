@@ -24,6 +24,16 @@ DEFAULT_QQQ_FACT_SHEET_URL = (
     "https://www.invesco.com/us-rest/contentdetail?"
     "contentId=3a48e01e98630410VgnVCM10000046f1bf0aRCRD"
 )
+DEFAULT_QQQ_CHARACTERISTICS_URL = (
+    "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46090E103"
+    "?expand=nav&idType=cusip&variationType=fundCharacteristics&productType=ETF"
+)
+NASDAQ_100_TEN_YEAR_FORWARD_PE = 22.8
+NASDAQ_100_TEN_YEAR_FORWARD_PE_AS_OF = "2026-02-04"
+NASDAQ_100_TEN_YEAR_FORWARD_PE_SOURCE = (
+    "https://www.nasdaq.com/articles/global-indexes/"
+    "biweekly-investment-insights-reading-the-markets-tea-leaves"
+)
 DEFAULT_SPY_HOLDINGS_URL = "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
 DEFAULT_SPY_FACT_SHEET_URL = "https://www.ssga.com/library-content/products/factsheets/etfs/us/factsheet-us-en-spy.pdf"
 COMMON_STOCK_CODES = {"COM", "ADR", "ADRC", "DRNY", "COMMON_STOCK"}
@@ -262,6 +272,39 @@ def fetch_qqq_holdings(url: str) -> dict[str, Any]:
         "holdings": holdings,
         "commonHoldings": common_holdings,
         "rawHoldingCount": len(raw_holdings or []),
+    }
+
+
+def fetch_qqq_characteristics(url: str = DEFAULT_QQQ_CHARACTERISTICS_URL) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        payload = json.load(response)
+    if not isinstance(payload, dict):
+        raise ValueError("QQQ characteristics response is not an object")
+    return payload
+
+
+def build_qqq_forward_valuation(snapshot: dict[str, Any]) -> dict[str, Any]:
+    forward_pe = safe_float(snapshot.get("forwardPriceToEarningsRatio"))
+    trailing_pe = safe_float(snapshot.get("priceToEarningsRatio"))
+    if forward_pe is None or forward_pe <= 0 or trailing_pe is None or trailing_pe <= 0:
+        raise ValueError("QQQ forward and trailing P/E are required")
+
+    premium_pct = (forward_pe / NASDAQ_100_TEN_YEAR_FORWARD_PE - 1) * 100
+    implied_growth_pct = (trailing_pe / forward_pe - 1) * 100
+    return {
+        "status": "above_ten_year_average" if premium_pct > 0 else "below_ten_year_average",
+        "asOf": snapshot.get("effectiveDate"),
+        "forwardPe": pct(forward_pe, 4),
+        "trailingPe": pct(trailing_pe, 4),
+        "tenYearAverageForwardPe": NASDAQ_100_TEN_YEAR_FORWARD_PE,
+        "premiumToTenYearAveragePct": pct(premium_pct, 1),
+        "impliedEarningsGrowthPct": pct(implied_growth_pct, 1),
+        "referenceAsOf": NASDAQ_100_TEN_YEAR_FORWARD_PE_AS_OF,
+        "source": {
+            "current": DEFAULT_QQQ_CHARACTERISTICS_URL,
+            "historicalReference": NASDAQ_100_TEN_YEAR_FORWARD_PE_SOURCE,
+        },
     }
 
 
@@ -1177,6 +1220,7 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "fundamentalCoverage",
     ]
     holdings_summary = {key: holdings.get(key) for key in holdings_summary_keys if key in holdings}
+    forward_valuation = payload.get("forwardValuation") or {}
     return {
         "schemaVersion": payload.get("schemaVersion"),
         "generatedAt": payload.get("generatedAt"),
@@ -1190,6 +1234,19 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "priceAsOf": payload.get("priceAsOf"),
         "coverage": payload.get("coverage"),
         "officialValuationSnapshot": payload.get("officialValuationSnapshot"),
+        "forwardValuation": {
+            key: forward_valuation.get(key)
+            for key in [
+                "status",
+                "asOf",
+                "forwardPe",
+                "trailingPe",
+                "tenYearAverageForwardPe",
+                "premiumToTenYearAveragePct",
+                "impliedEarningsGrowthPct",
+            ]
+            if key in forward_valuation
+        },
         "holdingsCoverage": holdings_summary,
         "topHoldings": payload.get("topHoldings") or [],
         "dataReadiness": {
@@ -1218,6 +1275,10 @@ def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_
         fetch_qqq_holdings,
         QQQ_OFFICIAL_FACT_SHEET_SNAPSHOT,
     )
+    try:
+        qqq_payload["forwardValuation"] = build_qqq_forward_valuation(fetch_qqq_characteristics())
+    except Exception as exc:
+        qqq_payload["audit"]["forwardValuationError"] = f"{type(exc).__name__}: {exc}"
     spy_payload = build_single_index_payload(
         market_data_root,
         "SPY",
