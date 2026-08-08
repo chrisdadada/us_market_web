@@ -82,6 +82,12 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
         self.assertIn("Production code promotion is manual only", AUTOMATED_REFRESH)
         self.assertIn("Production code promotion is manual only", OPTIONS_REFRESH)
 
+    def test_automated_data_jobs_do_not_deploy_site_code(self) -> None:
+        for script in (AUTOMATED_REFRESH, OPTIONS_REFRESH):
+            self.assertNotIn("bash scripts/deploy_dev.sh", script)
+            self.assertIn("bash scripts/deploy_dev_data.sh", script)
+            self.assertNotIn("refresh app data cache version", script)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -85,8 +85,6 @@ has_successful_log_today() {
       && grep -q -- "--- build product DB ---" "${candidate}" \
       && grep -q -- "--- release gate ---" "${candidate}" \
       && grep -q -- "OK" "${candidate}" \
-      && grep -q -- "--- build deploy package ---" "${candidate}" \
-      && grep -q -- "Dev deployed:" "${candidate}" \
       && grep -q -- "Dev data deployed with runtime tables preserved." "${candidate}" \
       && grep -q -- "=== automated refresh finished" "${candidate}"; then
       if [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]] \
@@ -347,24 +345,13 @@ if [[ "${RUN_OPTIONS_FLOW}" == "1" ]]; then
 
 fi
 
-CACHE_VERSION="$(date +%Y%m%d)-product1"
-run_root "refresh app data cache version" \
-  sed -i '' -E "s/v=[0-9]{8}-[A-Za-z0-9_-]+/v=${CACHE_VERSION}/g" app.js index.html
-
 run_root "build product DB" \
   env TRACKING_ASOF="${ASOF}" MARKET_DATA_ROOT="${DATA_ROOT}" OPTIONS_START_DATE="${OPTIONS_START_DATE:-${START_DATE}}" OPTIONS_END_DATE="${OPTIONS_END_DATE:-${ASOF}}" PYTHON_BIN="${PY}" bash scripts/update_product_data.sh
 
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v
 
-run_root "build deploy package" \
-  tar -czf ytd-gainers-site.tar.gz \
-  index.html admin.html styles.css app.js assets data/product.db server scripts admin-web/dist main-web/dist TESTING.md
-
 if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
-  run_root "deploy latest build to dev" \
-    env SKIP_PRODUCT_DB_BUILD=1 bash scripts/deploy_dev.sh
-
   run_root "deploy product DB to dev" \
     env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_dev_data.sh
 
