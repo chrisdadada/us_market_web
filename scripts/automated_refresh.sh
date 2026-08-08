@@ -189,6 +189,20 @@ run_root() {
   (cd "${ROOT}" && "$@")
 }
 
+build_db_only_package() {
+  local archive="ytd-gainers-site.tar.gz"
+  local index_html
+  COPYFILE_DISABLE=1 LC_ALL=C tar -czf "${archive}" index.html styles.css app.js data/product.db
+  LC_ALL=C tar -tzf "${archive}" | grep -qx "data/product.db"
+  if LC_ALL=C tar -tzf "${archive}" | grep -Eq '^data/.*\.json$'; then
+    echo "ERROR: ${archive} must not contain data/*.json" >&2
+    exit 1
+  fi
+  index_html="$(LC_ALL=C tar -xOf "${archive}" index.html)"
+  [[ "${index_html}" =~ styles\.css\?v=[^\"]+ ]]
+  [[ "${index_html}" =~ app\.js\?v=[^\"]+ ]]
+}
+
 run_lab "download stock daily flatfiles" \
   "${PY}" scripts/download_polygon_flatfiles.py download \
   --start "${START_DATE}" --end "${END_DATE}" \
@@ -351,6 +365,9 @@ run_root "build product DB" \
 
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v
+
+run_root "build DB-only deploy package" \
+  build_db_only_package
 
 if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   run_root "deploy product DB to dev" \
