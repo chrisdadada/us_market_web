@@ -5,6 +5,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (ROOT / "scripts" / "promote_prod.sh").read_text(encoding="utf-8")
 DATA_SCRIPT = (ROOT / "scripts" / "deploy_prod_data.sh").read_text(encoding="utf-8")
+AUTOMATED_REFRESH = (ROOT / "scripts" / "automated_refresh.sh").read_text(encoding="utf-8")
+OPTIONS_REFRESH = (ROOT / "scripts" / "options_refresh.sh").read_text(encoding="utf-8")
 
 
 class ProdCodeDeployScriptTests(unittest.TestCase):
@@ -45,6 +47,13 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
         self.assertIn("CRITICAL: rollback failed", SCRIPT)
         self.assertNotIn("restore_code || true", SCRIPT)
         self.assertIn("exit 2", SCRIPT)
+
+    def test_automated_data_jobs_do_not_deploy_site_code(self) -> None:
+        for script in (AUTOMATED_REFRESH, OPTIONS_REFRESH):
+            self.assertNotIn("bash scripts/deploy_dev.sh", script)
+            self.assertNotIn("bash scripts/promote_prod.sh", script)
+            self.assertIn("bash scripts/deploy_dev_data.sh", script)
+            self.assertNotIn("refresh app data cache version", script)
 
 
 if __name__ == "__main__":

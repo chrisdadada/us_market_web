@@ -45,9 +45,8 @@ OPTIONS_MAX_DAYS="${OPTIONS_MAX_DAYS:-1}"
 OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"
 OPTIONS_DEPLOY_AFTER_REFRESH="${OPTIONS_DEPLOY_AFTER_REFRESH:-1}"
 OPTIONS_PROMOTE_PROD_AFTER_DEPLOY="${OPTIONS_PROMOTE_PROD_AFTER_DEPLOY:-0}"
-MANUAL_PROD_APPROVAL="${REQUESTED_MANUAL_PROD_APPROVAL}"
-if [[ "${OPTIONS_PROMOTE_PROD_AFTER_DEPLOY}" == "1" && ( "${ALLOW_PROD_PROMOTE:-0}" != "1" || "${MANUAL_PROD_APPROVAL}" != "1" ) ]]; then
-  echo "Production promote blocked. Set MANUAL_PROD_APPROVAL=1 and ALLOW_PROD_PROMOTE=1 only after explicit user approval."
+if [[ "${OPTIONS_PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
+  echo "Production code promotion is manual only. Use prepare_prod_release.sh and promote_prod.sh."
   exit 2
 fi
 
@@ -122,25 +121,12 @@ run_root "build product database" \
   env TRACKING_ASOF="${OPTIONS_END_DATE}" OPTIONS_START_DATE="${OPTIONS_START_DATE}" OPTIONS_END_DATE="${OPTIONS_END_DATE}" MARKET_DATA_ROOT="${DATA_ROOT}" PYTHON_BIN="${PY}" \
   bash scripts/update_product_data.sh
 
-CACHE_VERSION="$(date +%Y%m%d)-options1"
-run_root "refresh app data cache version" \
-  sed -i '' -E "s/v=[0-9]{8}-[A-Za-z0-9_-]+/v=${CACHE_VERSION}/g" app.js index.html
-
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v
 
-run_root "build deploy package" \
-  tar -czf ytd-gainers-site.tar.gz \
-  index.html styles.css app.js data/product.db server scripts mockups TESTING.md
-
 if [[ "${OPTIONS_DEPLOY_AFTER_REFRESH}" == "1" ]]; then
-  run_root "deploy latest build to dev" \
-    env SKIP_PRODUCT_DB_BUILD=1 bash scripts/deploy_dev.sh
-
-  if [[ "${OPTIONS_PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
-    run_root "promote latest build to production" \
-      bash scripts/promote_prod.sh
-  fi
+  run_root "deploy product DB to dev" \
+    env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_dev_data.sh
 fi
 
 echo

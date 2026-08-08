@@ -60,9 +60,8 @@ OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"
 DEPLOY_AFTER_REFRESH="${DEPLOY_AFTER_REFRESH:-1}"
 DEPLOY_PROD_DATA_AFTER_REFRESH="${DEPLOY_PROD_DATA_AFTER_REFRESH:-1}"
 PROMOTE_PROD_AFTER_DEPLOY="${PROMOTE_PROD_AFTER_DEPLOY:-0}"
-MANUAL_PROD_APPROVAL="${REQUESTED_MANUAL_PROD_APPROVAL}"
-if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" && ( "${ALLOW_PROD_PROMOTE:-0}" != "1" || "${MANUAL_PROD_APPROVAL}" != "1" ) ]]; then
-  echo "Production promote blocked. Set MANUAL_PROD_APPROVAL=1 and ALLOW_PROD_PROMOTE=1 only after explicit user approval."
+if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
+  echo "Production code promotion is manual only. Use prepare_prod_release.sh and promote_prod.sh."
   exit 2
 fi
 if [[ -z "${REQUIRE_FRESH_ASOF:-}" ]]; then
@@ -87,8 +86,6 @@ has_successful_log_today() {
       && grep -q -- "--- build product DB ---" "${candidate}" \
       && grep -q -- "--- release gate ---" "${candidate}" \
       && grep -q -- "OK" "${candidate}" \
-      && grep -q -- "--- build deploy package ---" "${candidate}" \
-      && grep -q -- "Dev deployed:" "${candidate}" \
       && grep -q -- "Dev data deployed with runtime tables preserved." "${candidate}" \
       && grep -q -- "=== automated refresh finished" "${candidate}"; then
       if [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]] \
@@ -349,33 +346,17 @@ if [[ "${RUN_OPTIONS_FLOW}" == "1" ]]; then
 
 fi
 
-CACHE_VERSION="$(date +%Y%m%d)-product1"
-run_root "refresh app data cache version" \
-  sed -i '' -E "s/v=[0-9]{8}-[A-Za-z0-9_-]+/v=${CACHE_VERSION}/g" app.js index.html
-
 run_root "build product DB" \
   env TRACKING_ASOF="${ASOF}" MARKET_DATA_ROOT="${DATA_ROOT}" OPTIONS_START_DATE="${OPTIONS_START_DATE:-${START_DATE}}" OPTIONS_END_DATE="${OPTIONS_END_DATE:-${ASOF}}" PYTHON_BIN="${PY}" bash scripts/update_product_data.sh
 
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v
 
-run_root "build deploy package" \
-  tar -czf ytd-gainers-site.tar.gz \
-  index.html admin.html styles.css app.js assets data/product.db server scripts admin-web/dist main-web/dist TESTING.md
-
 if [[ "${DEPLOY_AFTER_REFRESH}" == "1" ]]; then
-  run_root "deploy latest build to dev" \
-    env SKIP_PRODUCT_DB_BUILD=1 bash scripts/deploy_dev.sh
-
   run_root "deploy product DB to dev" \
     env SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_dev_data.sh
 
-  if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" ]]; then
-    run_root "promote latest build to production" \
-      bash scripts/promote_prod.sh
-  fi
-
-  if [[ "${PROMOTE_PROD_AFTER_DEPLOY}" == "1" || "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]]; then
+  if [[ "${DEPLOY_PROD_DATA_AFTER_REFRESH}" == "1" ]]; then
     run_root "deploy product DB to production" \
       env ALLOW_VALIDATED_AUTOMATION_PROD_DATA_DEPLOY=1 SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${ROOT}/data/product.db" bash scripts/deploy_prod_data.sh
   fi

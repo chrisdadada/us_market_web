@@ -38,17 +38,18 @@ BUILD_PRODUCT_DB=1 ./scripts/deploy_dev.sh
 
 ## Automated Refresh Deploy
 
-The market data refresh now deploys automatically after product DB validation,
-release gate tests, and package creation pass:
+The market data refresh now deploys automatically after product DB validation
+and release gate tests pass:
 
 ```bash
 ./scripts/automated_refresh.sh
 ```
 
-By default it deploys the site build and rebuilt `data/product.db` to
-`https://dev.dongbimao.org`. The dev data step preserves the current content and
-Open holding runtime tables. Production data remains blocked without explicit
-approval for the current run. For a dry refresh that stops before deploy:
+By default it deploys only the rebuilt `data/product.db` to
+`https://dev.dongbimao.org`. Automated data refreshes never publish frontend or
+backend code. The dev data step preserves the current content and Open holding
+runtime tables. Production data remains blocked without explicit approval for
+the current run. For a dry refresh that stops before deploy:
 
 ```bash
 DEPLOY_AFTER_REFRESH=0 ./scripts/automated_refresh.sh
