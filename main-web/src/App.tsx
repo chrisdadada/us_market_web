@@ -2636,6 +2636,8 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
   const qqq = indices.find((item) => item.index?.symbol === "QQQ");
   const chartMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined && (item.trend?.length || 0) > 1);
   const currentMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined);
+  const currentMetricDates = [...new Set(currentMetrics.map((item) => item.asOf).filter((value): value is string => Boolean(value)))];
+  const sharedCurrentDate = currentMetricDates.length === 1 ? currentMetricDates[0] : "";
   const selectedMetric = chartMetrics.find((item) => item.key === metricKey) || chartMetrics[0];
 
   useEffect(() => {
@@ -2664,7 +2666,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
       ) : !selected ? <div className="marketToolEmpty">暂无指数估值数据</div> : (
         <>
           <section className="valuationSnapshot">
-            {forward?.forwardPe !== undefined ? <article><span>纳指前瞻 PE</span><strong>{valuationValue(forward.forwardPe, "x")}</strong><small>{formatDate(forward.asOf)}</small></article> : null}
+            {forward?.forwardPe !== undefined ? <article><span>QQQ 前瞻市盈率</span><strong>{valuationValue(forward.forwardPe, "x")}</strong><small>月末数据 · {formatDate(forward.asOf)}</small></article> : null}
             {momentum?.value !== undefined ? <article><span>短期涨跌动能</span><strong>{momentum.value.toFixed(2)}</strong><b className="toolStatus positive">{momentum.label || "--"}</b><small>近 {momentum.periodDays || 14} 个交易日 · {formatDate(momentum.asOf)}</small></article> : null}
             {vix?.value !== undefined ? <article><span>VIX 恐慌指数</span><strong>{vix.value.toFixed(2)}</strong><b className="toolStatus positive">{vix.label || "--"}</b><small>市场波动预期 · {formatDate(vix.asOf)}</small></article> : null}
           </section>
@@ -2683,8 +2685,8 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
                 <MarketLineChart item={chartItem} years={1} />
               </div> : null}
               <aside className="valuationCurrent">
-                <h2>当前估值</h2>
-                {currentMetrics.map((item) => <div key={item.key}><span>{item.label || item.key.toUpperCase()}</span><strong>{valuationValue(item.value, item.unit)}</strong><small>{formatDate(item.asOf || selected.asOf)}</small></div>)}
+                <h2>当前估值{sharedCurrentDate ? <small>{selected.index?.symbol === "QQQ" ? "月末数据" : "数据日期"} · {formatDate(sharedCurrentDate)}</small> : null}</h2>
+                {currentMetrics.map((item) => <div key={item.key}><span>{item.label || item.key.toUpperCase()}</span><strong>{valuationValue(item.value, item.unit)}</strong>{sharedCurrentDate ? null : <small>{formatDate(item.asOf || selected.asOf)}</small>}</div>)}
               </aside>
             </div>
           </section>
