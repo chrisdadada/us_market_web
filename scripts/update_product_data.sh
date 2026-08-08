@@ -22,6 +22,7 @@ echo "Updating product data with: ${PYTHON_BIN}"
 ${PYTHON_BIN} scripts/build_product_db.py
 ${PYTHON_BIN} scripts/update_macro_calendar_results.py
 ${PYTHON_BIN} scripts/check_product_coverage.py
+${PYTHON_BIN} scripts/check_macro_indicator_freshness.py
 
 if find data -maxdepth 1 -type f \( -name '*.json' -o -name '*.json.tmp' \) | grep -q .; then
   echo "ERROR: product data refresh must not write data/*.json; product data belongs in data/product.db." >&2
