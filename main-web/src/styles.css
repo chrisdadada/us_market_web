@@ -12898,36 +12898,41 @@ body.stockPreviewOpen {
 /* Crypto ETF flows inside Market & Funds. */
 .marketViewTabs {
   display: flex;
-  gap: 24px;
-  min-height: 42px;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 64px;
   margin-bottom: 14px;
+  padding: 0 28px;
+  background: var(--panel);
+  border-top: 1px solid var(--line-soft);
   border-bottom: 1px solid var(--line-soft);
 }
 
 .marketViewTabs button {
   position: relative;
+  min-width: 116px;
   border: 0;
-  padding: 0 2px 13px;
+  padding: 0 18px;
   background: transparent;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 560;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .marketViewTabs button.active {
-  color: var(--primary);
-  font-weight: 650;
+  color: var(--text);
+  font-weight: 700;
 }
 
 .marketViewTabs button.active::after {
   position: absolute;
-  right: 0;
+  right: 18px;
   bottom: -1px;
-  left: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--primary);
+  left: 18px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--blue);
   content: "";
 }
 
@@ -13348,7 +13353,19 @@ body.stockPreviewOpen {
 
 @media (max-width: 760px) {
   .marketViewTabs {
-    gap: 18px;
+    min-height: 56px;
+    padding: 0 12px;
+  }
+
+  .marketViewTabs button {
+    min-width: 104px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .marketViewTabs button.active::after {
+    right: 14px;
+    left: 14px;
   }
 
   .cryptoEtfPanelHead {
