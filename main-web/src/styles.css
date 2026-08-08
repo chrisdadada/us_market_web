@@ -1146,6 +1146,10 @@
 .valuationIndexTabs small { margin-left: 4px; font-size: 11px; }
 .valuationMetricTabs button.active { color: #1268d5; background: #edf5ff; }
 .valuationChartLayout { display: grid; grid-template-columns: minmax(0, 1fr) 190px; }
+.valuationChartLayout.currentOnly { grid-template-columns: 1fr; }
+.valuationChartLayout.currentOnly .valuationCurrent { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-left: 0; }
+.valuationChartLayout.currentOnly .valuationCurrent h2 { grid-column: 1 / -1; min-height: 46px; }
+.valuationChartLayout.currentOnly .valuationCurrent div { border-right: 1px solid #edf1f6; }
 .valuationChartStage { min-width: 0; padding: 16px 18px 12px; }
 .valuationChartTitle { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .valuationChartTitle h2,

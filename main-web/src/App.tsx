@@ -2664,7 +2664,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
       ) : !selected ? <div className="marketToolEmpty">暂无指数估值数据</div> : (
         <>
           <section className="valuationSnapshot">
-            {forward?.forwardPe !== undefined ? <article><span>纳指前瞻 PE</span><strong>{valuationValue(forward.forwardPe, "x")}</strong><b className="toolStatus neutral">较10年均值 {forward.premiumToTenYearAveragePct !== undefined ? `${forward.premiumToTenYearAveragePct > 0 ? "+" : ""}${forward.premiumToTenYearAveragePct.toFixed(1)}%` : "--"}</b><small>10年均值 {valuationValue(forward.tenYearAverageForwardPe, "x")} · {formatDate(forward.asOf)}</small></article> : null}
+            {forward?.forwardPe !== undefined ? <article><span>纳指前瞻 PE</span><strong>{valuationValue(forward.forwardPe, "x")}</strong><small>{formatDate(forward.asOf)}</small></article> : null}
             {momentum?.value !== undefined ? <article><span>短期涨跌动能</span><strong>{momentum.value.toFixed(2)}</strong><b className="toolStatus positive">{momentum.label || "--"}</b><small>近 {momentum.periodDays || 14} 个交易日 · {formatDate(momentum.asOf)}</small></article> : null}
             {vix?.value !== undefined ? <article><span>VIX 恐慌指数</span><strong>{vix.value.toFixed(2)}</strong><b className="toolStatus positive">{vix.label || "--"}</b><small>市场波动预期 · {formatDate(vix.asOf)}</small></article> : null}
           </section>
@@ -2677,14 +2677,14 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
                 {chartMetrics.map((item: IndexValuationMetric) => <button type="button" key={item.key} className={selectedMetric?.key === item.key ? "active" : ""} onClick={() => setMetricKey(item.key)}>{item.label || item.key.toUpperCase()}</button>)}
               </div>
             </div>
-            <div className="valuationChartLayout">
-              <div className="valuationChartStage">
+            <div className={`valuationChartLayout${chartItem ? "" : " currentOnly"}`}>
+              {chartItem ? <div className="valuationChartStage">
                 <div className="valuationChartTitle"><h2>{selectedMetric?.label || "估值"}走势</h2><span>当前 {valuationValue(selectedMetric?.value, selectedMetric?.unit)}</span></div>
-                {chartItem ? <MarketLineChart item={chartItem} years={1} /> : <div className="marketToolEmpty compact">暂无走势数据</div>}
-              </div>
+                <MarketLineChart item={chartItem} years={1} />
+              </div> : null}
               <aside className="valuationCurrent">
                 <h2>当前估值</h2>
-                {currentMetrics.map((item) => <div key={item.key}><span>{item.label || item.key.toUpperCase()}</span><strong>{valuationValue(item.value, item.unit)}</strong><small>{formatDate(selected.asOf)}</small></div>)}
+                {currentMetrics.map((item) => <div key={item.key}><span>{item.label || item.key.toUpperCase()}</span><strong>{valuationValue(item.value, item.unit)}</strong><small>{formatDate(item.asOf || selected.asOf)}</small></div>)}
               </aside>
             </div>
           </section>

@@ -138,6 +138,7 @@ export type MacroSeriesPayload = {
 export type IndexValuationMetric = {
   key: string;
   label?: string;
+  asOf?: string;
   value?: number | null;
   unit?: string;
   status?: string;
