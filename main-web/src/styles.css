@@ -28,22 +28,25 @@
 
 /* Main-site market tools */
 .marketToolPage {
+  background: var(--bg);
   padding: 22px 24px 40px;
-  color: #172033;
+  color: var(--text);
 }
 
 .marketToolPanelHead span {
-  color: #718096;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: var(--front-table-sub-size);
+  font-weight: 400;
 }
 
 .marketToolPanel,
 .temperatureSnapshot,
 .strengthMetrics {
   overflow: hidden;
-  border: 1px solid #dfe7f1;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--front-card-border);
+  border-radius: var(--front-card-radius);
+  background: var(--panel);
+  box-shadow: var(--front-card-shadow);
 }
 
 .temperatureSnapshot {
@@ -63,15 +66,16 @@
 .temperatureFreshness > span,
 .strengthMetrics span {
   display: block;
-  color: #718096;
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--muted);
+  font-size: var(--front-table-head-size);
+  font-weight: var(--front-table-head-weight);
 }
 
 .temperatureScore > strong {
   display: inline-block;
   margin: 8px 10px 6px 0;
-  font-size: 30px;
+  font-size: 18px;
+  font-weight: var(--front-table-value-weight);
   line-height: 1;
 }
 
@@ -84,6 +88,7 @@
   padding: 0 8px;
   border-radius: 5px;
   font-size: 12px;
+  font-weight: var(--front-table-value-weight);
 }
 
 .temperatureScore > b.positive,
@@ -133,11 +138,11 @@
 .temperaturePressureList i.positive { background: #0b9968; }
 .temperaturePressureList i.neutral { background: #e8a83b; }
 .temperaturePressureList i.negative { background: #d33d52; }
-.temperaturePressureList strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.temperaturePressureList em { font-size: 13px; font-style: normal; font-weight: 600; }
+.temperaturePressureList strong { overflow: hidden; font-size: var(--front-table-body-size); font-weight: var(--front-table-body-weight); text-overflow: ellipsis; white-space: nowrap; }
+.temperaturePressureList em { font-size: var(--front-table-body-size); font-style: normal; font-weight: var(--front-table-value-weight); }
 .temperaturePressureList small { grid-column: 2 / -1; color: #8290a4; font-size: 11px; }
 
-.temperatureFreshness strong { display: block; margin-top: 12px; font-size: 16px; }
+.temperatureFreshness strong { display: block; margin-top: 12px; font-size: 14px; font-weight: var(--front-table-value-weight); }
 .temperatureFreshness small { display: block; margin-top: 8px; color: #8290a4; font-size: 12px; }
 .temperatureChartPanel { margin-bottom: 10px; }
 
@@ -146,13 +151,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 52px;
-  padding: 9px 16px;
+  min-height: 50px;
+  padding: 8px 16px;
   border-bottom: 1px solid #e6edf5;
 }
 
 .marketToolPanelHead > div:first-child { display: flex; align-items: baseline; gap: 10px; }
-.marketToolPanelHead h2 { margin: 0; font-size: 16px; }
+.marketToolPanelHead h2 { margin: 0; font-size: 13px; font-weight: 620; }
 .marketToolTabs,
 .marketToolRange { display: flex; align-items: center; gap: 4px; }
 .marketToolTabs button,
@@ -164,6 +169,8 @@
   background: transparent;
   color: #526176;
   cursor: pointer;
+  font-size: var(--front-table-head-size);
+  font-weight: var(--front-table-head-weight);
 }
 .marketToolTabs button.active,
 .marketToolRange button.active { color: #1268d5; border-color: #bcd7fb; background: #edf5ff; }
@@ -189,8 +196,8 @@
 
 .temperatureIndicatorNav button.active { border-left-color: #1677ff; background: #fff; }
 .temperatureIndicatorNav button:hover { background: #f1f6fd; }
-.temperatureIndicatorNav span { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.temperatureIndicatorNav strong { font-size: 12px; }
+.temperatureIndicatorNav span { overflow: hidden; font-size: var(--front-table-head-size); font-weight: var(--front-table-head-weight); text-overflow: ellipsis; white-space: nowrap; }
+.temperatureIndicatorNav strong { font-size: var(--front-table-body-size); font-weight: var(--front-table-value-weight); }
 .temperatureIndicatorNav small { grid-column: 1 / -1; color: #8290a4; font-size: 10.5px; }
 .temperatureChartStage { min-width: 0; padding: 14px 16px 12px; }
 .marketLineChart svg { display: block; width: 100%; height: 308px; touch-action: none; cursor: crosshair; }
@@ -208,16 +215,18 @@
 .marketChartTooltip text:last-child { font-size: 12px; font-weight: 600; }
 .marketChartStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #edf1f6; }
 .marketChartStats span { padding: 9px 12px 0; color: #8290a4; font-size: 11px; }
-.marketChartStats strong { display: block; margin-top: 4px; color: #172033; font-size: 12px; }
+.marketChartStats strong { display: block; margin-top: 4px; color: #172033; font-size: var(--front-table-head-size); font-weight: var(--front-table-value-weight); }
 
 .marketToolTable { overflow: auto; }
-.marketToolTable table { width: 100%; min-width: 880px; border-collapse: collapse; }
+.marketToolTable table { width: 100%; min-width: 880px; border-collapse: collapse; table-layout: fixed; }
 .marketToolTable th,
-.marketToolTable td { padding: 11px 16px; border-bottom: 1px solid #edf1f6; text-align: left; font-size: 12.5px; vertical-align: middle; }
-.marketToolTable th { color: #718096; background: #f7f9fc; font-size: 12px; font-weight: 600; }
+.marketToolTable td { border-bottom: 1px solid var(--line-soft); padding: 8px 12px; color: var(--text); text-align: left; font-size: var(--front-table-body-size); font-weight: var(--front-table-body-weight); vertical-align: middle; }
+.marketToolTable th { height: 36px; color: #6d7b91; background: var(--panel-soft); font-size: var(--front-table-head-size); font-weight: var(--front-table-head-weight); }
+.marketToolTable td { height: 50px; }
 .marketToolTable td strong,
 .marketToolTable td small { display: block; }
-.marketToolTable td small { max-width: 240px; margin-top: 3px; overflow: hidden; color: #8290a4; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.marketToolTable td strong { font-size: var(--front-table-body-size); font-weight: var(--front-table-body-weight); }
+.marketToolTable td small { max-width: 240px; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: var(--front-table-sub-size); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
 .marketToolTable tbody tr:last-child td { border-bottom: 0; }
 .strengthTable tbody tr { cursor: pointer; }
 .strengthTable tbody tr:hover { background: #f6f9fd; }
@@ -229,14 +238,14 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 10px;
 }
-.strengthMetrics article { min-width: 0; min-height: 82px; padding: 14px 16px; }
+.strengthMetrics article { min-width: 0; min-height: 76px; padding: 13px 16px; }
 .strengthMetrics article + article { border-left: 1px solid #e7edf4; }
-.strengthMetrics strong { display: block; margin-top: 8px; overflow: hidden; font-size: 19px; text-overflow: ellipsis; white-space: nowrap; }
+.strengthMetrics strong { display: block; margin-top: 8px; overflow: hidden; font-size: 16px; font-weight: var(--front-table-value-weight); text-overflow: ellipsis; white-space: nowrap; }
 .strengthTopGrid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; margin-bottom: 10px; }
 .sectorStrengthBars { padding: 8px 16px 14px; }
 .sectorStrengthBars > div { display: grid; grid-template-columns: 105px 1fr 58px; align-items: center; gap: 10px; min-height: 34px; }
 .sectorStrengthBars strong,
-.sectorStrengthBars em { overflow: hidden; font-size: 12px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.sectorStrengthBars em { overflow: hidden; font-size: var(--front-table-body-size); font-style: normal; font-weight: var(--front-table-body-weight); text-overflow: ellipsis; white-space: nowrap; }
 .sectorStrengthBars em { text-align: right; }
 .sectorStrengthBars span { position: relative; height: 9px; border-radius: 2px; background: linear-gradient(90deg, #f8e8eb 0 49.7%, #bdc9d8 49.7% 50.3%, #e4f4ee 50.3% 100%); overflow: hidden; }
 .sectorStrengthBars i { position: absolute; top: 0; display: block; height: 100%; }
@@ -247,6 +256,7 @@
 .strengthFocusList button:last-child { border-bottom: 0; }
 .strengthFocusList button:hover { background: #f6f9fd; }
 .strengthFocusList span { color: #526176; }
+.strengthFocusList strong { font-size: var(--front-table-body-size); font-weight: var(--front-table-value-weight); }
 .strengthListHead { align-items: center; }
 .strengthFilters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .strengthFilters label { display: grid; gap: 5px; min-width: 0; }
@@ -262,7 +272,7 @@
 .strengthPagination > div { display: flex; align-items: center; gap: 10px; }
 .strengthPagination button { width: 32px; height: 32px; border: 1px solid #d7e0ec; border-radius: 5px; background: #fff; color: #526176; font-size: 20px; line-height: 1; cursor: pointer; }
 .strengthPagination button:disabled { opacity: .4; cursor: default; }
-.strengthPagination strong { min-width: 54px; color: #526176; text-align: center; }
+.strengthPagination strong { min-width: 54px; color: #526176; font-weight: var(--front-table-body-weight); text-align: center; }
 
 .marketToolLoading,
 .marketToolError,
@@ -283,35 +293,20 @@
   .strengthFilters { justify-content: flex-start; }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 720px) {
   .strengthMetrics { grid-template-columns: 1fr 1fr; }
   .strengthListHead { position: sticky; top: 58px; z-index: 8; align-items: stretch; flex-direction: column; gap: 10px; padding: 10px 12px; background: #fff; }
   .strengthListHead .marketToolTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; overflow: visible; }
   .strengthListHead .marketToolTabs button { min-width: 0; padding: 0 5px; font-size: 12px; white-space: nowrap; }
   .strengthListHead .marketToolTabs button small { margin-left: 3px; font-size: 10px; }
-  .strengthDesktopFilters,
-  .strengthTable { display: none; }
+  .strengthDesktopFilters { display: none; }
+  .strengthTable { display: block; }
   .strengthMobileControls { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 8px; width: 100%; }
   .strengthMobileControls input,
   .strengthMobileControls button { min-width: 0; height: 36px; border: 1px solid #d7e0ec; border-radius: 6px; background: #fff; color: #172033; padding: 0 10px; font-size: 12px; }
   .strengthMobileControls button { color: #1268d5; border-color: #bcd7fb; background: #edf5ff; cursor: pointer; }
   .strengthMobileControls b { display: inline-grid; min-width: 17px; height: 17px; margin-left: 5px; place-items: center; border-radius: 9px; background: #1677ff; color: #fff; font-size: 10px; }
-  .strengthMobileList { display: block; }
-  .strengthMobileRow { display: grid; grid-template-columns: 40px minmax(0, 1fr) 58px 58px; align-items: center; gap: 8px; width: 100%; min-height: 76px; border: 0; border-bottom: 1px solid #edf1f6; background: #fff; padding: 9px 12px; color: #172033; text-align: left; cursor: pointer; }
-  .strengthMobileRow:last-child { border-bottom: 0; }
-  .strengthMobileRow:active { background: #f4f8fd; }
-  .strengthMobileScore { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 6px; background: #edf5ff; color: #1268d5; font-size: 14px; }
-  .strengthMobileIdentity { min-width: 0; }
-  .strengthMobileIdentity > strong,
-  .strengthMobileIdentity > small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .strengthMobileIdentity > strong { font-size: 13px; }
-  .strengthMobileIdentity > small { margin-top: 3px; color: #8290a4; font-size: 11px; }
-  .strengthMobileIdentity .toolStatus { min-height: 19px; margin-top: 5px; padding: 0 6px; font-size: 10px; }
-  .strengthMobileDatum { min-width: 0; text-align: right; }
-  .strengthMobileDatum small,
-  .strengthMobileDatum strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .strengthMobileDatum small { color: #8290a4; font-size: 10px; }
-  .strengthMobileDatum strong { margin-top: 5px; font-size: 11px; }
+  .strengthMobileList { display: none; }
   .strengthPagination { min-height: 46px; padding: 7px 12px; }
   .strengthPagination > span { font-size: 11px; }
   .strengthPagination > div { gap: 6px; }
