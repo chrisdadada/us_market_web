@@ -32,26 +32,6 @@
   color: #172033;
 }
 
-.marketToolHeading {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
-  margin-bottom: 14px;
-}
-
-.marketToolHeading > div {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.marketToolHeading h1 {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.3;
-}
-
-.marketToolHeading span,
 .marketToolPanelHead span {
   color: #718096;
   font-size: 13px;
@@ -353,7 +333,6 @@
 
 @media (max-width: 720px) {
   .marketToolPage { padding: 16px 12px 28px; }
-  .marketToolHeading h1 { font-size: 20px; }
   .temperatureSnapshot { grid-template-columns: 1fr; }
   .temperatureSnapshot > * + * { border-top: 1px solid #e7edf4; border-left: 0; }
   .temperaturePressureList { grid-template-columns: 1fr; }

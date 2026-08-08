@@ -2159,7 +2159,6 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
-      <header className="marketToolHeading"><div><h1>市场温度计</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载市场数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>市场数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无市场温度数据</div> : (
@@ -2328,7 +2327,6 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
-      <header className="marketToolHeading"><div><h1>全市场强弱</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载强弱数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>强弱数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无全市场强弱数据</div> : (
