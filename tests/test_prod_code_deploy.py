@@ -27,6 +27,10 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
         self.assertNotIn("systemctl restart ytd-gainers-auth", SCRIPT)
         self.assertNotIn('rsync -a --delete "$source_root/server/', SCRIPT)
 
+    def test_data_deploys_do_not_restart_auth_services(self) -> None:
+        self.assertNotIn("systemctl restart ytd-gainers-auth", DATA_SCRIPT)
+        self.assertNotIn("systemctl restart ytd-gainers-auth-dev", (ROOT / "scripts" / "deploy_dev_data.sh").read_text(encoding="utf-8"))
+
     def test_uses_shared_lock_and_atomic_web_exchange(self) -> None:
         lock = "dongbimao-prod-deploy.lock"
         self.assertIn(lock, SCRIPT)

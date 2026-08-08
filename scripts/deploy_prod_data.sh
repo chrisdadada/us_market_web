@@ -57,7 +57,6 @@ mv "$next" "$prod"
 restore_prod() {
   if [ -f "$backup" ]; then
     cp "$backup" "$prod"
-    systemctl restart ytd-gainers-auth || true
   fi
 }
 if [ -f "$backup" ] && ! python3 "$preserver" verify --before "$backup" --after "$prod"; then
@@ -65,9 +64,10 @@ if [ -f "$backup" ] && ! python3 "$preserver" verify --before "$backup" --after 
   echo "ERROR: protected production data changed; restored previous product DB" >&2
   exit 1
 fi
-if ! systemctl restart ytd-gainers-auth || ! systemctl is-active ytd-gainers-auth >/dev/null; then
+if ! systemctl is-active ytd-gainers-auth >/dev/null \
+  || ! curl --fail --silent --show-error --max-time 15 https://www.dongbimao.org/api/product/health >/dev/null; then
   restore_prod
-  echo "ERROR: production service failed after data deploy; restored previous product DB" >&2
+  echo "ERROR: production product API failed after data deploy; restored previous product DB" >&2
   exit 1
 fi
 '

@@ -128,8 +128,8 @@ with sqlite3.connect(next_db) as conn:
 PY
 fi
 mv "$next" "$dev"
-systemctl restart ytd-gainers-auth-dev
 systemctl is-active ytd-gainers-auth-dev >/dev/null
+curl --fail --silent --show-error --max-time 15 https://dev.dongbimao.org/api/product/health >/dev/null
 python3 - <<'"'"'PY'"'"'
 import sqlite3
 
