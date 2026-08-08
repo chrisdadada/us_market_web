@@ -45,6 +45,7 @@ DEFAULT_SPY_CHARACTERISTICS_URL = (
 COMMON_STOCK_CODES = {"COM", "ADR", "ADRC", "DRNY", "COMMON_STOCK"}
 XLSX_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 METRIC_DEFINITIONS = [
+    ("forwardPe", "前瞻市盈率", "x"),
     ("pe", "市盈率", "x"),
     ("pb", "市净率", "x"),
     ("roe", "ROE", "%"),
@@ -55,6 +56,18 @@ OFFICIAL_HISTORY_SOURCES = {
     "Invesco QQQ fund characteristics",
     "State Street SPY fund and index characteristics",
 }
+OFFICIAL_HISTORY_SEEDS = {
+    "SPY": {
+        "forwardPe": [{"date": "2026-06-30", "value": 22.50}],
+        "pb": [{"date": "2026-06-30", "value": 5.49}],
+        "dividendYield": [{"date": "2026-06-30", "value": 1.12}],
+    },
+}
+OFFICIAL_HISTORY_SEED_SOURCE = (
+    "https://www.ssga.com/library-content/products/factsheets/etfs/us/"
+    "factsheet-us-en-spy.pdf"
+)
+OFFICIAL_HISTORY_SEED_SHA256 = "920347cf84e218ebb3fc1a962de24a0f2deb694e94b7415711ac5b7531ce9d58"
 MAX_OFFICIAL_HISTORY_POINTS = 1300
 
 REQUIRED_DATASETS = [
@@ -276,6 +289,7 @@ def qqq_official_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
         "sourceUrl": DEFAULT_QQQ_CHARACTERISTICS_URL,
         "methodNote": "Invesco 官方基金特征值。PE 与 PB 为加权调和平均，ROE 为加权平均。",
         "metrics": {
+            "forwardPe": safe_float(snapshot.get("forwardPriceToEarningsRatio")),
             "pe": safe_float(snapshot.get("priceToEarningsRatio")),
             "pb": safe_float(snapshot.get("priceToBookRatio")),
             "roe": safe_float(snapshot.get("returnOnEquity")),
@@ -337,6 +351,7 @@ def fetch_spy_characteristics(url: str = DEFAULT_SPY_CHARACTERISTICS_URL) -> dic
         "sourceUrl": url,
         "methodNote": "State Street 官方基金与指数特征值。",
         "metrics": {
+            "forwardPe": number(index.get("Price/Earnings Ratio FY1")),
             "pe": number(index.get("Price/Earnings")),
             "pb": number(fund.get("Price/Book Ratio")),
             "dividendYield": number(yields.get("Index Dividend Yield")),
@@ -1117,6 +1132,14 @@ def merge_official_metric_history(current: dict[str, Any], previous: dict[str, A
             previous_source = official_metric_source(previous_metric)
             source = current_source or previous_source
             points: dict[str, dict[str, Any]] = {}
+            if source:
+                for item in (OFFICIAL_HISTORY_SEEDS.get(symbol) or {}).get(metric.get("key")) or []:
+                    point = metric_history_point(item)
+                    if point:
+                        points[point["date"]] = point
+                if points:
+                    metric["historySeedSourceUrl"] = OFFICIAL_HISTORY_SEED_SOURCE
+                    metric["historySeedSourceSha256"] = OFFICIAL_HISTORY_SEED_SHA256
             if source and previous_source == source:
                 for item in previous_metric.get("trend") or []:
                     point = metric_history_point(item)
@@ -1246,14 +1269,15 @@ def build_single_index_payload(
 
     polygon_estimates = holdings_snapshot.get("polygonValuationEstimates") if holdings_snapshot else {}
     pe_waiting = official_metric_or_waiting("pe", "市盈率", "x", official_snapshot)
+    forward_pe_waiting = official_metric_or_waiting("forwardPe", "前瞻市盈率", "x", official_snapshot)
     pb_waiting = official_metric_or_waiting("pb", "市净率", "x", official_snapshot)
     roe_waiting = official_metric_or_waiting("roe", "ROE", "%", official_snapshot)
     peg_waiting = waiting_metric("peg", "PEG", "x")
     peg_waiting["coverage"] = {"forwardGrowthEstimates": "not_found"}
     peg_waiting["method"] = "需要统一周期的 forward EPS growth。"
     dividend_waiting = waiting_metric("dividendYield", "股息率", "%")
-    metrics = [pe_waiting, pb_waiting, roe_waiting, dividend_waiting, peg_waiting]
-    metrics[3] = official_metric_or_waiting("dividendYield", "股息率", "%", official_snapshot)
+    metrics = [forward_pe_waiting, pe_waiting, pb_waiting, roe_waiting, dividend_waiting, peg_waiting]
+    metrics[4] = official_metric_or_waiting("dividendYield", "股息率", "%", official_snapshot)
 
     partial_ready = bool(holdings_snapshot)
     computed_metrics = [metric["key"] for metric in metrics if metric.get("status") in {"computed", "estimated"}]
@@ -1438,6 +1462,12 @@ def build_payload(
         fetch_spy_holdings,
         spy_snapshot,
     )
+    spy_forward_pe = safe_float((spy_snapshot.get("metrics") or {}).get("forwardPe"))
+    if spy_forward_pe is not None:
+        spy_payload["forwardValuation"] = {
+            "asOf": spy_snapshot.get("asOf"),
+            "forwardPe": spy_forward_pe,
+        }
     qqq_frontend = frontend_index_payload(qqq_payload)
     spy_frontend = frontend_index_payload(spy_payload)
     payload = {

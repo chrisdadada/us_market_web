@@ -2618,6 +2618,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
   const [payload, setPayload] = useState<IndexValuationPayload | null>(null);
   const [symbol, setSymbol] = useState("QQQ");
   const [metricKey, setMetricKey] = useState("pe");
+  const [years, setYears] = useState<1 | 3 | 5>(1);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [reload, setReload] = useState(0);
 
@@ -2633,17 +2634,31 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
 
   const indices = payload?.indices || [];
   const selected = indices.find((item) => item.index?.symbol === symbol) || indices[0];
-  const qqq = indices.find((item) => item.index?.symbol === "QQQ");
-  const chartMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined && (item.trend?.length || 0) > 1);
-  const currentMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined);
-  const currentMetricDates = [...new Set(currentMetrics.map((item) => item.asOf).filter((value): value is string => Boolean(value)))];
-  const sharedCurrentDate = currentMetricDates.length === 1 ? currentMetricDates[0] : "";
-  const selectedMetric = chartMetrics.find((item) => item.key === metricKey) || chartMetrics[0];
+  const currentMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined && item.key !== "peg");
+  const selectedMetric = currentMetrics.find((item) => item.key === metricKey) || currentMetrics[0];
+  const forwardMetric = currentMetrics.find((item) => item.key === "forwardPe");
+  const peMetric = currentMetrics.find((item) => item.key === "pe");
+  const pbMetric = currentMetrics.find((item) => item.key === "pb");
+  const roeMetric = currentMetrics.find((item) => item.key === "roe");
+  const dividendMetric = currentMetrics.find((item) => item.key === "dividendYield");
+  const forward = selected?.forwardValuation;
+  const premium = forward?.premiumToTenYearAveragePct;
+  const overviewStats = selected?.index?.symbol === "QQQ" ? [
+    { label: "十年前瞻 PE 均值", value: valuationValue(forward?.tenYearAverageForwardPe, "x") },
+    { label: "隐含盈利增长", value: valuationValue(forward?.impliedEarningsGrowthPct, "%") },
+    { label: "市净率", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
+    { label: "ROE", value: valuationValue(roeMetric?.value, roeMetric?.unit) }
+  ] : [
+    { label: "市盈率", value: valuationValue(peMetric?.value, peMetric?.unit) },
+    { label: "市净率", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
+    { label: "股息率", value: valuationValue(dividendMetric?.value, dividendMetric?.unit) },
+    { label: "数据日期", value: formatDate(forwardMetric?.asOf || selected?.asOf) }
+  ];
 
   useEffect(() => {
-    if (selectedMetric || !chartMetrics.length) return;
-    setMetricKey(chartMetrics[0].key);
-  }, [chartMetrics, selectedMetric]);
+    if (selectedMetric || !currentMetrics.length) return;
+    setMetricKey(currentMetrics[0].key);
+  }, [currentMetrics, selectedMetric]);
 
   const chartItem: MacroSeriesIndicator | null = selectedMetric ? {
     key: `valuation-${selected?.index?.symbol || "index"}-${selectedMetric.key}`,
@@ -2654,9 +2669,10 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
     asOf: selected?.asOf,
     points: selectedMetric.trend
   } : null;
-  const forward = qqq?.forwardValuation;
-  const momentum = qqq?.marketIndicators?.shortTermMomentum;
-  const vix = qqq?.marketIndicators?.vix;
+  const historyReady = (selectedMetric?.trend?.length || 0) > 1;
+  const overviewValue = forward?.forwardPe ?? forwardMetric?.value;
+  const overviewDate = forward?.asOf || forwardMetric?.asOf;
+  const overviewStatus = premium === undefined ? "当前估值" : premium > 0 ? "高于十年均值" : "低于十年均值";
 
   return (
     <div className="marketToolPage indexValuationPage" data-testid="index-valuation-page">
@@ -2664,33 +2680,29 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载估值数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>估值数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !selected ? <div className="marketToolEmpty">暂无指数估值数据</div> : (
-        <>
-          <section className="valuationSnapshot">
-            {forward?.forwardPe !== undefined ? <article><span>QQQ 前瞻市盈率</span><strong>{valuationValue(forward.forwardPe, "x")}</strong><small>月末数据 · {formatDate(forward.asOf)}</small></article> : null}
-            {momentum?.value !== undefined ? <article><span>短期涨跌动能</span><strong>{momentum.value.toFixed(2)}</strong><b className="toolStatus positive">{momentum.label || "--"}</b><small>近 {momentum.periodDays || 14} 个交易日 · {formatDate(momentum.asOf)}</small></article> : null}
-            {vix?.value !== undefined ? <article><span>VIX 恐慌指数</span><strong>{vix.value.toFixed(2)}</strong><b className="toolStatus positive">{vix.label || "--"}</b><small>市场波动预期 · {formatDate(vix.asOf)}</small></article> : null}
-          </section>
-          <section className="marketToolPanel valuationPanel">
-            <div className="valuationToolbar">
-              <div className="valuationIndexTabs" role="tablist" aria-label="选择指数">
-                {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => setSymbol(item.index?.symbol || "QQQ")}>{item.index?.symbol} <small>{item.index?.symbol === "QQQ" ? "纳指 100" : item.index?.symbol === "SPY" ? "标普 500" : item.index?.name}</small></button>)}
-              </div>
-              <div className="valuationMetricTabs" role="tablist" aria-label="选择估值指标">
-                {chartMetrics.map((item: IndexValuationMetric) => <button type="button" key={item.key} className={selectedMetric?.key === item.key ? "active" : ""} onClick={() => setMetricKey(item.key)}>{item.label || item.key.toUpperCase()}</button>)}
-              </div>
+        <section className="marketToolPanel valuationPanel">
+          <div className="valuationPanelHead">
+            <div className="valuationIndexTabs" role="tablist" aria-label="选择指数">
+              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey(item.index?.symbol === "SPY" ? "forwardPe" : "pe"); setYears(1); }}>{item.index?.symbol} <small>{item.index?.symbol === "QQQ" ? "纳指 100" : item.index?.symbol === "SPY" ? "标普 500" : item.index?.name}</small></button>)}
             </div>
-            <div className={`valuationChartLayout${chartItem ? "" : " currentOnly"}`}>
-              {chartItem ? <div className="valuationChartStage">
-                <div className="valuationChartTitle"><h2>{selectedMetric?.label || "估值"}走势</h2><span>当前 {valuationValue(selectedMetric?.value, selectedMetric?.unit)}</span></div>
-                <MarketLineChart item={chartItem} years={1} />
-              </div> : null}
-              <aside className="valuationCurrent">
-                <h2>当前估值{sharedCurrentDate ? <small>{selected.index?.symbol === "QQQ" ? "月末数据" : "数据日期"} · {formatDate(sharedCurrentDate)}</small> : null}</h2>
-                {currentMetrics.map((item) => <div key={item.key}><span>{item.label || item.key.toUpperCase()}</span><strong>{valuationValue(item.value, item.unit)}</strong>{sharedCurrentDate ? null : <small>{formatDate(item.asOf || selected.asOf)}</small>}</div>)}
-              </aside>
-            </div>
-          </section>
-        </>
+          </div>
+          <div className="valuationOverview">
+            <article className="valuationLead">
+              <span>{overviewStatus}</span>
+              <div><strong>{valuationValue(overviewValue, "x")}</strong>{premium !== undefined ? <b>{premium > 0 ? "高" : "低"} {Math.abs(premium).toFixed(1)}%</b> : null}</div>
+              <small>前瞻市盈率 · {formatDate(overviewDate)}</small>
+            </article>
+            <div className="valuationOverviewStats">{overviewStats.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong></article>)}</div>
+          </div>
+          <div className="valuationMetricTabs" role="tablist" aria-label="选择估值指标">
+            {currentMetrics.map((item: IndexValuationMetric) => <button type="button" key={item.key} className={selectedMetric?.key === item.key ? "active" : ""} onClick={() => setMetricKey(item.key)}>{item.label || item.key.toUpperCase()}走势</button>)}
+          </div>
+          <div className="valuationChartStage">
+            <div className="valuationChartTitle"><h2>{selectedMetric?.label || "估值"}走势</h2><span>当前 {valuationValue(selectedMetric?.value, selectedMetric?.unit)} · {formatDate(selectedMetric?.asOf)}</span></div>
+            {historyReady && chartItem ? <MarketLineChart item={chartItem} years={years} /> : <div className="valuationHistoryPending"><i /><strong>{valuationValue(selectedMetric?.value, selectedMetric?.unit)}</strong><small>{formatDate(selectedMetric?.asOf)}</small><span>下一期官方数据更新后开始连接历史曲线</span></div>}
+            <div className="valuationRange">{([1, 3, 5] as const).map((range) => <button type="button" key={range} disabled={!historyReady} className={years === range ? "active" : ""} onClick={() => setYears(range)}>近 {range} 年</button>)}</div>
+          </div>
+        </section>
       )}
     </div>
   );

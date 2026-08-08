@@ -154,6 +154,7 @@ export type IndexValuationIndex = {
     trailingPe?: number;
     tenYearAverageForwardPe?: number;
     premiumToTenYearAveragePct?: number;
+    impliedEarningsGrowthPct?: number;
   };
   marketIndicators?: {
     shortTermMomentum?: { asOf?: string; label?: string; value?: number; periodDays?: number };

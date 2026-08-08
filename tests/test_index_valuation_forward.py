@@ -39,12 +39,14 @@ class ForwardValuationTest(unittest.TestCase):
         result = qqq_official_snapshot(
             {
                 "effectiveDate": "2026-07-31",
+                "forwardPriceToEarningsRatio": 26.707899,
                 "priceToEarningsRatio": 29.997909,
                 "priceToBookRatio": 9.340639,
                 "returnOnEquity": 34.78700256347656,
             }
         )
         self.assertEqual(result["asOf"], "2026-07-31")
+        self.assertAlmostEqual(result["metrics"]["forwardPe"], 26.707899)
         self.assertAlmostEqual(result["metrics"]["pe"], 29.997909)
         self.assertAlmostEqual(result["metrics"]["pb"], 9.340639)
         self.assertAlmostEqual(result["metrics"]["roe"], 34.78700256347656)
@@ -165,6 +167,27 @@ class ForwardValuationTest(unittest.TestCase):
             metric["trend"],
             [{"date": "2026-08-05", "value": 25.60}, {"date": "2026-08-06", "value": 25.73}],
         )
+
+    def test_seeds_direct_state_street_fact_sheet_history(self):
+        current = {
+            "indices": [{
+                "index": {"symbol": "SPY"},
+                "metrics": [{
+                    "key": "forwardPe",
+                    "value": 21.58,
+                    "asOf": "2026-08-06",
+                    "coverage": {"sourceName": "State Street SPY fund and index characteristics"},
+                    "trend": [],
+                }],
+            }],
+        }
+        result = merge_official_metric_history(current, None)
+        metric = result["indices"][0]["metrics"][0]
+        self.assertEqual(
+            metric["trend"],
+            [{"date": "2026-06-30", "value": 22.50}, {"date": "2026-08-06", "value": 21.58}],
+        )
+        self.assertTrue(metric["historySeedSourceUrl"].endswith("factsheet-us-en-spy.pdf"))
 
 
 if __name__ == "__main__":
