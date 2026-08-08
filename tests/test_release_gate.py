@@ -851,7 +851,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 (user["id"], "2026-07-08T23:45:00+00:00"),
             )
 
-        status, payload = admin.get("/api/admin/metrics")
+        status, payload = admin.get("/api/admin/metrics?retentionRange=all")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["retention"][0]["cohortDay"], "2026-07-09")
         self.assertEqual(payload["retention"][0]["registered"], 1)
