@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 EXTERNAL = Path("/Volumes/Extreme SSD/market-data-lab/data")
 FRED_DIR = EXTERNAL / "raw" / "fred"
+DXY_PARQUET = Path(os.environ.get("DXY_PARQUET", EXTERNAL / "raw" / "dxy" / "DXY.parquet"))
 REPORTS = EXTERNAL / "reports"
 DAILY_DIR = EXTERNAL / "processed" / "polygon" / "stocks_split_adjusted" / "1d"
 EVENT_SIGNALS_PATH = EXTERNAL / "features" / "polygon" / "monetizable_signals" / "event_signals.parquet"
@@ -391,7 +392,7 @@ def build_events_calendar() -> dict[str, Any]:
 
 
 def read_fred_series(series_id: str, *, percent_yoy: bool = False) -> dict[str, Any] | None:
-    path = FRED_DIR / f"{series_id}.parquet"
+    path = DXY_PARQUET if series_id == "DXY" else FRED_DIR / f"{series_id}.parquet"
     if not path.exists():
         return None
     try:
@@ -481,12 +482,12 @@ def risk_for_indicator(series_id: str, value: float | None, change: float | None
         if value >= 4.5:
             return "neutral", "中", 1, "长期利率仍在高位，需要观察估值压力。"
         return "positive", "低", 0, "长期利率压力相对温和。"
-    if series_id == "DTWEXBGS":
-        if value >= 120 or change >= 0.7:
-            return "watch", "高", 2, "美元偏强，海外收入和大宗商品相关资产需要观察。"
-        if value >= 116:
-            return "neutral", "中", 1, "美元处在偏强区间，风险偏好需要观察。"
-        return "positive", "低", 0, "美元压力相对温和。"
+    if series_id == "DXY":
+        if value >= 105 or change >= 0.7:
+            return "watch", "高", 2, "DXY 偏强，海外收入和大宗商品相关资产需要观察。"
+        if value >= 100:
+            return "neutral", "中", 1, "DXY 处在偏强区间，风险偏好需要观察。"
+        return "positive", "低", 0, "DXY 压力相对温和。"
     if series_id in {"DCOILWTICO", "DCOILBRENTEU"}:
         if value >= 105 or change >= 3:
             return "watch", "高", 2, "油价偏高，通胀和成本压力可能回升。"
@@ -517,7 +518,7 @@ def build_market_temperature() -> dict[str, Any]:
         ("T10Y2Y", "10Y-2Y 利差", "利差", "%", False, "经济预期"),
         ("FEDFUNDS", "联邦基金利率", "政策利率", "%", False, "政策利率"),
         ("CPIAUCSL", "CPI 同比", "通胀", "%", True, "降息预期"),
-        ("DTWEXBGS", "美元指数", "美元", "", False, "全球资金偏好"),
+        ("DXY", "DXY 美元指数", "美元", "", False, "全球资金偏好"),
         ("DCOILWTICO", "WTI 原油", "原油", "美元", False, "通胀与能源成本"),
         ("DCOILBRENTEU", "Brent 原油", "原油", "美元", False, "通胀与能源成本"),
         ("UNRATE", "失业率", "就业", "%", False, "经济压力"),

@@ -250,6 +250,10 @@ run_lab "refresh FRED macro data" \
   "${PY}" scripts/download_fred.py \
   --end "${END_DATE}"
 
+run_root "refresh DXY data" \
+  "${PY}" scripts/download_dxy.py \
+  --end "${END_DATE}"
+
 try_lab "refresh available Polygon fundamentals" \
   "${PY}" scripts/download_polygon_fundamentals.py \
   --datasets short_volume,financials \
