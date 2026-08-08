@@ -9,7 +9,7 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -732,16 +732,20 @@ class AuthApiReleaseGateTest(unittest.TestCase):
     def test_admin_metrics_retention_uses_beijing_day(self) -> None:
         admin = self.login("admin@example.test", "admin-password")
         user = self.create_user(admin, "beijing-day@example.test", "free")
+        utc_day = datetime.now(UTC).date() - timedelta(days=1)
+        created_at = f"{utc_day.isoformat()}T23:30:00+00:00"
+        event_at = f"{utc_day.isoformat()}T23:45:00+00:00"
+        cohort_day = (utc_day + timedelta(days=1)).isoformat()
         with sqlite3.connect(auth_api.DB_PATH) as conn:
-            conn.execute("UPDATE users SET created_at = ? WHERE id = ?", ("2026-07-08T23:30:00+00:00", user["id"]))
+            conn.execute("UPDATE users SET created_at = ? WHERE id = ?", (created_at, user["id"]))
             conn.execute(
                 "INSERT INTO analytics_events (user_id, event_type, event_key, path, created_at) VALUES (?, 'nav_click', 'home', '/', ?)",
-                (user["id"], "2026-07-08T23:45:00+00:00"),
+                (user["id"], event_at),
             )
 
         status, payload = admin.get("/api/admin/metrics")
         self.assertEqual(status, 200, payload)
-        self.assertEqual(payload["retention"][0]["cohortDay"], "2026-07-09")
+        self.assertEqual(payload["retention"][0]["cohortDay"], cohort_day)
         self.assertEqual(payload["retention"][0]["registered"], 1)
         self.assertEqual(payload["retention"][0]["retained3d"], 1)
 
