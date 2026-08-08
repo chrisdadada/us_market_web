@@ -6,8 +6,19 @@ ARCHIVE="dongbimao-site.tar.gz"
 REMOTE_ARCHIVE="/tmp/${ARCHIVE}"
 PY="${PYTHON_BIN:-/opt/anaconda3/envs/quant/bin/python}"
 LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-${HOME}/.dongbimao/refresh.env}"
+EXPECTED_DEV_BRANCH="codex/dev-integration"
 
 cd "$(dirname "$0")/.."
+
+current_branch="$(git branch --show-current)"
+if [ "${current_branch}" != "${EXPECTED_DEV_BRANCH}" ]; then
+  echo "Dev code deploy must run from ${EXPECTED_DEV_BRANCH}; current branch: ${current_branch:-detached}." >&2
+  exit 1
+fi
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "Dev code deploy requires a clean committed worktree." >&2
+  exit 1
+fi
 
 if [ -f "${LOCAL_ENV_FILE}" ]; then
   set -a
@@ -20,9 +31,17 @@ if [ "${BUILD_PRODUCT_DB:-0}" = "1" ] && [ "${SKIP_PRODUCT_DB_BUILD:-0}" != "1" 
   "${PY}" scripts/build_product_db.py
   "${PY}" scripts/update_macro_calendar_results.py
 fi
-npm --prefix admin-web install
+
+ensure_web_dependencies() {
+  local workspace="$1"
+  if [ ! -x "${workspace}/node_modules/.bin/tsc" ] || [ "${workspace}/package-lock.json" -nt "${workspace}/node_modules/.package-lock.json" ]; then
+    npm --prefix "${workspace}" ci
+  fi
+}
+
+ensure_web_dependencies admin-web
 npm --prefix admin-web run build
-npm --prefix main-web install
+ensure_web_dependencies main-web
 npm --prefix main-web run build
 
 COPYFILE_DISABLE=1 tar \

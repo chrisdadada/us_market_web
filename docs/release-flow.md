@@ -13,9 +13,10 @@ Dev and production frontend files are separated:
 ## Branches
 
 - `master` is the stable production baseline.
+- `codex/dev-integration` is the only branch allowed to publish dev code.
 - New work starts from a `codex/...` branch.
-- Deploy code only after `npm run check` passes and the branch has a commit.
-- Deploy to dev first. Merge back to `master` only after dev is confirmed.
+- Merge confirmed dev work into `codex/dev-integration`, run `npm run check`, commit, then deploy dev from that clean branch.
+- Merge the confirmed dev release back to `master` only after dev is accepted.
 - Deploy production code from `master` only after the user explicitly asks for that prod deploy.
 - Tag important production releases as `prod-YYYY-MM-DD-short-name`.
 
@@ -25,8 +26,12 @@ Code deploy does not rebuild `data/product.db` by default. Data refresh is owned
 by the automated refresh jobs.
 
 ```bash
+git switch codex/dev-integration
 ./scripts/deploy_dev.sh
 ```
+
+The deploy script rejects other branches and uncommitted changes. This prevents
+an older feature worktree from replacing the complete dev release.
 
 Check `https://dev.dongbimao.org` first.
 

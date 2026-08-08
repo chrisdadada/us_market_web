@@ -551,7 +551,8 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=calendar`, { waitUntil: "networkidle" });
-        assert((await page.locator(".calendarPageHead h1").innerText()) === "重点财经前瞻", "calendar should show the approved page title");
+        assert(await page.locator(".calendarPageHead").count() === 0, "calendar should not repeat the navigation title");
+        assert(!(await page.locator("body").innerText()).includes("北京时间"), "calendar should not show redundant timezone copy");
         assert(await page.locator(".calendarMacroTable").count() === 1, "calendar should keep macro events in their own section");
         assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
         const calendarSectionOrder = await page.evaluate(() => {
