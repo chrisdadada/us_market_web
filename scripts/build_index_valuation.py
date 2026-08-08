@@ -51,6 +51,11 @@ METRIC_DEFINITIONS = [
     ("dividendYield", "股息率", "%"),
     ("peg", "PEG", "x"),
 ]
+OFFICIAL_HISTORY_SOURCES = {
+    "Invesco QQQ fund characteristics",
+    "State Street SPY fund and index characteristics",
+}
+MAX_OFFICIAL_HISTORY_POINTS = 1300
 
 REQUIRED_DATASETS = [
     {
@@ -1079,6 +1084,57 @@ def official_metric_or_waiting(key: str, label: str, unit: str, snapshot: dict[s
     return metric if metric.get("value") is not None else waiting_metric(key, label, unit)
 
 
+def official_metric_source(metric: dict[str, Any] | None) -> str | None:
+    if not metric:
+        return None
+    coverage = metric.get("coverage") or {}
+    source = coverage.get("sourceName") or metric.get("historySourceName")
+    return source if source in OFFICIAL_HISTORY_SOURCES else None
+
+
+def metric_history_point(item: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not item:
+        return None
+    point_date = parse_date(item.get("date") or item.get("asOf"))
+    value = safe_float(item.get("value"))
+    if point_date is None or value is None:
+        return None
+    return {"date": point_date.isoformat(), "value": value}
+
+
+def merge_official_metric_history(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
+    previous_indices = {
+        str((item.get("index") or {}).get("symbol") or "").upper(): item
+        for item in (previous or {}).get("indices") or []
+    }
+    for current_index in current.get("indices") or []:
+        symbol = str((current_index.get("index") or {}).get("symbol") or "").upper()
+        previous_index = previous_indices.get(symbol) or {}
+        previous_metrics = {item.get("key"): item for item in previous_index.get("metrics") or []}
+        for metric in current_index.get("metrics") or []:
+            previous_metric = previous_metrics.get(metric.get("key")) or {}
+            current_source = official_metric_source(metric)
+            previous_source = official_metric_source(previous_metric)
+            source = current_source or previous_source
+            points: dict[str, dict[str, Any]] = {}
+            if source and previous_source == source:
+                for item in previous_metric.get("trend") or []:
+                    point = metric_history_point(item)
+                    if point:
+                        points[point["date"]] = point
+                point = metric_history_point(previous_metric)
+                if point:
+                    points[point["date"]] = point
+            if source and current_source == source:
+                point = metric_history_point(metric)
+                if point:
+                    points[point["date"]] = point
+            metric["trend"] = sorted(points.values(), key=lambda item: item["date"])[-MAX_OFFICIAL_HISTORY_POINTS:]
+            if source and metric["trend"]:
+                metric["historySourceName"] = source
+    return current
+
+
 def readiness_datasets(partial_ready: bool, index_label: str = "指数") -> list[dict[str, Any]]:
     datasets = [dict(item) for item in REQUIRED_DATASETS]
     if not partial_ready:
@@ -1336,6 +1392,7 @@ def build_payload(
     spy_holdings_url: str,
     spy_fact_sheet_url: str,
     spy_characteristics_url: str = DEFAULT_SPY_CHARACTERISTICS_URL,
+    previous_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     qqq_characteristics: dict[str, Any] | None = None
     try:
@@ -1383,7 +1440,7 @@ def build_payload(
     )
     qqq_frontend = frontend_index_payload(qqq_payload)
     spy_frontend = frontend_index_payload(spy_payload)
-    return {
+    payload = {
         "schemaVersion": 3,
         "generatedAt": now_iso(),
         "asOf": qqq_frontend.get("asOf"),
@@ -1399,6 +1456,7 @@ def build_payload(
         ],
         "indices": [qqq_frontend, spy_frontend],
     }
+    return merge_official_metric_history(payload, previous_payload)
 
 
 def parse_args() -> argparse.Namespace:

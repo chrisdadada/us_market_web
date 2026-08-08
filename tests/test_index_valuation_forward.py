@@ -9,6 +9,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from build_index_valuation import (  # noqa: E402
     _ssga_section,
     build_qqq_forward_valuation,
+    merge_official_metric_history,
     official_metric_or_waiting,
     qqq_official_snapshot,
     wilder_rsi,
@@ -74,6 +75,96 @@ class ForwardValuationTest(unittest.TestCase):
         self.assertEqual(wilder_rsi([100.0] * 15), 50.0)
         self.assertEqual(wilder_rsi([float(value) for value in range(15)]), 100.0)
         self.assertEqual(wilder_rsi([float(value) for value in range(15, 0, -1)]), 0.0)
+
+    def test_accumulates_only_same_source_official_history(self):
+        previous = {
+            "indices": [{
+                "index": {"symbol": "QQQ"},
+                "metrics": [{
+                    "key": "pe",
+                    "value": 30.0,
+                    "asOf": "2026-07-31",
+                    "coverage": {"sourceName": "Invesco QQQ fund characteristics"},
+                    "trend": [{"date": "2026-06-30", "value": 29.0}],
+                }],
+            }],
+        }
+        current = {
+            "indices": [{
+                "index": {"symbol": "QQQ"},
+                "metrics": [{
+                    "key": "pe",
+                    "value": 31.0,
+                    "asOf": "2026-08-31",
+                    "coverage": {"sourceName": "Invesco QQQ fund characteristics"},
+                    "trend": [],
+                }],
+            }],
+        }
+        result = merge_official_metric_history(current, previous)
+        self.assertEqual(
+            result["indices"][0]["metrics"][0]["trend"],
+            [
+                {"date": "2026-06-30", "value": 29.0},
+                {"date": "2026-07-31", "value": 30.0},
+                {"date": "2026-08-31", "value": 31.0},
+            ],
+        )
+
+    def test_rejects_old_estimated_history(self):
+        previous = {
+            "indices": [{
+                "index": {"symbol": "QQQ"},
+                "metrics": [{
+                    "key": "pe",
+                    "value": 37.34,
+                    "asOf": "2026-07-24",
+                    "coverage": {"method": "polygon_quarterly_annualized_estimate"},
+                    "trend": [{"date": "2026-06-01", "value": 35.0}],
+                }],
+            }],
+        }
+        current = {
+            "indices": [{
+                "index": {"symbol": "QQQ"},
+                "metrics": [{
+                    "key": "pe",
+                    "value": 30.0,
+                    "asOf": "2026-07-31",
+                    "coverage": {"sourceName": "Invesco QQQ fund characteristics"},
+                    "trend": [],
+                }],
+            }],
+        }
+        result = merge_official_metric_history(current, previous)
+        self.assertEqual(result["indices"][0]["metrics"][0]["trend"], [{"date": "2026-07-31", "value": 30.0}])
+
+    def test_preserves_official_history_during_fetch_failure(self):
+        previous = {
+            "indices": [{
+                "index": {"symbol": "SPY"},
+                "metrics": [{
+                    "key": "pe",
+                    "value": 25.73,
+                    "asOf": "2026-08-06",
+                    "coverage": {"sourceName": "State Street SPY fund and index characteristics"},
+                    "trend": [{"date": "2026-08-05", "value": 25.60}],
+                }],
+            }],
+        }
+        current = {
+            "indices": [{
+                "index": {"symbol": "SPY"},
+                "metrics": [{"key": "pe", "value": None, "asOf": None, "trend": []}],
+            }],
+        }
+        result = merge_official_metric_history(current, previous)
+        metric = result["indices"][0]["metrics"][0]
+        self.assertEqual(metric["historySourceName"], "State Street SPY fund and index characteristics")
+        self.assertEqual(
+            metric["trend"],
+            [{"date": "2026-08-05", "value": 25.60}, {"date": "2026-08-06", "value": 25.73}],
+        )
 
 
 if __name__ == "__main__":

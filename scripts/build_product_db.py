@@ -115,12 +115,14 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
             )
 
             market_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_MARKET_DATA_ROOT))
+            previous_payload, _ = load_existing_dataset_payload(name)
             return build_payload(
                 market_root,
                 DEFAULT_QQQ_HOLDINGS_URL,
                 DEFAULT_QQQ_FACT_SHEET_URL,
                 DEFAULT_SPY_HOLDINGS_URL,
                 DEFAULT_SPY_FACT_SHEET_URL,
+                previous_payload=previous_payload,
             ), Path("direct:index-valuation")
         if name == "core-signals":
             from build_core_signals import DEFAULT_DATA_ROOT, build_signals
