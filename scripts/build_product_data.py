@@ -12,6 +12,8 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+from macro_freshness import MONTHLY_KEYS, freshness_fields
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -623,7 +625,6 @@ def build_market_temperature() -> dict[str, Any]:
     ]
     indicators: list[dict[str, Any]] = []
     risks: dict[str, int] = {}
-    as_of_values: list[str] = []
     for series_id, name, category, unit, percent_yoy, impact in configs:
         item = read_fred_series(series_id, percent_yoy=percent_yoy)
         if not item:
@@ -638,11 +639,11 @@ def build_market_temperature() -> dict[str, Any]:
                 "status": "neutral",
                 "level": "待更新",
                 "explain": "这个数据源暂时无法读取，先不纳入综合判断。",
+                "_riskScore": None,
             })
             continue
         status, level, risk_score, explain = risk_for_indicator(series_id, item["value"], item["change"])
         risks[series_id] = risk_score
-        as_of_values.append(item["asOf"])
         value_label = f"{item['value']}{unit}" if unit != "美元" else f"${item['value']}"
         previous_label = f"{item['previous']}{unit}" if unit != "美元" else f"${item['previous']}"
         change_label = f"{item['change']:+.2f}{unit}" if unit != "美元" else f"{'+' if item['change'] >= 0 else '-'}${abs(item['change']):.2f}"
@@ -658,7 +659,24 @@ def build_market_temperature() -> dict[str, Any]:
             "status": status,
             "level": level,
             "explain": explain,
+            "_riskScore": risk_score,
         })
+    daily_as_of = [
+        item["asOf"] for item in indicators
+        if item.get("asOf") and item["key"] not in MONTHLY_KEYS
+    ]
+    reference_as_of = max(daily_as_of) if daily_as_of else ""
+    freshness = {"current": 0, "monthly": 0, "delayed": 0}
+    for item in indicators:
+        item.update(freshness_fields(item["key"], item.get("asOf"), reference_as_of))
+        item.pop("_riskScore", None)
+        if item["frequency"] == "monthly":
+            freshness["monthly"] += 1
+        elif item["stale"]:
+            freshness["delayed"] += 1
+        else:
+            freshness["current"] += 1
+
     v2 = market_temperature_v2_score(risks, latest_benchmark_trends())
     if v2:
         score, label = v2
@@ -672,13 +690,14 @@ def build_market_temperature() -> dict[str, Any]:
         action = "等待市场价格更新" if label == "待更新" else "降低观察频率，少看高热度线索"
     return {
         "generatedAt": now_iso(),
-        "asOf": max(as_of_values) if as_of_values else "",
+        "asOf": reference_as_of,
         "overall": {
             "label": label,
             "score": score,
             "action": action,
             "summary": "当前宏观环境用于决定复盘强度，再从事件观察、强弱榜里挑具体股票。",
         },
+        "freshness": freshness,
         "indicators": indicators,
     }
 

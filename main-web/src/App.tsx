@@ -8,6 +8,9 @@ import {
   CourseSeries,
   FundingScannerRow,
   KeyLevel,
+  IndexValuationIndex,
+  IndexValuationMetric,
+  IndexValuationPayload,
   MacroSeriesIndicator,
   MacroSeriesPayload,
   MarketRow,
@@ -49,7 +52,7 @@ import {
   trackingDirectionClass
 } from "./shared";
 
-type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "stocks" | "calendar" | "open" | "position" | "funding" | "forum" | "courses";
+type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "valuation" | "stocks" | "calendar" | "open" | "position" | "funding" | "forum" | "courses";
 type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
 
@@ -60,13 +63,14 @@ type NavItem = { key: PageKey; label: string; status?: string; disabled?: boolea
 const pageLabels: Record<PageKey, string> = {
   home: "首页",
   opinions: "美股热点风向标",
-  calendar: "重点财经前瞻",
-  tracking: "机会跟踪榜单",
-  stocks: "美股行情",
+  calendar: "美股重点财经前瞻",
+  tracking: "股票机会跟踪榜单",
+  stocks: "股票库",
   market: "市场资金走向",
   risk: "市场活跃指数",
   strength: "行业板块强弱",
-  courses: "实战课程",
+  valuation: "指数估值",
+  courses: "交易实战课程",
   open: "Open 持仓参考",
   forum: "论坛讨论区",
   position: "以损定仓",
@@ -82,6 +86,7 @@ const primaryNavItems: NavItem[] = [
   { key: "market", label: pageLabels.market },
   { key: "risk", label: pageLabels.risk },
   { key: "strength", label: pageLabels.strength },
+  { key: "valuation", label: pageLabels.valuation },
   { key: "courses", label: pageLabels.courses }
 ];
 
@@ -104,10 +109,6 @@ const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
 
 const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
   { key: "funding", label: pageLabels.funding }
-];
-
-const publicToolDataNavItems: Array<{ href: string; label: string }> = [
-  { href: "/legacy/#valuation", label: "指数估值" }
 ];
 
 const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems];
@@ -285,6 +286,11 @@ const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: stri
     level: "monthly",
     title: `会员可看${pageLabels.strength}`,
     text: "月度和年度会员可查看完整榜单。"
+  },
+  valuation: {
+    level: "registered",
+    title: `注册后查看${pageLabels.valuation}`,
+    text: "登录后查看指数估值和走势。"
   }
 };
 
@@ -1125,12 +1131,6 @@ function App() {
           <p className="navGroupTitle">会员工具</p>
           {renderNavItems(memberToolNavItems)}
         </div>
-        <div className="navToolGroup">
-          <p className="navGroupTitle">工具 / 数据</p>
-          {publicToolDataNavItems.map((item) => (
-            <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)}>{item.label}</a>
-          ))}
-        </div>
         {auth?.entitlements?.admin ? (
           <div className="navToolGroup">
             <p className="navGroupTitle">管理员工具</p>
@@ -1219,6 +1219,7 @@ function App() {
             {page === "market" ? <MarketPage bootstrap={bootstrap} onPage={navigatePage} /> : null}
             {page === "risk" ? <MarketTemperaturePage enabled={pageUnlocked} /> : null}
             {page === "strength" ? <MarketStrengthPage enabled={pageUnlocked} onOpenStock={selectSymbol} /> : null}
+            {page === "valuation" ? <IndexValuationPage enabled={pageUnlocked} /> : null}
             {page === "stocks" && selectedSymbolSource === "tracking" ? <TrackingStockDetailPage symbol={selectedSymbol} rows={trackingRows} onBack={() => navigatePage("tracking")} onStocks={() => navigatePage("stocks")} onOpenStock={selectSymbol} /> : null}
             {page === "stocks" && selectedSymbolSource !== "tracking" ? <StocksPage selectedSymbol={selectedSymbol} signalStates={signalStates} bootstrap={bootstrap} onSelectSymbol={selectSymbol} /> : null}
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
@@ -2422,6 +2423,46 @@ function marketSectorName(value?: string) {
   return (value || "").replace(/^[A-Z]{2,6}\s+/, "") || "--";
 }
 
+const monthlyIndicatorKeys = new Set(["fedfunds", "cpiaucsl", "unrate"]);
+
+function indicatorFrequency(item: Pick<TemperatureIndicator, "key" | "frequency">) {
+  return item.frequency || (monthlyIndicatorKeys.has(item.key.toLowerCase()) ? "monthly" : "daily");
+}
+
+function businessDayLag(value?: string, reference?: string) {
+  if (!value || !reference) return null;
+  const start = new Date(`${value.slice(0, 10)}T00:00:00`);
+  const end = new Date(`${reference.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) return 0;
+  let lag = 0;
+  const cursor = new Date(start);
+  while (cursor < end) {
+    cursor.setDate(cursor.getDate() + 1);
+    if (cursor.getDay() !== 0 && cursor.getDay() !== 6) lag += 1;
+  }
+  return lag;
+}
+
+function indicatorIsStale(item: TemperatureIndicator, reference?: string) {
+  if (typeof item.stale === "boolean") return item.stale;
+  if (indicatorFrequency(item) === "monthly") return false;
+  return (businessDayLag(item.asOf, reference) ?? 0) > 2;
+}
+
+function indicatorPeriodLabel(item: TemperatureIndicator) {
+  if (!item.asOf) return "--";
+  if (indicatorFrequency(item) === "monthly") {
+    const month = Number(item.asOf.slice(5, 7));
+    return Number.isFinite(month) && month ? `${month}月数据` : formatDate(item.asOf);
+  }
+  return formatDate(item.asOf);
+}
+
+function valuationValue(value?: number | null, unit?: string) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "--";
+  return `${value.toFixed(2)}${unit === "x" ? "倍" : unit || ""}`;
+}
+
 function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 }) {
   const points = (item.points || []).filter((point) => Number.isFinite(point.value));
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -2516,7 +2557,7 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
   }, [enabled, reload]);
 
   const indicators = payload?.indicators || [];
-  const priority = [...indicators].sort((a, b) => {
+  const priority = indicators.filter((item) => !indicatorIsStale(item, payload?.asOf)).sort((a, b) => {
     const order: Record<string, number> = { watch: 0, neutral: 1, positive: 2 };
     return (order[a.status || "neutral"] ?? 1) - (order[b.status || "neutral"] ?? 1);
   });
@@ -2531,6 +2572,12 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
   const score = hasScore ? Math.max(0, Math.min(100, payload.overall?.score ?? 0)) : 0;
   const scoreTone = temperatureTone(payload?.overall?.label === "偏强" ? "positive" : payload?.overall?.label === "防守" ? "watch" : "neutral");
   const temperatureAdvice = marketTemperatureAdvice[payload?.overall?.label || ""] || (hasScore ? "" : marketTemperatureAdvice.待更新);
+  const freshness = indicators.reduce((result, item) => {
+    if (indicatorFrequency(item) === "monthly") result.monthly += 1;
+    else if (indicatorIsStale(item, payload?.asOf)) result.delayed += 1;
+    else result.current += 1;
+    return result;
+  }, { current: 0, monthly: 0, delayed: 0 });
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
@@ -2545,21 +2592,101 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
               <div className="temperatureScale"><i /><i /><i />{hasScore ? <em style={{ left: `${score}%` }} /> : null}</div>
               {temperatureAdvice ? <small className="temperatureAdvice">{temperatureAdvice}</small> : null}
             </article>
-            <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{formatDate(item.asOf)}</small></button>)}</div>
-            <article className="temperatureFreshness"><span>数据日期</span><strong>{formatDate(payload.asOf)}</strong><small>{indicators.length} 项指标</small></article>
+            <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{indicatorPeriodLabel(item)}</small></button>)}</div>
+            <article className="temperatureFreshness"><span>数据状态</span><strong>{freshness.current} 项正常</strong><small>{freshness.monthly} 项月度 · {freshness.delayed} 项更新延迟</small></article>
           </section>
           <section className="marketToolPanel temperatureChartPanel">
             <div className="marketToolPanelHead"><div><h2>指标走势</h2><span>{selectedSeries?.name || "--"}</span></div><div className="marketToolRange">{([1, 3, 5] as const).map((range) => <button key={range} className={years === range ? "active" : ""} onClick={() => setYears(range)}>{range}年</button>)}</div></div>
             <div className="temperatureChartLayout">
-              <nav className="temperatureIndicatorNav" aria-label="市场指标">{seriesItems.map((item) => <button type="button" key={item.key} className={selectedSeries?.key === item.key ? "active" : ""} onClick={() => setSelectedKey(item.key)}><span>{item.name}</span><strong>{item.value || item.current || "--"}</strong><small>{formatDate(item.asOf)}</small></button>)}</nav>
+              <nav className="temperatureIndicatorNav" aria-label="市场指标">{seriesItems.map((item) => <button type="button" key={item.key} className={selectedSeries?.key === item.key ? "active" : ""} onClick={() => setSelectedKey(item.key)}><span>{item.name}</span><strong>{item.value || item.current || "--"}</strong><small>{indicatorPeriodLabel(item)}{indicatorIsStale(item, series?.asOf) ? " · 更新延迟" : ""}</small></button>)}</nav>
               <div className="temperatureChartStage">{selectedSeries ? <MarketLineChart item={selectedSeries} years={years} /> : <div className="marketToolEmpty compact">暂无走势数据</div>}</div>
             </div>
           </section>
           <section className="marketToolPanel temperatureTablePanel">
             <div className="marketToolPanelHead"><h2>全部指标</h2><span>{indicators.length} 项</span></div>
-            <div className="marketToolTable"><table><thead><tr><th>因子</th><th>数据日期</th><th>当前读数</th><th>变化</th><th>压力</th><th>主要影响</th></tr></thead><tbody>
-              {indicators.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong></td><td>{formatDate(item.asOf)}</td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
+            <div className="marketToolTable"><table><thead><tr><th>因子</th><th>数据周期</th><th>当前读数</th><th>变化</th><th>压力</th><th>主要影响</th></tr></thead><tbody>
+              {indicators.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong></td><td>{indicatorPeriodLabel(item)}{indicatorIsStale(item, payload.asOf) ? <small className="freshnessBadge">更新延迟</small> : null}</td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
             </tbody></table></div>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function IndexValuationPage({ enabled }: { enabled: boolean }) {
+  const [payload, setPayload] = useState<IndexValuationPayload | null>(null);
+  const [symbol, setSymbol] = useState("QQQ");
+  const [metricKey, setMetricKey] = useState("pe");
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    setState("loading");
+    api.indexValuation()
+      .then((value) => { if (active) { setPayload(value); setState("idle"); } })
+      .catch(() => active && setState("error"));
+    return () => { active = false; };
+  }, [enabled, reload]);
+
+  const indices = payload?.indices || [];
+  const selected = indices.find((item) => item.index?.symbol === symbol) || indices[0];
+  const qqq = indices.find((item) => item.index?.symbol === "QQQ");
+  const chartMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined && (item.trend?.length || 0) > 1);
+  const currentMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined);
+  const selectedMetric = chartMetrics.find((item) => item.key === metricKey) || chartMetrics[0];
+
+  useEffect(() => {
+    if (selectedMetric || !chartMetrics.length) return;
+    setMetricKey(chartMetrics[0].key);
+  }, [chartMetrics, selectedMetric]);
+
+  const chartItem: MacroSeriesIndicator | null = selectedMetric ? {
+    key: `valuation-${selected?.index?.symbol || "index"}-${selectedMetric.key}`,
+    name: `${selected?.index?.symbol || ""} ${selectedMetric.label || selectedMetric.key}`.trim(),
+    current: selectedMetric.value ?? undefined,
+    value: valuationValue(selectedMetric.value, selectedMetric.unit),
+    unit: selectedMetric.unit === "x" ? "倍" : selectedMetric.unit,
+    asOf: selected?.asOf,
+    points: selectedMetric.trend
+  } : null;
+  const forward = qqq?.forwardValuation;
+  const momentum = qqq?.marketIndicators?.shortTermMomentum;
+  const vix = qqq?.marketIndicators?.vix;
+
+  return (
+    <div className="marketToolPage indexValuationPage" data-testid="index-valuation-page">
+      <header className="marketToolHeading"><div><h1>{pageLabels.valuation}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
+      {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载估值数据...</div> : state === "error" ? (
+        <div className="marketToolError"><span>估值数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
+      ) : !selected ? <div className="marketToolEmpty">暂无指数估值数据</div> : (
+        <>
+          <section className="valuationSnapshot">
+            {forward?.forwardPe !== undefined ? <article><span>纳指前瞻 PE</span><strong>{valuationValue(forward.forwardPe, "x")}</strong><b className="toolStatus neutral">较10年均值 {forward.premiumToTenYearAveragePct !== undefined ? `${forward.premiumToTenYearAveragePct > 0 ? "+" : ""}${forward.premiumToTenYearAveragePct.toFixed(1)}%` : "--"}</b><small>10年均值 {valuationValue(forward.tenYearAverageForwardPe, "x")} · {formatDate(forward.asOf)}</small></article> : null}
+            {momentum?.value !== undefined ? <article><span>短期涨跌动能</span><strong>{momentum.value.toFixed(2)}</strong><b className="toolStatus positive">{momentum.label || "--"}</b><small>近 {momentum.periodDays || 14} 个交易日 · {formatDate(momentum.asOf)}</small></article> : null}
+            {vix?.value !== undefined ? <article><span>VIX 恐慌指数</span><strong>{vix.value.toFixed(2)}</strong><b className="toolStatus positive">{vix.label || "--"}</b><small>市场波动预期 · {formatDate(vix.asOf)}</small></article> : null}
+          </section>
+          <section className="marketToolPanel valuationPanel">
+            <div className="valuationToolbar">
+              <div className="valuationIndexTabs" role="tablist" aria-label="选择指数">
+                {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => setSymbol(item.index?.symbol || "QQQ")}>{item.index?.symbol} <small>{item.index?.symbol === "QQQ" ? "纳指 100" : item.index?.symbol === "SPY" ? "标普 500" : item.index?.name}</small></button>)}
+              </div>
+              <div className="valuationMetricTabs" role="tablist" aria-label="选择估值指标">
+                {chartMetrics.map((item: IndexValuationMetric) => <button type="button" key={item.key} className={selectedMetric?.key === item.key ? "active" : ""} onClick={() => setMetricKey(item.key)}>{item.label || item.key.toUpperCase()}</button>)}
+              </div>
+            </div>
+            <div className="valuationChartLayout">
+              <div className="valuationChartStage">
+                <div className="valuationChartTitle"><h2>{selectedMetric?.label || "估值"}走势</h2><span>当前 {valuationValue(selectedMetric?.value, selectedMetric?.unit)}</span></div>
+                {chartItem ? <MarketLineChart item={chartItem} years={1} /> : <div className="marketToolEmpty compact">暂无走势数据</div>}
+              </div>
+              <aside className="valuationCurrent">
+                <h2>当前估值</h2>
+                {currentMetrics.map((item) => <div key={item.key}><span>{item.label || item.key.toUpperCase()}</span><strong>{valuationValue(item.value, item.unit)}</strong><small>{formatDate(selected.asOf)}</small></div>)}
+              </aside>
+            </div>
           </section>
         </>
       )}

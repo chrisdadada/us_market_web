@@ -11,6 +11,8 @@ from typing import Any
 
 import pandas as pd
 
+from macro_freshness import MONTHLY_KEYS, freshness_fields
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -219,7 +221,9 @@ def build_payload(fred_dir: Path) -> dict[str, Any]:
             indicators.append(build_indicator(fred_dir, config))
         except Exception as exc:
             missing.append({"sourceId": config.source_id, "reason": str(exc)})
-    as_of = max((item["asOf"] for item in indicators), default="")
+    as_of = max((item["asOf"] for item in indicators if item["key"] not in MONTHLY_KEYS), default="")
+    for item in indicators:
+        item.update(freshness_fields(item["key"], item.get("asOf"), as_of))
     return {
         "generatedAt": now_iso(),
         "asOf": as_of,

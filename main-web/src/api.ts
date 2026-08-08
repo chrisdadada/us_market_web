@@ -109,12 +109,19 @@ export type TemperatureIndicator = {
   impact?: string;
   explain?: string;
   asOf?: string;
+  frequency?: "daily" | "monthly";
+  displayPeriod?: string;
+  sourceLagBusinessDays?: number;
+  sourceLagMonths?: number;
+  stale?: boolean;
+  includedInScore?: boolean;
 };
 
 export type MarketTemperaturePayload = {
   asOf?: string;
   overall?: { score?: number | null; label?: string; summary?: string; action?: string };
   indicators?: TemperatureIndicator[];
+  freshness?: { current?: number; monthly?: number; delayed?: number };
 };
 
 export type MacroSeriesIndicator = TemperatureIndicator & {
@@ -126,6 +133,37 @@ export type MacroSeriesIndicator = TemperatureIndicator & {
 export type MacroSeriesPayload = {
   asOf?: string;
   indicators?: MacroSeriesIndicator[];
+};
+
+export type IndexValuationMetric = {
+  key: string;
+  label?: string;
+  value?: number | null;
+  unit?: string;
+  status?: string;
+  trend?: Array<{ date: string; value: number }>;
+};
+
+export type IndexValuationIndex = {
+  asOf?: string;
+  index?: { symbol?: string; name?: string };
+  forwardValuation?: {
+    asOf?: string;
+    forwardPe?: number;
+    trailingPe?: number;
+    tenYearAverageForwardPe?: number;
+    premiumToTenYearAveragePct?: number;
+  };
+  marketIndicators?: {
+    shortTermMomentum?: { asOf?: string; label?: string; value?: number; periodDays?: number };
+    vix?: { asOf?: string; label?: string; value?: number };
+  };
+  metrics?: IndexValuationMetric[];
+};
+
+export type IndexValuationPayload = {
+  asOf?: string;
+  indices?: IndexValuationIndex[];
 };
 
 export type StrengthTheme = {
@@ -577,6 +615,7 @@ export const api = {
   },
   marketTemperature: () => request<MarketTemperaturePayload>("/api/product/raw/market-temperature"),
   macroSeries: () => request<MacroSeriesPayload>("/api/product/raw/macro-series"),
+  indexValuation: () => request<IndexValuationPayload>("/api/product/raw/index-valuation"),
   cryptoEtfFlows: () => request<CryptoEtfFlowPayload>("/api/product/raw/crypto-etf-flows"),
   strengthScanner: (options?: { limit?: number; offset?: number; bucket?: string; q?: string; sector?: string; heat?: string; sort?: string }) => {
     const params = new URLSearchParams({

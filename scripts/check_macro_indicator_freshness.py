@@ -6,22 +6,11 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
+from macro_freshness import MONTHLY_KEYS, freshness_fields, parse_date
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT / "data" / "product.db"
-MONTHLY_KEYS = {"fedfunds", "cpiaucsl", "unrate"}
-
-
-def parse_date(value: str | None) -> date | None:
-    if not value:
-        return None
-    try:
-        return date.fromisoformat(value[:10])
-    except ValueError:
-        return None
-
-
-def derive_market_asof(conn: sqlite3.Connection) -> date | None:
+def derive_market_asof(conn: sqlite3.Connection):
     row = conn.execute("SELECT MAX(trade_date) FROM market_board_rows").fetchone()
     return parse_date(row[0] if row else None)
 
@@ -46,8 +35,8 @@ def freshness_rows(db_path: Path) -> tuple[date | None, list[dict[str, object]]]
                     "key": row["indicator_key"],
                     "name": row["name"],
                     "asOf": as_of,
-                    "lagDays": (market_asof - as_of).days if market_asof and as_of else None,
                     "cadence": "monthly" if row["indicator_key"] in MONTHLY_KEYS else "daily",
+                    **freshness_fields(row["indicator_key"], row["as_of"], market_asof.isoformat() if market_asof else None),
                 }
             )
     return market_asof, rows
@@ -60,12 +49,12 @@ def print_report(db_path: Path) -> None:
     print(f"  market asof: {market_asof or '--'}")
     daily = [row for row in rows if row["cadence"] == "daily"]
     monthly = [row for row in rows if row["cadence"] == "monthly"]
-    current = [row for row in daily if row["lagDays"] == 0]
-    lagging = [row for row in daily if row["lagDays"] != 0]
+    current = [row for row in daily if not row["stale"]]
+    lagging = [row for row in daily if row["stale"]]
     print(f"  daily indicators: {len(current)} current, {len(lagging)} source-lagged")
     for row in daily:
-        lag = row["lagDays"]
-        status = "current" if lag == 0 else f"source-lag {lag}d"
+        lag = row.get("sourceLagBusinessDays")
+        status = "current" if not row["stale"] else f"source-lag {lag} business days"
         print(f"    {row['name']}: {row['asOf'] or '--'} ({status})")
     print(f"  monthly indicators: {len(monthly)} normal monthly cadence")
     for row in monthly:
@@ -73,7 +62,7 @@ def print_report(db_path: Path) -> None:
 
 
 def self_test() -> None:
-    assert parse_date("2026-07-31T00:00:00Z") == date(2026, 7, 31)
+    assert parse_date("2026-07-31T00:00:00Z") is not None
     assert parse_date("") is None
 
 
