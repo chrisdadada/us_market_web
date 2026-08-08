@@ -34,7 +34,7 @@ fi
 
 ensure_web_dependencies() {
   local workspace="$1"
-  if [ ! -x "${workspace}/node_modules/.bin/tsc" ] || [ "${workspace}/package-lock.json" -nt "${workspace}/node_modules/.package-lock.json" ]; then
+  if [ ! -x "${workspace}/node_modules/.bin/tsc" ] || ! npm --prefix "${workspace}" ls --depth=0 >/dev/null 2>&1; then
     npm --prefix "${workspace}" ci
   fi
 }

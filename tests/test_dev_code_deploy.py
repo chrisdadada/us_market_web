@@ -18,6 +18,7 @@ class DevCodeDeployTest(unittest.TestCase):
 
     def test_reuses_installed_dependencies_when_current(self) -> None:
         self.assertIn('node_modules/.bin/tsc', DEPLOY)
+        self.assertIn('npm --prefix "${workspace}" ls --depth=0', DEPLOY)
         self.assertIn('npm --prefix "${workspace}" ci', DEPLOY)
 
     def test_data_deploy_verifies_protected_table_fingerprints(self) -> None:
