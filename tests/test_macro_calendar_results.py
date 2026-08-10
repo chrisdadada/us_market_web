@@ -31,6 +31,33 @@ class MacroCalendarResultsTest(unittest.TestCase):
             [{"Date": "2026-07-30", "Time": "02:00", "Event": "Fed Interest Rate Decision", "Actual": "3.75%", "Previous": "3.75%", "Forecast": "3.75%"}],
         )
 
+    def test_public_range_calendar_parser_reads_future_nonfarm(self) -> None:
+        parser = macro_results.PublicRangeCalendarParser()
+        parser.feed(
+            """
+            <table><tr data-country="united states" data-event="non farm payrolls">
+              <td class="calendar-item 2026-09-04"><span>12:30 PM</span></td>
+              <td><table><tr><td>US</td></tr></table></td>
+              <td>Non Farm Payrolls AUG</td>
+              <td><span id="actual"></span></td>
+              <td><span id="previous">-23K</span></td>
+              <td><a id="consensus">75K</a></td>
+              <td></td>
+            </tr></table>
+            """
+        )
+        self.assertEqual(
+            parser.rows,
+            [{
+                "Date": "2026-09-04",
+                "Time": "20:30",
+                "Event": "Non Farm Payrolls",
+                "Actual": "",
+                "Previous": "-23K",
+                "Forecast": "75K",
+            }],
+        )
+
     def test_public_consensus_does_not_replace_official_actual_or_previous(self) -> None:
         with closing(sqlite3.connect(":memory:")) as conn:
             conn.row_factory = sqlite3.Row

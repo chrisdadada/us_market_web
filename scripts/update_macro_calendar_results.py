@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import sqlite3
 import urllib.request
 from datetime import UTC, date, datetime, timedelta
@@ -277,6 +278,75 @@ class PublicCalendarParser(HTMLParser):
             self.in_calendar = False
 
 
+class PublicRangeCalendarParser(HTMLParser):
+    TARGET_EVENTS = {"inflation rate yoy", "non farm payrolls"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.row_depth = 0
+        self.cell_depth = 0
+        self.event = ""
+        self.event_date = ""
+        self.cell: list[str] | None = None
+        self.cells: list[str] = []
+        self.rows: list[dict[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if tag == "tr":
+            if self.row_depth:
+                self.row_depth += 1
+                return
+            event = str(attributes.get("data-event") or "").strip().lower()
+            country = str(attributes.get("data-country") or "").strip().lower()
+            if country == "united states" and event in self.TARGET_EVENTS:
+                self.row_depth = 1
+                self.event = event
+                self.event_date = ""
+                self.cells = []
+        elif tag == "td" and self.row_depth:
+            if self.cell is None:
+                self.cell = []
+                classes = str(attributes.get("class") or "")
+                match = re.search(r"\b\d{4}-\d{2}-\d{2}\b", classes)
+                if not self.event_date and match:
+                    self.event_date = match.group(0)
+            self.cell_depth += 1
+
+    def handle_data(self, data: str) -> None:
+        if self.cell is not None:
+            self.cell.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "td" and self.row_depth and self.cell is not None:
+            self.cell_depth -= 1
+            if self.cell_depth == 0:
+                self.cells.append(" ".join("".join(self.cell).split()))
+                self.cell = None
+        elif tag == "tr" and self.row_depth:
+            self.row_depth -= 1
+            if self.row_depth == 0:
+                self._finish_row()
+
+    def _finish_row(self) -> None:
+        if not self.event_date or len(self.cells) < 6:
+            return
+        try:
+            released = datetime.strptime(
+                f"{self.event_date} {self.cells[0]}", "%Y-%m-%d %I:%M %p"
+            ).replace(tzinfo=UTC).astimezone(ZoneInfo("Asia/Shanghai"))
+        except ValueError:
+            return
+        self.rows.append({
+            "Date": released.date().isoformat(),
+            "Time": released.strftime("%H:%M"),
+            "Event": "Inflation Rate YoY" if self.event == "inflation rate yoy" else "Non Farm Payrolls",
+            "Actual": self.cells[3],
+            "Previous": self.cells[4],
+            "Forecast": self.cells[5],
+        })
+
+
 PUBLIC_CONSENSUS_PAGES = (
     "https://tradingeconomics.com/united-states/inflation-cpi",
     "https://tradingeconomics.com/united-states/non-farm-payrolls",
@@ -294,7 +364,23 @@ def fetch_public_consensus_calendar(timeout: int) -> list[dict[str, str]]:
         except Exception:
             continue
         rows.extend(parser.rows)
-    return rows
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
+    range_url = (
+        "https://tradingeconomics.com/united-states/calendar/"
+        f"{(today - timedelta(days=7)).isoformat()}/{(today + timedelta(days=90)).isoformat()}"
+    )
+    try:
+        parser = PublicRangeCalendarParser()
+        req = urllib.request.Request(range_url, headers={"User-Agent": "dongbimao/1.0"})
+        parser.feed(urllib.request.urlopen(req, timeout=timeout).read(3_000_001).decode(errors="ignore"))
+        rows.extend(parser.rows)
+    except Exception:
+        pass
+    unique: dict[tuple[str, str, str], dict[str, str]] = {}
+    for row in rows:
+        key = (row.get("Date", ""), row.get("Time", ""), row.get("Event", ""))
+        unique[key] = row
+    return list(unique.values())
 
 
 def event_date(value: Any) -> str:
