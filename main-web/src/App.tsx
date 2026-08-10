@@ -275,6 +275,11 @@ const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: stri
     title: "年度会员可看 Open 持仓参考",
     text: "开通后查看完整持仓、收益分布和交割记录。"
   },
+  watchlist: {
+    level: "registered",
+    title: "登录后使用自选",
+    text: "登录后保存和同步自选股票。"
+  },
   position: {
     level: "monthly",
     title: "会员可用以损定仓",
