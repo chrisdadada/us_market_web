@@ -15,11 +15,13 @@
 - `scripts/`：离线数据下载、清洗、构建、发布脚本。
 - `data/product.db` 与运行态 `app.db`：SQLite 数据库。
 
-历史遗留：
+前端唯一基线：
 
-- `index.html`、`app.js`、`styles.css`、`admin.html` 仍存在 legacy 页面。
-- 新功能优先进入 `main-web/` 或 `admin-web/`。
-- legacy 只做兼容或紧急修复，不继续扩大。
+- `main-web/` 和 `admin-web/` 是唯一允许继续开发、修复和发布的前端源码。
+- `index.html`、`app.js`、`styles.css`、`admin.html` 仅为待删除的 legacy 迁移壳，不再修样式、不加功能。
+- legacy 当前只保留 5 个待迁移能力：期权流向、趋势信号历史、股票事件榜单、财报质量筛选、自选。
+- `tests/test_frontend_architecture.py` 限定上述迁移白名单；禁止新增 `/legacy` 依赖。
+- 待迁移清单清零后，必须同批删除 legacy 文件、`/legacy` 部署步骤和旧版路由测试。
 
 ## 2. 数据库边界
 

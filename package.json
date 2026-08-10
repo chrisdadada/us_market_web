@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "npm --prefix main-web run build && npm --prefix admin-web run build",
-    "check": "npm run build && npm run test:frontend-typography && npm run test:frontend-style && npm run test:position && python3 -m unittest tests/test_dev_code_deploy.py && python3 -m py_compile server/auth_api.py",
+    "check": "npm run build && npm run test:frontend-typography && npm run test:frontend-style && npm run test:position && python3 -m unittest tests/test_frontend_architecture.py tests/test_dev_code_deploy.py && python3 -m py_compile server/auth_api.py",
     "test": "bash scripts/run_release_gate.sh",
     "test:routes": "node scripts/test_frontend_routes.mjs",
     "test:next": "node scripts/test_next_routes.mjs",

@@ -95,7 +95,8 @@ const secondaryNavItems: NavItem[] = [
   { key: "forum", label: pageLabels.forum, status: "待开放", disabled: true }
 ];
 
-const adminToolDataNavItems: Array<{ href: string; label: string }> = [
+// Temporary retirement list. Remove each route when its useful behavior reaches the white frontend.
+const legacyMigrationNavItems: Array<{ href: string; label: string }> = [
   { href: "/legacy/#options", label: "期权流向" },
   { href: "/legacy/#signals", label: "趋势信号" },
   { href: "/legacy/#stock-events", label: "股票事件" },
@@ -1135,7 +1136,7 @@ function App() {
           <div className="navToolGroup">
             <p className="navGroupTitle">管理员工具</p>
               {renderNavItems(toolDataPageNavItems)}
-              {adminToolDataNavItems.map((item) => (
+              {legacyMigrationNavItems.map((item) => (
                 <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)}>{item.label}</a>
               ))}
           </div>
