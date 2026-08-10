@@ -568,9 +568,13 @@ try {
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=calendar`, { waitUntil: "networkidle" });
         assert(await page.locator(".calendarPageHead").count() === 0, "calendar should not repeat the navigation title");
+        assert(await page.locator(".calendarFilters > strong").count() === 0, "calendar filters should not repeat the page title");
         assert(!(await page.locator("body").innerText()).includes("北京时间"), "calendar should not show redundant timezone copy");
         assert(await page.locator(".calendarCoreMacro").count() === 1, "calendar should keep CPI, payrolls and FOMC in the core macro tracker");
         assert(await page.locator(".calendarMacroTabs").count() === 1, "calendar should provide the three core macro tabs");
+        assert(await page.locator(".calendarCoreHead").count() === 0, "calendar should not add a redundant core macro heading");
+        assert(await page.locator(".calendarNextEvent > div").count() === 4, "calendar next event should keep date, event, forecast and previous value");
+        assert(await page.locator(".calendarMacroTimeline article").count() <= 6, "calendar should keep the core timeline concise");
         assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
         const calendarSectionOrder = await page.evaluate(() => {
           const macro = document.querySelector(".calendarCoreMacro");
@@ -579,6 +583,8 @@ try {
         });
         assert(calendarSectionOrder, "macro events should remain above the earnings calendar");
         assert(!(await page.locator("body").innerText()).includes("优先看利率、通胀、就业"), "calendar should remove explanatory filler");
+        assert(!(await page.locator("body").innerText()).includes("下一次公布 · 历史变化"), "calendar should remove redundant core macro helper copy");
+        assert(!(await page.locator("body").innerText()).includes("按日期排列"), "calendar should remove redundant earnings helper copy");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-calendar-desktop.png`, fullPage: true });
 
         await page.setViewportSize({ width: 390, height: 844 });

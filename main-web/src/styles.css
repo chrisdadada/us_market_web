@@ -11049,18 +11049,12 @@ body,
 .calendarV3 .calendarFilters {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
-  min-height: 58px;
-  padding: 10px 190px 10px 14px;
+  min-height: 54px;
+  padding: 9px 14px;
   border-bottom: 1px solid #dbe5f0;
   background: #fff;
-}
-
-.calendarV3 .calendarFilters > strong {
-  color: #172033;
-  font-size: 14px;
-  font-weight: 650;
 }
 
 .calendarV3 .calendarFilterControls {
@@ -11128,12 +11122,12 @@ body,
 
 .calendarV3 .calendarNextEvent {
   display: grid;
-  grid-template-columns: 150px minmax(220px, .9fr) minmax(180px, 1fr) 88px;
-  min-height: 88px;
+  grid-template-columns: 122px minmax(160px, 1fr) 110px 110px 88px;
+  min-height: 64px;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   border-bottom: 8px solid #f3f7fb;
-  padding: 14px 18px;
+  padding: 10px 14px;
 }
 
 .calendarV3 .calendarNextEvent > div {
@@ -11149,17 +11143,17 @@ body,
 
 .calendarV3 .calendarNextEvent strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 3px;
   overflow: hidden;
   color: #172033;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .calendarV3 .calendarNextEvent > div:first-child strong {
-  font-size: 16px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -11201,7 +11195,7 @@ body,
 
 .calendarV3 .calendarMacroTabs {
   display: flex;
-  min-height: 54px;
+  min-height: 52px;
   align-items: center;
   gap: 4px;
   border-bottom: 1px solid #e5ebf2;
@@ -11234,8 +11228,8 @@ body,
 
 .calendarV3 .calendarMacroSummary > div {
   min-width: 0;
-  min-height: 72px;
-  padding: 14px 16px;
+  min-height: 64px;
+  padding: 11px 14px;
 }
 
 .calendarV3 .calendarMacroSummary > div + div {
@@ -11247,7 +11241,7 @@ body,
   margin-top: 7px;
   overflow: hidden;
   color: #172033;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11289,10 +11283,14 @@ body,
 }
 
 .calendarV3 .calendarMacroTimeline article {
-  min-height: 52px;
+  min-height: 46px;
   border-bottom: 1px solid #edf1f6;
   color: #263247;
   font-size: 12px;
+}
+
+.calendarV3 .calendarMacroTimeline article.isFuture {
+  background: #f4f9ff;
 }
 
 .calendarV3 .calendarMacroTimeline article > span:first-child {
@@ -11731,9 +11729,16 @@ body,
     padding: 14px;
   }
 
-  .calendarV3 .calendarNextEvent > div:nth-child(2),
-  .calendarV3 .calendarNextEvent > div:nth-child(3) {
+  .calendarV3 .calendarNextEvent > div:nth-child(2) {
     grid-column: 1 / -1;
+  }
+
+  .calendarV3 .calendarNextEvent > div:nth-child(3) {
+    grid-column: 1;
+  }
+
+  .calendarV3 .calendarNextEvent > div:nth-child(4) {
+    grid-column: 2;
   }
 
   .calendarV3 .calendarNextEvent > em {

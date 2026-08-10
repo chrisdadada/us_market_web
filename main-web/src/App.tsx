@@ -3867,29 +3867,30 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
     };
   }, [earningsRetry, impact, pageIndex, windowDays]);
 
+  const otherMacroRows = macroRows.filter((event) => !coreMacroKind(event) && (impact === "all" || event.impact === impact));
+
   return (
     <div className="calendarPage calendarV3">
       <section className="calendarWorkbench">
         <div className="calendarFilters">
-          <strong>重点财经前瞻</strong>
           <div className="calendarFilterControls">
-          <div className="calendarWindowTabs">
-            {[
-              ["7", "未来7天"],
-              ["30", "未来30天"],
-              ["45", "未来45天"]
-            ].map(([value, label]) => (
-              <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => setWindowDays(value)}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <select value={impact} onChange={(event) => setImpact(event.target.value)}>
-            <option value="all">全部影响</option>
-            <option value="high">高</option>
-            <option value="medium">中</option>
-            <option value="low">低</option>
-          </select>
+            <div className="calendarWindowTabs">
+              {[
+                ["7", "未来7天"],
+                ["30", "未来30天"],
+                ["45", "未来45天"]
+              ].map(([value, label]) => (
+                <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => setWindowDays(value)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <select value={impact} onChange={(event) => setImpact(event.target.value)}>
+              <option value="all">全部影响</option>
+              <option value="high">高</option>
+              <option value="medium">中</option>
+              <option value="low">低</option>
+            </select>
           </div>
         </div>
         <CoreMacroTracker
@@ -3902,23 +3903,23 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
             setResultRetry((value) => value + 1);
           }}
         />
-        <section className="calendarSection calendarOtherMacroSection">
-          <div className="calendarSectionHead">
-            <h2>其它宏观</h2>
-            {!macroError ? <span>未来{windowDays}天</span> : null}
-          </div>
-          <CalendarEventsTable
-            kind="macro"
-            rows={macroRows.filter((event) => !coreMacroKind(event) && (impact === "all" || event.impact === impact))}
-            loading={macroLoading}
-            error={macroError}
-            onRetry={() => setMacroRetry((value) => value + 1)}
-          />
-        </section>
+        {macroLoading || macroError || otherMacroRows.length ? (
+          <section className="calendarSection calendarOtherMacroSection">
+            <div className="calendarSectionHead">
+              <h2>其它宏观</h2>
+            </div>
+            <CalendarEventsTable
+              kind="macro"
+              rows={otherMacroRows}
+              loading={macroLoading}
+              error={macroError}
+              onRetry={() => setMacroRetry((value) => value + 1)}
+            />
+          </section>
+        ) : null}
         <section className="calendarSection calendarEarningsSection">
           <div className="calendarSectionHead">
             <h2>财报日历</h2>
-            <span>按日期排列</span>
           </div>
           <CalendarEventsTable
             kind="earnings"
@@ -3965,7 +3966,7 @@ function CoreMacroTracker({
   const latestResult = selectedResults[0] || null;
   const timeline = [...selectedUpcoming, ...selectedResults]
     .filter((event, index, rows) => rows.findIndex((candidate) => candidate.id === event.id) === index)
-    .slice(0, 12);
+    .slice(0, 6);
 
   return (
     <section className="calendarCoreMacro">
@@ -3979,14 +3980,14 @@ function CoreMacroTracker({
           <span>{nextCore ? "等待公布" : ""}</span>
         </div>
         <div>
-          <strong>{nextCore ? "待公布" : "--"}</strong>
-          <span>{nextCore ? `前值 ${macroResultValue(nextCore, nextCore.previousLabel, nextCore.previousValue) || "--"}` : ""}</span>
+          <span>市场预期</span>
+          <strong>{nextCore ? macroResultValue(nextCore, nextCore.forecastLabel, nextCore.forecastValue) || "--" : "--"}</strong>
+        </div>
+        <div>
+          <span>前值</span>
+          <strong>{nextCore ? macroResultValue(nextCore, nextCore.previousLabel, nextCore.previousValue) || "--" : "--"}</strong>
         </div>
         {nextCore ? <em className={impactClass(nextCore.impact)}>{impactLabel(nextCore.impact)}影响</em> : null}
-      </div>
-      <div className="calendarSectionHead calendarCoreHead">
-        <h2>核心宏观</h2>
-        <span>下一次公布 · 历史变化</span>
       </div>
       <div className="calendarMacroTabs" role="tablist" aria-label="核心宏观指标">
         {coreMacroTabs.map((tab) => (
@@ -4024,7 +4025,7 @@ function CoreMacroTracker({
             {timeline.map((event) => {
               const actual = publishedIds.has(event.id) ? macroResultValue(event, event.actualLabel, event.actualValue) : "";
               return (
-                <article key={event.id}>
+                <article key={event.id} className={!actual ? "isFuture" : ""}>
                   <span data-label="公布时间">{macroDateTime(event)}</span>
                   <strong data-label="实际值" className={!actual ? "pending" : ""}>{actual || "待公布"}</strong>
                   <span data-label="市场预期">{macroResultValue(event, event.forecastLabel, event.forecastValue) || "--"}</span>
