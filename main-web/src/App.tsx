@@ -2409,7 +2409,7 @@ const marketPressureThresholds: Record<string, number> = {
   vixcls: 28,
   dgs10: 4.8,
   dgs30: 5,
-  dtwexbgs: 120,
+  dxy: 105,
   dcoilwtico: 105,
   dcoilbrenteu: 105,
   cpiaucsl: 3.2

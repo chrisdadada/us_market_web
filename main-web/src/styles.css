@@ -23,6 +23,9 @@
   --front-type-panel-title: 13px;
   --front-weight-title: 650;
   --front-weight-panel-title: 620;
+  --front-nav-size: 13px;
+  --front-nav-weight: 520;
+  --front-nav-row-height: 38px;
   --front-table-head-size: 11.5px;
   --front-table-body-size: 12px;
   --front-table-sub-size: 11px;
@@ -3858,7 +3861,8 @@ td {
 td strong {
   display: block;
   color: var(--text);
-  font-size: 17px;
+  font-size: inherit;
+  font-weight: var(--front-table-value-weight);
 }
 
 td span {
@@ -7380,11 +7384,11 @@ body,
 }
 
 .sideRail nav button {
-  min-height: 40px;
+  min-height: var(--front-nav-row-height);
   border-radius: 9px;
   padding: 0 12px;
-  font-size: 14px;
-  font-weight: 560;
+  font-size: var(--front-nav-size);
+  font-weight: var(--front-nav-weight);
 }
 
 .sideRail nav button em {
@@ -12866,6 +12870,13 @@ body,
   overflow: hidden;
   max-width: 100%;
   text-overflow: ellipsis;
+}
+
+.stockLibraryTable td > strong {
+  color: var(--text);
+  font-size: var(--front-table-body-size);
+  font-weight: var(--front-table-value-weight);
+  line-height: 1.25;
 }
 
 .stockLibraryTable td > span:not(.signalDirectionBadge) {
