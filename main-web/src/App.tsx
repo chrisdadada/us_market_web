@@ -62,7 +62,7 @@ type NavItem = { key: PageKey; label: string; status?: string; disabled?: boolea
 
 const pageLabels: Record<PageKey, string> = {
   home: "首页",
-  opinions: "美股热点风向标",
+  opinions: "猫言猫语",
   calendar: "重点财经前瞻",
   tracking: "机会跟踪榜单",
   stocks: "美股行情",
@@ -117,7 +117,6 @@ const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
 const volumeRatioHelp = "当前成交额相对近20日平均成交额的倍数，越高代表成交越活跃。";
 const keyLevelsHelp = "根据近120个交易日的价格拐点、波动区间和均线自动计算，仅作观察参考。";
-const trackingGuideHelp = "先看近1月和近1周谁更强，再看趋势方向有没有信号，最后看支撑和阻力。榜单只用于缩小观察范围，不代表可以买入。";
 const marketTemperatureHelp = "市场温度怎么看\n分数越高，市场整体越强；分数越低，市场风险越高。\n70–100 偏强：市场较强，可以积极找机会，但不要盲目追高\n50–69 中性：方向不清，等走势更明确再操作\n0–49 防守：风险较高，少追涨、控制仓位\n根据恐慌指数、利率、通胀、美元、原油及标普和纳指趋势综合计算，仅用于判断市场环境，不代表未来一定上涨或下跌。";
 const marketTemperatureAdvice: Record<string, string> = {
   偏强: "市场较强，可重点观察强势股",
@@ -233,6 +232,7 @@ const trackingSymbolNames: Record<string, string> = {
 
 const sectionLabels: Record<string, string> = {
   weekly: "周度前瞻",
+  crypto: "加密相关",
   premarket: "盘前前瞻",
   daily: "每日个股行情观点",
   research: "研报解析",
@@ -1769,10 +1769,6 @@ function OpinionsPage({
   if (!selectedId) {
     return (
       <div className="opinionProductPage">
-        <header className="frontPageHeading opinionProductHeading">
-          <h1>{pageLabels.opinions}</h1>
-          <span>{displayRows[0]?.tradeDate ? `更新 ${formatOpinionTime(displayRows[0].tradeDate)}` : ""}</span>
-        </header>
         <div className="opinionProductTabs">
           {sectionOptions.map((item) => (
             <button key={item.key} type="button" className={item.key === section ? "active" : ""} onClick={() => changeSection(item.key)}>
@@ -2090,10 +2086,6 @@ function TrackingPage({
 
   return (
     <div className="trackingPage">
-      <header className="frontPageHeading trackingHeading">
-        <h1>{pageLabels.tracking}</h1>
-        <InfoTip text={trackingGuideHelp} focusable />
-      </header>
       <section className="screenerCard">
         <div className="trackingAddStrip">
           <span>本次新增</span>
@@ -2581,7 +2573,6 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
-      <header className="frontPageHeading marketToolHeading"><div><h1>{pageLabels.risk}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载市场数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>市场数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无市场温度数据</div> : (
@@ -2676,7 +2667,6 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="marketToolPage indexValuationPage" data-testid="index-valuation-page">
-      <header className="frontPageHeading marketToolHeading"><div><h1>{pageLabels.valuation}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载估值数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>估值数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !selected ? <div className="marketToolEmpty">暂无指数估值数据</div> : (
@@ -2848,7 +2838,6 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
-      <header className="frontPageHeading marketToolHeading"><div><h1>{pageLabels.strength}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载强弱数据...</div> : state === "error" && !payload ? (
         <div className="marketToolError"><span>强弱数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无行业板块强弱数据</div> : (
@@ -3104,7 +3093,6 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors, selectedSector]);
   const selected = sectors.find((item) => item.sector === selectedSector) || sectors[0];
   const volumeRows = (bootstrap?.movers?.boards?.volume?.rows || []).slice(0, 8);
-  const sectorDate = formatDate(activeSectorPayload?.asOf || (sectorRange === "day" ? bootstrap?.movers?.updatedAt || bootstrap?.sectorFlow?.asOf : ""));
   const sectorChange = (sector?: typeof sectors[number]) => Number(sector?.avgChangePct ?? sector?.avgChange ?? 0);
   const sectorFlowTone = (sector?: typeof sectors[number]) => sectorChange(sector) >= 0 ? "up" : "down";
   const sectorFlowLabel = (sector?: typeof sectors[number]) => Number(sector?.netFlowProxy || 0) >= 0 ? "资金流入" : "资金流出";
@@ -3154,10 +3142,6 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors]);
   return (
     <div className="marketPageV3">
-      <header className="frontPageHeading marketPageHeadV3">
-        <h1>{pageLabels.market}</h1>
-        <span>{sectorDate}</span>
-      </header>
       <div className="marketViewTabs" role="tablist" aria-label={`${pageLabels.market}分类`}>
         <button type="button" role="tab" aria-selected={marketView === "sectors"} className={marketView === "sectors" ? "active" : ""} onClick={() => setMarketView("sectors")}>板块资金</button>
         <button type="button" role="tab" aria-selected={marketView === "crypto"} className={marketView === "crypto" ? "active" : ""} onClick={() => setMarketView("crypto")}>加密 ETF</button>
@@ -3493,9 +3477,6 @@ function StocksPage({
 
   return (
     <div className="stocksPage">
-      <div className="frontPageHeading stockLibraryHead">
-        <h1>{pageLabels.stocks}</h1>
-      </div>
       <section className="stockLibraryWorkbench" aria-busy={loadingRows}>
         <div className="stockLibraryPresetRow">
           <div className="stockLibraryTabs">

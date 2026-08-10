@@ -466,12 +466,7 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=tracking`, { waitUntil: "networkidle" });
-        const trackingGuideHelp = page.locator(".trackingHeading .infoTip");
-        await trackingGuideHelp.hover();
-        assert(await trackingGuideHelp.locator(".infoTipBubble").isVisible(), "tracking guide should appear immediately on hover");
-        const trackingGuideText = await trackingGuideHelp.locator(".infoTipBubble").innerText();
-        assert(trackingGuideText.includes("先看近1月和近1周谁更强"), "tracking guide should explain the first comparison");
-        assert(trackingGuideText.includes("不代表可以买入"), "tracking guide should state the product boundary");
+        assert(await page.locator(".trackingPage > h1, .trackingHeading").count() === 0, "tracking page should not repeat the navigation label");
         const keyLevelHelp = page.locator(".trackingKeyLevelsHead .infoTip");
         await keyLevelHelp.hover();
         assert(await keyLevelHelp.locator(".infoTipBubble").isVisible(), "tracking help should appear immediately on hover");
@@ -590,7 +585,7 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
-        assert((await page.locator(".marketPageHeadV3 h1").innerText()) === "市场资金走向", "market page should show the approved page title");
+        assert(await page.locator(".marketPageV3 > h1, .marketPageHeadV3").count() === 0, "market page should not repeat the navigation label");
         assert(await page.locator(".marketSegmentV3 button.active", { hasText: "热力图" }).count() === 1, "market page should open with the heatmap");
         const firstHeatTile = page.locator(".marketHeatmapV3 > button").first();
         await firstHeatTile.hover();
@@ -671,7 +666,7 @@ try {
         const navigationBox = await page.locator(".sideRail").boundingBox();
         assert(Boolean(navigationBox && navigationBox.x <= 1 && navigationBox.width >= 300), `mobile navigation should fully open: ${JSON.stringify(navigationBox)}`);
         const primaryLabels = await page.locator(".sideRail > nav button span").allTextContents();
-        assert(primaryLabels.join("|") === "首页|美股热点风向标|重点财经前瞻|机会跟踪榜单|美股行情|市场资金走向|市场活跃指数|行业板块强弱|指数估值|实战课程", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
+        assert(primaryLabels.join("|") === "首页|猫言猫语|重点财经前瞻|机会跟踪榜单|美股行情|市场资金走向|市场活跃指数|行业板块强弱|指数估值|实战课程", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
         assert(await page.locator(".sideRail", { hasText: "工具数据" }).count() === 0, "mobile navigation should not separate market pages into a tool-data group");
         assert(await page.locator(".sideRail", { hasText: "实战课程" }).count() === 1, "courses should appear in mobile navigation");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-navigation.png` });

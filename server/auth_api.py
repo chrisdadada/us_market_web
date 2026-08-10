@@ -61,6 +61,7 @@ SUPER_ADMIN_PASSWORD = os.environ.get("SUPER_ADMIN_PASSWORD", "")
 SIGNALS_API_TOKEN = os.environ.get("SIGNALS_API_TOKEN", "")
 MARKET_OPINION_SECTIONS = {
     "weekly": "周度前瞻",
+    "crypto": "加密相关",
     "premarket": "盘前前瞻",
     "daily": "每日个股行情观点",
     "research": "研报解析",

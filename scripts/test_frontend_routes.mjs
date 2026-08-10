@@ -21,7 +21,8 @@ const mimeTypes = new Map([
 
 const routeCases = [
   { hash: "", view: "dashboard", text: "最新", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#market-opinion", view: "market-opinion", text: "美股热点风向标" },
+  { hash: "#market-opinion", view: "market-opinion", text: "猫言猫语" },
+  { hash: "#market-opinion/crypto", view: "market-opinion", text: "加密相关" },
   { hash: "#market-opinion/weekly", view: "market-opinion", text: "6月行情可能" },
   { hash: "#market-opinion/daily", view: "market-opinion", text: "MRVL" },
   { hash: "#market-opinion/research", view: "market-opinion", text: "Intel 扩产预期链" },

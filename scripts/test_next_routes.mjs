@@ -177,7 +177,7 @@ function assert(condition, message) {
 
 const routeCases = [
   { query: "", text: "首页" },
-  { query: "?page=opinions", text: "美股热点风向标" },
+  { query: "?page=opinions", text: "猫言猫语" },
   { query: "?page=tracking", text: "机会跟踪榜单" },
   { query: "?page=market", text: "市场资金走向" },
   { query: "?page=risk", text: "注册后查看" },

@@ -1356,7 +1356,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         admin = self.login("admin@example.test", "admin-password")
 
         draft_payload = {
-            "section": "weekly",
+            "section": "crypto",
             "title": "草稿标题",
             "tradeDate": "2026-06-18",
             "summary": "公开摘要",
@@ -1370,6 +1370,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         item_id = payload["item"]["id"]
         self.assertEqual(payload["item"]["status"], "draft")
+        self.assertEqual(payload["item"]["sectionLabel"], "加密相关")
         self.assertEqual(payload["item"]["tradeDate"], "2026-06-18 00:00:00")
 
         status, payload = admin.get("/api/admin/opinions")

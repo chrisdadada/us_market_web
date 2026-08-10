@@ -31,6 +31,7 @@ const roleLabels: Record<string, string> = {
 
 const opinionSections = [
   { value: "weekly", label: "周度前瞻" },
+  { value: "crypto", label: "加密相关" },
   { value: "premarket", label: "盘前前瞻" },
   { value: "daily", label: "每日个股行情观点" },
   { value: "research", label: "研报解析" },
@@ -359,8 +360,8 @@ function StatCard({ label, value, note, tone }: { label: string; value: string |
 const frontPageLabels: Record<string, string> = {
   dashboard: "首页",
   home: "首页",
-  "market-opinion": "美股热点风向标",
-  opinions: "美股热点风向标",
+  "market-opinion": "猫言猫语",
+  opinions: "猫言猫语",
   tracking: "股票机会跟踪榜单",
   stocks: "股票库",
   calendar: "美股重点财经前瞻",
@@ -3222,7 +3223,7 @@ function ContentPage() {
         <section className="panel editorPanel">
           <div className="editorMeta">
             <div>
-              <span>{form.sectionLabel || "美股热点风向标"}</span>
+              <span>{form.sectionLabel || "猫言猫语"}</span>
               <strong>{form.title || "未命名内容"}</strong>
             </div>
             <div className="editorBadges">
@@ -3320,7 +3321,7 @@ function ContentPage() {
 
           <div className="editorActions">
             <div className="editorActionState">
-              <span>{form.sectionLabel || "美股热点风向标"}</span>
+              <span>{form.sectionLabel || "猫言猫语"}</span>
               <strong>{hasUnsavedChanges ? "有未保存修改" : currentStatus}</strong>
             </div>
             <input

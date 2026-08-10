@@ -23,9 +23,9 @@
   --front-type-panel-title: 13px;
   --front-weight-title: 650;
   --front-weight-panel-title: 620;
-  --front-table-head-size: 12px;
-  --front-table-body-size: 12.5px;
-  --front-table-sub-size: 11.5px;
+  --front-table-head-size: 11.5px;
+  --front-table-body-size: 12px;
+  --front-table-sub-size: 11px;
   --front-table-head-weight: 500;
   --front-table-body-weight: 500;
   --front-table-value-weight: 560;
@@ -35,27 +35,6 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-/* Shared frontend type roles. Page selectors below only own layout and spacing. */
-.frontPageHeading h1 {
-  margin: 0;
-  font-size: var(--front-type-page-title);
-  font-weight: var(--front-weight-title);
-  line-height: 1.3;
-}
-
-.frontPageHeading > span,
-.frontPageHeading > div > span {
-  color: var(--muted);
-  font-size: var(--front-type-meta);
-}
-
-@media (max-width: 760px) {
-  .frontPageHeading > span,
-  .frontPageHeading > div > span {
-    font-size: var(--front-type-caption);
-  }
-}
-
 /* Market V3: one compact workspace for sector flow, sector detail and volume movers. */
 .marketPageV3 {
   width: 100%;
@@ -63,24 +42,6 @@
   max-width: 1236px;
   margin: 0 auto;
   padding: 22px 28px 42px;
-}
-
-.marketPageHeadV3 {
-  display: flex;
-  min-height: 40px;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-.marketPageHeadV3 h1 {
-  margin: 0;
-  color: #172033;
-}
-
-.marketPageHeadV3 span {
-  color: #78879d;
 }
 
 .marketWorkbenchV3,
@@ -598,12 +559,6 @@
     padding: 16px 12px 30px;
   }
 
-  .marketPageHeadV3 {
-    min-height: 34px;
-    align-items: center;
-    margin: 0 2px 12px;
-  }
-
   .marketWorkbenchV3,
   .marketVolumeV3 {
     border-radius: 7px;
@@ -867,24 +822,6 @@
   color: var(--text);
 }
 
-.marketToolHeading {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
-  margin-bottom: 14px;
-}
-
-.marketToolHeading > div {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.marketToolHeading h1 {
-  margin: 0;
-}
-
-.marketToolHeading span,
 .marketToolPanelHead span {
   color: var(--muted);
 }
@@ -1083,7 +1020,7 @@
 .marketToolTable th,
 .marketToolTable td { border-bottom: 1px solid var(--line-soft); padding: 8px 12px; color: var(--text); text-align: left; font-size: var(--front-table-body-size); font-weight: var(--front-table-body-weight); vertical-align: middle; }
 .marketToolTable th { height: 36px; color: #6d7b91; background: var(--panel-soft); font-size: var(--front-table-head-size); font-weight: var(--front-table-head-weight); }
-.marketToolTable td { height: 50px; }
+.marketToolTable td { height: 46px; }
 .marketToolTable td strong,
 .marketToolTable td small { display: block; }
 .marketToolTable td strong { font-size: var(--front-table-body-size); font-weight: var(--front-table-body-weight); }
@@ -5658,31 +5595,6 @@ body,
   padding: 22px 30px 44px;
 }
 
-.trackingHeading {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-height: 34px;
-  margin-bottom: 12px;
-}
-
-.trackingHeading h1 {
-  margin: 0;
-  color: var(--text);
-}
-
-.trackingHeading .infoTipBubble {
-  left: 0;
-  width: min(320px, calc(100vw - 72px));
-  max-width: none;
-  transform: translateY(-2px);
-}
-
-.trackingHeading .infoTip:hover .infoTipBubble,
-.trackingHeading .infoTip:focus .infoTipBubble {
-  transform: translateY(0);
-}
-
 .trackingPage .trackingAddStrip {
   min-height: 44px;
   gap: 10px;
@@ -6128,31 +6040,11 @@ body,
   padding: 24px 28px 48px;
 }
 
-.opinionProductHeading,
 .opinionProductTabs,
 .opinionProductLayout.single {
   width: min(1120px, 100%);
   margin-right: auto;
   margin-left: auto;
-}
-
-.opinionProductHeading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 18px;
-}
-
-.opinionProductHeading h1 {
-  margin: 0;
-  color: #172033;
-  letter-spacing: 0;
-}
-
-.opinionProductHeading span {
-  color: #7e8ca0;
-  white-space: nowrap;
 }
 
 .opinionProductTabs {
@@ -6309,12 +6201,6 @@ body,
 @media (max-width: 760px) {
   .opinionProductPage {
     padding: 20px 14px 30px;
-  }
-
-  .opinionProductHeading {
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
   }
 
   .opinionProductTabs {
@@ -10687,7 +10573,7 @@ body,
 
 .trackingPage .screenerTable td,
 .stocksTerminalLayout .stocksListTable td {
-  height: 50px;
+  height: 46px;
   padding: 8px 12px;
 }
 
@@ -11929,17 +11815,6 @@ body,
 }
 
 @media (max-width: 760px) {
-  .trackingHeading .infoTipBubble {
-    left: 50%;
-    width: min(260px, calc(100vw - 40px));
-    transform: translate(-65%, -2px);
-  }
-
-  .trackingHeading .infoTip:hover .infoTipBubble,
-  .trackingHeading .infoTip:focus .infoTipBubble {
-    transform: translate(-65%, 0);
-  }
-
   .trackingPage .trackingAddStrip {
     grid-template-columns: auto minmax(0, 1fr);
     gap: 6px 9px;
@@ -12427,18 +12302,6 @@ body,
   padding: 22px 28px 44px;
 }
 
-.stockLibraryHead {
-  display: flex;
-  min-height: 34px;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.stockLibraryHead h1 {
-  margin: 0;
-  color: var(--text);
-}
-
 .stockLibraryWorkbench {
   overflow: hidden;
   border: 1px solid var(--front-card-border);
@@ -12539,7 +12402,7 @@ body,
 
 .stockLibraryTable th,
 .stockLibraryTable td {
-  height: 50px;
+  height: 46px;
   border-bottom: 1px solid var(--line-soft);
   padding: 8px 10px;
   color: var(--text);
@@ -12775,10 +12638,6 @@ body.stockPreviewOpen {
 @media (max-width: 760px) {
   .stocksPage {
     padding: 24px 15px 36px;
-  }
-
-  .stockLibraryHead {
-    margin-bottom: 11px;
   }
 
   .stockLibraryPresetRow {

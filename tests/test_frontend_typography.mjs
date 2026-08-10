@@ -4,26 +4,16 @@ import { readFileSync } from "node:fs";
 const app = readFileSync(new URL("../main-web/src/App.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../main-web/src/styles.css", import.meta.url), "utf8");
 
-const pageHeadings = [
-  "opinionProductHeading",
-  "trackingHeading",
-  "marketToolHeading",
-  "marketPageHeadV3",
-  "stockLibraryHead"
-];
-
-for (const className of pageHeadings) {
-  assert.match(app, new RegExp(`className="[^"]*frontPageHeading[^"]*${className}|className="[^"]*${className}[^"]*frontPageHeading`));
+const repeatedPageTitles = ["opinions", "tracking", "risk", "valuation", "strength", "market", "stocks"];
+for (const page of repeatedPageTitles) {
+  assert.doesNotMatch(app, new RegExp(`<h1>\\{pageLabels\\.${page}\\}</h1>`), `${page} must not repeat its navigation label as a page heading`);
 }
 
-assert.match(css, /--front-type-page-title:\s*20px;/);
-assert.match(css, /\.frontPageHeading h1\s*\{[^}]*var\(--front-type-page-title\)/s);
-
-for (const className of pageHeadings) {
-  const selector = new RegExp(`\\.${className} h1\\s*\\{([^}]*)\\}`, "g");
-  for (const match of css.matchAll(selector)) {
-    assert.doesNotMatch(match[1], /font-(?:size|weight)\s*:/, `${className} must use the shared page-title role`);
-  }
-}
+assert.match(app, /opinions:\s*"猫言猫语"/);
+assert.match(app, /crypto:\s*"加密相关"/);
+assert.match(css, /--front-table-head-size:\s*11\.5px;/);
+assert.match(css, /--front-table-body-size:\s*12px;/);
+assert.match(css, /--front-table-sub-size:\s*11px;/);
+assert.doesNotMatch(css, /\.(?:opinionProductHeading|trackingHeading|marketToolHeading|marketPageHeadV3|stockLibraryHead)\b/);
 
 console.log("frontend typography contract: ok");
