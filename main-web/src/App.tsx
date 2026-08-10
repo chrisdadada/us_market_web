@@ -1769,7 +1769,7 @@ function OpinionsPage({
   if (!selectedId) {
     return (
       <div className="opinionProductPage">
-        <header className="opinionProductHeading">
+        <header className="frontPageHeading opinionProductHeading">
           <h1>{pageLabels.opinions}</h1>
           <span>{displayRows[0]?.tradeDate ? `更新 ${formatOpinionTime(displayRows[0].tradeDate)}` : ""}</span>
         </header>
@@ -2090,7 +2090,7 @@ function TrackingPage({
 
   return (
     <div className="trackingPage">
-      <header className="trackingHeading">
+      <header className="frontPageHeading trackingHeading">
         <h1>{pageLabels.tracking}</h1>
         <InfoTip text={trackingGuideHelp} focusable />
       </header>
@@ -2581,7 +2581,7 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
-      <header className="marketToolHeading"><div><h1>{pageLabels.risk}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
+      <header className="frontPageHeading marketToolHeading"><div><h1>{pageLabels.risk}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载市场数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>市场数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无市场温度数据</div> : (
@@ -2676,7 +2676,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="marketToolPage indexValuationPage" data-testid="index-valuation-page">
-      <header className="marketToolHeading"><div><h1>{pageLabels.valuation}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
+      <header className="frontPageHeading marketToolHeading"><div><h1>{pageLabels.valuation}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载估值数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>估值数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !selected ? <div className="marketToolEmpty">暂无指数估值数据</div> : (
@@ -2848,7 +2848,7 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
-      <header className="marketToolHeading"><div><h1>{pageLabels.strength}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
+      <header className="frontPageHeading marketToolHeading"><div><h1>{pageLabels.strength}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载强弱数据...</div> : state === "error" && !payload ? (
         <div className="marketToolError"><span>强弱数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无行业板块强弱数据</div> : (
@@ -3154,7 +3154,7 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors]);
   return (
     <div className="marketPageV3">
-      <header className="marketPageHeadV3">
+      <header className="frontPageHeading marketPageHeadV3">
         <h1>{pageLabels.market}</h1>
         <span>{sectorDate}</span>
       </header>
@@ -3493,7 +3493,7 @@ function StocksPage({
 
   return (
     <div className="stocksPage">
-      <div className="stockLibraryHead">
+      <div className="frontPageHeading stockLibraryHead">
         <h1>{pageLabels.stocks}</h1>
       </div>
       <section className="stockLibraryWorkbench" aria-busy={loadingRows}>
