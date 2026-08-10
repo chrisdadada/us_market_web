@@ -553,9 +553,9 @@ def update_public_consensus_events(
             continue
         event = match[1]
         forecast = number_value(event.get("Forecast"))
-        if forecast is None:
-            continue
         previous = number_value(event.get("Previous")) if row["previous_value"] is None else None
+        if forecast is None and previous is None:
+            continue
         suffix = "%" if kind in {"cpi", "fomc"} else "K"
         update_event(
             conn,

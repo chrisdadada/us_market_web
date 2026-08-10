@@ -82,6 +82,27 @@ class MacroCalendarResultsTest(unittest.TestCase):
             row = conn.execute("SELECT actual_label, forecast_label, previous_label FROM calendar_events").fetchone()
             self.assertEqual(dict(row), {"actual_label": "+58K", "forecast_label": "110K", "previous_label": "+130K"})
 
+    def test_public_consensus_keeps_previous_when_forecast_is_missing(self) -> None:
+        with closing(sqlite3.connect(":memory:")) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute(
+                """
+                CREATE TABLE calendar_events (
+                  event_id TEXT PRIMARY KEY, event_date TEXT, title TEXT, event_type TEXT,
+                  actual_value REAL, actual_label TEXT, forecast_value REAL, forecast_label TEXT,
+                  previous_value REAL, previous_label TEXT, result_updated_at TEXT
+                )
+                """
+            )
+            conn.execute(
+                "INSERT INTO calendar_events (event_id, event_date, title, event_type) VALUES ('nfp', '2026-09-04', '美国非农就业', 'macro')"
+            )
+            rows = [{"Date": "2026-09-04", "Event": "Non Farm Payrolls", "Previous": "-23K", "Forecast": ""}]
+            self.assertEqual(macro_results.update_public_consensus_events(conn, 1, rows), 1)
+
+            row = conn.execute("SELECT forecast_label, previous_label FROM calendar_events").fetchone()
+            self.assertEqual(dict(row), {"forecast_label": None, "previous_label": "-23K"})
+
     def test_public_calendar_adds_missing_cpi_event(self) -> None:
         with closing(sqlite3.connect(":memory:")) as conn:
             conn.row_factory = sqlite3.Row
