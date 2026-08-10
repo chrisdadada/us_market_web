@@ -569,10 +569,11 @@ try {
         await page.goto(`${server.rootUrl}?page=calendar`, { waitUntil: "networkidle" });
         assert(await page.locator(".calendarPageHead").count() === 0, "calendar should not repeat the navigation title");
         assert(!(await page.locator("body").innerText()).includes("北京时间"), "calendar should not show redundant timezone copy");
-        assert(await page.locator(".calendarMacroTable").count() === 1, "calendar should keep macro events in their own section");
+        assert(await page.locator(".calendarCoreMacro").count() === 1, "calendar should keep CPI, payrolls and FOMC in the core macro tracker");
+        assert(await page.locator(".calendarMacroTabs").count() === 1, "calendar should provide the three core macro tabs");
         assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
         const calendarSectionOrder = await page.evaluate(() => {
-          const macro = document.querySelector(".calendarMacroTable");
+          const macro = document.querySelector(".calendarCoreMacro");
           const earnings = document.querySelector(".calendarEarningsTable");
           return Boolean(macro && earnings && (macro.compareDocumentPosition(earnings) & Node.DOCUMENT_POSITION_FOLLOWING));
         });

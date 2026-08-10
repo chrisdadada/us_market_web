@@ -8,6 +8,14 @@ import scripts.update_macro_calendar_results as macro_results
 
 
 class MacroCalendarResultsTest(unittest.TestCase):
+    def test_nonfarm_annual_revision_is_not_a_monthly_payroll_event(self) -> None:
+        self.assertEqual(
+            macro_results.trading_economics_kind(
+                {"Event": "Non Farm Payrolls Annual Revision Prel"}
+            ),
+            "",
+        )
+
     def test_public_calendar_parser_reads_consensus_and_converts_gmt_date(self) -> None:
         parser = macro_results.PublicCalendarParser()
         parser.feed(
@@ -142,6 +150,39 @@ class MacroCalendarResultsTest(unittest.TestCase):
             row = conn.execute("SELECT actual_label, forecast_label, previous_label FROM calendar_events").fetchone()
             self.assertEqual(dict(row), {"actual_label": "57K", "forecast_label": "110K", "previous_label": "129K"})
 
+    def test_provider_does_not_publish_future_actual(self) -> None:
+        with closing(sqlite3.connect(":memory:")) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute(
+                """
+                CREATE TABLE calendar_events (
+                  event_id TEXT PRIMARY KEY,
+                  event_date TEXT,
+                  title TEXT,
+                  event_type TEXT,
+                  actual_value REAL,
+                  actual_label TEXT,
+                  forecast_value REAL,
+                  forecast_label TEXT,
+                  previous_value REAL,
+                  previous_label TEXT,
+                  result_updated_at TEXT
+                )
+                """
+            )
+            conn.execute(
+                "INSERT INTO calendar_events (event_id, event_date, title, event_type) VALUES (?, ?, ?, ?)",
+                ("future-cpi", "2099-07-14", "美国 CPI", "macro"),
+            )
+            rows = [{"Date": "2099-07-14T08:30:00", "Event": "Inflation Rate YoY", "Actual": "3.5%", "Forecast": "3.8%", "Previous": "4.2%"}]
+            with patch.object(macro_results, "fetch_trading_economics_calendar", return_value=rows):
+                self.assertEqual(macro_results.update_trading_economics_events(conn, "key", 1), 1)
+
+            row = conn.execute(
+                "SELECT actual_label, forecast_label, previous_label FROM calendar_events"
+            ).fetchone()
+            self.assertEqual(dict(row), {"actual_label": None, "forecast_label": "3.8%", "previous_label": "4.2%"})
+
     def test_cpi_prefers_headline_yoy_over_core_and_monthly_rows(self) -> None:
         with closing(sqlite3.connect(":memory:")) as conn:
             conn.row_factory = sqlite3.Row
@@ -209,9 +250,10 @@ class MacroCalendarResultsTest(unittest.TestCase):
             with patch.object(macro_results, "fetch_fred", return_value=target):
                 self.assertEqual(macro_results.update_fomc_events(conn, 1), 0)
 
-            row = conn.execute("SELECT actual_value, actual_label FROM calendar_events").fetchone()
+            row = conn.execute("SELECT actual_value, actual_label, previous_label FROM calendar_events").fetchone()
             self.assertIsNone(row["actual_value"])
             self.assertIsNone(row["actual_label"])
+            self.assertEqual(row["previous_label"], "3.75%-3.75%")
 
 
 if __name__ == "__main__":

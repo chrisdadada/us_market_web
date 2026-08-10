@@ -218,6 +218,8 @@ def fetch_trading_economics_calendar(api_key: str, start: date, end: date, timeo
 
 def trading_economics_kind(row: dict[str, Any]) -> str:
     text = " ".join(str(row.get(key) or "") for key in ("Event", "Category", "Ticker", "Symbol")).lower()
+    if "revision" in text or "benchmark" in text:
+        return ""
     if "non farm payroll" in text or "nonfarm payroll" in text or "payrolls" in text:
         return "payrolls"
     if "inflation rate" in text or "consumer price" in text or "cpi" in text:
@@ -299,6 +301,11 @@ def event_date(value: Any) -> str:
     return str(value or "")[:10]
 
 
+def macro_release_at(row: sqlite3.Row) -> datetime:
+    event_time = row["event_time"] if "event_time" in row.keys() and row["event_time"] else "23:59"
+    return datetime.strptime(f"{row['event_date']} {str(event_time)[:5]}", "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+
+
 def provider_match_score(kind: str, event: dict[str, Any]) -> int:
     text = " ".join(str(value or "") for value in event.values()).lower()
     if kind != "cpi":
@@ -317,7 +324,7 @@ def provider_match_score(kind: str, event: dict[str, Any]) -> int:
 def update_provider_events(conn: sqlite3.Connection, events: list[dict[str, Any]], kind_fn, date_key: str, forecast_key: str, actual_key: str, previous_key: str) -> int:
     rows = conn.execute(
         """
-        SELECT event_id, event_date, title
+        SELECT *
         FROM calendar_events
         WHERE event_type = 'macro'
         """
@@ -332,6 +339,7 @@ def update_provider_events(conn: sqlite3.Connection, events: list[dict[str, Any]
             if score >= 0 and (existing is None or score > existing[0]):
                 by_date_kind[(day, kind)] = (score, event)
     updated = 0
+    now = datetime.now(ZoneInfo("Asia/Shanghai"))
     for row in rows:
         kind = macro_kind(row["title"] or "")
         match = by_date_kind.get((row["event_date"], kind))
@@ -339,7 +347,7 @@ def update_provider_events(conn: sqlite3.Connection, events: list[dict[str, Any]
             continue
         event = match[1]
         suffix = "%" if kind in {"cpi", "fomc"} else "K"
-        actual = number_value(event.get(actual_key))
+        actual = number_value(event.get(actual_key)) if macro_release_at(row) <= now else None
         forecast = number_value(event.get(forecast_key))
         previous = number_value(event.get(previous_key))
         if actual is None and forecast is None and previous is None:
@@ -363,7 +371,7 @@ def update_fmp_events(conn: sqlite3.Connection, api_key: str, timeout: int) -> i
         return 0
     rows = conn.execute(
         """
-        SELECT event_id, event_date, title
+        SELECT *
         FROM calendar_events
         WHERE event_type = 'macro'
         """
@@ -478,7 +486,7 @@ def update_public_consensus_events(
 def update_bls_events(conn: sqlite3.Connection, timeout: int) -> int:
     rows = conn.execute(
         """
-        SELECT event_id, event_date, title
+        SELECT *
         FROM calendar_events
         WHERE event_type = 'macro' AND (title LIKE '%CPI%' OR title LIKE '%非农%' OR title LIKE '%Employment Situation%')
         """
@@ -493,8 +501,11 @@ def update_bls_events(conn: sqlite3.Connection, timeout: int) -> int:
     if not series.get("CES0000000001"):
         series["CES0000000001"] = fred_monthly_points("PAYEMS", timeout)
     updated = 0
+    now = datetime.now(ZoneInfo("Asia/Shanghai"))
     for row in rows:
         event_day = date.fromisoformat(row["event_date"])
+        if macro_release_at(row) > now:
+            continue
         year, period = month_before(event_day)
         title = row["title"] or ""
         if "CPI" in title:
@@ -529,7 +540,7 @@ def update_fomc_events(conn: sqlite3.Connection, timeout: int) -> int:
         "SELECT event_id, event_date, event_time, title FROM calendar_events WHERE event_type = 'macro' AND title LIKE '%FOMC%'"
     ))
     for row in rows:
-        release_at = datetime.strptime(f"{row['event_date']} {row['event_time'] or '23:59'}", "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+        release_at = macro_release_at(row)
         if release_at > now:
             conn.execute(
                 "UPDATE calendar_events SET actual_value = NULL, actual_label = NULL WHERE event_id = ?",
@@ -541,8 +552,17 @@ def update_fomc_events(conn: sqlite3.Connection, timeout: int) -> int:
         return 0
     updated = 0
     for row in rows:
-        release_at = datetime.strptime(f"{row['event_date']} {row['event_time'] or '23:59'}", "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+        release_at = macro_release_at(row)
         if release_at > now:
+            current_up = latest_on_or_before(upper, now.date())
+            current_low = latest_on_or_before(lower, now.date())
+            if current_up and current_low:
+                update_event(
+                    conn,
+                    row["event_id"],
+                    previous=current_up[1],
+                    previous_label=f"{current_low[1]:.2f}%-{current_up[1]:.2f}%",
+                )
             continue
         day = date.fromisoformat(row["event_date"]) + timedelta(days=2)
         up = latest_on_or_before(upper, day)
@@ -570,6 +590,18 @@ def main() -> None:
         ensure_columns(conn)
         public_events = fetch_public_consensus_calendar(args.timeout)
         inserted_count = ensure_public_macro_events(conn, public_events)
+        now = datetime.now(ZoneInfo("Asia/Shanghai"))
+        today = now.date().isoformat()
+        conn.execute(
+            """
+            UPDATE calendar_events
+            SET actual_value = NULL, actual_label = NULL
+            WHERE event_type = 'macro'
+              AND (event_date > ?
+                   OR (event_date = ? AND COALESCE(NULLIF(event_time, ''), '23:59') > ?))
+            """,
+            (today, today, now.strftime("%H:%M")),
+        )
         bls_count = update_bls_events(conn, args.timeout)
         fomc_count = update_fomc_events(conn, args.timeout)
         public_count = update_public_consensus_events(conn, args.timeout, public_events)

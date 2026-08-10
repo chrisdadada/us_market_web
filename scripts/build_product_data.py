@@ -349,9 +349,9 @@ def build_macro_calendar_events(start: date, end: date, limit: int = 200) -> lis
 
 def build_events_calendar() -> dict[str, Any]:
     existing: dict[str, Any] = {}
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     horizon_end = today + timedelta(days=90)
-    macro_start = today - timedelta(days=45)
+    macro_start = date(today.year, 1, 1)
     base_events = [
         event
         for event in existing.get("events", [])
