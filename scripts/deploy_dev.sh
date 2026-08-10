@@ -20,6 +20,19 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   exit 1
 fi
 
+release_commit="$(git rev-parse HEAD)"
+previous_dev_commit="$(ssh "${SERVER}" 'cat /opt/dongbimao-dev/main-web/dist/.release-commit 2>/dev/null || true')"
+if [ -n "${previous_dev_commit}" ]; then
+  if ! [[ "${previous_dev_commit}" =~ ^[0-9a-f]{40}$ ]] || ! git cat-file -e "${previous_dev_commit}^{commit}" 2>/dev/null; then
+    echo "Cannot verify the currently deployed dev commit: ${previous_dev_commit}" >&2
+    exit 1
+  fi
+  if ! git merge-base --is-ancestor "${previous_dev_commit}" "${release_commit}"; then
+    echo "Dev release is not cumulative: current dev ${previous_dev_commit} is not contained in ${release_commit}." >&2
+    exit 1
+  fi
+fi
+
 if [ -f "${LOCAL_ENV_FILE}" ]; then
   set -a
   # shellcheck disable=SC1090
@@ -40,9 +53,12 @@ ensure_web_dependencies() {
 }
 
 ensure_web_dependencies admin-web
-npm --prefix admin-web run build
 ensure_web_dependencies main-web
-npm --prefix main-web run build
+npm run check
+
+release_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '%s\n' "${release_commit}" > main-web/dist/.release-commit
+printf '{"commit":"%s","deployedAt":"%s"}\n' "${release_commit}" "${release_time}" > main-web/dist/release.json
 
 COPYFILE_DISABLE=1 tar \
   --exclude='.git' \
@@ -95,4 +111,10 @@ cp -a /opt/dongbimao-dev/index.html /opt/dongbimao-dev/admin.html /opt/dongbimao
 systemctl restart ytd-gainers-auth-dev 2>/dev/null || true
 '
 
-echo "Dev deployed: https://dev.dongbimao.org/"
+public_release="$(curl -fsS "https://dev.dongbimao.org/release.json?v=${release_commit}")"
+if [[ "${public_release}" != *"\"commit\":\"${release_commit}\""* ]]; then
+  echo "Dev release verification failed: public commit does not match ${release_commit}." >&2
+  exit 1
+fi
+
+echo "Dev deployed: https://dev.dongbimao.org/ (${release_commit})"

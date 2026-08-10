@@ -30,8 +30,11 @@ git switch codex/dev-integration
 ./scripts/deploy_dev.sh
 ```
 
-The deploy script rejects other branches and uncommitted changes. This prevents
-an older feature worktree from replacing the complete dev release.
+The deploy script rejects other branches and uncommitted changes. It also reads
+the commit recorded by the current dev site and requires that commit to be an
+ancestor of the new release. A partial or older branch therefore cannot replace
+the cumulative dev baseline. The deployed commit is available at
+`https://dev.dongbimao.org/release.json` for verification.
 
 Check `https://dev.dongbimao.org` first.
 

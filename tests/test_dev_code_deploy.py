@@ -16,6 +16,19 @@ class DevCodeDeployTest(unittest.TestCase):
         self.assertIn('git status --porcelain --untracked-files=no', DEPLOY)
         self.assertIn('clean committed worktree', DEPLOY)
 
+    def test_requires_a_cumulative_dev_release(self) -> None:
+        self.assertIn('main-web/dist/.release-commit', DEPLOY)
+        self.assertIn('git merge-base --is-ancestor', DEPLOY)
+        self.assertIn('Dev release is not cumulative', DEPLOY)
+
+    def test_records_and_verifies_the_public_commit(self) -> None:
+        self.assertIn('main-web/dist/release.json', DEPLOY)
+        self.assertIn('https://dev.dongbimao.org/release.json', DEPLOY)
+        self.assertIn('public commit does not match', DEPLOY)
+
+    def test_runs_the_release_check_before_packaging(self) -> None:
+        self.assertIn('npm run check', DEPLOY)
+
     def test_reuses_installed_dependencies_when_current(self) -> None:
         self.assertIn('node_modules/.bin/tsc', DEPLOY)
         self.assertIn('npm --prefix "${workspace}" ls --depth=0', DEPLOY)
