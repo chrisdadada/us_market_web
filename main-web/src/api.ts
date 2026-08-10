@@ -570,6 +570,17 @@ export type OpenPortfolioPayload = {
   curve: Array<{ time: string; value: number }>;
 };
 
+export type WatchlistItem = {
+  symbol: string;
+  source: string;
+  reviewAction?: "reviewed" | "continue" | "lower" | null;
+  reviewCount: number;
+  lastReviewedAt?: string | null;
+  nextReviewAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -671,6 +682,24 @@ export const api = {
   symbols: (params: URLSearchParams) => request<SymbolSearchPayload>(`/api/product/symbols?${params.toString()}`),
   symbolDetail: (symbol: string) => request<SymbolDetailPayload>(`/api/product/symbols/${encodeURIComponent(symbol)}`),
   signals: () => request<SignalPayload>("/api/signals"),
+  watchlist: () => request<{ rows: WatchlistItem[] }>("/api/watchlist"),
+  addWatchlist: (symbol: string, source = "手动加入") =>
+    request<{ ok: boolean; saved: number; skipped: number }>("/api/watchlist", {
+      method: "POST",
+      body: JSON.stringify({ symbol, source })
+    }),
+  importWatchlist: (items: Array<Record<string, unknown>>) =>
+    request<{ ok: boolean; saved: number; skipped: number }>("/api/watchlist/import", {
+      method: "POST",
+      body: JSON.stringify({ items })
+    }),
+  reviewWatchlist: (symbol: string, action: "reviewed" | "continue" | "lower") =>
+    request<{ ok: boolean }>("/api/watchlist/review", {
+      method: "POST",
+      body: JSON.stringify({ symbol, action })
+    }),
+  removeWatchlist: (symbol: string) =>
+    request<{ ok: boolean }>(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" }),
   openPortfolio: () => request<OpenPortfolioPayload>("/api/open-portfolio"),
   fundingScanner: (options: FundingScannerQuery) => {
     const params = new URLSearchParams();

@@ -709,6 +709,43 @@ def row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
     return {key: row[key] for key in row.keys()}
 
 
+WATCHLIST_SYMBOL_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9.^-]{0,15}$")
+WATCHLIST_REVIEW_ACTIONS = {"reviewed", "continue", "lower"}
+
+
+def normalize_watchlist_symbol(value: Any) -> str:
+    symbol = str(value or "").strip().upper()
+    if not WATCHLIST_SYMBOL_PATTERN.fullmatch(symbol):
+        raise ValueError("股票代码格式不正确")
+    return symbol
+
+
+def normalize_watchlist_time(value: Any, fallback: str | None = None) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return fallback
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("自选时间格式不正确") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
+def watchlist_item_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "symbol": row["symbol"],
+        "source": row["source"],
+        "reviewAction": row["review_action"],
+        "reviewCount": row["review_count"],
+        "lastReviewedAt": row["last_reviewed_at"],
+        "nextReviewAt": row["next_review_at"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
+
+
 def parse_json_field(value: Any, fallback: Any) -> Any:
     if value is None:
         return fallback
@@ -1471,6 +1508,24 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_analytics_events_user_time ON analytics_events(user_id, created_at);
             CREATE INDEX IF NOT EXISTS idx_analytics_events_type_time ON analytics_events(event_type, created_at);
+
+            CREATE TABLE IF NOT EXISTS user_watchlist_items (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              symbol TEXT NOT NULL,
+              source TEXT NOT NULL DEFAULT '手动加入',
+              review_action TEXT,
+              review_count INTEGER NOT NULL DEFAULT 0,
+              last_reviewed_at TEXT,
+              next_review_at TEXT,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(user_id, symbol),
+              FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_user_watchlist_user_updated
+              ON user_watchlist_items(user_id, updated_at DESC);
 
             CREATE TABLE IF NOT EXISTS password_reset_tokens (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -4181,6 +4236,71 @@ class Handler(BaseHTTPRequestHandler):
                 return None
         return lesson
 
+    def send_watchlist(self, user: sqlite3.Row) -> None:
+        with db() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM user_watchlist_items
+                WHERE user_id = ?
+                ORDER BY COALESCE(next_review_at, updated_at) ASC, updated_at DESC
+                """,
+                (user["id"],),
+            ).fetchall()
+        self.send_json({"rows": [watchlist_item_payload(row) for row in rows]})
+
+    def save_watchlist_items(self, user: sqlite3.Row, items: list[dict[str, Any]], *, skip_missing: bool = False) -> tuple[int, int]:
+        if not items or len(items) > 200:
+            raise ValueError("请选择 1 至 200 只股票")
+        timestamp = now_iso()
+        saved = 0
+        normalized: list[dict[str, Any]] = []
+        for item in items:
+            symbol = normalize_watchlist_symbol(item.get("symbol"))
+            source = str(item.get("source") or "手动加入").strip()[:40] or "手动加入"
+            review_action = str(item.get("reviewAction") or "").strip()
+            if review_action and review_action not in WATCHLIST_REVIEW_ACTIONS:
+                raise ValueError("复盘状态不正确")
+            normalized.append(
+                {
+                    "symbol": symbol,
+                    "source": source,
+                    "review_action": review_action or None,
+                    "review_count": max(0, min(10000, int(item.get("reviewCount") or 0))),
+                    "last_reviewed_at": normalize_watchlist_time(item.get("lastReviewedAt")),
+                    "next_review_at": normalize_watchlist_time(item.get("nextReviewAt")),
+                    "created_at": normalize_watchlist_time(item.get("addedAt") or item.get("createdAt"), timestamp),
+                    "updated_at": normalize_watchlist_time(item.get("updatedAt"), timestamp),
+                }
+            )
+        symbols = {item["symbol"] for item in normalized}
+        placeholders = ",".join("?" for _ in symbols)
+        with product_db() as conn:
+            existing = {
+                row["symbol"]
+                for row in conn.execute(f"SELECT symbol FROM symbols WHERE symbol IN ({placeholders})", tuple(symbols)).fetchall()
+            }
+        missing = sorted(symbols - existing)
+        if missing and not skip_missing:
+            raise ValueError(f"股票代码不存在：{missing[0]}")
+        normalized = [item for item in normalized if item["symbol"] in existing]
+        with db() as conn:
+            for item in normalized:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO user_watchlist_items
+                    (user_id, symbol, source, review_action, review_count, last_reviewed_at, next_review_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, symbol) DO NOTHING
+                    """,
+                    (
+                        user["id"], item["symbol"], item["source"], item["review_action"], item["review_count"],
+                        item["last_reviewed_at"], item["next_review_at"], item["created_at"], item["updated_at"],
+                    ),
+                )
+                saved += cursor.rowcount
+        return saved, len(missing)
+
     def do_GET(self) -> None:
         if self.path == "/api/health":
             self.send_json({"ok": True, "time": now_iso()})
@@ -4199,6 +4319,13 @@ class Handler(BaseHTTPRequestHandler):
                     "entitlements": entitlements(user),
                 }
             )
+            return
+
+        if self.path == "/api/watchlist":
+            user = self.require_user()
+            if not user:
+                return
+            self.send_watchlist(user)
             return
 
         if self.path == "/api/pro/trade-records":
@@ -4472,6 +4599,63 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path in {"/api/watchlist", "/api/watchlist/import"}:
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                payload = self.read_json()
+                items = payload.get("items") if parsed.path.endswith("/import") else [payload]
+                if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+                    raise ValueError("自选数据格式不正确")
+                saved, skipped = self.save_watchlist_items(user, items, skip_missing=parsed.path.endswith("/import"))
+            except (TypeError, ValueError) as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except FileNotFoundError:
+                self.send_json({"error": "产品数据暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            self.send_json({"ok": True, "saved": saved, "skipped": skipped}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/watchlist/review":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                payload = self.read_json()
+                symbol = normalize_watchlist_symbol(payload.get("symbol"))
+                action = str(payload.get("action") or "").strip()
+                if action not in WATCHLIST_REVIEW_ACTIONS:
+                    raise ValueError("复盘状态不正确")
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            timestamp = datetime.now(timezone.utc)
+            next_days = 10 if action == "lower" else 3 if action == "continue" else 5
+            with db() as conn:
+                cursor = conn.execute(
+                    """
+                    UPDATE user_watchlist_items
+                    SET review_action = ?, review_count = review_count + 1,
+                        last_reviewed_at = ?, next_review_at = ?, updated_at = ?
+                    WHERE user_id = ? AND symbol = ?
+                    """,
+                    (
+                        action,
+                        timestamp.isoformat(),
+                        (timestamp + timedelta(days=next_days)).isoformat(),
+                        timestamp.isoformat(),
+                        user["id"],
+                        symbol,
+                    ),
+                )
+            if cursor.rowcount == 0:
+                self.send_json({"error": "自选不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
         if self.path == "/api/auth/login":
             try:
                 payload = self.read_json()
@@ -4936,6 +5120,26 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/watchlist/"):
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                symbol = normalize_watchlist_symbol(unquote(parsed.path.removeprefix("/api/watchlist/")))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            with db() as conn:
+                cursor = conn.execute(
+                    "DELETE FROM user_watchlist_items WHERE user_id = ? AND symbol = ?",
+                    (user["id"], symbol),
+                )
+            if cursor.rowcount == 0:
+                self.send_json({"error": "自选不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
         if parsed.path.startswith("/api/admin/open-portfolio/trades/"):
             admin = self.require_admin()
             if not admin:

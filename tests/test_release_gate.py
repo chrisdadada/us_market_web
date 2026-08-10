@@ -235,6 +235,74 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 400, payload)
         self.assertEqual(payload["error"], "密码不能超过 128 位")
 
+    def test_watchlist_is_account_scoped_and_persists_review_state(self) -> None:
+        product_db = Path(self.tempdir.name) / "product.db"
+        with sqlite3.connect(product_db) as conn:
+            conn.execute("CREATE TABLE symbols (symbol TEXT PRIMARY KEY)")
+            conn.executemany("INSERT INTO symbols(symbol) VALUES (?)", [("NVDA",), ("MU",)])
+        auth_api.PRODUCT_DB_ENV = str(product_db)
+
+        client = self.client()
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual(status, 401, payload)
+        self.assertEqual(payload["code"], "unauthenticated")
+
+        status, payload = client.post(
+            "/api/auth/register",
+            {"email": "watchlist@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 201, payload)
+
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"], [])
+
+        status, payload = client.post("/api/watchlist", {"symbol": "nvda", "source": "股票详情"})
+        self.assertEqual(status, 201, payload)
+        status, payload = client.post(
+            "/api/watchlist/import",
+            {
+                "items": [
+                    {
+                        "symbol": "MU",
+                        "source": "旧版导入",
+                        "reviewAction": "continue",
+                        "reviewCount": 2,
+                        "addedAt": "2026-08-01T00:00:00Z",
+                    },
+                    {"symbol": "OLD", "source": "旧版导入"},
+                ]
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        self.assertEqual(payload["saved"], 1)
+        self.assertEqual(payload["skipped"], 1)
+
+        status, payload = client.post("/api/watchlist/review", {"symbol": "NVDA", "action": "reviewed"})
+        self.assertEqual(status, 200, payload)
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual(status, 200, payload)
+        rows = {row["symbol"]: row for row in payload["rows"]}
+        self.assertEqual(set(rows), {"NVDA", "MU"})
+        self.assertEqual(rows["NVDA"]["reviewAction"], "reviewed")
+        self.assertEqual(rows["NVDA"]["reviewCount"], 1)
+        self.assertEqual(rows["MU"]["reviewCount"], 2)
+
+        other = self.client()
+        status, payload = other.post(
+            "/api/auth/register",
+            {"email": "other-watchlist@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = other.get("/api/watchlist")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"], [])
+
+        status, payload = client.delete("/api/watchlist/NVDA")
+        self.assertEqual(status, 200, payload)
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual([row["symbol"] for row in payload["rows"]], ["MU"])
+
     def test_public_registration_is_rate_limited(self) -> None:
         old_ip_limit = auth_api.REGISTER_IP_LIMIT
         old_email_limit = auth_api.REGISTER_EMAIL_LIMIT

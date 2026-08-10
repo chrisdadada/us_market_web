@@ -25,7 +25,8 @@ import {
   TemperatureIndicator,
   TrackingKeyLevels,
   SymbolDetailPayload,
-  SymbolRow
+  SymbolRow,
+  WatchlistItem
 } from "./api";
 import { calculatePositionSizing, type PositionDirection, type PositionSizingResult } from "./positionSizing";
 import type { CryptoEtfAssetKey, CryptoEtfInterval } from "./CryptoEtfChart";
@@ -52,7 +53,7 @@ import {
   trackingDirectionClass
 } from "./shared";
 
-type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "valuation" | "stocks" | "calendar" | "open" | "position" | "funding" | "forum" | "courses";
+type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "valuation" | "stocks" | "calendar" | "open" | "position" | "watchlist" | "funding" | "forum" | "courses";
 type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
 
@@ -74,6 +75,7 @@ const pageLabels: Record<PageKey, string> = {
   open: "Open 持仓参考",
   forum: "论坛讨论区",
   position: "以损定仓",
+  watchlist: "自选",
   funding: "资金费套利扫描"
 };
 
@@ -100,11 +102,11 @@ const legacyMigrationNavItems: Array<{ href: string; label: string }> = [
   { href: "/legacy/#options", label: "期权流向" },
   { href: "/legacy/#signals", label: "趋势信号" },
   { href: "/legacy/#stock-events", label: "股票事件" },
-  { href: "/legacy/#earnings", label: "财报观察" },
-  { href: "/legacy/#watchlist", label: "自选" }
+  { href: "/legacy/#earnings", label: "财报观察" }
 ];
 
 const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
+  { key: "watchlist", label: pageLabels.watchlist },
   { key: "position", label: pageLabels.position }
 ];
 
@@ -1225,6 +1227,7 @@ function App() {
             {page === "stocks" && selectedSymbolSource !== "tracking" ? <StocksPage selectedSymbol={selectedSymbol} signalStates={signalStates} bootstrap={bootstrap} onSelectSymbol={selectSymbol} /> : null}
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
             {page === "open" ? <OpenPortfolioPage /> : null}
+            {page === "watchlist" ? <WatchlistPage onOpenStock={selectSymbol} /> : null}
             {page === "position" ? <PositionSizingPage /> : null}
             {page === "funding" ? <FundingArbitragePage isAdmin={Boolean(auth?.entitlements?.admin)} /> : null}
             {page === "forum" ? <ComingSoonPage title="论坛讨论区" /> : null}
@@ -2274,6 +2277,7 @@ function TrackingStockDetailPage({
           <div className="trackingStockBadges">
             <SignalDirectionBadge label={direction} />
             <span>信号发出 {row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</span>
+            <AddToWatchlistButton symbol={activeSymbol} />
           </div>
         </div>
         <div className="trackingStockMetrics">
@@ -3338,6 +3342,45 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   );
 }
 
+function AddToWatchlistButton({ symbol }: { symbol: string }) {
+  const [active, setActive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setError("");
+    api.watchlist()
+      .then((payload) => {
+        if (!cancelled) setActive(payload.rows.some((item) => item.symbol === symbol));
+      })
+      .catch(() => {
+        if (!cancelled) setError("自选状态读取失败");
+      });
+    return () => { cancelled = true; };
+  }, [symbol]);
+
+  const add = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.addWatchlist(symbol, "股票概览");
+      setActive(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "添加失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <span className="stockPreviewWatchlist">
+      <button type="button" disabled={active || busy} onClick={() => void add()}>{active ? "已在自选" : busy ? "添加中" : "加入自选"}</button>
+      {error ? <em role="alert">{error}</em> : null}
+    </span>
+  );
+}
+
 function StocksPage({
   selectedSymbol,
   signalStates,
@@ -3605,7 +3648,7 @@ function StocksPage({
           <section className="stockPreviewDrawer" onMouseDown={(event) => event.stopPropagation()}>
             <header>
               <strong>股票概览</strong>
-              <button type="button" aria-label="关闭股票概览" autoFocus onClick={() => onSelectSymbol("")}>×</button>
+              <div><AddToWatchlistButton symbol={activeSymbol} /><button type="button" aria-label="关闭股票概览" autoFocus onClick={() => onSelectSymbol("")}>×</button></div>
             </header>
             {detailError ? (
               <div className="stockPreviewError">
@@ -4005,6 +4048,238 @@ type PositionHistoryItem = {
 const positionHistoryKey = "dongbimao_position_sizing_history_v2";
 const positionAccountKey = "dongbimao_position_sizing_account";
 const positionRiskKey = "dongbimao_position_sizing_risk";
+
+const legacyWatchlistStorageKey = "meigu_strategy_watchlist_v1";
+const watchlistImportDismissedKey = "watchlist_import_dismissed_v1";
+
+function watchlistIsDue(item: WatchlistItem) {
+  if (!item.nextReviewAt) return false;
+  const timestamp = new Date(item.nextReviewAt).getTime();
+  return Number.isFinite(timestamp) && timestamp <= Date.now();
+}
+
+function watchlistTrend(row?: SymbolRow) {
+  const month = Number(row?.monthChange);
+  const week = Number(row?.weekChange);
+  if (Number.isFinite(month) && month >= 5 && (!Number.isFinite(week) || week >= 0)) return { label: "偏强", className: "positive" };
+  if (Number.isFinite(month) && month <= -5) return { label: "转弱", className: "negative" };
+  return { label: "无明确信号", className: "neutral" };
+}
+
+function WatchlistPage({ onOpenStock }: { onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void }) {
+  const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, SymbolRow>>({});
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [newSymbol, setNewSymbol] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [removeSymbol, setRemoveSymbol] = useState("");
+  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [legacyItems, setLegacyItems] = useState<Array<Record<string, unknown>>>([]);
+
+  const refresh = useCallback(async () => {
+    const payload = await api.watchlist();
+    setItems(payload.rows);
+    if (!payload.rows.length) {
+      setProfiles({});
+      return;
+    }
+    const params = new URLSearchParams({
+      preset: "watchlist",
+      watchlist: payload.rows.map((item) => item.symbol).join(","),
+      limit: "200",
+      sort: "dollarVolume",
+      dir: "desc"
+    });
+    const symbols = await api.symbols(params);
+    setProfiles(Object.fromEntries(symbols.rows.map((row) => [row.symbol, row])));
+  }, []);
+
+  useEffect(() => {
+    void refresh().catch((error) => setMessage({ tone: "error", text: error instanceof Error ? error.message : "自选加载失败" }));
+    if (localStorage.getItem(watchlistImportDismissedKey)) return;
+    try {
+      const parsed = JSON.parse(localStorage.getItem(legacyWatchlistStorageKey) || "[]");
+      if (Array.isArray(parsed)) {
+        setLegacyItems(parsed.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object" && "symbol" in item)));
+      }
+    } catch {
+      localStorage.removeItem(legacyWatchlistStorageKey);
+    }
+  }, [refresh]);
+
+  const stats = useMemo(() => ({
+    due: items.filter(watchlistIsDue).length,
+    following: items.filter((item) => item.reviewAction === "continue").length,
+    lower: items.filter((item) => item.reviewAction === "lower").length
+  }), [items]);
+
+  const rows = useMemo(() => items.filter((item) => {
+    const profile = profiles[item.symbol];
+    const needle = query.trim().toLowerCase();
+    if (needle && ![item.symbol, profile?.company, profile?.chineseName].some((value) => String(value || "").toLowerCase().includes(needle))) return false;
+    if (filter === "due") return watchlistIsDue(item);
+    if (filter === "continue") return item.reviewAction === "continue";
+    if (filter === "lower") return item.reviewAction === "lower";
+    return true;
+  }), [filter, items, profiles, query]);
+
+  const add = async (event: FormEvent) => {
+    event.preventDefault();
+    const symbol = newSymbol.trim().toUpperCase();
+    if (!symbol) return;
+    setBusy(symbol);
+    setMessage(null);
+    try {
+      await api.addWatchlist(symbol);
+      setNewSymbol("");
+      setAdding(false);
+      await refresh();
+      setMessage({ tone: "ok", text: `${symbol} 已加入自选` });
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "添加失败" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const review = async (symbol: string, action: "reviewed" | "continue" | "lower") => {
+    setBusy(symbol);
+    setMessage(null);
+    try {
+      await api.reviewWatchlist(symbol, action);
+      await refresh();
+      setMessage({ tone: "ok", text: `${symbol} 复盘状态已更新` });
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "更新失败" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const remove = async (symbol: string) => {
+    setBusy(symbol);
+    setMessage(null);
+    try {
+      await api.removeWatchlist(symbol);
+      setRemoveSymbol("");
+      await refresh();
+      setMessage({ tone: "ok", text: `${symbol} 已移除` });
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "移除失败" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const importLegacy = async () => {
+    setBusy("import");
+    setMessage(null);
+    try {
+      const payload = legacyItems.map((item) => ({ ...item, source: String(item.source || "旧版导入") }));
+      const result = await api.importWatchlist(payload);
+      localStorage.setItem(watchlistImportDismissedKey, "1");
+      setLegacyItems([]);
+      await refresh();
+      setMessage({ tone: "ok", text: `已导入 ${result.saved} 只旧版自选${result.skipped ? `，${result.skipped} 只代码已失效` : ""}` });
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "导入失败" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const dismissImport = () => {
+    localStorage.setItem(watchlistImportDismissedKey, "1");
+    setLegacyItems([]);
+  };
+
+  return (
+    <section className="watchlistPage compactProductPage">
+      <div className="watchlistToolbar">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票代码或公司" aria-label="搜索自选" />
+        <select value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="筛选自选状态">
+          <option value="all">全部状态</option>
+          <option value="due">待复盘</option>
+          <option value="continue">继续跟踪</option>
+          <option value="lower">降低关注</option>
+        </select>
+        <button type="button" className="primaryButton" onClick={() => setAdding((value) => !value)}>添加股票</button>
+      </div>
+
+      {adding ? (
+        <form className="watchlistAddForm" onSubmit={add}>
+          <input autoFocus value={newSymbol} onChange={(event) => setNewSymbol(event.target.value.toUpperCase())} placeholder="输入股票代码，如 NVDA" />
+          <button type="submit" className="primaryButton" disabled={!newSymbol.trim() || Boolean(busy)}>确认添加</button>
+          <button type="button" onClick={() => setAdding(false)}>取消</button>
+        </form>
+      ) : null}
+
+      {legacyItems.length ? (
+        <div className="watchlistImport" role="status">
+          <span>发现本机有 {legacyItems.length} 只旧版自选，导入后会同步到当前账号。</span>
+          <div><button type="button" className="primaryButton" disabled={busy === "import"} onClick={() => void importLegacy()}>导入账号</button><button type="button" onClick={dismissImport}>暂不导入</button></div>
+        </div>
+      ) : null}
+
+      {message ? <div className={`watchlistMessage ${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>{message.text}</div> : null}
+
+      <div className="watchlistStats" aria-label="自选概况">
+        <article><span>全部自选</span><strong>{items.length}</strong><small>已同步账号</small></article>
+        <article><span>待复盘</span><strong>{stats.due}</strong><small>需要重新检查</small></article>
+        <article><span>继续跟踪</span><strong>{stats.following}</strong><small>保持观察</small></article>
+        <article><span>降低关注</span><strong>{stats.lower}</strong><small>等待新变化</small></article>
+      </div>
+
+      <div className="watchlistTablePanel">
+        <div className="watchlistTableHeader"><strong>复盘队列</strong><span>按复盘日期排序</span></div>
+        {rows.length ? (
+          <div className="tableScroll">
+            <table className="productTable watchlistTable">
+              <thead><tr><th>#</th><th>股票</th><th>当前状态</th><th>趋势</th><th>主要线索</th><th>下次复盘</th><th>操作</th></tr></thead>
+              <tbody>
+                {rows.map((item, index) => {
+                  const profile = profiles[item.symbol];
+                  const trend = watchlistTrend(profile);
+                  const due = watchlistIsDue(item);
+                  const status = due ? "待复盘" : item.reviewAction === "lower" ? "降低关注" : item.reviewAction === "continue" ? "继续跟踪" : item.reviewAction === "reviewed" ? "已复盘" : "待设置";
+                  const clue = profile?.eventLabel || profile?.strengthLabel || item.source;
+                  return (
+                    <tr key={item.symbol}>
+                      <td>{String(index + 1).padStart(2, "0")}</td>
+                      <td><button type="button" className="stockLink" onClick={() => onOpenStock(item.symbol, "stocks")}><strong>{item.symbol}</strong><span>{profile?.chineseName || profile?.company || "--"}</span></button></td>
+                      <td><span className={`watchlistStatus ${due ? "due" : item.reviewAction || "unset"}`}>{status}</span></td>
+                      <td><span className={trend.className}>{trend.label}</span></td>
+                      <td>{clue || "--"}</td>
+                      <td>{formatDate(item.nextReviewAt)}</td>
+                      <td>
+                        <div className="watchlistActions">
+                          <button type="button" disabled={busy === item.symbol} onClick={() => void review(item.symbol, "reviewed")}>已复盘</button>
+                          <button type="button" disabled={busy === item.symbol} onClick={() => void review(item.symbol, "continue")}>继续</button>
+                          <button type="button" className="iconButton" aria-label={`移除 ${item.symbol}`} disabled={busy === item.symbol} onClick={() => setRemoveSymbol(item.symbol)}>×</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="watchlistEmpty"><strong>{items.length ? "没有符合条件的股票" : "还没有自选"}</strong><span>{items.length ? "调整搜索或筛选条件" : "添加股票后会同步到当前账号"}</span></div>}
+      </div>
+      {removeSymbol ? (
+        <div className="watchlistConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="watchlistRemoveTitle" onMouseDown={() => setRemoveSymbol("")}>
+          <section onMouseDown={(event) => event.stopPropagation()}>
+            <strong id="watchlistRemoveTitle">移出自选</strong>
+            <p>确定移出 {removeSymbol}？该股票的复盘记录也会删除。</p>
+            <div><button type="button" onClick={() => setRemoveSymbol("")}>取消</button><button type="button" className="dangerButton" disabled={busy === removeSymbol} onClick={() => void remove(removeSymbol)}>确认移出</button></div>
+          </section>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function PositionSizingPage() {
   const [symbol, setSymbol] = useState("");

@@ -14,7 +14,6 @@ LEGACY_MIGRATION_ROUTES = {
     "/legacy/#signals",
     "/legacy/#stock-events",
     "/legacy/#earnings",
-    "/legacy/#watchlist",
 }
 LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 
