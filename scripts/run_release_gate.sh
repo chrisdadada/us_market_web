@@ -2,6 +2,13 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+release_test_db="${RELEASE_TEST_PRODUCT_DB:-}"
+
+if [ -z "$release_test_db" ] || [ ! -r "$release_test_db" ]; then
+  echo "RELEASE_TEST_PRODUCT_DB must point to a readable product DB snapshot." >&2
+  exit 1
+fi
+
 python3 -m unittest \
   tests.test_release_gate \
   tests.test_crypto_etf_flows \
@@ -13,5 +20,5 @@ python3 -m unittest \
   tests.test_prod_code_deploy \
   tests.test_prod_release_validator \
   -v
-npm run test:routes
-npm run test:next:permissions
+PRODUCT_DB="$release_test_db" npm run test:next
+PRODUCT_DB="$release_test_db" npm run test:next:permissions

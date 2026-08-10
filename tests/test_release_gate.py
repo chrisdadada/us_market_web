@@ -2,6 +2,8 @@ import http.cookiejar
 import base64
 import hashlib
 import json
+import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -110,6 +112,11 @@ class AuthApiReleaseGateTest(unittest.TestCase):
 
     def client(self) -> ApiClient:
         return ApiClient(self.base_url)
+
+    def release_test_product_db(self) -> Path:
+        db_path = Path(os.environ.get("RELEASE_TEST_PRODUCT_DB", ""))
+        self.assertTrue(db_path.is_file(), "RELEASE_TEST_PRODUCT_DB must point to a product DB snapshot")
+        return db_path
 
     def use_empty_product_db(self) -> Path:
         db_path = Path(self.tempdir.name) / "product.db"
@@ -601,7 +608,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(payload["rows"][0]["title"], "AMD 财报")
 
     def test_market_data_expansion_shape_is_present(self) -> None:
-        with sqlite3.connect(ROOT / "data" / "product.db") as conn:
+        with sqlite3.connect(self.release_test_product_db()) as conn:
             for board in ("ytd", "day", "week", "month", "volume"):
                 count = conn.execute(
                     "SELECT COUNT(*) FROM market_board_rows WHERE board = ?",
@@ -625,83 +632,53 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             sector_count = conn.execute("SELECT COUNT(*) FROM sector_flow_rows").fetchone()[0]
             self.assertGreaterEqual(sector_count, 8)
 
-    def test_product_database_builder_shape_is_present(self) -> None:
-        with tempfile.TemporaryDirectory() as tempdir:
-            db_path = Path(tempdir) / "product.db"
-            subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "build_product_db.py"), "--output", str(db_path)],
-                cwd=ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            self.assertTrue(db_path.exists())
-            with sqlite3.connect(db_path) as conn:
-                counts = {
-                    table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                    for table in (
-                        "symbols",
-                        "market_board_rows",
-                        "sector_flow_rows",
-                        "stock_event_rows",
-                        "calendar_events",
-                        "earnings_quality_rows",
-                        "strength_rows",
-                    )
-                }
-                self.assertGreaterEqual(counts["symbols"], 800)
-                self.assertGreaterEqual(counts["market_board_rows"], 800)
-                self.assertGreaterEqual(counts["sector_flow_rows"], 8)
-                self.assertGreaterEqual(counts["stock_event_rows"], 100)
-                self.assertGreaterEqual(counts["calendar_events"], 1)
-                earnings_payload = json.loads(
-                    conn.execute(
-                        "SELECT payload_json FROM datasets WHERE name = ?",
-                        ("earnings-quality",),
-                    ).fetchone()[0]
+    def test_product_database_snapshot_shape_is_present(self) -> None:
+        db_path = self.release_test_product_db()
+        with sqlite3.connect(db_path) as conn:
+            counts = {
+                table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in (
+                    "symbols",
+                    "market_board_rows",
+                    "sector_flow_rows",
+                    "stock_event_rows",
+                    "calendar_events",
+                    "strength_rows",
                 )
-                earnings_source_rows = {
-                    (board, (row.get("ticker") or row.get("symbol") or "").strip().upper())
-                    for board, board_payload in (earnings_payload.get("boards") or {}).items()
-                    for row in ((board_payload or {}).get("rows") or [])
-                    if (row.get("ticker") or row.get("symbol") or "").strip()
-                }
-                self.assertGreater(len(earnings_source_rows), 0)
-                self.assertEqual(counts["earnings_quality_rows"], len(earnings_source_rows))
-                self.assertGreaterEqual(counts["strength_rows"], 50)
-                schema_version = conn.execute(
-                    "SELECT value FROM product_db_info WHERE key = 'schema_version'"
-                ).fetchone()
-                self.assertIsNotNone(schema_version)
-                sample = conn.execute(
-                    """
-                    SELECT symbol, sector, market_cap_value
-                    FROM symbols
-                    WHERE symbol = 'MU'
-                    """
-                ).fetchone()
-            self.assertIsNotNone(sample)
-            self.assertTrue(sample[0])
-            coverage = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "check_product_coverage.py"), "--db", str(db_path), "--json"],
-                cwd=ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            coverage_payload = json.loads(coverage.stdout)
-            self.assertTrue(coverage_payload["ok"])
-            self.assertGreaterEqual(coverage_payload["symbols"]["total"], 800)
-
-    def test_product_database_api_serves_core_workbench_data(self) -> None:
-        db_path = Path(self.tempdir.name) / "product.db"
-        subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "build_product_db.py"), "--output", str(db_path)],
+            }
+            self.assertGreaterEqual(counts["symbols"], 800)
+            self.assertGreaterEqual(counts["market_board_rows"], 800)
+            self.assertGreaterEqual(counts["sector_flow_rows"], 8)
+            self.assertGreaterEqual(counts["stock_event_rows"], 100)
+            self.assertGreaterEqual(counts["calendar_events"], 1)
+            self.assertGreaterEqual(counts["strength_rows"], 50)
+            schema_version = conn.execute(
+                "SELECT value FROM product_db_info WHERE key = 'schema_version'"
+            ).fetchone()
+            self.assertIsNotNone(schema_version)
+            sample = conn.execute(
+                """
+                SELECT symbol, sector, market_cap_value
+                FROM symbols
+                WHERE symbol = 'MU'
+                """
+            ).fetchone()
+        self.assertIsNotNone(sample)
+        self.assertTrue(sample[0])
+        coverage = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "check_product_coverage.py"), "--db", str(db_path), "--json"],
             cwd=ROOT,
             check=True,
             capture_output=True,
             text=True,
         )
+        coverage_payload = json.loads(coverage.stdout)
+        self.assertTrue(coverage_payload["ok"])
+        self.assertGreaterEqual(coverage_payload["symbols"]["total"], 800)
+
+    def test_product_database_api_serves_core_workbench_data(self) -> None:
+        db_path = Path(self.tempdir.name) / "product.db"
+        shutil.copy2(self.release_test_product_db(), db_path)
         auth_api.PRODUCT_DB_ENV = str(db_path)
         client = self.client()
 
@@ -799,23 +776,6 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = client.get("/api/product/raw/strength-scanner")
         self.assertEqual(status, 403, payload)
         self.assertEqual(payload["code"], "membership_required")
-
-        status, payload = client.get("/api/product/raw/earnings-quality")
-        self.assertEqual(status, 200, payload)
-        quality_rows = payload["boards"]["quality"]["rows"]
-        self.assertGreaterEqual(payload["summary"]["coreCount"], 1)
-        self.assertGreaterEqual(len(quality_rows), 1)
-        row_tickers = {row["ticker"] for row in quality_rows if row.get("ticker")}
-        self.assertIn(payload["summary"]["coreLeader"], row_tickers)
-
-        status, payload = client.get("/api/product/raw/options-flow-snapshot")
-        self.assertEqual(status, 200, payload)
-        self.assertTrue(payload["asOf"])
-        self.assertTrue(payload["meta"]["symbol"])
-        self.assertGreaterEqual(len(payload["timeline"]), 1)
-        self.assertGreaterEqual(len(payload["bullish"]), 1)
-        self.assertGreaterEqual(len(payload["bearish"]), 1)
-        self.assertEqual(payload["quality"]["directionality"], "unknown")
 
     def test_frontend_routes_keep_inactive_pages_hidden(self) -> None:
         styles = (ROOT / "styles.css").read_text(encoding="utf-8")

@@ -71,6 +71,26 @@ const trackingPriceHistory = Array.from({ length: 60 }, (_, index) => ({
   close: 96 + index * 0.2 + Math.sin(index / 4) * 2,
 }));
 
+const opinionFixture = {
+  id: "test-opinion",
+  section: "premarket",
+  sectionLabel: "盘前前瞻",
+  title: "测试观点",
+  tradeDate: "2026-07-25 08:00:00",
+  summary: "用于验证会员预览和观点详情权限。",
+  symbols: ["AAPL"],
+  topics: ["测试"],
+  highlights: ["验证权限展示"],
+  body: "观点正文仅用于自动化权限测试。",
+  featured: true,
+  status: "published",
+};
+
+const opinionFixtures = [
+  opinionFixture,
+  { ...opinionFixture, id: "test-opinion-2", section: "daily", sectionLabel: "盘中观察", title: "第二条测试观点", featured: false },
+];
+
 function trackingFixture(board, includeAnalysis) {
   const changeByBoard = { day: 1.2, week: 3.4, month: 8.6, volume: 1.2 };
   return {
@@ -153,7 +173,8 @@ async function apiPayload(url, authProfile) {
   }
 
   if (url.pathname === "/api/product/opinions") {
-    const items = (opinions.items || [])
+    const sourceItems = opinions.items?.length ? opinions.items : opinionFixtures;
+    const items = sourceItems
       .map((item) => ({ ...item, status: item.status || "published" }))
       .filter((item) => item.status === "published");
     const limit = Number(url.searchParams.get("limit") || 8);
@@ -522,7 +543,7 @@ try {
         assert((await page.locator(".stockPreviewDrawer").innerText()).includes("股票概览"), "stock overview should open on demand");
         assert(await page.locator("body.stockPreviewOpen").count() === 1, "stock overview should lock background scrolling");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-overview-desktop.png`, fullPage: true });
-        await page.locator(".stockPreviewDrawer > header button").click();
+        await page.getByRole("button", { name: "关闭股票概览" }).click();
         assert(await page.locator(".stockPreviewDrawer").count() === 0, "stock overview should close back to the list");
 
         await page.setViewportSize({ width: 390, height: 844 });

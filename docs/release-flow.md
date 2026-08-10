@@ -96,11 +96,12 @@ After dev is confirmed and the code is committed, build and verify one immutable
 release artifact:
 
 ```bash
-./scripts/prepare_prod_release.sh
+RELEASE_TEST_PRODUCT_DB=/path/to/read-only-product.db ./scripts/prepare_prod_release.sh
 ```
 
 The artifact is stored under `.release-artifacts/` and is bound to the exact Git
 commit. Re-running this command for the same verified commit reuses the artifact.
+The snapshot is used only by the release gate and is never packaged or deployed.
 
 ## Promote To Production
 
