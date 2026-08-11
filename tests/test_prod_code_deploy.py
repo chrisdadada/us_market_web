@@ -9,6 +9,7 @@ ROLLBACK = (ROOT / "scripts" / "rollback_prod.sh").read_text(encoding="utf-8")
 DATA_SCRIPT = (ROOT / "scripts" / "deploy_prod_data.sh").read_text(encoding="utf-8")
 AUTOMATED_REFRESH = (ROOT / "scripts" / "automated_refresh.sh").read_text(encoding="utf-8")
 OPTIONS_REFRESH = (ROOT / "scripts" / "options_refresh.sh").read_text(encoding="utf-8")
+REFRESH_GUARD = (ROOT / "scripts" / "refresh_workspace_guard.sh").read_text(encoding="utf-8")
 
 
 class ProdCodeDeployScriptTests(unittest.TestCase):
@@ -87,6 +88,20 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
             self.assertNotIn("bash scripts/deploy_dev.sh", script)
             self.assertIn("bash scripts/deploy_dev_data.sh", script)
             self.assertNotIn("refresh app data cache version", script)
+
+    def test_automated_data_jobs_require_verified_refresh_workspace(self) -> None:
+        hardcoded_root = 'ROOT="/Users/linlifu/Documents/New project"'
+        for script in (AUTOMATED_REFRESH, OPTIONS_REFRESH):
+            self.assertNotIn(hardcoded_root, script)
+            self.assertIn("refresh_workspace_guard.sh", script)
+            self.assertIn("codex/automation-refresh", script)
+            self.assertIn("verify_product_db_schema", script)
+            self.assertIn("RELEASE_TEST_PRODUCT_DB", script)
+            self.assertIn("bash scripts/run_release_gate.sh", script)
+
+        self.assertIn("branch --show-current", REFRESH_GUARD)
+        self.assertIn("--untracked-files=no", REFRESH_GUARD)
+        self.assertIn("product schema version 2", REFRESH_GUARD)
 
 
 if __name__ == "__main__":

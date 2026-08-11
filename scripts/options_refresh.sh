@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT="/Users/linlifu/Documents/New project"
+ROOT="${AUTOMATION_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)}"
 LAB="${ROOT}/market-data-lab"
 PY="${PYTHON_BIN:-/opt/anaconda3/envs/quant/bin/python}"
 DATA_ROOT="${DATA_ROOT:-/Volumes/Extreme SSD/market-data-lab/data}"
@@ -28,6 +28,10 @@ if [[ -f "${LOCAL_ENV_FILE}" ]]; then
   source "${LOCAL_ENV_FILE}"
   set +a
 fi
+
+# shellcheck source=scripts/refresh_workspace_guard.sh
+source "${ROOT}/scripts/refresh_workspace_guard.sh"
+require_refresh_workspace "${ROOT}" "${REQUIRED_REFRESH_BRANCH:-codex/automation-refresh}"
 
 if [[ ! -d "${DATA_ROOT}" ]]; then
   echo "External data root is not mounted: ${DATA_ROOT}"
@@ -120,8 +124,11 @@ run_root "build product database" \
   env TRACKING_ASOF="${OPTIONS_END_DATE}" OPTIONS_START_DATE="${OPTIONS_START_DATE}" OPTIONS_END_DATE="${OPTIONS_END_DATE}" MARKET_DATA_ROOT="${DATA_ROOT}" PYTHON_BIN="${PY}" \
   bash scripts/update_product_data.sh
 
+run_root "verify product DB schema" \
+  verify_product_db_schema "${ROOT}/data/product.db" "${PY}"
+
 run_root "release gate" \
-  "${PY}" -m unittest tests.test_release_gate -v
+  env RELEASE_TEST_PRODUCT_DB="${ROOT}/data/product.db" bash scripts/run_release_gate.sh
 
 if [[ "${OPTIONS_DEPLOY_AFTER_REFRESH}" == "1" ]]; then
   run_root "deploy product DB to dev" \
