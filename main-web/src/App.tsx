@@ -3785,9 +3785,10 @@ function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | 
 
 function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const pageSize = 30;
-  const [windowDays, setWindowDays] = useState("30");
+  const [windowDays, setWindowDays] = useState("7");
   const [impact, setImpact] = useState("all");
   const [pageIndex, setPageIndex] = useState(0);
+  const [showAllEarnings, setShowAllEarnings] = useState(false);
   const [macroRows, setMacroRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "macro"));
   const [earningsRows, setEarningsRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "earnings"));
   const [resultRows, setResultRows] = useState<CalendarEvent[]>([]);
@@ -3802,6 +3803,8 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [resultError, setResultError] = useState(false);
   const [resultRetry, setResultRetry] = useState(0);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const featuredEarnings = earningsRows.filter((event) => event.impact === "high").slice(0, 3);
+  const showEarningsTable = showAllEarnings || impact !== "all";
 
   useEffect(() => {
     setPageIndex(0);
@@ -3872,32 +3875,15 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   return (
     <div className="calendarPage calendarV3">
       <section className="calendarWorkbench">
-        <div className="calendarFilters">
-          <div className="calendarFilterControls">
-            <div className="calendarWindowTabs">
-              {[
-                ["7", "未来7天"],
-                ["30", "未来30天"],
-                ["45", "未来45天"]
-              ].map(([value, label]) => (
-                <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => setWindowDays(value)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <select value={impact} onChange={(event) => setImpact(event.target.value)}>
-              <option value="all">全部影响</option>
-              <option value="high">高</option>
-              <option value="medium">中</option>
-              <option value="low">低</option>
-            </select>
-          </div>
-        </div>
         <CoreMacroTracker
           upcomingRows={macroRows}
           resultRows={resultRows}
+          windowDays={windowDays}
+          impact={impact}
           loading={macroLoading || resultLoading}
           error={macroError || resultError}
+          onWindowDaysChange={setWindowDays}
+          onImpactChange={setImpact}
           onRetry={() => {
             setMacroRetry((value) => value + 1);
             setResultRetry((value) => value + 1);
@@ -3919,22 +3905,54 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
         ) : null}
         <section className="calendarSection calendarEarningsSection">
           <div className="calendarSectionHead">
-            <h2>财报日历</h2>
+            <h2>{showEarningsTable ? "财报日历" : "近期高影响财报"}</h2>
+            {impact === "all" ? (
+              <button type="button" className="calendarSectionAction" onClick={() => setShowAllEarnings((value) => !value)}>
+                {showAllEarnings ? "收起" : "查看全部"}
+              </button>
+            ) : null}
           </div>
-          <CalendarEventsTable
-            kind="earnings"
-            rows={earningsRows}
-            loading={earningsLoading}
-            error={earningsError}
-            onRetry={() => setEarningsRetry((value) => value + 1)}
-          />
-          <div className="calendarPager">
-            <span>第 {pageIndex + 1} 页</span>
-            <div>
-              <button type="button" disabled={pageIndex <= 0 || earningsLoading} onClick={() => setPageIndex((page) => Math.max(0, page - 1))}>上一页</button>
-              <button type="button" disabled={pageIndex >= pageCount - 1 || earningsLoading} onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}>下一页</button>
+          {showEarningsTable ? (
+            <>
+              <CalendarEventsTable
+                kind="earnings"
+                rows={earningsRows}
+                loading={earningsLoading}
+                error={earningsError}
+                onRetry={() => setEarningsRetry((value) => value + 1)}
+              />
+              <div className="calendarPager">
+                <span>第 {pageIndex + 1} 页</span>
+                <div>
+                  <button type="button" disabled={pageIndex <= 0 || earningsLoading} onClick={() => setPageIndex((page) => Math.max(0, page - 1))}>上一页</button>
+                  <button type="button" disabled={pageIndex >= pageCount - 1 || earningsLoading} onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}>下一页</button>
+                </div>
+              </div>
+            </>
+          ) : earningsLoading && !featuredEarnings.length ? (
+            <div className="calendarState calendarStateLoading" aria-label="正在加载" />
+          ) : earningsError && !featuredEarnings.length ? (
+            <div className="calendarState">
+              <span>加载失败</span>
+              <button type="button" onClick={() => setEarningsRetry((value) => value + 1)}>重新加载</button>
             </div>
-          </div>
+          ) : featuredEarnings.length ? (
+            <div className={`calendarEarningsPreview ${earningsLoading ? "isLoading" : ""}`}>
+              {featuredEarnings.map((event) => {
+                const summary = calendarSummaryParts(event).lead;
+                const [company, detail] = summary.split("：", 2);
+                return (
+                  <article key={event.id}>
+                    <strong>{calendarTitle(event.title).replace(/\s*财报$/, "")}</strong>
+                    <div><b>{company || calendarTitle(event.title)}</b><small>{detail || calendarDataText(event)}</small></div>
+                    <time>{formatDate(event.date).slice(5)} {calendarTime24(event.time).slice(0, 5)}</time>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="calendarState">这段时间暂无高影响财报</div>
+          )}
         </section>
       </section>
     </div>
@@ -3944,19 +3962,27 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
 function CoreMacroTracker({
   upcomingRows,
   resultRows,
+  windowDays,
+  impact,
   loading,
   error,
+  onWindowDaysChange,
+  onImpactChange,
   onRetry
 }: {
   upcomingRows: CalendarEvent[];
   resultRows: CalendarEvent[];
+  windowDays: string;
+  impact: string;
   loading: boolean;
   error: boolean;
+  onWindowDaysChange: (value: string) => void;
+  onImpactChange: (value: string) => void;
   onRetry: () => void;
 }) {
   const coreResults = resultRows.filter((event) => coreMacroKind(event));
   const publishedIds = new Set(coreResults.map((event) => event.id));
-  const coreUpcoming = upcomingRows.filter((event) => coreMacroKind(event) && !publishedIds.has(event.id));
+  const coreUpcoming = upcomingRows.filter((event) => coreMacroKind(event) && !publishedIds.has(event.id) && (impact === "all" || event.impact === impact));
   const nextCore = coreUpcoming[0] || null;
   const [selectedKind, setSelectedKind] = useState<CoreMacroKind | null>(null);
   const activeKind = selectedKind || coreMacroKind(nextCore) || coreMacroKind(coreResults[0]) || "cpi";
@@ -3971,6 +3997,31 @@ function CoreMacroTracker({
 
   return (
     <section className="calendarCoreMacro">
+      <div className="calendarCoreHead">
+        <div className="calendarCoreTitle">
+          <strong>本周重点</strong>
+          <span>{coreUpcoming.filter((event) => event.impact === "high").length} 项高影响</span>
+        </div>
+        <div className="calendarFilterControls">
+          <div className="calendarWindowTabs">
+            {[
+              ["7", "未来7天"],
+              ["30", "未来30天"],
+              ["45", "未来45天"]
+            ].map(([value, label]) => (
+              <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => onWindowDaysChange(value)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <select value={impact} aria-label="影响级别" onChange={(event) => onImpactChange(event.target.value)}>
+            <option value="all">全部影响</option>
+            <option value="high">高影响</option>
+            <option value="medium">中影响</option>
+            <option value="low">低影响</option>
+          </select>
+        </div>
+      </div>
       <div className="calendarNextEvent">
         <div>
           <span>下一项重点</span>
@@ -4003,6 +4054,7 @@ function CoreMacroTracker({
             {tab.label}
           </button>
         ))}
+        <span>最近结果与历史变化</span>
       </div>
       {error ? (
         <div className="calendarInlineError">
@@ -4021,7 +4073,7 @@ function CoreMacroTracker({
           </div>
           {latestConclusion ? (
             <div className={`calendarMacroConclusion ${latestConclusion.resultTone || "neutral"}`}>
-              <span>最近结论</span>
+              <span>影响解读</span>
               <strong>{latestConclusion.resultHeadline}</strong>
               <p>{latestConclusion.resultMeaning}</p>
             </div>

@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN_APP = (ROOT / "main-web/src/App.tsx").read_text(encoding="utf-8")
 MAIN_ENTRY = (ROOT / "main-web/src/main.tsx").read_text(encoding="utf-8")
 MAIN_HTML = (ROOT / "main-web/index.html").read_text(encoding="utf-8")
+MAIN_STYLES = (ROOT / "main-web/src/styles.css").read_text(encoding="utf-8")
 DEPLOY = (ROOT / "scripts/deploy_dev.sh").read_text(encoding="utf-8")
 
 LEGACY_MIGRATION_ROUTES = {
@@ -49,6 +50,12 @@ class FrontendArchitectureTest(unittest.TestCase):
         for filename in LEGACY_FILES:
             self.assertFalse((ROOT / filename).exists(), filename)
         self.assertNotIn("/legacy", DEPLOY)
+
+    def test_calendar_starts_with_the_user_task_instead_of_a_duplicate_heading(self) -> None:
+        self.assertNotIn('className="calendarFilters"', MAIN_APP)
+        self.assertIn('className="calendarCoreHead"', MAIN_APP)
+        self.assertIn('"近期高影响财报"', MAIN_APP)
+        self.assertIn(".calendarV3 .calendarCoreHead", MAIN_STYLES)
 
 
 if __name__ == "__main__":
