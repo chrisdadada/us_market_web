@@ -3964,6 +3964,7 @@ function CoreMacroTracker({
   const selectedResults = coreResults.filter((event) => coreMacroKind(event) === activeKind);
   const nextSelected = selectedUpcoming[0] || null;
   const latestResult = selectedResults[0] || null;
+  const latestConclusion = latestResult?.resultHeadline && latestResult?.resultMeaning ? latestResult : null;
   const timeline = [...selectedUpcoming, ...selectedResults]
     .filter((event, index, rows) => rows.findIndex((candidate) => candidate.id === event.id) === index)
     .slice(0, 6);
@@ -4018,6 +4019,13 @@ function CoreMacroTracker({
             <div><span>最近结果</span><strong>{latestResult ? macroResultValue(latestResult, latestResult.actualLabel, latestResult.actualValue) || "--" : "--"}</strong></div>
             <div><span>较前次</span><strong>{macroChangeText(latestResult, activeKind)}</strong></div>
           </div>
+          {latestConclusion ? (
+            <div className={`calendarMacroConclusion ${latestConclusion.resultTone || "neutral"}`}>
+              <span>最近结论</span>
+              <strong>{latestConclusion.resultHeadline}</strong>
+              <p>{latestConclusion.resultMeaning}</p>
+            </div>
+          ) : null}
           <div className="calendarMacroTimelineHead">
             <span>公布时间</span><span>实际值</span><span>市场预期</span><span>前值</span><span>变化</span>
           </div>

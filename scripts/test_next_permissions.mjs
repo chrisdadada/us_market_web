@@ -91,6 +91,63 @@ const opinionFixtures = [
   { ...opinionFixture, id: "test-opinion-2", section: "daily", sectionLabel: "盘中观察", title: "第二条测试观点", featured: false },
 ];
 
+const macroResultFixtures = [
+  {
+    id: "test-cpi-result",
+    date: "2026-07-14",
+    time: "20:30:00",
+    title: "美国 CPI",
+    type: "macro",
+    impact: "high",
+    actualLabel: "同比 3.5%",
+    actualValue: 3.5,
+    forecastLabel: "3.8%",
+    forecastValue: 3.8,
+    previousLabel: "4.2%",
+    previousValue: 4.2,
+    resultKind: "cpi",
+    resultHeadline: "低于预期",
+    resultMeaning: "通胀更低，美股短线通常偏利好",
+    resultTone: "positive",
+  },
+  {
+    id: "test-jobs-result",
+    date: "2026-07-02",
+    time: "20:30:00",
+    title: "美国非农就业",
+    type: "macro",
+    impact: "high",
+    actualLabel: "+20K",
+    actualValue: 20,
+    forecastLabel: "110K",
+    forecastValue: 110,
+    previousLabel: "+63K",
+    previousValue: 63,
+    resultKind: "jobs",
+    resultHeadline: "低于预期",
+    resultMeaning: "就业降温，降息预期可能升温",
+    resultTone: "watch",
+  },
+  {
+    id: "test-rate-result",
+    date: "2026-06-18",
+    time: "02:00:00",
+    title: "FOMC 议息会议",
+    type: "macro",
+    impact: "high",
+    actualLabel: "3.50%-3.75%",
+    actualValue: 3.75,
+    forecastLabel: "3.75%",
+    forecastValue: 3.75,
+    previousLabel: "3.50%-3.75%",
+    previousValue: 3.75,
+    resultKind: "rate",
+    resultHeadline: "利率不变",
+    resultMeaning: "借钱成本没有变化，美股影响偏中性",
+    resultTone: "neutral",
+  },
+];
+
 function trackingFixture(board, includeAnalysis) {
   const changeByBoard = { day: 1.2, week: 3.4, month: 8.6, volume: 1.2 };
   return {
@@ -189,13 +246,16 @@ async function apiPayload(url, authProfile) {
     const offset = Number(url.searchParams.get("offset") || 0);
     const type = String(url.searchParams.get("type") || "");
     const impact = String(url.searchParams.get("impact") || "");
+    const resultsOnly = url.searchParams.get("resultsOnly") === "true";
     const windowDays = Number(url.searchParams.get("windowDays") || 0);
     const fixtureToday = new Date("2026-07-25T00:00:00Z");
     const startDate = fixtureToday.toISOString().slice(0, 10);
     const endDate = new Date(fixtureToday.getTime() + windowDays * 86400000).toISOString().slice(0, 10);
-    const rows = (calendar.events || []).filter((event) => {
+    const sourceRows = resultsOnly ? macroResultFixtures : (calendar.events || []);
+    const rows = sourceRows.filter((event) => {
       if (type && event.type !== type) return false;
       if (impact && event.impact !== impact) return false;
+      if (resultsOnly && (!event.resultHeadline || !event.resultMeaning)) return false;
       if (windowDays && (event.date < startDate || event.date > endDate)) return false;
       return true;
     });
@@ -575,6 +635,18 @@ try {
         assert(await page.locator(".calendarCoreHead").count() === 0, "calendar should not add a redundant core macro heading");
         assert(await page.locator(".calendarNextEvent > div").count() === 4, "calendar next event should keep date, event, forecast and previous value");
         assert(await page.locator(".calendarMacroTimeline article").count() <= 6, "calendar should keep the core timeline concise");
+        const conclusion = page.locator(".calendarMacroConclusion");
+        for (const [tab, headline, meaning] of [
+          ["CPI", "低于预期", "通胀更低"],
+          ["非农", "低于预期", "就业降温"],
+          ["FOMC", "利率不变", "借钱成本没有变化"],
+        ]) {
+          await page.getByRole("tab", { name: tab, exact: true }).click();
+          assert(await conclusion.count() === 1, `calendar should show one conclusion for ${tab}`);
+          const conclusionText = await conclusion.innerText();
+          assert(conclusionText.includes("最近结论"), "calendar conclusion should identify the latest published result");
+          assert(conclusionText.includes(headline) && conclusionText.includes(meaning), `calendar should show the verified ${tab} conclusion`);
+        }
         assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
         const calendarSectionOrder = await page.evaluate(() => {
           const macro = document.querySelector(".calendarCoreMacro");

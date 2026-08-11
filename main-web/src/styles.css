@@ -11252,6 +11252,46 @@ body,
   color: #1677ff;
 }
 
+.calendarV3 .calendarMacroConclusion {
+  --calendar-conclusion-color: #356487;
+  display: grid;
+  grid-template-columns: 92px 150px minmax(0, 1fr);
+  min-height: 56px;
+  align-items: center;
+  border-bottom: 1px solid #e6edf4;
+  background: #f4f8fb;
+  padding: 8px 14px;
+}
+
+.calendarV3 .calendarMacroConclusion.positive {
+  --calendar-conclusion-color: #087f5b;
+  background: #f0faf6;
+}
+
+.calendarV3 .calendarMacroConclusion.watch {
+  --calendar-conclusion-color: #8b5900;
+  background: #fff8e8;
+}
+
+.calendarV3 .calendarMacroConclusion > span {
+  color: #7b899b;
+  font-size: 11px;
+}
+
+.calendarV3 .calendarMacroConclusion strong {
+  color: var(--calendar-conclusion-color);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.calendarV3 .calendarMacroConclusion p {
+  min-width: 0;
+  margin: 0;
+  color: #263247;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .calendarV3 .calendarMacroTimelineHead,
 .calendarV3 .calendarMacroTimeline article {
   display: grid;
@@ -11764,6 +11804,17 @@ body,
     overflow: visible;
     font-size: 12px;
     white-space: normal;
+  }
+
+  .calendarV3 .calendarMacroConclusion {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 4px 8px;
+    padding: 10px;
+  }
+
+  .calendarV3 .calendarMacroConclusion p {
+    grid-column: 1 / -1;
+    padding-left: 84px;
   }
 
   .calendarV3 .calendarMacroTimelineHead {
