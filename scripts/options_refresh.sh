@@ -127,6 +127,9 @@ run_root "build product database" \
 run_root "verify product DB schema" \
   verify_product_db_schema "${ROOT}/data/product.db" "${PY}"
 
+run_root "project checks" \
+  npm run check
+
 run_root "release gate" \
   env RELEASE_TEST_PRODUCT_DB="${ROOT}/data/product.db" bash scripts/run_release_gate.sh
 

@@ -96,6 +96,7 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
             self.assertIn("refresh_workspace_guard.sh", script)
             self.assertIn("codex/automation-refresh", script)
             self.assertIn("verify_product_db_schema", script)
+            self.assertIn("npm run check", script)
             self.assertIn("RELEASE_TEST_PRODUCT_DB", script)
             self.assertIn("bash scripts/run_release_gate.sh", script)
 
