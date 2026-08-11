@@ -43,6 +43,8 @@ if [[ ! -x "${PY}" ]]; then
   exit 2
 fi
 
+require_product_db_baseline "${ROOT}/data/product.db" "${PY}"
+
 OPTIONS_PHASE="${OPTIONS_PHASE:-core_etf}"
 OPTIONS_MAX_DAYS="${OPTIONS_MAX_DAYS:-1}"
 OPTIONS_MIN_ROWS_DONE="${OPTIONS_MIN_ROWS_DONE:-18}"

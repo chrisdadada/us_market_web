@@ -45,6 +45,8 @@ if [[ ! -x "${PY}" ]]; then
   exit 2
 fi
 
+require_product_db_baseline "${ROOT}/data/product.db" "${PY}"
+
 SKIP_IF_SUCCESSFUL_TODAY="${SKIP_IF_SUCCESSFUL_TODAY:-1}"
 END_DATE_OVERRIDE="${END_DATE:-}"
 DAYS_BACK="${DAYS_BACK:-10}"

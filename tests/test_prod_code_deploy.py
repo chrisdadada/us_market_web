@@ -95,6 +95,7 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
             self.assertNotIn(hardcoded_root, script)
             self.assertIn("refresh_workspace_guard.sh", script)
             self.assertIn("codex/automation-refresh", script)
+            self.assertIn("require_product_db_baseline", script)
             self.assertIn("verify_product_db_schema", script)
             self.assertIn("npm run check", script)
             self.assertIn("RELEASE_TEST_PRODUCT_DB", script)
@@ -102,6 +103,7 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
 
         self.assertIn("branch --show-current", REFRESH_GUARD)
         self.assertIn("--untracked-files=no", REFRESH_GUARD)
+        self.assertIn("Product DB baseline is incomplete", REFRESH_GUARD)
         self.assertIn("product schema version 2", REFRESH_GUARD)
 
 

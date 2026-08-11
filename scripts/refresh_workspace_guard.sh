@@ -30,6 +30,35 @@ require_refresh_workspace() {
   fi
 }
 
+require_product_db_baseline() {
+  local db_path="$1"
+  local python_bin="$2"
+
+  "${python_bin}" - "${db_path}" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.is_file():
+    raise SystemExit(f"Product DB baseline not found: {path}")
+
+required_tables = ("sector_overrides", "earnings_quality_rows", "options_flow_rows")
+with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+    integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+    counts = {name: conn.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0] for name in required_tables}
+
+if integrity != "ok":
+    raise SystemExit(f"Product DB baseline integrity check failed: {integrity}")
+
+missing = [name for name, count in counts.items() if count < 1]
+if missing:
+    raise SystemExit(f"Product DB baseline is incomplete: {', '.join(missing)}")
+
+print("Product DB baseline verified: " + ", ".join(f"{name}={count}" for name, count in counts.items()))
+PY
+}
+
 verify_product_db_schema() {
   local db_path="$1"
   local python_bin="$2"
