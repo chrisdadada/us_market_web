@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import pandas as pd
 import requests
 
-from common import data_path, env, load_env, parse_date
+from common import data_path, env, load_env, parse_date, public_url
 
 
 BASE_URL = "https://api.polygon.io"
@@ -42,10 +42,10 @@ def get_json(
             continue
         break
     if response.status_code != 200:
-        raise RuntimeError(f"{url}: {response.status_code} {response.text[:500]}")
+        raise RuntimeError(f"{public_url(url)}: {response.status_code} {response.text[:500]}")
     data = response.json()
     if data.get("status") in {"ERROR", "NOT_AUTHORIZED"}:
-        raise RuntimeError(f"{url}: {data}")
+        raise RuntimeError(f"{public_url(url)}: {data}")
     return data
 
 

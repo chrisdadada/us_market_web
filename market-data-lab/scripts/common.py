@@ -4,12 +4,23 @@ import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = ROOT / "data"
+
+
+def public_url(url: str) -> str:
+    parsed = urlparse(url)
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() != "apikey"
+    ]
+    return urlunparse(parsed._replace(query=urlencode(query)))
 
 
 def load_env() -> Dict[str, str]:
