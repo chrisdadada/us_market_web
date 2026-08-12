@@ -1461,7 +1461,8 @@
 .marketToolError.compact { min-height: 48px; margin-bottom: 10px; border-radius: 6px; }
 
 .valuationPanel { overflow: hidden; }
-.valuationPanelHead { display: flex; min-height: 54px; align-items: center; justify-content: flex-end; border-bottom: 1px solid #e6edf5; padding: 9px 16px; }
+.valuationPanelHead { display: flex; min-height: 54px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e6edf5; padding: 9px 16px; }
+.valuationPanelHead > span { color: #718096; font-size: 12px; }
 .valuationIndexTabs,
 .valuationMetricTabs { display: flex; align-items: center; gap: 4px; }
 .valuationIndexTabs { padding: 3px; border: 1px solid #dce5f0; border-radius: 6px; background: #f4f7fb; }
@@ -1469,19 +1470,18 @@
 .valuationMetricTabs button { min-height: 32px; border: 0; border-radius: 4px; background: transparent; color: #526176; padding: 0 11px; font-size: 12px; cursor: pointer; }
 .valuationIndexTabs button.active { background: #fff; color: #1268d5; box-shadow: 0 1px 4px rgba(15, 23, 42, .08); }
 .valuationIndexTabs small { margin-left: 4px; font-size: 11px; }
-.valuationOverview { display: grid; grid-template-columns: minmax(280px, 1.15fr) minmax(0, 1fr); border-bottom: 1px solid #e6edf5; }
-.valuationLead { min-width: 0; border-right: 1px solid #e6edf5; padding: 22px 24px; }
-.valuationLead > span { display: block; margin-bottom: 10px; color: #d96809; font-size: 18px; font-weight: 650; }
-.valuationLead > div { display: flex; align-items: center; gap: 10px; }
-.valuationLead strong { font-size: var(--front-type-metric); line-height: 1; }
-.valuationLead b { border-radius: 4px; background: #fff2e8; color: #d96809; padding: 3px 7px; font-size: 11px; }
-.valuationLead small,
+.valuationOverview { display: grid; grid-template-columns: 300px minmax(0, 1fr); border-bottom: 1px solid #e6edf5; }
+.valuationLead { min-width: 0; border-right: 1px solid #e6edf5; padding: 20px 24px; }
+.valuationLevel { display: block; margin-bottom: 15px; color: #d96809; font-size: 24px; font-weight: 650; }
+.valuationLevel.low { color: #079455; }
+.valuationLevel.middle { color: #b7791f; }
+.valuationLead > div { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 5px 13px; }
+.valuationLead > div span { color: #718096; font-size: 11px; }
+.valuationLead > div b { color: #172033; font-size: 17px; }
 .valuationOverviewStats span { color: #718096; font-size: 11px; }
-.valuationLead small { display: block; margin-top: 10px; }
-.valuationOverviewStats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.valuationOverviewStats article { min-width: 0; padding: 18px 20px; }
-.valuationOverviewStats article:nth-child(odd) { border-right: 1px solid #e6edf5; }
-.valuationOverviewStats article:nth-child(n+3) { border-top: 1px solid #e6edf5; }
+.valuationOverviewStats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.valuationOverviewStats article { min-width: 0; padding: 26px 16px; text-align: center; }
+.valuationOverviewStats article + article { border-left: 1px solid #e6edf5; }
 .valuationOverviewStats span,
 .valuationOverviewStats strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .valuationOverviewStats strong { margin-top: 7px; font-size: var(--front-type-section-title); font-weight: var(--front-weight-title); }
@@ -1490,14 +1490,25 @@
 .valuationMetricTabs button.active { color: #172033; font-weight: 700; }
 .valuationMetricTabs button.active::after { position: absolute; right: 16px; bottom: 0; left: 16px; height: 3px; border-radius: 3px 3px 0 0; background: #1677ff; content: ""; }
 .valuationChartStage { min-width: 0; padding: 16px 18px 14px; }
-.valuationChartTitle { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.valuationChartTitle { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 48px; margin-bottom: 6px; }
 .valuationChartTitle h2 { margin: 0; font-size: 15px; }
-.valuationChartTitle span { color: #718096; font-size: 12px; }
-.valuationHistoryPending { position: relative; display: grid; min-height: 290px; place-content: center; justify-items: center; border-top: 1px solid #e3eaf3; border-bottom: 1px solid #e3eaf3; background: repeating-linear-gradient(to bottom, transparent 0, transparent 71px, #e8eef5 72px); color: #718096; }
-.valuationHistoryPending i { width: 10px; height: 10px; border: 3px solid #fff; border-radius: 50%; background: #ef7d1a; box-shadow: 0 0 0 2px #ef7d1a; }
-.valuationHistoryPending strong { margin-top: 10px; color: #172033; font-size: 13px; }
-.valuationHistoryPending small { margin-top: 3px; font-size: 11px; }
-.valuationHistoryPending span { position: absolute; right: 16px; bottom: 16px; left: 16px; text-align: center; font-size: 12px; }
+.valuationChartTitle > div:first-child > span { display: block; margin-top: 5px; color: #718096; font-size: 12px; }
+.valuationReferenceLegend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 16px; }
+.valuationReferenceLegend span { color: #718096; font-size: 11px; }
+.valuationReferenceLegend b { margin-left: 5px; font-size: 12px; }
+.valuationReferenceLegend .low b { color: #079455; }
+.valuationReferenceLegend .middle b { color: #526176; }
+.valuationReferenceLegend .high b { color: #e5484d; }
+.valuationChartStage .marketChartPath { stroke: #f07818; }
+.valuationChartStage .marketChartPoint { fill: #f07818; }
+.marketChartReference line { stroke-width: 1; stroke-dasharray: 5 5; }
+.marketChartReference text { font-size: 10px; }
+.marketChartReference.low line { stroke: #17a668; }
+.marketChartReference.low text { fill: #07884f; }
+.marketChartReference.middle line { stroke: #7c8798; }
+.marketChartReference.middle text { fill: #657286; }
+.marketChartReference.high line { stroke: #e5484d; }
+.marketChartReference.high text { fill: #d9363e; }
 .valuationRange { display: flex; justify-content: center; gap: 5px; padding-top: 12px; }
 .valuationRange button { min-width: 72px; min-height: 30px; border: 0; border-radius: 4px; background: transparent; color: #718096; font-size: 12px; cursor: pointer; }
 .valuationRange button.active { background: #edf5ff; color: #1268d5; }
@@ -1512,7 +1523,10 @@
   .strengthTopGrid { grid-template-columns: 1fr; }
   .strengthListHead { align-items: stretch; flex-direction: column; }
   .strengthFilters { justify-content: flex-start; }
-  .valuationOverview { grid-template-columns: minmax(240px, .8fr) minmax(0, 1fr); }
+  .valuationOverview { grid-template-columns: 250px minmax(0, 1fr); }
+  .valuationOverviewStats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .valuationOverviewStats article:nth-child(4) { border-left: 0; }
+  .valuationOverviewStats article:nth-child(n+4) { border-top: 1px solid #e6edf5; }
 }
 
 @media (max-width: 1100px) {
@@ -1573,13 +1587,17 @@
   .valuationIndexTabs { max-width: 100%; overflow-x: auto; }
   .valuationOverview { grid-template-columns: 1fr; }
   .valuationLead { border-right: 0; border-bottom: 1px solid #e6edf5; padding: 18px 16px; }
+  .valuationOverviewStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .valuationOverviewStats article { padding: 15px 12px; }
+  .valuationOverviewStats article:nth-child(odd) { border-left: 0; }
+  .valuationOverviewStats article:nth-child(n+3) { border-top: 1px solid #e6edf5; }
   .valuationOverviewStats article { padding: 15px 16px; }
   .valuationMetricTabs { padding: 0 4px; }
   .valuationMetricTabs button { padding: 0 12px; }
   .valuationMetricTabs button.active::after { right: 12px; left: 12px; }
   .valuationChartStage { padding: 14px 12px 10px; }
-  .valuationChartTitle { align-items: flex-start; flex-direction: column; gap: 4px; }
-  .valuationHistoryPending { min-height: 230px; }
+  .valuationChartTitle { flex-direction: column; gap: 10px; }
+  .valuationReferenceLegend { justify-content: flex-start; gap: 10px; }
   .temperatureIndicatorNav { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid #e6edf5; }
   .temperatureIndicatorNav button { flex: 0 0 150px; border-left: 0; border-bottom: 3px solid transparent; }
   .temperatureIndicatorNav button.active { border-bottom-color: #1677ff; }

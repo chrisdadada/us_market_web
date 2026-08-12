@@ -142,6 +142,8 @@ export type IndexValuationMetric = {
   value?: number | null;
   unit?: string;
   status?: string;
+  percentile?: number | null;
+  references?: { p30?: number | null; median?: number | null; p70?: number | null };
   trend?: Array<{ date: string; value: number }>;
 };
 
@@ -159,6 +161,14 @@ export type IndexValuationIndex = {
   marketIndicators?: {
     shortTermMomentum?: { asOf?: string; label?: string; value?: number; periodDays?: number };
     vix?: { asOf?: string; label?: string; value?: number };
+  };
+  valuationSummary?: {
+    asOf?: string;
+    level?: "偏低" | "适中" | "偏高" | string;
+    pePercentile?: number | null;
+    pbPercentile?: number | null;
+    dividendYield?: number | null;
+    peg?: number | null;
   };
   metrics?: IndexValuationMetric[];
 };

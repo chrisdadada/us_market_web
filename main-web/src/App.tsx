@@ -2484,7 +2484,18 @@ function valuationValue(value?: number | null, unit?: string) {
   return `${value.toFixed(2)}${unit === "x" ? "倍" : unit || ""}`;
 }
 
-function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 }) {
+function valuationQuantile(values: number[], ratio: number) {
+  if (!values.length) return null;
+  const ordered = [...values].sort((a, b) => a - b);
+  const position = (ordered.length - 1) * ratio;
+  const lower = Math.floor(position);
+  const upper = Math.min(ordered.length - 1, lower + 1);
+  return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower);
+}
+
+type MarketChartReference = { label: string; value: number; tone: "low" | "middle" | "high" };
+
+function MarketLineChart({ item, years, references = [], showStats = true }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 | 10; references?: MarketChartReference[]; showStats?: boolean }) {
   const points = (item.points || []).filter((point) => Number.isFinite(point.value));
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   useEffect(() => setHoverIndex(null), [item.key, years]);
@@ -2494,9 +2505,10 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
   cutoff.setFullYear(cutoff.getFullYear() - years);
   const visible = points.filter((point) => new Date(`${point.date}T00:00:00`) >= cutoff);
   const values = visible.map((point) => point.value);
+  const referenceValues = references.map((reference) => reference.value).filter(Number.isFinite);
   const threshold = marketPressureThresholds[item.key.toLowerCase()];
-  const dataMin = Math.min(...values, Number.isFinite(threshold) ? threshold : Infinity);
-  const dataMax = Math.max(...values, Number.isFinite(threshold) ? threshold : -Infinity);
+  const dataMin = Math.min(...values, ...referenceValues, Number.isFinite(threshold) ? threshold : Infinity);
+  const dataMax = Math.max(...values, ...referenceValues, Number.isFinite(threshold) ? threshold : -Infinity);
   const dataSpan = Math.max(0.1, dataMax - dataMin);
   const min = dataMin - dataSpan * 0.08;
   const max = dataMax + dataSpan * 0.12;
@@ -2534,6 +2546,7 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
       >
         {thresholdY !== null ? <g className="marketPressureZone"><rect x={plot.left} y={plot.top} width={plotWidth} height={Math.max(0, thresholdY - plot.top)} /><line x1={plot.left} y1={thresholdY} x2={width - plot.right} y2={thresholdY} /><text x={plot.left + 8} y={Math.max(plot.top + 13, thresholdY - 6)}>压力区</text></g> : null}
         {yTicks.map((tick) => <g className="marketChartGrid" key={tick}><line x1={plot.left} y1={yFor(tick)} x2={width - plot.right} y2={yFor(tick)} /><text x={plot.left - 8} y={yFor(tick) + 4}>{formatSeriesValue(tick, item.unit)}</text></g>)}
+        {references.map((reference) => <g className={`marketChartReference ${reference.tone}`} key={reference.label}><line x1={plot.left} y1={yFor(reference.value)} x2={width - plot.right} y2={yFor(reference.value)} /><text x={plot.left + 8} y={yFor(reference.value) - 6}>{reference.label} {formatSeriesValue(reference.value, item.unit)}</text></g>)}
         {dateIndexes.map((index) => <text className="marketChartDate" key={visible[index].date} x={xFor(index)} y={height - 12} style={{ textAnchor: index === 0 ? "start" : index === visible.length - 1 ? "end" : "middle" }}>{visible[index].date.slice(0, 7)}</text>)}
         <polyline className="marketChartPath" points={coordinates} />
         <line className="marketChartCrosshair" x1={activeX} y1={plot.top} x2={activeX} y2={height - plot.bottom} />
@@ -2544,12 +2557,12 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
           <text x="9" y="31">{formatSeriesValue(active.value, item.unit)}</text>
         </g>
       </svg>
-      <div className="marketChartStats">
+      {showStats ? <div className="marketChartStats">
         <span>区间最低<strong>{formatSeriesValue(Math.min(...values), item.unit)}</strong></span>
         <span>区间最高<strong>{formatSeriesValue(Math.max(...values), item.unit)}</strong></span>
         <span>区间变化<strong className={signedClass(periodChange)}>{periodChange > 0 ? "+" : ""}{formatSeriesValue(periodChange, item.unit)}</strong></span>
         <span>最新日期<strong>{visible.at(-1)?.date}</strong></span>
-      </div>
+      </div> : null}
     </div>
   );
 }
@@ -2638,7 +2651,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
   const [payload, setPayload] = useState<IndexValuationPayload | null>(null);
   const [symbol, setSymbol] = useState("QQQ");
   const [metricKey, setMetricKey] = useState("pe");
-  const [years, setYears] = useState<1 | 3 | 5>(1);
+  const [years, setYears] = useState<3 | 5 | 10>(5);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [reload, setReload] = useState(0);
 
@@ -2654,25 +2667,18 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
 
   const indices = payload?.indices || [];
   const selected = indices.find((item) => item.index?.symbol === symbol) || indices[0];
-  const currentMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined && item.key !== "peg");
+  const currentMetrics = (selected?.metrics || []).filter((item) => ["pe", "pb", "roe"].includes(item.key) && item.value !== null && item.value !== undefined);
   const selectedMetric = currentMetrics.find((item) => item.key === metricKey) || currentMetrics[0];
-  const forwardMetric = currentMetrics.find((item) => item.key === "forwardPe");
   const peMetric = currentMetrics.find((item) => item.key === "pe");
   const pbMetric = currentMetrics.find((item) => item.key === "pb");
   const roeMetric = currentMetrics.find((item) => item.key === "roe");
-  const dividendMetric = currentMetrics.find((item) => item.key === "dividendYield");
-  const forward = selected?.forwardValuation;
-  const premium = forward?.premiumToTenYearAveragePct;
-  const overviewStats = selected?.index?.symbol === "QQQ" ? [
-    { label: "十年前瞻 PE 均值", value: valuationValue(forward?.tenYearAverageForwardPe, "x") },
-    { label: "隐含盈利增长", value: valuationValue(forward?.impliedEarningsGrowthPct, "%") },
-    { label: "市净率", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
-    { label: "ROE", value: valuationValue(roeMetric?.value, roeMetric?.unit) }
-  ] : [
-    { label: "市盈率", value: valuationValue(peMetric?.value, peMetric?.unit) },
-    { label: "市净率", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
-    { label: "股息率", value: valuationValue(dividendMetric?.value, dividendMetric?.unit) },
-    { label: "数据日期", value: formatDate(forwardMetric?.asOf || selected?.asOf) }
+  const summary = selected?.valuationSummary;
+  const overviewStats = [
+    { label: "PB", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
+    { label: "PB 百分位", value: summary?.pbPercentile === null || summary?.pbPercentile === undefined ? "--" : `${summary.pbPercentile.toFixed(2)}%` },
+    { label: "ROE", value: valuationValue(roeMetric?.value, roeMetric?.unit) },
+    { label: "股息率", value: valuationValue(summary?.dividendYield, "%") },
+    { label: "预测 PEG", value: valuationValue(summary?.peg, "x") }
   ];
 
   useEffect(() => {
@@ -2690,9 +2696,23 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
     points: selectedMetric.trend
   } : null;
   const historyReady = (selectedMetric?.trend?.length || 0) > 1;
-  const overviewValue = forward?.forwardPe ?? forwardMetric?.value;
-  const overviewDate = forward?.asOf || forwardMetric?.asOf;
-  const overviewStatus = premium === undefined ? "当前估值" : premium > 0 ? "高于十年均值" : "低于十年均值";
+  const latestDate = selectedMetric?.trend?.at(-1)?.date || selectedMetric?.asOf || summary?.asOf;
+  const rangeCutoff = latestDate ? new Date(`${latestDate}T00:00:00`) : null;
+  rangeCutoff?.setFullYear(rangeCutoff.getFullYear() - years);
+  const rangePoints = (selectedMetric?.trend || []).filter((point) => !rangeCutoff || new Date(`${point.date}T00:00:00`) >= rangeCutoff);
+  const rangeValues = rangePoints.map((point) => point.value).filter(Number.isFinite);
+  const p30 = valuationQuantile(rangeValues, 0.3);
+  const median = valuationQuantile(rangeValues, 0.5);
+  const p70 = valuationQuantile(rangeValues, 0.7);
+  const currentValue = selectedMetric?.value;
+  const rangePercentile = currentValue === null || currentValue === undefined || !rangeValues.length
+    ? null
+    : 100 * rangeValues.filter((value) => value <= currentValue).length / rangeValues.length;
+  const chartReferences: MarketChartReference[] = [
+    { label: "30分位", value: p30, tone: "low" },
+    { label: "中位值", value: median, tone: "middle" },
+    { label: "70分位", value: p70, tone: "high" }
+  ].filter((item): item is MarketChartReference => item.value !== null);
 
   return (
     <div className="marketToolPage indexValuationPage" data-testid="index-valuation-page">
@@ -2702,14 +2722,14 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
         <section className="marketToolPanel valuationPanel">
           <div className="valuationPanelHead">
             <div className="valuationIndexTabs" role="tablist" aria-label="选择指数">
-              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey(item.index?.symbol === "SPY" ? "forwardPe" : "pe"); setYears(1); }}>{item.index?.symbol} <small>{item.index?.symbol === "QQQ" ? "纳指 100" : item.index?.symbol === "SPY" ? "标普 500" : item.index?.name}</small></button>)}
+              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey("pe"); setYears(5); }}>{item.index?.symbol} <small>{item.index?.symbol === "QQQ" ? "纳指 100" : item.index?.symbol === "SPY" ? "标普 500" : item.index?.name}</small></button>)}
             </div>
+            <span>{formatDate(summary?.asOf || selected?.asOf)}</span>
           </div>
           <div className="valuationOverview">
             <article className="valuationLead">
-              <span>{overviewStatus}</span>
-              <div><strong>{valuationValue(overviewValue, "x")}</strong>{premium !== undefined ? <b>{premium > 0 ? "高" : "低"} {Math.abs(premium).toFixed(1)}%</b> : null}</div>
-              <small>前瞻市盈率 · {formatDate(overviewDate)}</small>
+              <strong className={`valuationLevel ${summary?.level === "偏低" ? "low" : summary?.level === "适中" ? "middle" : "high"}`}>估值{summary?.level || "--"}</strong>
+              <div><span>PE</span><b>{valuationValue(peMetric?.value, peMetric?.unit)}</b><span>PE 百分位</span><b>{summary?.pePercentile === null || summary?.pePercentile === undefined ? "--" : `${summary.pePercentile.toFixed(2)}%`}</b></div>
             </article>
             <div className="valuationOverviewStats">{overviewStats.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong></article>)}</div>
           </div>
@@ -2717,9 +2737,9 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
             {currentMetrics.map((item: IndexValuationMetric) => <button type="button" key={item.key} className={selectedMetric?.key === item.key ? "active" : ""} onClick={() => setMetricKey(item.key)}>{item.label || item.key.toUpperCase()}走势</button>)}
           </div>
           <div className="valuationChartStage">
-            <div className="valuationChartTitle"><h2>{selectedMetric?.label || "估值"}走势</h2><span>当前 {valuationValue(selectedMetric?.value, selectedMetric?.unit)} · {formatDate(selectedMetric?.asOf)}</span></div>
-            {historyReady && chartItem ? <MarketLineChart item={chartItem} years={years} /> : <div className="valuationHistoryPending"><i /><strong>{valuationValue(selectedMetric?.value, selectedMetric?.unit)}</strong><small>{formatDate(selectedMetric?.asOf)}</small><span>下一期官方数据更新后开始连接历史曲线</span></div>}
-            <div className="valuationRange">{([1, 3, 5] as const).map((range) => <button type="button" key={range} disabled={!historyReady} className={years === range ? "active" : ""} onClick={() => setYears(range)}>近 {range} 年</button>)}</div>
+            <div className="valuationChartTitle"><div><h2>{selectedMetric?.label || "估值"}走势</h2><span>{rangePercentile === null ? "--" : `当前处于近${years}年 ${rangePercentile.toFixed(2)}% 分位`}</span></div><div className="valuationReferenceLegend">{chartReferences.map((item) => <span className={item.tone} key={item.label}>{item.label}<b>{valuationValue(item.value, selectedMetric?.unit)}</b></span>)}</div></div>
+            {historyReady && chartItem ? <MarketLineChart item={chartItem} years={years} references={chartReferences} showStats={false} /> : <div className="marketToolEmpty compact">暂无历史估值数据</div>}
+            <div className="valuationRange">{([3, 5, 10] as const).map((range) => <button type="button" key={range} disabled={!historyReady} className={years === range ? "active" : ""} onClick={() => setYears(range)}>近 {range} 年</button>)}</div>
           </div>
         </section>
       )}
