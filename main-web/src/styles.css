@@ -1501,14 +1501,10 @@
 .valuationReferenceLegend .high b { color: #e5484d; }
 .valuationChartStage .marketChartPath { stroke: #f07818; }
 .valuationChartStage .marketChartPoint { fill: #f07818; }
-.marketChartReference line { stroke-width: 1; stroke-dasharray: 5 5; }
-.marketChartReference text { font-size: 10px; }
-.marketChartReference.low line { stroke: #17a668; }
-.marketChartReference.low text { fill: #07884f; }
-.marketChartReference.middle line { stroke: #7c8798; }
-.marketChartReference.middle text { fill: #657286; }
-.marketChartReference.high line { stroke: #e5484d; }
-.marketChartReference.high text { fill: #d9363e; }
+.marketChartReference { stroke-width: 1; stroke-dasharray: 5 5; }
+.marketChartReference.low { stroke: #17a668; }
+.marketChartReference.middle { stroke: #7c8798; }
+.marketChartReference.high { stroke: #e5484d; }
 .valuationRange { display: flex; justify-content: center; gap: 5px; padding-top: 12px; }
 .valuationRange button { min-width: 72px; min-height: 30px; border: 0; border-radius: 4px; background: transparent; color: #718096; font-size: 12px; cursor: pointer; }
 .valuationRange button.active { background: #edf5ff; color: #1268d5; }
