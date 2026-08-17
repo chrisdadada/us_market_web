@@ -349,6 +349,7 @@ def parse_market_valuation_snapshot(
     )
     pe_percentile = safe_float(detail.get("pe_percentile"))
     pb_percentile = safe_float(detail.get("pb_percentile"))
+    dividend_yield = safe_float(detail.get("yeild"))
     if pe_percentile is not None:
         pe_percentile *= 100
     if pb_percentile is not None:
@@ -419,7 +420,7 @@ def parse_market_valuation_snapshot(
         "level": market_valuation_level(pe_percentile, pb_percentile),
         "pePercentile": None if pe_percentile is None else round(pe_percentile, 2),
         "pbPercentile": None if pb_percentile is None else round(pb_percentile, 2),
-        "dividendYield": pct((safe_float(detail.get("yeild")) or 0) * 100, 2),
+        "dividendYield": pct(dividend_yield * 100 if dividend_yield is not None else None, 2),
         "peg": pct(safe_float(detail.get("peg")), 2),
         "metrics": metrics,
         "historyPercentiles": {"lookbackYears": 10, "status": "computed", "items": percentile_items},

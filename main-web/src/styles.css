@@ -1461,54 +1461,63 @@
 .marketToolError.compact { min-height: 48px; margin-bottom: 10px; border-radius: 6px; }
 
 .valuationPanel { overflow: hidden; }
-.valuationPanelHead { display: flex; min-height: 54px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e6edf5; padding: 9px 16px; }
-.valuationPanelHead > span { color: #718096; font-size: 12px; }
+.valuationPanelHead { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #e6edf5; padding: 11px 20px; }
+.valuationPanelHead > div:first-child { display: flex; align-items: baseline; gap: 10px; }
+.valuationPanelHead h2 { margin: 0; font-size: var(--front-type-panel-title); font-weight: var(--front-weight-panel-title); }
+.valuationPanelHead span { color: #718096; font-size: 11px; }
+.valuationIndexBar { display: flex; min-height: 46px; align-items: center; border-bottom: 1px solid #e6edf5; padding: 6px 20px; }
 .valuationIndexTabs,
-.valuationMetricTabs { display: flex; align-items: center; gap: 4px; }
+.valuationMetricTabs,
+.valuationRange { display: flex; align-items: center; gap: 4px; }
 .valuationIndexTabs { padding: 3px; border: 1px solid #dce5f0; border-radius: 6px; background: #f4f7fb; }
 .valuationIndexTabs button,
-.valuationMetricTabs button { min-height: 32px; border: 0; border-radius: 4px; background: transparent; color: #526176; padding: 0 11px; font-size: 12px; cursor: pointer; }
+.valuationMetricTabs button,
+.valuationRange button { min-height: 32px; border: 0; border-radius: 4px; background: transparent; color: #526176; padding: 0 11px; font-size: 12px; cursor: pointer; }
 .valuationIndexTabs button.active { background: #fff; color: #1268d5; box-shadow: 0 1px 4px rgba(15, 23, 42, .08); }
-.valuationIndexTabs small { margin-left: 4px; font-size: 11px; }
-.valuationOverview { display: grid; grid-template-columns: 300px minmax(0, 1fr); border-bottom: 1px solid #e6edf5; }
-.valuationLead { min-width: 0; border-right: 1px solid #e6edf5; padding: 20px 24px; }
-.valuationLevel { display: block; margin-bottom: 15px; color: #d96809; font-size: 24px; font-weight: 650; }
+.valuationRange { padding: 3px; border: 1px solid #dce5f0; border-radius: 6px; background: #f4f7fb; }
+.valuationRange button.active { background: #172033; color: #fff; }
+.valuationOverview { display: grid; grid-template-columns: minmax(300px, .8fr) minmax(560px, 1.6fr); border-bottom: 1px solid #e6edf5; }
+.valuationLead { min-width: 0; border-right: 1px solid #e6edf5; padding: 24px 28px; }
+.valuationLead > span { color: #718096; font-size: 11px; }
+.valuationLead p { max-width: 420px; margin: 10px 0 0; color: #607087; font-size: 12px; line-height: 1.7; }
+.valuationLevel { display: block; margin-top: 10px; color: #d96809; font-size: 32px; font-weight: 700; }
 .valuationLevel.low { color: #079455; }
 .valuationLevel.middle { color: #b7791f; }
-.valuationLead > div { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 5px 13px; }
-.valuationLead > div span { color: #718096; font-size: 11px; }
-.valuationLead > div b { color: #172033; font-size: 17px; }
-.valuationOverviewStats span { color: #718096; font-size: 11px; }
+.valuationHeadlineStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.valuationHeadlineStats article { min-width: 0; padding: 30px 20px; }
+.valuationHeadlineStats article + article { border-left: 1px solid #e6edf5; }
+.valuationHeadlineStats span,
+.valuationOverviewStats span { display: block; color: #718096; font-size: 11px; }
+.valuationHeadlineStats strong { display: block; margin-top: 10px; font-size: 22px; font-weight: 650; }
 .valuationOverviewStats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.valuationOverviewStats article { min-width: 0; padding: 26px 16px; text-align: center; }
+.valuationOverviewStats article { min-width: 0; border-bottom: 1px solid #e6edf5; padding: 15px 18px; }
 .valuationOverviewStats article + article { border-left: 1px solid #e6edf5; }
 .valuationOverviewStats span,
 .valuationOverviewStats strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.valuationOverviewStats strong { margin-top: 7px; font-size: var(--front-type-section-title); font-weight: var(--front-weight-title); }
+.valuationOverviewStats strong { margin-top: 7px; font-size: 14px; font-weight: var(--front-table-value-weight); }
 .valuationMetricTabs { min-height: 52px; overflow-x: auto; border-bottom: 1px solid #e6edf5; padding: 0 16px; }
 .valuationMetricTabs button { position: relative; min-height: 52px; border-radius: 0; padding: 0 16px; white-space: nowrap; }
 .valuationMetricTabs button.active { color: #172033; font-weight: 700; }
 .valuationMetricTabs button.active::after { position: absolute; right: 16px; bottom: 0; left: 16px; height: 3px; border-radius: 3px 3px 0 0; background: #1677ff; content: ""; }
-.valuationChartStage { min-width: 0; padding: 16px 18px 14px; }
+.valuationChartStage { min-width: 0; padding: 18px 20px 20px; }
 .valuationChartTitle { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 48px; margin-bottom: 6px; }
 .valuationChartTitle h2 { margin: 0; font-size: 15px; }
 .valuationChartTitle > div:first-child > span { display: block; margin-top: 5px; color: #718096; font-size: 12px; }
-.valuationReferenceLegend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 16px; }
-.valuationReferenceLegend span { color: #718096; font-size: 11px; }
-.valuationReferenceLegend b { margin-left: 5px; font-size: 12px; }
-.valuationReferenceLegend .low b { color: #079455; }
-.valuationReferenceLegend .middle b { color: #526176; }
-.valuationReferenceLegend .high b { color: #e5484d; }
+.valuationChartLayout { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 14px; align-items: stretch; }
+.valuationReferenceCards { display: grid; align-content: center; gap: 8px; }
+.valuationReferenceCards span { display: block; border: 1px solid #dfe6ef; border-radius: 5px; padding: 9px 11px; color: #718096; font-size: 11px; }
+.valuationReferenceCards b { display: block; margin-top: 4px; color: #172033; font-size: 13px; }
+.valuationReferenceCards .low b { color: #079455; }
+.valuationReferenceCards .high b { color: #e5484d; }
+.valuationReferenceCards .current { border-color: #b9cada; }
+.valuationReferenceCards .current b { color: #1268d5; font-size: 17px; }
 .valuationChartStage .marketChartPath { stroke: #f07818; }
 .valuationChartStage .marketChartPoint { fill: #f07818; }
+.valuationChartStage .marketChartArea { fill: #fff5e9; }
 .marketChartReference { stroke-width: 1; stroke-dasharray: 5 5; }
 .marketChartReference.low { stroke: #17a668; }
 .marketChartReference.middle { stroke: #7c8798; }
 .marketChartReference.high { stroke: #e5484d; }
-.valuationRange { display: flex; justify-content: center; gap: 5px; padding-top: 12px; }
-.valuationRange button { min-width: 72px; min-height: 30px; border: 0; border-radius: 4px; background: transparent; color: #718096; font-size: 12px; cursor: pointer; }
-.valuationRange button.active { background: #edf5ff; color: #1268d5; }
-.valuationRange button:disabled { cursor: default; opacity: .45; }
 
 @media (max-width: 1080px) {
   .temperatureSnapshot { grid-template-columns: 190px 1fr; }
@@ -1519,7 +1528,10 @@
   .strengthTopGrid { grid-template-columns: 1fr; }
   .strengthListHead { align-items: stretch; flex-direction: column; }
   .strengthFilters { justify-content: flex-start; }
-  .valuationOverview { grid-template-columns: 250px minmax(0, 1fr); }
+  .valuationOverview { grid-template-columns: 280px minmax(0, 1fr); }
+  .valuationHeadlineStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .valuationHeadlineStats article:nth-child(3) { border-top: 1px solid #e6edf5; border-left: 0; }
+  .valuationHeadlineStats article:nth-child(4) { border-top: 1px solid #e6edf5; }
   .valuationOverviewStats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .valuationOverviewStats article:nth-child(4) { border-left: 0; }
   .valuationOverviewStats article:nth-child(n+4) { border-top: 1px solid #e6edf5; }
@@ -1579,10 +1591,16 @@
   .temperatureSnapshot > * + * { border-top: 1px solid #e7edf4; border-left: 0; }
   .temperaturePressureList { grid-template-columns: 1fr; }
   .temperatureChartLayout { grid-template-columns: 1fr; }
-  .valuationPanelHead { justify-content: flex-start; }
+  .valuationPanelHead { align-items: stretch; flex-direction: column; justify-content: flex-start; }
+  .valuationPanelHead > div:first-child { justify-content: space-between; }
+  .valuationRange { width: max-content; max-width: 100%; overflow-x: auto; }
+  .valuationIndexBar { padding: 6px 12px; }
   .valuationIndexTabs { max-width: 100%; overflow-x: auto; }
   .valuationOverview { grid-template-columns: 1fr; }
   .valuationLead { border-right: 0; border-bottom: 1px solid #e6edf5; padding: 18px 16px; }
+  .valuationLevel { font-size: 26px; }
+  .valuationHeadlineStats article { padding: 16px; }
+  .valuationHeadlineStats strong { font-size: 18px; }
   .valuationOverviewStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .valuationOverviewStats article { padding: 15px 12px; }
   .valuationOverviewStats article:nth-child(odd) { border-left: 0; }
@@ -1593,7 +1611,8 @@
   .valuationMetricTabs button.active::after { right: 12px; left: 12px; }
   .valuationChartStage { padding: 14px 12px 10px; }
   .valuationChartTitle { flex-direction: column; gap: 10px; }
-  .valuationReferenceLegend { justify-content: flex-start; gap: 10px; }
+  .valuationChartLayout { grid-template-columns: 1fr; gap: 8px; }
+  .valuationReferenceCards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .temperatureIndicatorNav { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid #e6edf5; }
   .temperatureIndicatorNav button { flex: 0 0 150px; border-left: 0; border-bottom: 3px solid transparent; }
   .temperatureIndicatorNav button.active { border-bottom-color: #1677ff; }

@@ -50,6 +50,18 @@ class ForwardValuationTest(unittest.TestCase):
         self.assertEqual(market_valuation_level(40, 40), "偏高")
         self.assertEqual(market_valuation_level(75, 20), "偏高")
 
+    def test_missing_dividend_yield_stays_missing(self):
+        result = parse_market_valuation_snapshot(
+            "QQQ",
+            {"ts": 1786377600000, "pe": 31, "pb": 9, "roe": 0.3, "peg": 1.5, "pe_percentile": 0.5, "pb_percentile": 0.8},
+            {
+                "pe": {"index_eva_pe_growths": []},
+                "pb": {"index_eva_pb_growths": []},
+                "roe": {"index_eva_roe_growths": []},
+            },
+        )
+        self.assertIsNone(result["dividendYield"])
+
     def test_builds_plain_language_inputs_from_official_snapshot(self):
         result = build_qqq_forward_valuation(
             {
