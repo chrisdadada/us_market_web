@@ -22,27 +22,29 @@ Dev and production frontend files are separated:
 
 ## Deploy To Test
 
-Code deploy does not rebuild `data/product.db` by default. Data refresh is owned
-by the automated refresh jobs.
+Use the single dev release entry point. It runs project checks and the complete
+release gate once, then reuses that exact result during deployment:
 
 ```bash
 git switch codex/dev-integration
-./scripts/deploy_dev.sh
+./scripts/release_dev.sh
 ```
 
-The deploy script rejects other branches and uncommitted changes. It also reads
+Code releases reuse the current `data/product.db` test snapshot and do not
+rebuild or deploy product data. When the release includes product-data changes,
+build, enrich, verify, and deploy one DB snapshot with:
+
+```bash
+INCLUDE_PRODUCT_DATA=1 ./scripts/release_dev.sh
+```
+
+The release script rejects other branches and uncommitted changes. It also reads
 the commit recorded by the current dev site and requires that commit to be an
 ancestor of the new release. A partial or older branch therefore cannot replace
 the cumulative dev baseline. The deployed commit is available at
 `https://dev.dongbimao.org/release.json` for verification.
 
 Check `https://dev.dongbimao.org` first.
-
-To force a product DB rebuild during a manual deploy:
-
-```bash
-BUILD_PRODUCT_DB=1 ./scripts/deploy_dev.sh
-```
 
 ## Automated Refresh Deploy
 

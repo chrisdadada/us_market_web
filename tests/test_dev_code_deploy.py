@@ -5,6 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 DEPLOY = (ROOT / "scripts" / "deploy_dev.sh").read_text(encoding="utf-8")
 DATA_DEPLOY = (ROOT / "scripts" / "deploy_dev_data.sh").read_text(encoding="utf-8")
+RELEASE = (ROOT / "scripts" / "release_dev.sh").read_text(encoding="utf-8")
 
 
 class DevCodeDeployTest(unittest.TestCase):
@@ -28,6 +29,26 @@ class DevCodeDeployTest(unittest.TestCase):
 
     def test_runs_the_release_check_before_packaging(self) -> None:
         self.assertIn('npm run check', DEPLOY)
+
+    def test_reuses_checks_only_for_the_exact_verified_commit(self) -> None:
+        self.assertIn('DEV_VERIFIED_MARKER', DEPLOY)
+        self.assertIn('!= "${release_commit}"', DEPLOY)
+
+    def test_one_shot_release_runs_checks_and_gate_once(self) -> None:
+        self.assertEqual(RELEASE.count("npm run check"), 1)
+        self.assertEqual(RELEASE.count("bash scripts/run_release_gate.sh"), 1)
+        self.assertIn('DEV_VERIFIED_MARKER="${marker}" bash scripts/deploy_dev.sh', RELEASE)
+
+    def test_one_shot_data_release_builds_and_enriches_before_gate(self) -> None:
+        build = RELEASE.index('scripts/build_product_db.py')
+        enrich = RELEASE.index('scripts/update_macro_calendar_results.py')
+        gate = RELEASE.index('bash scripts/run_release_gate.sh')
+        deploy = RELEASE.index('bash scripts/deploy_dev_data.sh')
+        self.assertLess(build, enrich)
+        self.assertLess(enrich, gate)
+        self.assertLess(gate, deploy)
+        self.assertIn('INCLUDE_PRODUCT_DATA', RELEASE)
+        self.assertIn('SKIP_PRODUCT_DB_BUILD=1 BUILD_DB="${test_db}"', RELEASE)
 
     def test_reuses_installed_dependencies_when_current(self) -> None:
         self.assertIn('node_modules/.bin/tsc', DEPLOY)

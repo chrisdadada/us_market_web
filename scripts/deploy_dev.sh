@@ -54,7 +54,16 @@ ensure_web_dependencies() {
 
 ensure_web_dependencies admin-web
 ensure_web_dependencies main-web
-npm run check
+if [ -n "${DEV_VERIFIED_MARKER:-}" ]; then
+  if [ ! -r "${DEV_VERIFIED_MARKER}" ] \
+    || [ "$(cat "${DEV_VERIFIED_MARKER}")" != "${release_commit}" ]; then
+    echo "Dev verification marker does not match ${release_commit}." >&2
+    exit 1
+  fi
+  echo "Reusing checks already passed for ${release_commit}."
+else
+  npm run check
+fi
 
 release_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf '%s\n' "${release_commit}" > main-web/dist/.release-commit
