@@ -2,7 +2,7 @@
 
 ## 当前结论
 
-当前已接入 QQQ 当前持仓权重、外接盘最新日线价格和分红明细，可生成最小可用数据结构。指数估值数据已进入产品 DB；持仓权重、Top holdings、当前权重覆盖和股息率可展示；PE、PB、ROE、PEG、历史分位和趋势序列仍等待完整财务口径。
+当前已接入 QQQ 当前持仓权重、外接盘最新日线价格、分红明细，以及 Nasdaq 100 周频前瞻 PE 历史序列。产品页可展示当前前瞻 PE、近 3/5/10 年历史位置和趋势；PB、ROE、PEG 等其它指标的历史分位仍等待完整同口径财务数据。
 
 ## 已检查的数据
 
@@ -20,6 +20,9 @@
 - Invesco QQQ 持仓接口
   - 返回 `effectiveDate`、`totalNumberOfHoldings`、`holdings[].ticker`、`issuerName`、`units`、`percentageOfTotalNetAssets`。
   - 当前快照日期为 `2026-05-16`，可用于当前权重，不可用于历史分位。
+- Nasdaq 100 前瞻 PE 历史接口
+  - `https://historyofmarket.com/api/ndx/forward-pe.json`
+  - 提供周频历史前瞻 PE，以及独立计算的最新前瞻 PE；产品数据保留二者原始边界，只在图表末端追加最新读数。
 - `/Volumes/Extreme SSD/market-data-lab/data/raw/polygon_rest/tickers_active.parquet` 和 `tickers_inactive.parquet`
   - 文件存在，schema 包含 `ticker`、`name`、`market`、`primary_exchange`、`type`、`active` 等基础字段。
   - 这些是股票列表，不包含 QQQ/NDX 或 SPY 成分权重。
@@ -65,3 +68,5 @@
 - `metrics[].status: "computed"`：当前可计算指标；目前仅股息率。
 - `metrics[].status: "waiting_for_data"`：仍缺口径的指标，当前包括 PE、PB、ROE、PEG。
 - `historyPercentiles.status: "waiting_for_data"`：未生成历史分位。
+- `forwardValuation.history`：近 10 年周频前瞻 PE。
+- `forwardValuation.ranges`：近 3/5/10 年的 30%线、中位线、70%线、历史位置和最低值距离。

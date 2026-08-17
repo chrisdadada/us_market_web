@@ -62,7 +62,7 @@ const state = {
   optionsFlow: null,
   valuationIndex: "QQQ",
   valuationMetric: "pe",
-  valuationRange: "3m",
+  valuationRange: "5y",
   eventOpportunities: null,
   eventsCalendar: null,
   calendarEarningsQuery: "",
@@ -5332,67 +5332,76 @@ const renderForwardValuation = (payload) => {
   const momentum = indicators.shortTermMomentum || {};
   const vix = indicators.vix || {};
   const forwardPe = parseValuationNumber(data.forwardPe);
-  const averagePe = parseValuationNumber(data.tenYearAverageForwardPe);
-  const premium = parseValuationNumber(data.premiumToTenYearAveragePct);
-  const momentumValue = parseValuationNumber(momentum.value);
-  const vixValue = parseValuationNumber(vix.value);
-  const forwardReady = Number.isFinite(forwardPe) && Number.isFinite(averagePe) && Number.isFinite(premium);
-  const momentumReady = Number.isFinite(momentumValue);
-  const vixReady = Number.isFinite(vixValue);
-  const ready = Boolean(card && (forwardReady || momentumReady || vixReady));
+  const history = (Array.isArray(data.history) ? data.history : [])
+    .map((point) => ({ date: point?.date, value: parseValuationNumber(point?.value) }))
+    .filter((point) => point.date && Number.isFinite(point.value))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const rangeKey = data.ranges?.[state.valuationRange] ? state.valuationRange : "5y";
+  const range = data.ranges?.[rangeKey];
+  const rank = parseValuationNumber(range?.rankPct);
+  const minDistance = parseValuationNumber(range?.minDistancePct);
+  const years = parseValuationNumber(range?.years) || Number.parseInt(rangeKey, 10) || 5;
+  const ready = Boolean(card && Number.isFinite(forwardPe) && history.length > 1 && range && Number.isFinite(rank));
 
   shell?.classList.toggle("has-forward-card", ready);
   if (card) card.hidden = !ready;
-  if (!ready) return false;
+  if (!ready) return null;
 
-  const forwardMetric = document.querySelector("#valuationForwardMetric");
-  const momentumMetric = document.querySelector("#valuationMomentumMetric");
-  const vixMetric = document.querySelector("#valuationVixMetric");
-  if (forwardMetric) forwardMetric.hidden = !forwardReady;
-  if (momentumMetric) momentumMetric.hidden = !momentumReady;
-  if (vixMetric) vixMetric.hidden = !vixReady;
+  const low = rank <= 30;
+  const middle = rank <= 70;
+  setText("#valuationDecisionTitle", low ? "当前估值偏低" : middle ? "当前估值适中" : "当前估值偏高");
+  setText(
+    "#valuationDecisionSummary",
+    low
+      ? `近${years}年中，只有约${Math.round(rank)}%的时间比现在更便宜。`
+      : middle
+        ? `当前处于近${years}年的中间区间。`
+        : `当前估值高于近${years}年大部分时间。`,
+  );
+  setText("#valuationDecisionAction", low ? "可考虑分批投入" : middle ? "按原计划定投" : "暂不加快投入");
+  setText("#valuationForwardPe", `${forwardPe.toFixed(2)}倍`);
+  setText("#valuationRankLabel", `近${years}年比较`);
+  setText("#valuationRankValue", `仅${Math.round(rank)}%时间更便宜`);
+  setText("#valuationMinimumLabel", `相比近${years}年最低`);
+  setText("#valuationMinimumValue", Number.isFinite(minDistance) ? `仍高约${Math.round(minDistance)}%` : "--");
+  setText("#valuationChartTitle", `近${years}年估值走势`);
+  setText("#valuationChartKicker", "绿色区域代表历史上较便宜的30%");
 
-  if (forwardReady) {
-    const aboveAverage = premium > 0;
-    setText("#valuationForwardPe", `${forwardPe.toFixed(2)}倍`);
-    setText("#valuationForwardStatus", aboveAverage ? "偏高" : "不高");
-    setText("#valuationForwardMeta", `10年平均 ${averagePe.toFixed(1)}倍 · ${formatDisplayDate(data.asOf)}`);
-    document.querySelector("#valuationForwardStatus")?.classList.toggle("is-watch", aboveAverage);
-  }
-  if (momentumReady) {
-    const label = momentum.label || (momentumValue >= 70 ? "偏热" : momentumValue <= 30 ? "偏冷" : "正常");
-    setText("#valuationMomentumValue", momentumValue.toFixed(2));
-    setText("#valuationMomentumStatus", label);
-    setText("#valuationMomentumMeta", `近${momentum.periodDays || 14}个交易日 · ${formatDisplayDate(momentum.asOf)}`);
-    document.querySelector("#valuationMomentumStatus")?.classList.toggle("is-watch", label !== "正常");
-  }
-  if (vixReady) {
-    const label = vix.label || "--";
-    setText("#valuationVixValue", vixValue.toFixed(2));
-    setText("#valuationVixStatus", label);
-    setText("#valuationVixMeta", `市场波动预期 · ${formatDisplayDate(vix.asOf)}`);
-    document.querySelector("#valuationVixStatus")?.classList.toggle("is-watch", label !== "平稳");
+  const momentumValue = parseValuationNumber(momentum.value);
+  const vixValue = parseValuationNumber(vix.value);
+  const calmMomentum = Number.isFinite(momentumValue) && momentumValue >= 30 && momentumValue <= 70;
+  const calmVix = Number.isFinite(vixValue) && (vix.label === "平稳" || vixValue < 20);
+  const marketNote = document.querySelector("#valuationMarketNote");
+  if (marketNote) {
+    marketNote.hidden = !(Number.isFinite(momentumValue) || Number.isFinite(vixValue));
+    marketNote.textContent = calmMomentum && calmVix ? "市场情绪平稳，暂未出现恐慌性抛售。" : "市场波动有所上升，分批投入仍需控制节奏。";
   }
 
-  const dates = [data.asOf, momentum.asOf, vix.asOf].filter(Boolean).sort();
-  setText("#valuationIndicatorsAsOf", `更新至 ${formatDisplayDate(dates.at(-1))}`);
-  return true;
+  const series = history.slice();
+  const latestDate = String(data.asOf || "").slice(0, 10);
+  if (latestDate && latestDate > String(series.at(-1)?.date || "")) series.push({ date: latestDate, value: forwardPe });
+  return {
+    key: "forwardPe",
+    label: "前瞻 PE",
+    unit: "x",
+    value: forwardPe,
+    series,
+    refs: { p30: range.p30, median: range.median, p70: range.p70 },
+  };
 };
 
-const valuationReferenceMarkers = (refs, geometry, min, max, unit) => {
-  const markers = [
-    ["P75", refs.p75 ?? refs.p70],
-    ["中位", refs.median],
-    ["P25", refs.p25 ?? refs.p30],
-  ];
+const valuationReferenceMarkers = (refs, geometry, min, max, unit, plainLanguage = false) => {
+  const markers = plainLanguage
+    ? [["偏高线", refs.p70, "is-high"], ["中位线", refs.median, "is-middle"], ["偏低线", refs.p30, "is-low"]]
+    : [["P75", refs.p75 ?? refs.p70], ["中位", refs.median], ["P25", refs.p25 ?? refs.p30]];
   return markers
-    .map(([label, rawValue]) => {
+    .map(([label, rawValue, tone]) => {
       const value = parseValuationNumber(rawValue);
       if (!Number.isFinite(value)) return "";
       const y = macroSeriesYFromValue(value, geometry, min, max);
       if (y < geometry.y - 1 || y > geometry.y + geometry.height + 1) return "";
       return `
-        <g class="valuation-ref">
+        <g class="valuation-ref${tone ? ` ${tone}` : ""}">
           <line x1="${geometry.x}" x2="${geometry.x + geometry.width}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"></line>
           <text x="${geometry.labelX}" y="${(y + 4).toFixed(1)}">${escapeHtml(label)} ${escapeHtml(formatValuationValue(value, unit))}</text>
         </g>
@@ -5409,11 +5418,13 @@ const valuationRangeDays = {
 
 const filterValuationSeriesByRange = (points) => {
   const days = valuationRangeDays[state.valuationRange];
-  if (!days || points.length < 2) return points;
+  const years = /^\d+y$/.test(state.valuationRange) ? Number.parseInt(state.valuationRange, 10) : 0;
+  if ((!days && !years) || points.length < 2) return points;
   const lastDate = new Date(points.at(-1).date);
   if (Number.isNaN(lastDate.getTime())) return points;
   const cutoff = new Date(lastDate);
-  cutoff.setDate(cutoff.getDate() - days);
+  if (years) cutoff.setFullYear(cutoff.getFullYear() - years);
+  else cutoff.setDate(cutoff.getDate() - days);
   const filtered = points.filter((point) => new Date(point.date) >= cutoff);
   return filtered.length >= 2 ? filtered : points;
 };
@@ -5511,7 +5522,10 @@ const bindValuationChartHover = (points, geometry, min, max, unit) => {
 const renderValuationChart = (metric) => {
   const wrap = document.querySelector("#valuationChartWrap");
   if (!wrap) return;
-  const config = valuationMetricConfig[metric.key] || valuationMetricConfig.pe;
+  const plainLanguage = metric.key === "forwardPe";
+  const config = plainLanguage
+    ? { label: "前瞻 PE", title: "前瞻 PE 估值走势", unit: "x" }
+    : valuationMetricConfig[metric.key] || valuationMetricConfig.pe;
   const points = filterValuationSeriesByRange(metric.series || []);
   if (points.length < 2) {
     const hasCurrentValue = Number.isFinite(parseValuationNumber(metric.value));
@@ -5533,9 +5547,12 @@ const renderValuationChart = (metric) => {
   const padding = (maxValue - minValue || Math.abs(maxValue) || 1) * 0.08;
   const min = minValue - padding;
   const max = maxValue + padding;
-  const width = 1280;
-  const height = 420;
-  const geometry = { x: 96, y: 44, width: 910, height: 286, axisX: 72, labelX: 1028 };
+  const compact = wrap.clientWidth < 620;
+  const width = compact ? Math.max(300, Math.round(wrap.clientWidth)) : 1280;
+  const height = compact ? 340 : 420;
+  const geometry = compact
+    ? { x: 44, y: 34, width: width - 58, height: 242, axisX: 6, labelX: width - 8 }
+    : { x: 96, y: 44, width: 910, height: 286, axisX: 72, labelX: 1028 };
   const linePath = macroSeriesPathFromGeometry(points, geometry, min, max);
   const areaPath = `${linePath} L${geometry.x + geometry.width} ${geometry.y + geometry.height} L${geometry.x} ${geometry.y + geometry.height} Z`;
   const end = points.at(-1);
@@ -5545,29 +5562,56 @@ const renderValuationChart = (metric) => {
   const currentValue = formatValuationValue(metric.value, metric.unit);
   const calloutX = Math.min(width - 172, endPosition.x + 28);
   const calloutY = Math.max(48, Math.min(height - 108, endPosition.y - 34));
+  const lowLine = parseValuationNumber(refs.p30);
+  const lowZoneY = Number.isFinite(lowLine) ? macroSeriesYFromValue(lowLine, geometry, min, max) : geometry.y + geometry.height;
+  const lowZone = plainLanguage && Number.isFinite(lowLine)
+    ? `<rect class="valuation-low-zone" x="${geometry.x}" y="${lowZoneY.toFixed(1)}" width="${geometry.width}" height="${Math.max(0, geometry.y + geometry.height - lowZoneY).toFixed(1)}"></rect>`
+    : "";
+  const eventLabels = [
+    ["2022-09-30", "2022年估值低点"],
+    ["2023-10-27", "2023年阶段低点"],
+    ["2026-03-27", "2026年阶段低点"],
+  ];
+  const eventMarkers = plainLanguage
+    ? eventLabels
+        .map(([date, label], index) => {
+          const pointIndex = points.findIndex((point) => String(point.date).slice(0, 10) === date);
+          if (pointIndex < 0) return "";
+          const point = points[pointIndex];
+          const position = macroSeriesPositionFromGeometry(point, pointIndex, points.length, geometry, min, max);
+          const labelX = Math.min(geometry.x + geometry.width - 130, Math.max(geometry.x + 8, position.x + 8));
+          const labelY = Math.max(geometry.y + 14, position.y + (index % 2 ? 19 : -10));
+          return `<circle class="valuation-event-dot" cx="${position.x.toFixed(1)}" cy="${position.y.toFixed(1)}" r="4"></circle><text class="valuation-event-label" x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}">${escapeHtml(label)} · ${escapeHtml(formatValuationValue(point.value, metric.unit))}</text>`;
+        })
+        .join("")
+    : "";
+  const currentLevel = parseValuationNumber(metric.value) <= parseValuationNumber(metric.refs?.p30)
+    ? "偏低"
+    : parseValuationNumber(metric.value) <= parseValuationNumber(metric.refs?.p70)
+      ? "适中"
+      : "偏高";
+  const currentLabelValue = plainLanguage ? currentValue.replace("x", "倍") : currentValue;
+  const currentMarker = plainLanguage
+    ? `<circle class="valuation-current-dot" cx="${endPosition.x.toFixed(1)}" cy="${endPosition.y.toFixed(1)}" r="6"></circle><text class="valuation-forward-current-label" x="${(endPosition.x - 10).toFixed(1)}" y="${Math.max(geometry.y + 15, endPosition.y - 12).toFixed(1)}" text-anchor="end">现在 ${escapeHtml(currentLabelValue)}｜${currentLevel}</text>`
+    : `<line class="valuation-current-guide" x1="${endPosition.x.toFixed(1)}" x2="${(calloutX - 12).toFixed(1)}" y1="${endPosition.y.toFixed(1)}" y2="${(calloutY + 33).toFixed(1)}"></line><circle class="valuation-current-dot" cx="${endPosition.x.toFixed(1)}" cy="${endPosition.y.toFixed(1)}" r="5"></circle><g class="valuation-current-callout" transform="translate(${calloutX.toFixed(1)}, ${calloutY.toFixed(1)})"><rect width="148" height="66" rx="7"></rect><text x="14" y="21">当前值</text><text class="valuation-current-value" x="14" y="44">${escapeHtml(currentValue)}</text><text class="valuation-current-date" x="14" y="58">${escapeHtml(formatDisplayDate(end.date))}</text></g>`;
 
   wrap.innerHTML = `
-    <svg class="valuation-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(config.title)}">
+    <svg class="valuation-chart${plainLanguage ? " is-forward" : ""}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(config.title)}">
       <defs>
         <clipPath id="${clipId}">
           <rect x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}"></rect>
         </clipPath>
       </defs>
       <rect class="valuation-plot-bg" x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}"></rect>
+      ${lowZone}
       ${macroSeriesYAxis(ticks, geometry, metric.unit)}
-      ${valuationReferenceMarkers(refs, geometry, min, max, metric.unit)}
+      ${valuationReferenceMarkers(refs, geometry, min, max, metric.unit, plainLanguage)}
       <g clip-path="url(#${clipId})">
         <path class="valuation-area" d="${areaPath}"></path>
         <path class="valuation-line" d="${linePath}"></path>
       </g>
-      <line class="valuation-current-guide" x1="${endPosition.x.toFixed(1)}" x2="${(calloutX - 12).toFixed(1)}" y1="${endPosition.y.toFixed(1)}" y2="${(calloutY + 33).toFixed(1)}"></line>
-      <circle class="valuation-current-dot" cx="${endPosition.x.toFixed(1)}" cy="${endPosition.y.toFixed(1)}" r="5"></circle>
-      <g class="valuation-current-callout" transform="translate(${calloutX.toFixed(1)}, ${calloutY.toFixed(1)})">
-        <rect width="148" height="66" rx="7"></rect>
-        <text x="14" y="21">当前值</text>
-        <text class="valuation-current-value" x="14" y="44">${escapeHtml(currentValue)}</text>
-        <text class="valuation-current-date" x="14" y="58">${escapeHtml(formatDisplayDate(end.date))}</text>
-      </g>
+      ${eventMarkers}
+      ${currentMarker}
       <g class="valuation-hover" data-valuation-hover style="opacity:0">
         <line data-hover-line x1="0" x2="0" y1="0" y2="0"></line>
         <circle data-hover-dot cx="0" cy="0" r="5"></circle>
@@ -5681,7 +5725,7 @@ const renderIndexValuation = (payload) => {
   const selected = metrics[selectedKey];
   const indexName = activePayload?.index?.name || activePayload?.indexName || activePayload?.name || "Nasdaq 100";
   const shortIndexName = valuationIndexName(activeSymbol, indexName);
-  const hasForwardValuation = renderForwardValuation(activePayload);
+  const forwardMetric = renderForwardValuation(activePayload);
 
   document.querySelectorAll("[data-valuation-metric]").forEach((button) => {
     const active = button.dataset.valuationMetric === selectedKey;
@@ -5695,7 +5739,10 @@ const renderIndexValuation = (payload) => {
   });
   document.querySelectorAll("[data-valuation-index]").forEach((button) => {
     const symbol = String(button.dataset.valuationIndex || "").toUpperCase();
-    const available = !Array.isArray(payload?.indices) || payload.indices.some((item) => String(item?.index?.symbol || "").toUpperCase() === symbol);
+    const indexPayload = Array.isArray(payload?.indices)
+      ? payload.indices.find((item) => String(item?.index?.symbol || "").toUpperCase() === symbol)
+      : activePayload;
+    const available = valuationPayloadReady(indexPayload) && (indexPayload?.forwardValuation?.history?.length || 0) > 1;
     const active = symbol === activeSymbol;
     button.classList.toggle("is-active", active);
     button.disabled = !available;
@@ -5705,10 +5752,10 @@ const renderIndexValuation = (payload) => {
   setText("#valuationPageTitle", `${shortIndexName} 估值`);
   setText(
     "#valuationPageSubtitle",
-    hasForwardValuation ? "看当前估值、短期涨跌和市场情绪。" : `观察 ${shortIndexName} 当前所处的位置。`,
+    forwardMetric ? `${activeSymbol} · 历史前瞻 PE` : `观察 ${shortIndexName} 当前所处的位置。`,
   );
   setText("#valuationIndexLabel", indexName);
-  setText("#valuationAsOf", ready ? formatDisplayDate(activePayload?.asOf || activePayload?.updatedAt || activePayload?.generatedAt) : "--");
+  setText("#valuationAsOf", ready ? formatDisplayDate(activePayload?.forwardValuation?.asOf || activePayload?.asOf || activePayload?.updatedAt || activePayload?.generatedAt) : "--");
   setText("#valuationCoverage", ready ? activePayload?.coverage || activePayload?.sample || "指数估值样本" : "等待指数估值样本接入");
   setText("#valuationTitle", ready ? activePayload?.title || `${indexName} 估值概览` : "等待估值数据");
   setText(
@@ -5717,8 +5764,10 @@ const renderIndexValuation = (payload) => {
       ? activePayload?.summary || "展示核心估值指标的当前读数、历史分位和趋势变化。"
       : activePayload?.frontendHints?.emptyStateBody || "数据未接入前，不展示 PE、PB、ROE 等估值数字。",
   );
-  setText("#valuationChartKicker", ready ? `${valuationMetricConfig[selectedKey].label} 观察` : "趋势图");
-  setText("#valuationChartTitle", ready ? valuationMetricConfig[selectedKey].title : "等待估值数据");
+  if (!forwardMetric) {
+    setText("#valuationChartKicker", ready ? `${valuationMetricConfig[selectedKey].label} 观察` : "趋势图");
+    setText("#valuationChartTitle", ready ? valuationMetricConfig[selectedKey].title : "等待估值数据");
+  }
 
   const metricGrid = document.querySelector("#valuationMetricSummary");
   if (metricGrid) {
@@ -5749,13 +5798,15 @@ const renderIndexValuation = (payload) => {
 
   setText(
     "#valuationPercentileNote",
-    ready
+    forwardMetric
+      ? "接近估值低位，不代表已经是市场底部。"
+      : ready
       ? selected.series?.length
         ? `${valuationMetricConfig[selectedKey].label} 轨迹为近似口径，用于观察阶段变化。`
         : `${valuationMetricConfig[selectedKey].label} 暂无同口径历史序列。`
       : "轨迹用于观察近期价格变化对估值读数的影响，不代表未来方向。",
   );
-  renderValuationChart(ready ? selected : { ...selected, series: [] });
+  renderValuationChart(forwardMetric || (ready ? selected : { ...selected, series: [] }));
 };
 
 const pageModules = [
@@ -7310,6 +7361,7 @@ const showPage = (page, options = {}) => {
     openAuthModal("请先使用管理员账号登录。");
     page = "dashboard";
   }
+  document.body.classList.toggle("is-valuation-view", page === "valuation");
   document.querySelectorAll(".page-view").forEach((view) => {
     const active = view.dataset.view === page;
     view.classList.toggle("is-active", active);
@@ -12613,7 +12665,7 @@ const bindEvents = () => {
     const valuationRange = event.target.closest("[data-valuation-range]");
     if (valuationRange) {
       event.preventDefault();
-      state.valuationRange = valuationRange.dataset.valuationRange || "3m";
+      state.valuationRange = valuationRange.dataset.valuationRange || "5y";
       renderIndexValuation(state.indexValuation);
       return;
     }

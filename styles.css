@@ -2947,83 +2947,86 @@ body :where(.is-negative) {
 .valuation-forward-card {
   overflow: hidden;
   border: 1px solid var(--line);
+  border-left: 4px solid var(--positive);
   border-radius: var(--radius-panel);
   background: #fff;
 }
 
-.valuation-forward-head {
+.valuation-decision {
   display: flex;
-  min-height: 48px;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  padding: 0 20px;
-  border-bottom: 1px solid #e7edf4;
+  gap: 20px;
+  padding: 20px;
 }
 
-.valuation-forward-head strong {
-  color: #172033;
-  font-size: 14px;
+.valuation-decision > div:first-child {
+  min-width: 0;
 }
 
-.valuation-forward-head span,
-.valuation-forward-metrics article > span {
+.valuation-decision span,
+.valuation-decision-facts span {
+  display: block;
   color: var(--muted);
   font-size: 12px;
   font-weight: 620;
 }
 
-.valuation-forward-metrics {
+.valuation-decision > div:first-child > span {
+  color: var(--positive);
+}
+
+.valuation-decision h2 {
+  margin: 6px 0;
+  color: #172033;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.valuation-decision p {
+  margin: 0;
+  color: #748197;
+  font-size: 13px;
+  font-weight: 520;
+}
+
+.valuation-decision-action {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.valuation-forward-metrics article {
-  min-width: 0;
-  padding: 22px 20px 20px;
-}
-
-.valuation-forward-metrics article[hidden] {
-  display: none;
-}
-
-.valuation-forward-metrics article + article {
+  min-width: 220px;
+  align-content: center;
+  padding-left: 20px;
   border-left: 1px solid #e7edf4;
 }
 
-.valuation-forward-metrics article > div {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-  margin-top: 11px;
+.valuation-decision-action strong {
+  margin-top: 6px;
+  color: var(--positive);
+  font-size: 21px;
+  font-weight: 650;
 }
 
-.valuation-forward-metrics strong {
-  color: #172033;
-  font-size: 29px;
-  font-weight: 680;
-  letter-spacing: -0.025em;
+.valuation-decision-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #e7edf4;
 }
 
-.valuation-forward-metrics em {
-  border-radius: 5px;
-  background: #e9f8f1;
-  color: #128055;
-  padding: 4px 7px;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 620;
+.valuation-decision-facts article {
+  min-width: 0;
+  padding: 14px 18px;
 }
 
-.valuation-forward-metrics em.is-watch {
-  background: #fff4d7;
-  color: #8a5b00;
+.valuation-decision-facts article + article {
+  border-left: 1px solid #e7edf4;
 }
 
-.valuation-forward-metrics small {
+.valuation-decision-facts strong {
   display: block;
-  margin-top: 12px;
-  color: #7f8ca0;
-  font-size: 12px;
+  margin-top: 5px;
+  color: #172033;
+  font-size: 18px;
+  font-weight: 620;
 }
 
 .valuation-shell.has-forward-card > .valuation-hero,
@@ -3033,21 +3036,25 @@ body :where(.is-negative) {
 }
 
 @media (max-width: 720px) {
-  .valuation-forward-metrics {
+  .valuation-decision,
+  .valuation-decision-facts {
     grid-template-columns: 1fr;
   }
 
-  .valuation-forward-metrics article {
-    padding: 18px;
+  .valuation-decision {
+    display: grid;
   }
 
-  .valuation-forward-metrics article + article {
+  .valuation-decision-action {
+    min-width: 0;
+    padding: 14px 0 0;
     border-top: 1px solid #e7edf4;
     border-left: 0;
   }
 
-  .valuation-forward-metrics strong {
-    font-size: 25px;
+  .valuation-decision-facts article + article {
+    border-top: 1px solid #e7edf4;
+    border-left: 0;
   }
 }
 
@@ -3339,6 +3346,55 @@ body :where(.is-negative) {
   stroke-width: 2.6;
 }
 
+.valuation-low-zone {
+  fill: #e9f7ee;
+}
+
+.valuation-chart.is-forward .valuation-area {
+  fill: transparent;
+}
+
+.valuation-chart.is-forward .valuation-line {
+  stroke: #dd6b20;
+  stroke-width: 2.2;
+}
+
+.valuation-chart.is-forward .valuation-ref.is-low line,
+.valuation-chart.is-forward .valuation-ref.is-low text {
+  stroke: #279454;
+  fill: #279454;
+}
+
+.valuation-chart.is-forward .valuation-ref.is-high line,
+.valuation-chart.is-forward .valuation-ref.is-high text {
+  stroke: #d04b45;
+  fill: #d04b45;
+}
+
+.valuation-chart.is-forward .valuation-current-dot {
+  fill: #dd6b20;
+  stroke: #fff;
+  stroke-width: 3;
+}
+
+.valuation-forward-current-label {
+  fill: #b44f12;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.valuation-event-dot {
+  fill: var(--valuation-blue);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.valuation-event-label {
+  fill: #6f7c91;
+  font-size: 11px;
+  font-weight: 560;
+}
+
 .valuation-current-guide {
   stroke: #9fb1c5;
   stroke-dasharray: 4 6;
@@ -3533,6 +3589,20 @@ body :where(.is-negative) {
 .valuation-percentile-note {
   margin-top: 11px;
   padding-left: 2px;
+}
+
+.valuation-market-note {
+  margin-top: 12px;
+  border-radius: 7px;
+  background: #f0f4f9;
+  color: #536078;
+  padding: 11px 13px;
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.valuation-market-note[hidden] {
+  display: none;
 }
 
 .valuation-holdings-panel {
@@ -13372,6 +13442,15 @@ body .market-workspace .market-table td {
     flex: 0 0 auto;
   }
 
+  .valuation-chart-tools {
+    justify-items: start;
+  }
+
+  .valuation-event-label,
+  .valuation-ref text {
+    display: none;
+  }
+
   .valuation-chart-wrap,
   .valuation-chart,
   .valuation-empty-chart {
@@ -21065,6 +21144,136 @@ body :where(.market-table-title) {
 
 body :where(.market-workspace .market-row.is-selected, .ranking-panel .market-row.is-selected, .mag7-row.is-top, .mag7-row:hover) {
   background: rgba(53, 167, 255, 0.1) !important;
+}
+
+/* Index valuation follows the approved light product layout. */
+body.is-valuation-view {
+  color-scheme: light;
+  --page: #f3f6fa;
+  --panel: #fff;
+  --panel-subtle: #f7f9fc;
+  --ink: #172033;
+  --muted: #748197;
+  --line: #dde4ee;
+  --line-strong: #cfd8e5;
+  --blue: #2463da;
+  --blue-soft: #e9f2ff;
+  --positive: #279454;
+  --positive-soft: #e9f7ee;
+  --chart-grid: #e8ecf2;
+  --chart-axis: #6f7c91;
+  background: #f3f6fa;
+  color: #172033;
+}
+
+body.is-valuation-view .app-sidebar,
+body.is-valuation-view .workspace-topbar {
+  border-color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.97);
+  color: #172033;
+}
+
+body.is-valuation-view .brand strong,
+body.is-valuation-view .workspace-topbar strong,
+body.is-valuation-view .valuation-heading h1 {
+  color: #172033;
+}
+
+body.is-valuation-view .nav-section a,
+body.is-valuation-view .nav-section-legacy a {
+  color: #536078;
+}
+
+body.is-valuation-view .nav-section a:hover,
+body.is-valuation-view .nav-section a.is-active {
+  background: #e9f2ff;
+  color: #2463da;
+}
+
+body.is-valuation-view .sidebar-toggle,
+body.is-valuation-view .global-search input {
+  border-color: #d5deea !important;
+  background: #fff !important;
+  color: #172033 !important;
+}
+
+body.is-valuation-view .global-search-results {
+  border-color: #d5deea;
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(20, 36, 61, 0.12);
+}
+
+body.is-valuation-view :where(.valuation-index-tabs, .valuation-range) {
+  border-color: #dce4ed !important;
+  background: #eef2f7 !important;
+  color: #172033 !important;
+}
+
+body.is-valuation-view :where(.valuation-index-tabs button, .valuation-range button) {
+  color: #738096 !important;
+}
+
+body.is-valuation-view :where(.valuation-index-tabs button.is-active, .valuation-range button.is-active) {
+  border-color: transparent !important;
+  background: #fff !important;
+  color: #172033 !important;
+  box-shadow: 0 1px 2px rgba(20, 36, 61, 0.12) !important;
+}
+
+body.is-valuation-view :where(.valuation-forward-card, .valuation-chart-panel, .valuation-chart-wrap, .valuation-chart, .valuation-empty-chart) {
+  border-color: #dce4ed !important;
+  background: #fff !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+}
+
+body.is-valuation-view .valuation-chart-head h2,
+body.is-valuation-view .valuation-empty-chart strong {
+  color: #172033 !important;
+}
+
+body.is-valuation-view :where(.valuation-chart-head p, .valuation-empty-chart p, .valuation-percentile-note) {
+  color: #748197 !important;
+}
+
+body.is-valuation-view :where(.valuation-plot-bg, .valuation-chart svg) {
+  background: #fff !important;
+}
+
+body.is-valuation-view .valuation-plot-bg {
+  fill: #fff !important;
+  stroke: #e3e8ef !important;
+}
+
+body.is-valuation-view .valuation-chart .macro-series-y-tick line {
+  stroke: #e8ecf2 !important;
+}
+
+body.is-valuation-view .valuation-ref line {
+  stroke: #aebdce !important;
+}
+
+body.is-valuation-view .valuation-chart.is-forward .valuation-ref.is-low :where(line, text) {
+  stroke: #279454 !important;
+  fill: #279454 !important;
+}
+
+body.is-valuation-view .valuation-chart.is-forward .valuation-ref.is-high :where(line, text) {
+  stroke: #d04b45 !important;
+  fill: #d04b45 !important;
+}
+
+body.is-valuation-view :where(.valuation-chart .macro-series-y-tick text, .valuation-chart .macro-series-x-label, .valuation-ref text) {
+  fill: #6f7c91 !important;
+}
+
+body.is-valuation-view .valuation-hover rect {
+  fill: #fff !important;
+  stroke: #d8dfe8 !important;
+}
+
+body.is-valuation-view .valuation-hover text {
+  fill: #536078 !important;
 }
 
 /* Risk chart redesign: denser terminal-style reading, clearer zones and table-like factor rows. */

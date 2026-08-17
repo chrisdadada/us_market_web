@@ -37,7 +37,7 @@ const routeCases = [
   { hash: "#stock-events/guidance_up", view: "dashboard", text: "最新" },
   { hash: "#events/guidance_up", view: "dashboard", text: "最新" },
   { hash: "#risk", view: "risk", text: "登录后可看市场温度计", maxHeight: workspaceMaxDocumentHeight },
-  { hash: "#valuation", view: "valuation", text: "短期涨跌动能" },
+  { hash: "#valuation", view: "valuation", text: "纳指 100 估值" },
   { hash: "#strength", view: "strength", text: "会员可看全市场强弱", maxHeight: workspaceMaxDocumentHeight },
   { hash: "#watchlist", view: "dashboard", text: "最新", absentText: "观察池" },
 ];

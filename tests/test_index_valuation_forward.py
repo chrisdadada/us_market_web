@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_index_valuation import build_qqq_forward_valuation, wilder_rsi  # noqa: E402
+from build_index_valuation import build_qqq_forward_valuation, build_qqq_forward_valuation_history, wilder_rsi  # noqa: E402
 
 
 class ForwardValuationTest(unittest.TestCase):
@@ -27,6 +27,25 @@ class ForwardValuationTest(unittest.TestCase):
     def test_rejects_missing_or_non_positive_pe(self):
         with self.assertRaises(ValueError):
             build_qqq_forward_valuation({"priceToEarningsRatio": 30, "forwardPriceToEarningsRatio": 0})
+
+    def test_builds_historical_ranges_without_mixing_daily_series(self):
+        history = [
+            {"date": f"{year}-08-01", "value": value}
+            for year, value in zip(range(2016, 2027), range(18, 29), strict=True)
+        ]
+        result = build_qqq_forward_valuation_history(
+            {
+                "current": {"forward": 27.5, "trailing": 31.0},
+                "forward": history,
+                "forwardOwn": [{"date": "2026-08-14", "value": 22.5}],
+            }
+        )
+
+        self.assertEqual(result["forwardPe"], 22.5)
+        self.assertEqual(result["historicalAsOf"], "2026-08-01")
+        self.assertEqual(result["history"][-1], {"date": "2026-08-01", "value": 28.0})
+        self.assertEqual(set(result["ranges"]), {"3y", "5y", "10y"})
+        self.assertEqual(result["ranges"]["5y"]["min"], 24.0)
 
     def test_short_term_momentum_bounds(self):
         self.assertEqual(wilder_rsi([100.0] * 15), 50.0)

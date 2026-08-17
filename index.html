@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
     <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260807-forward-pe1" />
+    <link rel="stylesheet" href="./styles.css?v=20260817-valuation1" />
   </head>
   <body>
     <div class="app-shell">
@@ -229,52 +229,41 @@
               </div>
             </div>
 
-            <section class="valuation-forward-card" id="valuationForwardCard" hidden aria-label="纳指100关键指标">
-              <div class="valuation-forward-head">
-                <strong>关键指标</strong>
-                <span id="valuationIndicatorsAsOf">--</span>
+            <section class="valuation-forward-card" id="valuationForwardCard" hidden aria-label="纳指100估值判断">
+              <div class="valuation-decision">
+                <div>
+                  <span>估值状态</span>
+                  <h2 id="valuationDecisionTitle">等待估值数据</h2>
+                  <p id="valuationDecisionSummary">--</p>
+                </div>
+                <div class="valuation-decision-action">
+                  <span>定投参考</span>
+                  <strong id="valuationDecisionAction">--</strong>
+                </div>
               </div>
-              <div class="valuation-forward-metrics">
-                <article id="valuationForwardMetric" hidden>
-                  <span>前瞻 PE <button class="info-tip" type="button" aria-label="前瞻PE解释" data-tip="未来一年预期盈利对应的市盈率。">?</button></span>
-                  <div><strong id="valuationForwardPe">--</strong><em id="valuationForwardStatus">--</em></div>
-                  <small id="valuationForwardMeta">--</small>
+              <div class="valuation-decision-facts">
+                <article>
+                  <span>当前估值 <button class="info-tip" type="button" aria-label="前瞻PE解释" data-tip="未来一年预期盈利对应的市盈率。">?</button></span>
+                  <strong id="valuationForwardPe">--</strong>
                 </article>
-                <article id="valuationMomentumMetric" hidden>
-                  <span>短期涨跌动能 <button class="info-tip" type="button" aria-label="短期涨跌动能解释" data-tip="根据近14个交易日涨跌变化计算，70以上通常偏热，30以下通常偏冷。">?</button></span>
-                  <div><strong id="valuationMomentumValue">--</strong><em id="valuationMomentumStatus">--</em></div>
-                  <small id="valuationMomentumMeta">--</small>
-                </article>
-                <article id="valuationVixMetric" hidden>
-                  <span>VIX 恐慌指数 <button class="info-tip" type="button" aria-label="VIX恐慌指数解释" data-tip="数值越高，市场预计未来波动越大。">?</button></span>
-                  <div><strong id="valuationVixValue">--</strong><em id="valuationVixStatus">--</em></div>
-                  <small id="valuationVixMeta">--</small>
-                </article>
+                <article><span id="valuationRankLabel">近5年比较</span><strong id="valuationRankValue">--</strong></article>
+                <article><span id="valuationMinimumLabel">相比近5年最低</span><strong id="valuationMinimumValue">--</strong></article>
               </div>
             </section>
 
             <section class="valuation-chart-panel">
               <div class="valuation-chart-head">
                 <div>
-                  <span id="valuationChartKicker">趋势图</span>
                   <h2 id="valuationChartTitle">等待估值数据</h2>
+                  <p id="valuationChartKicker">绿色区域代表历史上较便宜的30%</p>
                 </div>
                 <div class="valuation-chart-tools">
-                  <p><i></i>估值轨迹 <b></b>参考线</p>
                   <div class="valuation-range" aria-label="选择估值图时间范围">
-                    <button class="is-active" type="button" data-valuation-range="3m">近3月</button>
-                    <button type="button" data-valuation-range="6m">近6月</button>
-                    <button type="button" data-valuation-range="1y">近1年</button>
-                    <button type="button" data-valuation-range="all">全部</button>
+                    <button type="button" data-valuation-range="3y">近3年</button>
+                    <button class="is-active" type="button" data-valuation-range="5y">近5年</button>
+                    <button type="button" data-valuation-range="10y">近10年</button>
                   </div>
                 </div>
-              </div>
-              <div class="valuation-tabs" role="tablist" aria-label="选择估值指标">
-                <button class="is-active" type="button" role="tab" aria-selected="true" data-valuation-metric="pe">PE</button>
-                <button type="button" role="tab" aria-selected="false" data-valuation-metric="pb">PB</button>
-                <button type="button" role="tab" aria-selected="false" data-valuation-metric="roe">ROE</button>
-                <button type="button" role="tab" aria-selected="false" data-valuation-metric="dividendYield">股息率</button>
-                <button type="button" role="tab" aria-selected="false" data-valuation-metric="peg">PEG</button>
               </div>
               <div class="valuation-chart-wrap" id="valuationChartWrap">
                 <div class="valuation-empty-chart">
@@ -283,8 +272,9 @@
                   <p>接入同口径数据后，会显示估值轨迹、当前值和参考线。</p>
                 </div>
               </div>
+              <div class="valuation-market-note" id="valuationMarketNote" hidden></div>
               <div class="valuation-percentile-note" id="valuationPercentileNote">
-                轨迹用于观察近期价格变化对估值读数的影响，不代表未来方向。
+                接近估值低位，不代表已经是市场底部。
               </div>
             </section>
 
@@ -2860,6 +2850,6 @@
       </section>
     </div>
 
-          <script src="./app.js?v=20260807-forward-pe1"></script>
+          <script src="./app.js?v=20260817-valuation1"></script>
   </body>
 </html>

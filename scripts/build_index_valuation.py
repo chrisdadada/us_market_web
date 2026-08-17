@@ -28,6 +28,7 @@ DEFAULT_QQQ_CHARACTERISTICS_URL = (
     "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46090E103"
     "?expand=nav&idType=cusip&variationType=fundCharacteristics&productType=ETF"
 )
+DEFAULT_NDX_FORWARD_PE_URL = "https://historyofmarket.com/api/ndx/forward-pe.json"
 NASDAQ_100_TEN_YEAR_FORWARD_PE = 22.8
 NASDAQ_100_TEN_YEAR_FORWARD_PE_AS_OF = "2026-02-04"
 NASDAQ_100_TEN_YEAR_FORWARD_PE_SOURCE = (
@@ -306,6 +307,89 @@ def build_qqq_forward_valuation(snapshot: dict[str, Any]) -> dict[str, Any]:
             "historicalReference": NASDAQ_100_TEN_YEAR_FORWARD_PE_SOURCE,
         },
     }
+
+
+def linear_quantile(values: list[float], probability: float) -> float:
+    ordered = sorted(values)
+    if not ordered:
+        raise ValueError("quantile requires at least one value")
+    position = (len(ordered) - 1) * probability
+    lower = int(position)
+    upper = min(len(ordered) - 1, lower + 1)
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+
+
+def years_before(value: date, years: int) -> date:
+    try:
+        return value.replace(year=value.year - years)
+    except ValueError:
+        return value.replace(year=value.year - years, day=28)
+
+
+def build_qqq_forward_valuation_history(payload: dict[str, Any]) -> dict[str, Any]:
+    history = [
+        {"date": str(item.get("date"))[:10], "value": round(value, 4)}
+        for item in payload.get("forward") or []
+        if parse_date(item.get("date")) and (value := safe_float(item.get("value"))) is not None and value > 0
+    ]
+    own_history = [
+        {"date": str(item.get("date"))[:10], "value": round(value, 4)}
+        for item in payload.get("forwardOwn") or []
+        if parse_date(item.get("date")) and (value := safe_float(item.get("value"))) is not None and value > 0
+    ]
+    history.sort(key=lambda item: item["date"])
+    own_history.sort(key=lambda item: item["date"])
+    if len(history) < 2:
+        raise ValueError("Nasdaq 100 forward P/E history requires at least two points")
+
+    latest = own_history[-1] if own_history else history[-1]
+    latest_date = parse_date(latest["date"])
+    if latest_date is None:
+        raise ValueError("Nasdaq 100 forward P/E latest date is invalid")
+    current_value = float(latest["value"])
+    ten_year_cutoff = years_before(latest_date, 10)
+    history = [item for item in history if parse_date(item["date"]) >= ten_year_cutoff]
+
+    ranges: dict[str, Any] = {}
+    for years in (3, 5, 10):
+        cutoff = years_before(latest_date, years)
+        values = [float(item["value"]) for item in history if parse_date(item["date"]) >= cutoff]
+        if len(values) < 2:
+            continue
+        ranges[f"{years}y"] = {
+            "years": years,
+            "rankPct": round(sum(value <= current_value for value in values) / len(values) * 100, 1),
+            "p30": round(linear_quantile(values, 0.30), 2),
+            "median": round(linear_quantile(values, 0.50), 2),
+            "p70": round(linear_quantile(values, 0.70), 2),
+            "min": round(min(values), 2),
+            "minDistancePct": round((current_value / min(values) - 1) * 100, 2),
+        }
+
+    if "5y" not in ranges:
+        raise ValueError("Nasdaq 100 forward P/E five-year history is incomplete")
+    five_year_rank = ranges["5y"]["rankPct"]
+    current = payload.get("current") or {}
+    return {
+        "status": "low" if five_year_rank <= 30 else "middle" if five_year_rank <= 70 else "high",
+        "asOf": latest["date"],
+        "historicalAsOf": history[-1]["date"],
+        "forwardPe": round(current_value, 4),
+        "terminalForwardPe": safe_float(current.get("forward")),
+        "trailingPe": safe_float(current.get("trailing")),
+        "history": history,
+        "ranges": ranges,
+        "source": DEFAULT_NDX_FORWARD_PE_URL,
+    }
+
+
+def fetch_qqq_forward_valuation_history(url: str = DEFAULT_NDX_FORWARD_PE_URL) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        payload = json.load(response)
+    if not isinstance(payload, dict):
+        raise ValueError("Nasdaq 100 forward P/E response is not an object")
+    return build_qqq_forward_valuation_history(payload)
 
 
 def read_xlsx_first_sheet(path: Path) -> list[list[str]]:
@@ -1308,11 +1392,15 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
             for key in [
                 "status",
                 "asOf",
+                "historicalAsOf",
                 "forwardPe",
+                "terminalForwardPe",
                 "trailingPe",
                 "tenYearAverageForwardPe",
                 "premiumToTenYearAveragePct",
                 "impliedEarningsGrowthPct",
+                "history",
+                "ranges",
             ]
             if key in forward_valuation
         },
@@ -1346,9 +1434,13 @@ def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_
         QQQ_OFFICIAL_FACT_SHEET_SNAPSHOT,
     )
     try:
-        qqq_payload["forwardValuation"] = build_qqq_forward_valuation(fetch_qqq_characteristics())
-    except Exception as exc:
-        qqq_payload["audit"]["forwardValuationError"] = f"{type(exc).__name__}: {exc}"
+        qqq_payload["forwardValuation"] = fetch_qqq_forward_valuation_history()
+    except Exception as history_exc:
+        qqq_payload["audit"]["forwardValuationHistoryError"] = f"{type(history_exc).__name__}: {history_exc}"
+        try:
+            qqq_payload["forwardValuation"] = build_qqq_forward_valuation(fetch_qqq_characteristics())
+        except Exception as exc:
+            qqq_payload["audit"]["forwardValuationError"] = f"{type(exc).__name__}: {exc}"
     qqq_payload["marketIndicators"] = build_market_indicators(market_data_root, "QQQ", qqq_payload.get("priceAsOf"))
     spy_payload = build_single_index_payload(
         market_data_root,
