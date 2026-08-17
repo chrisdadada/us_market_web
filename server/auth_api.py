@@ -31,6 +31,9 @@ import open_portfolio
 DB_PATH = Path(os.environ.get("APP_DB", "/var/lib/ytd-gainers/app.db"))
 STATIC_ROOT = Path(os.environ.get("APP_STATIC_ROOT", str(Path(__file__).resolve().parents[1]))).resolve()
 API_DATA_ROOT = Path(os.environ.get("APP_API_DATA_ROOT", str(STATIC_ROOT / "data" / "api"))).resolve()
+BOTTOM_STRATEGY_PATH = Path(
+    os.environ.get("BOTTOM_STRATEGY_DATA", str(Path(__file__).with_name("bottom_strategy.json")))
+).resolve()
 PRODUCT_DB_ENV = os.environ.get("PRODUCT_DB") or os.environ.get("APP_PRODUCT_DB")
 UPLOAD_ROOT = Path(os.environ.get("APP_UPLOAD_ROOT", "/var/lib/ytd-gainers/uploads")).resolve()
 UPLOAD_MAX_BYTES = int(os.environ.get("APP_UPLOAD_MAX_BYTES", str(8 * 1024 * 1024)))
@@ -1518,6 +1521,26 @@ def entitlements(row: sqlite3.Row | None) -> dict[str, bool]:
 
 def has_yearly_access(row: sqlite3.Row | None) -> bool:
     return bool(row and entitlements(row)["yearly"])
+
+
+def bottom_strategy_payload(include_details: bool) -> dict[str, Any]:
+    payload = json.loads(BOTTOM_STRATEGY_PATH.read_text(encoding="utf-8"))
+    if include_details:
+        return {**payload, "preview": False}
+    markets = {
+        key: {
+            "symbol": item.get("symbol"),
+            "name": item.get("name"),
+            "asOf": item.get("asOf"),
+            "status": item.get("status"),
+            "summary": item.get("summary"),
+            "recentRecords": [],
+            "records": [],
+            "priceSeries": [],
+        }
+        for key, item in payload.get("markets", {}).items()
+    }
+    return {**payload, "markets": markets, "preview": True}
 
 
 def find_user_by_id(user_id: int) -> sqlite3.Row | None:
@@ -3947,6 +3970,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             except Exception as exc:
                 self.send_json({"error": f"扫描失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if parsed.path == "/api/tools/bottom-strategy":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                self.send_json(bottom_strategy_payload(entitlements(user)["paid"]))
+            except FileNotFoundError:
+                self.send_json({"error": "策略数据暂不可用", "code": "bottom_strategy_missing"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            except (OSError, ValueError, json.JSONDecodeError):
+                self.send_json({"error": "策略数据读取失败", "code": "bottom_strategy_invalid"}, HTTPStatus.SERVICE_UNAVAILABLE)
             return
 
         if parsed.path == "/api/admin/open-portfolio":

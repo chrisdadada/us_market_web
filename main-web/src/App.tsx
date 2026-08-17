@@ -23,6 +23,7 @@ import {
 } from "./api";
 import { calculatePositionSizing, type PositionDirection, type PositionSizingResult } from "./positionSizing";
 import type { CryptoEtfAssetKey, CryptoEtfInterval } from "./CryptoEtfChart";
+import { BottomStrategyPage } from "./BottomStrategyPage";
 import {
   LockedStockName,
   MaskedValue,
@@ -47,7 +48,7 @@ import {
   trackingDirectionClass
 } from "./shared";
 
-type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "stocks" | "calendar" | "open" | "position" | "funding" | "forum" | "courses";
+type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "stocks" | "calendar" | "open" | "position" | "bottom" | "funding" | "forum" | "courses";
 type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
 
@@ -81,6 +82,7 @@ const adminToolDataNavItems: Array<{ href: string; label: string }> = [
 ];
 
 const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
+  { key: "bottom", label: "抄底策略" },
   { key: "position", label: "以损定仓" }
 ];
 
@@ -249,6 +251,11 @@ const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: stri
     level: "monthly",
     title: "会员可看全市场强弱",
     text: "月度和年度会员可查看完整榜单。"
+  },
+  bottom: {
+    level: "monthly",
+    title: "会员可看完整抄底策略",
+    text: "开通后查看当前信号、历史表现和全部信号记录。"
   }
 };
 
@@ -1179,6 +1186,7 @@ function App() {
             {page === "stocks" && selectedSymbolSource !== "tracking" ? <StocksPage selectedSymbol={selectedSymbol} signalStates={signalStates} bootstrap={bootstrap} onSelectSymbol={selectSymbol} /> : null}
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
             {page === "open" ? <OpenPortfolioPage /> : null}
+            {page === "bottom" ? <BottomStrategyPage unlocked={pageUnlocked} onUnlock={requestUnlock} /> : null}
             {page === "position" ? <PositionSizingPage /> : null}
             {page === "funding" ? <FundingArbitragePage isAdmin={Boolean(auth?.entitlements?.admin)} /> : null}
             {page === "forum" ? <ComingSoonPage title="论坛讨论区" /> : null}
