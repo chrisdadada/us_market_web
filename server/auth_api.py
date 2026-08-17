@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import posixpath
 import re
 import secrets
 import sqlite3
@@ -63,6 +64,7 @@ SUPER_ADMIN_PASSWORD = os.environ.get("SUPER_ADMIN_PASSWORD", "")
 SIGNALS_API_TOKEN = os.environ.get("SIGNALS_API_TOKEN", "")
 MARKET_OPINION_SECTIONS = {
     "weekly": "周度前瞻",
+    "crypto": "加密相关",
     "premarket": "盘前前瞻",
     "daily": "每日个股行情观点",
     "research": "研报解析",
@@ -92,7 +94,17 @@ COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCE
 COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCENT_COS_REGION") or ""
 COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
+COURSE_HLS_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 7200)
 COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
+COURSE_CDN_ENABLED = os.environ.get("COURSE_CDN_ENABLED", "0") == "1"
+COURSE_CDN_DOMAIN = os.environ.get("COURSE_CDN_DOMAIN", "").strip().rstrip("/")
+COURSE_CDN_AUTH_KEY = os.environ.get("COURSE_CDN_AUTH_KEY", "").strip()
+COURSE_CDN_SIGN_TTL = int(os.environ.get("COURSE_CDN_SIGN_TTL_SECONDS", "1800"))
+COURSE_CDN_VIDEO_KEYS = {
+    key.strip().lstrip("/")
+    for key in re.split(r"[,\n]+", os.environ.get("COURSE_CDN_VIDEO_KEYS", ""))
+    if key.strip()
+}
 COURSE_PLAY_REUSE_SECONDS = max(0, int(os.environ.get("COURSE_PLAY_REUSE_SECONDS", "120")))
 COURSE_PLAY_OBSERVATION_WINDOW_SECONDS = max(60, int(os.environ.get("COURSE_PLAY_OBSERVATION_WINDOW_SECONDS", "600")))
 COURSE_VIDEO_UPLOAD_MAX_BYTES = int(os.environ.get("COURSE_VIDEO_UPLOAD_MAX_BYTES", str(5 * 1024 * 1024 * 1024)))
@@ -108,7 +120,7 @@ LOGIN_FAIL_BUCKETS: dict[str, list[float]] = {}
 LOGIN_FAIL_LOCK = threading.Lock()
 PASSWORD_RESET_BUCKETS: dict[str, list[float]] = {}
 PASSWORD_RESET_LOCK = threading.Lock()
-COURSE_PLAY_GRANTS: dict[tuple[int, int, str, str], dict[str, Any]] = {}
+COURSE_PLAY_GRANTS: dict[tuple[int, int, str, str, str], dict[str, Any]] = {}
 COURSE_PLAY_EVENTS: list[dict[str, Any]] = []
 COURSE_PLAY_LOCK = threading.Lock()
 
@@ -305,7 +317,14 @@ def observed_course_play_url(
     now = int(time.time())
     ip_key = course_play_fingerprint(client_ip)
     device_key = course_play_fingerprint(user_agent)
-    cache_key = (int(user_id), int(lesson_id), str(video_key), device_key)
+    delivery_key = (
+        "hls"
+        if course_video_is_hls(video_key)
+        else f"cdn:{COURSE_CDN_DOMAIN}"
+        if course_video_uses_cdn(video_key)
+        else f"cos:{COURSE_COS_BUCKET}:{COURSE_COS_REGION}:{COURSE_COS_DOMAIN}"
+    )
+    cache_key = (int(user_id), int(lesson_id), str(video_key), device_key, delivery_key)
     window_start = now - COURSE_PLAY_OBSERVATION_WINDOW_SECONDS
 
     with COURSE_PLAY_LOCK:
@@ -316,14 +335,15 @@ def observed_course_play_url(
         grant = COURSE_PLAY_GRANTS.get(cache_key)
         reused = bool(COURSE_PLAY_REUSE_SECONDS > 0 and grant and int(grant["reuseUntil"]) >= now)
         if not reused:
-            url = signed_course_video_url(video_key, now=now)
+            url = course_hls_playlist_url(lesson_id, video_key) if course_video_is_hls(video_key) else signed_course_video_url(video_key, now=now)
+            ttl = course_video_url_ttl(video_key)
             grant = {
                 "id": secrets.token_hex(8),
                 "url": url,
                 "urlHash": hashlib.sha256(url.encode("utf-8")).hexdigest()[:16],
                 "issuedAt": now,
                 "reuseUntil": now + COURSE_PLAY_REUSE_SECONDS,
-                "expiresAt": now + max(60, COURSE_COS_SIGN_TTL),
+                "expiresAt": now + ttl,
             }
             COURSE_PLAY_GRANTS[cache_key] = grant
 
@@ -692,6 +712,43 @@ def row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
     return {key: row[key] for key in row.keys()}
 
 
+WATCHLIST_SYMBOL_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9.^-]{0,15}$")
+WATCHLIST_REVIEW_ACTIONS = {"reviewed", "continue", "lower"}
+
+
+def normalize_watchlist_symbol(value: Any) -> str:
+    symbol = str(value or "").strip().upper()
+    if not WATCHLIST_SYMBOL_PATTERN.fullmatch(symbol):
+        raise ValueError("股票代码格式不正确")
+    return symbol
+
+
+def normalize_watchlist_time(value: Any, fallback: str | None = None) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return fallback
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("自选时间格式不正确") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
+def watchlist_item_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "symbol": row["symbol"],
+        "source": row["source"],
+        "reviewAction": row["review_action"],
+        "reviewCount": row["review_count"],
+        "lastReviewedAt": row["last_reviewed_at"],
+        "nextReviewAt": row["next_review_at"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
+
+
 def parse_json_field(value: Any, fallback: Any) -> Any:
     if value is None:
         return fallback
@@ -868,7 +925,7 @@ def product_stock_library_payload(row: sqlite3.Row) -> dict[str, Any]:
     return payload
 
 
-def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
+def product_market_row_payload(row: sqlite3.Row, include_tracking_analysis: bool = False) -> dict[str, Any]:
     payload = {
         "board": row["board"],
         "rank": row["rank"],
@@ -891,6 +948,14 @@ def product_market_row_payload(row: sqlite3.Row) -> dict[str, Any]:
         payload["changeYtd"] = row["change_pct"]
     else:
         payload["change"] = row["change_pct"]
+    raw_payload = parse_json_field(row["payload_json"], {})
+    if include_tracking_analysis and isinstance(raw_payload, dict):
+        key_levels = raw_payload.get("keyLevels")
+        price_history = raw_payload.get("priceHistory")
+        if isinstance(key_levels, dict):
+            payload["keyLevels"] = key_levels
+        if isinstance(price_history, list):
+            payload["priceHistory"] = price_history
     return payload
 
 
@@ -923,6 +988,7 @@ def product_market_board_payload(
     board: str,
     limit: int = 500,
     symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
 ) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
@@ -949,7 +1015,7 @@ def product_market_board_payload(
             (board, *extra_symbols),
         ).fetchall()
         merged.extend(extra_rows)
-    payloads = [product_market_row_payload(row) for row in merged]
+    payloads = [product_market_row_payload(row, include_tracking_analysis) for row in merged]
     missing_cap_symbols = [
         payload["symbol"]
         for payload in payloads
@@ -977,7 +1043,12 @@ def product_market_board_payload(
     return payloads
 
 
-def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, symbols: list[str] | None = None) -> dict[str, Any]:
+def product_bootstrap_payload(
+    conn: sqlite3.Connection,
+    board_limit: int = 500,
+    symbols: list[str] | None = None,
+    include_tracking_analysis: bool = False,
+) -> dict[str, Any]:
     meta = product_dataset_meta(conn)
     core_raw = product_raw_payload(conn, "core-signals")
     strength_raw = product_raw_payload(conn, "strength-scanner")
@@ -986,7 +1057,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     sector_flow_raw = product_raw_payload(conn, "sector-flow")
     generated_at = meta.get("generatedAt")
 
-    ytd_rows = product_market_board_payload(conn, "ytd", board_limit, symbols)
+    ytd_rows = product_market_board_payload(
+        conn, "ytd", board_limit, symbols, include_tracking_analysis
+    )
     ytd = {
         "updatedAt": generated_at,
         "rows": ytd_rows,
@@ -995,7 +1068,9 @@ def product_bootstrap_payload(conn: sqlite3.Connection, board_limit: int = 500, 
     boards: dict[str, Any] = {}
     for board in ["day", "week", "month", "volume"]:
         boards[board] = {
-            "rows": product_market_board_payload(conn, board, board_limit, symbols),
+            "rows": product_market_board_payload(
+                conn, board, board_limit, symbols, include_tracking_analysis
+            ),
         }
     movers = {
         "updatedAt": generated_at,
@@ -1029,6 +1104,93 @@ def product_sector_payload(row: sqlite3.Row) -> dict[str, Any]:
         "inflowProxy": row["inflow_proxy"],
         "outflowProxy": row["outflow_proxy"],
         "leaders": parse_json_field(row["leaders_json"], []),
+    }
+
+
+def product_strength_page_payload(conn: sqlite3.Connection, params: dict[str, list[str]]) -> dict[str, Any]:
+    limit = int_param(params, "limit", 20, maximum=100)
+    offset = int_param(params, "offset", 0, minimum=0, maximum=100000)
+    bucket = str(params.get("bucket", ["watch"])[0] or "watch").strip().lower()
+    if bucket not in {"all", "watch", "hot", "neutral", "avoid"}:
+        bucket = "watch"
+    query = str(params.get("q", [""])[0] or params.get("query", [""])[0]).strip().upper()
+    sector = str(params.get("sector", [""])[0]).strip()
+    heat = str(params.get("heat", ["all"])[0] or "all").strip().lower()
+    if heat not in {"all", "normal", "rising", "hot"}:
+        heat = "all"
+    sort_key = str(params.get("sort", ["score"])[0] or "score").strip()
+    order_by = {
+        "score": "score DESC",
+        "return20d": "return_20d_pct DESC",
+        "relative": "relative_spy_pct DESC",
+        "crowding": "crowding_score DESC",
+    }.get(sort_key, "score DESC")
+    if sort_key not in {"score", "return20d", "relative", "crowding"}:
+        sort_key = "score"
+
+    where = []
+    values: list[Any] = []
+    if bucket != "all":
+        where.append("bucket = ?")
+        values.append(bucket)
+    if query:
+        like = f"%{query}%"
+        where.append("(symbol LIKE ? OR UPPER(COALESCE(company, '')) LIKE ?)")
+        values.extend([like, like])
+    if sector and sector.lower() != "all":
+        where.append("sector = ?")
+        values.append(sector)
+    if heat == "normal":
+        where.append("COALESCE(crowding_score, 0) < 55")
+    elif heat == "rising":
+        where.append("COALESCE(crowding_score, 0) >= 55 AND COALESCE(crowding_score, 0) < 72")
+    elif heat == "hot":
+        where.append("COALESCE(crowding_score, 0) >= 72")
+    where_sql = "WHERE " + " AND ".join(where) if where else ""
+
+    total = conn.execute(f"SELECT COUNT(*) AS count FROM strength_rows {where_sql}", values).fetchone()["count"]
+    page_rows = conn.execute(
+        f"""
+        SELECT payload_json
+        FROM strength_rows
+        {where_sql}
+        ORDER BY {order_by}, symbol ASC
+        LIMIT ? OFFSET ?
+        """,
+        (*values, limit, offset),
+    ).fetchall()
+    counts = {"all": 0, "watch": 0, "hot": 0, "neutral": 0, "avoid": 0}
+    for row in conn.execute("SELECT bucket, COUNT(*) AS count FROM strength_rows GROUP BY bucket").fetchall():
+        if row["bucket"] in counts:
+            counts[row["bucket"]] = row["count"]
+        counts["all"] += row["count"]
+    sectors = [
+        row["sector"]
+        for row in conn.execute(
+            """
+            SELECT DISTINCT sector
+            FROM strength_rows
+            WHERE COALESCE(sector, '') NOT IN ('', '--', '未分类', '板块待补')
+            ORDER BY sector ASC
+            """
+        ).fetchall()
+    ]
+    summary_payload = product_raw_payload(conn, "strength-scanner") or {}
+    return {
+        "asOf": summary_payload.get("asOf"),
+        "summary": summary_payload.get("summary") or {},
+        "themes": summary_payload.get("themes") or {},
+        "counts": counts,
+        "sectors": sectors,
+        "rows": [parse_json_field(row["payload_json"], {}) for row in page_rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "bucket": bucket,
+        "query": query,
+        "sector": sector or "all",
+        "heat": heat,
+        "sort": sort_key,
     }
 
 
@@ -1349,6 +1511,24 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_analytics_events_user_time ON analytics_events(user_id, created_at);
             CREATE INDEX IF NOT EXISTS idx_analytics_events_type_time ON analytics_events(event_type, created_at);
+
+            CREATE TABLE IF NOT EXISTS user_watchlist_items (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              symbol TEXT NOT NULL,
+              source TEXT NOT NULL DEFAULT '手动加入',
+              review_action TEXT,
+              review_count INTEGER NOT NULL DEFAULT 0,
+              last_reviewed_at TEXT,
+              next_review_at TEXT,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(user_id, symbol),
+              FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_user_watchlist_user_updated
+              ON user_watchlist_items(user_id, updated_at DESC);
 
             CREATE TABLE IF NOT EXISTS password_reset_tokens (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1790,11 +1970,13 @@ def analytics_text(value: Any, max_length: int) -> str:
     return re.sub(r"[^a-zA-Z0-9_./#:-]+", "", str(value or ""))[:max_length]
 
 
-def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
-    event_type = analytics_text(payload.get("eventType"), 40)
-    event_key = analytics_text(payload.get("eventKey"), 80)
-    if event_type != "nav_click" or not event_key:
-        raise ValueError("埋点参数不正确")
+def insert_analytics_event(
+    conn: sqlite3.Connection,
+    user: sqlite3.Row | None,
+    event_type: str,
+    event_key: str,
+    path: str = "",
+) -> None:
     if not user:
         return
     timestamp = now_iso()
@@ -1803,12 +1985,48 @@ def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, pa
         INSERT INTO analytics_events (user_id, event_type, event_key, path, created_at)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (user["id"], event_type, event_key, analytics_text(payload.get("path"), 200), timestamp),
+        (
+            user["id"],
+            analytics_text(event_type, 40),
+            analytics_text(event_key, 80),
+            analytics_text(path, 200),
+            timestamp,
+        ),
     )
     today = timestamp[:10]
     last_login = str(user["last_login_at"] or "")[:10]
     if last_login != today:
         conn.execute("UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?", (timestamp, timestamp, user["id"]))
+
+
+def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
+    event_type = analytics_text(payload.get("eventType"), 40)
+    event_key = analytics_text(payload.get("eventKey"), 80)
+    if event_type != "nav_click" or not event_key:
+        raise ValueError("埋点参数不正确")
+    insert_analytics_event(conn, user, event_type, event_key, str(payload.get("path") or ""))
+
+
+def write_course_play_grant(user: sqlite3.Row, lesson_id: int) -> None:
+    conn: sqlite3.Connection | None = None
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=0.05)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=50")
+        conn.execute("PRAGMA foreign_keys=ON")
+        with conn:
+            insert_analytics_event(
+                conn,
+                user,
+                "course_play_grant",
+                str(lesson_id),
+                "/api/courses/lessons/:id/play",
+            )
+    except Exception:
+        print("course play analytics write failed")
+    finally:
+        if conn:
+            conn.close()
 
 
 def analytics_range_clause(
@@ -2495,11 +2713,135 @@ def signed_course_cos_url(key: str, *, method: str = "get", now: int | None = No
     return f"{object_url}?{urlencode(params)}"
 
 
+def course_video_uses_cdn(key: str) -> bool:
+    clean_key = key.strip().lstrip("/")
+    return COURSE_CDN_ENABLED and any(
+        clean_key == allowed_key or (allowed_key.endswith("/") and clean_key.startswith(allowed_key))
+        for allowed_key in COURSE_CDN_VIDEO_KEYS
+    )
+
+
+def validate_course_cdn_config() -> None:
+    if not COURSE_CDN_ENABLED:
+        return
+    domain = urlparse(COURSE_CDN_DOMAIN)
+    if domain.scheme != "https" or not domain.netloc or domain.path not in {"", "/"} or domain.query or domain.fragment:
+        raise RuntimeError("课程 CDN 域名格式错误")
+    if not re.fullmatch(r"[A-Za-z0-9]{6,32}", COURSE_CDN_AUTH_KEY):
+        raise RuntimeError("课程 CDN 鉴权密钥格式错误")
+    if not 60 <= COURSE_CDN_SIGN_TTL <= 630_720_000:
+        raise RuntimeError("课程 CDN 鉴权有效期格式错误")
+    if not COURSE_CDN_VIDEO_KEYS:
+        raise RuntimeError("课程 CDN 视频白名单不能为空")
+
+
+def signed_course_cdn_url(key: str, *, now: int | None = None, nonce: str | None = None) -> str:
+    validate_course_cdn_config()
+    clean_key = key.strip().lstrip("/")
+    if not clean_key:
+        raise ValueError("视频 CDN Key 不能为空")
+    if not course_video_uses_cdn(clean_key):
+        raise RuntimeError("视频不在 CDN 白名单")
+    path = "/" + quote(clean_key, safe="/-_.~")
+    timestamp = int(time.time() if now is None else now)
+    random_value = nonce or secrets.token_hex(8)
+    if not re.fullmatch(r"[A-Za-z0-9]{1,100}", random_value):
+        raise ValueError("CDN 签名随机值格式错误")
+    digest = hashlib.md5(
+        f"{path}-{timestamp}-{random_value}-0-{COURSE_CDN_AUTH_KEY}".encode("utf-8")
+    ).hexdigest()
+    return f"{COURSE_CDN_DOMAIN}{path}?{urlencode({'sign': f'{timestamp}-{random_value}-0-{digest}'})}"
+
+
 def signed_course_video_url(video_key: str, now: int | None = None) -> str:
     raw = course_video_key(str(video_key or "").strip())
     if raw.startswith("http://") or raw.startswith("https://"):
         return raw
+    if course_video_uses_cdn(raw):
+        return signed_course_cdn_url(raw, now=now)
     return signed_course_cos_url(raw, method="get", now=now)
+
+
+def signed_course_hls_segment_url(video_key: str) -> str:
+    if course_video_uses_cdn(video_key) and COURSE_CDN_SIGN_TTL < COURSE_HLS_SIGN_TTL:
+        raise RuntimeError("HLS CDN 鉴权有效期不能短于 HLS 播放有效期")
+    return signed_course_video_url(video_key)
+
+
+def course_video_is_hls(video_key: str) -> bool:
+    raw = course_video_key(str(video_key or "").strip())
+    return bool(raw and not urlparse(raw).scheme and raw.lower().endswith(".m3u8"))
+
+
+def course_hls_playlist_url(lesson_id: int, video_key: str) -> str:
+    return f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': course_video_key(video_key)})}"
+
+
+def fetch_course_cos_text(key: str) -> str:
+    request = urllib.request.Request(
+        signed_course_cos_url(key, method="get", ttl=120),
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            raw = response.read(2 * 1024 * 1024)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"HLS 播放清单读取失败：HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError("HLS 播放清单暂时不可用") from exc
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("HLS 播放清单格式不正确") from exc
+
+
+def resolve_course_hls_key(root_prefix: str, current_key: str, uri: str) -> str:
+    parsed = urlparse(str(uri or "").strip())
+    if parsed.scheme or parsed.netloc or parsed.path.startswith("/") or not parsed.path:
+        raise ValueError("HLS 播放清单包含不安全地址")
+    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(current_key), unquote(parsed.path)))
+    if resolved == root_prefix or not resolved.startswith(root_prefix + "/"):
+        raise ValueError("HLS 播放清单越过课程目录")
+    return resolved
+
+
+def validate_course_hls_playlist_key(master_key: str, requested_key: str) -> str:
+    root_prefix = posixpath.dirname(course_video_key(master_key))
+    clean_key = posixpath.normpath(course_video_key(requested_key))
+    if not root_prefix or (clean_key != course_video_key(master_key) and not clean_key.startswith(root_prefix + "/")):
+        raise ValueError("HLS 播放清单不属于当前课程")
+    if not clean_key.lower().endswith(".m3u8"):
+        raise ValueError("HLS 播放清单格式不正确")
+    return clean_key
+
+
+def render_course_hls_playlist(lesson_id: int, master_key: str, requested_key: str, content: str) -> str:
+    root_prefix = posixpath.dirname(course_video_key(master_key))
+    clean_key = validate_course_hls_playlist_key(master_key, requested_key)
+
+    output: list[str] = []
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            if "URI=" in line:
+                raise ValueError("HLS 播放清单包含未支持的内嵌地址")
+            output.append(raw_line)
+            continue
+        target_key = resolve_course_hls_key(root_prefix, clean_key, line)
+        if target_key.lower().endswith(".m3u8"):
+            output.append(
+                f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': target_key})}"
+            )
+        else:
+            output.append(signed_course_hls_segment_url(target_key))
+    return "\n".join(output) + "\n"
+
+
+def course_video_url_ttl(video_key: str) -> int:
+    raw = course_video_key(str(video_key or "").strip())
+    if course_video_is_hls(raw):
+        return COURSE_HLS_SIGN_TTL
+    return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_COS_SIGN_TTL)
 
 
 def safe_course_video_filename(value: str) -> str:
@@ -3261,6 +3603,14 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_content(self, body: bytes, content_type: str, status: int = 200) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def send_static(self, request_path: str) -> None:
         parsed = urlparse(request_path)
         raw_path = unquote(parsed.path)
@@ -3379,14 +3729,23 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(product_coverage_payload(conn))
                     return
 
+                if len(parts) >= 3 and parts[2] == "strength":
+                    if not self.require_dataset_access("strength-scanner"):
+                        return
+                    self.send_json(product_strength_page_payload(conn, params))
+                    return
+
                 if len(parts) >= 3 and parts[2] == "bootstrap":
                     board_limit = int_param(params, "limit", 500, maximum=500)
                     symbols = market_opinion_list(params.get("symbols", [""])[0], upper=True)
-                    payload = product_bootstrap_payload(conn, board_limit, symbols)
                     user = self.current_user()
+                    can_view_paid_data = bool(user and entitlements(user)["paid"])
+                    payload = product_bootstrap_payload(
+                        conn, board_limit, symbols, can_view_paid_data
+                    )
                     if not user:
                         payload["marketTemperature"] = None
-                    if not user or not entitlements(user)["paid"]:
+                    if not can_view_paid_data:
                         payload["strength"] = None
                         payload["strengthReview"] = None
                     self.send_json(payload)
@@ -3654,7 +4013,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(
             {
                 "profile": product_symbol_payload(profile),
-                "marketRows": [product_market_row_payload(row) for row in market_rows],
+                "marketRows": [
+                    product_market_row_payload(row, can_view_strength) for row in market_rows
+                ],
                 "peers": [product_symbol_payload(row) for row in peers],
                 "events": [product_event_payload(row) for row in events],
                 "earnings": [product_earnings_payload(row) for row in earnings],
@@ -3693,7 +4054,19 @@ class Handler(BaseHTTPRequestHandler):
             """,
             (*values, limit, offset),
         ).fetchall()
-        self.send_json({"board": board, "rows": [product_market_row_payload(row) for row in rows], "total": total, "limit": limit, "offset": offset})
+        user = self.current_user()
+        can_view_paid_data = bool(user and entitlements(user)["paid"])
+        self.send_json(
+            {
+                "board": board,
+                "rows": [
+                    product_market_row_payload(row, can_view_paid_data) for row in rows
+                ],
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            }
+        )
 
     def send_product_sectors(self, conn: sqlite3.Connection, params: dict[str, list[str]]) -> None:
         limit = int_param(params, "limit", 20, maximum=100)
@@ -3858,6 +4231,99 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
+    def course_lesson_for_playback(self, user: sqlite3.Row, lesson_id: int) -> sqlite3.Row | None:
+        with db() as conn:
+            lesson = conn.execute(
+                """
+                SELECT l.*, s.status AS series_status
+                FROM course_lessons l
+                JOIN course_series s ON s.id = l.series_id
+                WHERE l.id = ?
+                """,
+                (lesson_id,),
+            ).fetchone()
+            if (
+                not lesson
+                or lesson["status"] != "published"
+                or lesson["series_status"] != "published"
+                or not str(lesson["video_key"] or "").strip()
+                or (
+                    course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
+                    and not str(lesson["video_source_key"] or "").strip()
+                )
+            ):
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return None
+            if not course_has_access(conn, user, int(lesson["series_id"])):
+                self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
+                return None
+        return lesson
+
+    def send_watchlist(self, user: sqlite3.Row) -> None:
+        with db() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM user_watchlist_items
+                WHERE user_id = ?
+                ORDER BY COALESCE(next_review_at, updated_at) ASC, updated_at DESC
+                """,
+                (user["id"],),
+            ).fetchall()
+        self.send_json({"rows": [watchlist_item_payload(row) for row in rows]})
+
+    def save_watchlist_items(self, user: sqlite3.Row, items: list[dict[str, Any]], *, skip_missing: bool = False) -> tuple[int, int]:
+        if not items or len(items) > 200:
+            raise ValueError("请选择 1 至 200 只股票")
+        timestamp = now_iso()
+        saved = 0
+        normalized: list[dict[str, Any]] = []
+        for item in items:
+            symbol = normalize_watchlist_symbol(item.get("symbol"))
+            source = str(item.get("source") or "手动加入").strip()[:40] or "手动加入"
+            review_action = str(item.get("reviewAction") or "").strip()
+            if review_action and review_action not in WATCHLIST_REVIEW_ACTIONS:
+                raise ValueError("复盘状态不正确")
+            normalized.append(
+                {
+                    "symbol": symbol,
+                    "source": source,
+                    "review_action": review_action or None,
+                    "review_count": max(0, min(10000, int(item.get("reviewCount") or 0))),
+                    "last_reviewed_at": normalize_watchlist_time(item.get("lastReviewedAt")),
+                    "next_review_at": normalize_watchlist_time(item.get("nextReviewAt")),
+                    "created_at": normalize_watchlist_time(item.get("addedAt") or item.get("createdAt"), timestamp),
+                    "updated_at": normalize_watchlist_time(item.get("updatedAt"), timestamp),
+                }
+            )
+        symbols = {item["symbol"] for item in normalized}
+        placeholders = ",".join("?" for _ in symbols)
+        with product_db() as conn:
+            existing = {
+                row["symbol"]
+                for row in conn.execute(f"SELECT symbol FROM symbols WHERE symbol IN ({placeholders})", tuple(symbols)).fetchall()
+            }
+        missing = sorted(symbols - existing)
+        if missing and not skip_missing:
+            raise ValueError(f"股票代码不存在：{missing[0]}")
+        normalized = [item for item in normalized if item["symbol"] in existing]
+        with db() as conn:
+            for item in normalized:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO user_watchlist_items
+                    (user_id, symbol, source, review_action, review_count, last_reviewed_at, next_review_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, symbol) DO NOTHING
+                    """,
+                    (
+                        user["id"], item["symbol"], item["source"], item["review_action"], item["review_count"],
+                        item["last_reviewed_at"], item["next_review_at"], item["created_at"], item["updated_at"],
+                    ),
+                )
+                saved += cursor.rowcount
+        return saved, len(missing)
+
     def do_GET(self) -> None:
         if self.path == "/api/health":
             self.send_json({"ok": True, "time": now_iso()})
@@ -3876,6 +4342,13 @@ class Handler(BaseHTTPRequestHandler):
                     "entitlements": entitlements(user),
                 }
             )
+            return
+
+        if self.path == "/api/watchlist":
+            user = self.require_user()
+            if not user:
+                return
+            self.send_watchlist(user)
             return
 
         if self.path == "/api/pro/trade-records":
@@ -3912,6 +4385,36 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/hls"):
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                lesson_id = int(parsed.path.removesuffix("/hls").removeprefix("/api/courses/lessons/"))
+            except ValueError:
+                self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            lesson = self.course_lesson_for_playback(user, lesson_id)
+            if not lesson:
+                return
+            master_key = str(lesson["video_key"] or "").strip()
+            if not course_video_is_hls(master_key):
+                self.send_json({"error": "HLS 视频不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            requested_key = str(parse_qs(parsed.query).get("playlist", [master_key])[0]).strip()
+            try:
+                clean_key = validate_course_hls_playlist_key(master_key, requested_key)
+                content = fetch_course_cos_text(clean_key)
+                playlist = render_course_hls_playlist(lesson_id, master_key, clean_key, content)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except Exception:
+                self.send_json({"error": "播放清单暂时不可用"}, HTTPStatus.BAD_GATEWAY)
+                return
+            self.send_content(playlist.encode("utf-8"), "application/vnd.apple.mpegurl; charset=utf-8")
+            return
+
         if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/play"):
             user = self.require_user()
             if not user:
@@ -3921,42 +4424,23 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
                 return
-            with db() as conn:
-                lesson = conn.execute(
-                    """
-                    SELECT l.*, s.status AS series_status
-                    FROM course_lessons l
-                    JOIN course_series s ON s.id = l.series_id
-                    WHERE l.id = ?
-                    """,
-                    (lesson_id,),
-                ).fetchone()
-                if (
-                    not lesson
-                    or lesson["status"] != "published"
-                    or lesson["series_status"] != "published"
-                    or not str(lesson["video_key"] or "").strip()
-                    or (
-                        course_video_status(lesson["video_status"] if "video_status" in lesson.keys() else "") != "ready"
-                        and not str(lesson["video_source_key"] or "").strip()
-                    )
-                ):
-                    self.send_json({"error": "视频不存在"}, HTTPStatus.NOT_FOUND)
-                    return
-                if not course_has_access(conn, user, int(lesson["series_id"])):
-                    self.send_json({"error": "没有交易实战课程权限", "code": "course_forbidden"}, HTTPStatus.FORBIDDEN)
-                    return
+            lesson = self.course_lesson_for_playback(user, lesson_id)
+            if not lesson:
+                return
             try:
-                url, expires_in = observed_course_play_url(
+                is_hls = course_video_is_hls(lesson["video_key"])
+                play_url, play_ttl = observed_course_play_url(
                     int(user["id"]),
                     lesson_id,
                     str(lesson["video_key"]),
                     self.client_ip(),
                     str(self.headers.get("User-Agent", "")),
                 )
-                self.send_json({"url": url, "expiresIn": expires_in})
             except Exception as exc:
                 self.send_json({"error": f"播放地址不可用：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            write_course_play_grant(user, lesson_id)
+            self.send_json({"url": play_url, "expiresIn": play_ttl, "type": "hls" if is_hls else "file"})
             return
 
         if parsed.path == "/api/tools/funding-arbitrage":
@@ -4150,6 +4634,63 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path in {"/api/watchlist", "/api/watchlist/import"}:
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                payload = self.read_json()
+                items = payload.get("items") if parsed.path.endswith("/import") else [payload]
+                if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+                    raise ValueError("自选数据格式不正确")
+                saved, skipped = self.save_watchlist_items(user, items, skip_missing=parsed.path.endswith("/import"))
+            except (TypeError, ValueError) as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except FileNotFoundError:
+                self.send_json({"error": "产品数据暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            self.send_json({"ok": True, "saved": saved, "skipped": skipped}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/watchlist/review":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                payload = self.read_json()
+                symbol = normalize_watchlist_symbol(payload.get("symbol"))
+                action = str(payload.get("action") or "").strip()
+                if action not in WATCHLIST_REVIEW_ACTIONS:
+                    raise ValueError("复盘状态不正确")
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            timestamp = datetime.now(timezone.utc)
+            next_days = 10 if action == "lower" else 3 if action == "continue" else 5
+            with db() as conn:
+                cursor = conn.execute(
+                    """
+                    UPDATE user_watchlist_items
+                    SET review_action = ?, review_count = review_count + 1,
+                        last_reviewed_at = ?, next_review_at = ?, updated_at = ?
+                    WHERE user_id = ? AND symbol = ?
+                    """,
+                    (
+                        action,
+                        timestamp.isoformat(),
+                        (timestamp + timedelta(days=next_days)).isoformat(),
+                        timestamp.isoformat(),
+                        user["id"],
+                        symbol,
+                    ),
+                )
+            if cursor.rowcount == 0:
+                self.send_json({"error": "自选不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
         if self.path == "/api/auth/login":
             try:
                 payload = self.read_json()
@@ -4614,6 +5155,26 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/watchlist/"):
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                symbol = normalize_watchlist_symbol(unquote(parsed.path.removeprefix("/api/watchlist/")))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            with db() as conn:
+                cursor = conn.execute(
+                    "DELETE FROM user_watchlist_items WHERE user_id = ? AND symbol = ?",
+                    (user["id"], symbol),
+                )
+            if cursor.rowcount == 0:
+                self.send_json({"error": "自选不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
         if parsed.path.startswith("/api/admin/open-portfolio/trades/"):
             admin = self.require_admin()
             if not admin:
@@ -4743,6 +5304,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    validate_course_cdn_config()
     init_db()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"auth api listening on http://{HOST}:{PORT}, db={DB_PATH}")
