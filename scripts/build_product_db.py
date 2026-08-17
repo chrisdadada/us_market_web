@@ -97,6 +97,24 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
         return load_strength_review_payload()
     if name == "crypto-etf-flows":
         return load_crypto_etf_flows_payload()
+    if name == "bottom-strategy":
+        baseline, baseline_path = load_existing_dataset_payload(name)
+        if not baseline:
+            baseline_path = ROOT / "server" / "bottom_strategy.json"
+            baseline = parse_json_text(baseline_path.read_text(encoding="utf-8"), {})
+        data_root = Path(os.environ.get("MARKET_DATA_ROOT", "/Volumes/Extreme SSD/market-data-lab/data"))
+        if not data_root.exists():
+            return baseline, baseline_path
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from build_bottom_strategy import build_market_data_payload
+
+            return build_market_data_payload(data_root, baseline), Path("direct:bottom-strategy")
+        except Exception as exc:
+            from build_bottom_strategy import stale_payload
+
+            print(f"WARN: bottom strategy refresh skipped: {exc}")
+            return stale_payload(baseline, os.environ.get("TRACKING_ASOF"), str(exc)), baseline_path
     try:
         sys.path.insert(0, str(ROOT / "scripts"))
         if name == "macro-series":
@@ -1170,7 +1188,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "options_flow_rows": import_options_flow(conn),
                 "market_opinion_items": import_market_opinion(conn, output if output.exists() else None),
             }
-            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review", "crypto-etf-flows"])
+            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review", "crypto-etf-flows", "bottom-strategy"])
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('generated_at', ?)", (now_iso(),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('source_data_dir', ?)", (str(DATA_DIR),))

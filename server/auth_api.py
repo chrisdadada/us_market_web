@@ -32,6 +32,9 @@ import open_portfolio
 DB_PATH = Path(os.environ.get("APP_DB", "/var/lib/ytd-gainers/app.db"))
 STATIC_ROOT = Path(os.environ.get("APP_STATIC_ROOT", str(Path(__file__).resolve().parents[1]))).resolve()
 API_DATA_ROOT = Path(os.environ.get("APP_API_DATA_ROOT", str(STATIC_ROOT / "data" / "api"))).resolve()
+BOTTOM_STRATEGY_PATH = Path(
+    os.environ.get("BOTTOM_STRATEGY_DATA", str(Path(__file__).with_name("bottom_strategy.json")))
+).resolve()
 PRODUCT_DB_ENV = os.environ.get("PRODUCT_DB") or os.environ.get("APP_PRODUCT_DB")
 UPLOAD_ROOT = Path(os.environ.get("APP_UPLOAD_ROOT", "/var/lib/ytd-gainers/uploads")).resolve()
 UPLOAD_MAX_BYTES = int(os.environ.get("APP_UPLOAD_MAX_BYTES", str(8 * 1024 * 1024)))
@@ -1698,6 +1701,37 @@ def entitlements(row: sqlite3.Row | None) -> dict[str, bool]:
 
 def has_yearly_access(row: sqlite3.Row | None) -> bool:
     return bool(row and entitlements(row)["yearly"])
+
+
+def bottom_strategy_payload(include_details: bool) -> dict[str, Any]:
+    payload: dict[str, Any] | None = None
+    try:
+        with product_db() as conn:
+            payload = product_raw_payload(conn, "bottom-strategy")
+    except (FileNotFoundError, sqlite3.Error):
+        payload = None
+    if payload is None:
+        payload = json.loads(BOTTOM_STRATEGY_PATH.read_text(encoding="utf-8"))
+
+    markets: dict[str, Any] = {}
+    for key, source in payload.get("markets", {}).items():
+        item = {field: value for field, value in source.items() if field not in {"machineState", "dailyStates"}}
+        if not include_details:
+            item["recentRecords"] = []
+            item["records"] = []
+            item["priceSeries"] = []
+        markets[key] = item
+    freshness = {
+        field: value
+        for field, value in (payload.get("freshness") or {}).items()
+        if field != "reason"
+    }
+    return {
+        **payload,
+        "freshness": freshness,
+        "markets": markets,
+        "preview": not include_details,
+    }
 
 
 def find_user_by_id(user_id: int) -> sqlite3.Row | None:
@@ -4418,6 +4452,24 @@ class Handler(BaseHTTPRequestHandler):
                 return
             write_course_play_grant(user, lesson_id)
             self.send_json({"url": play_url, "expiresIn": play_ttl, "type": "hls" if is_hls else "file"})
+            return
+
+        if parsed.path == "/api/tools/bottom-strategy":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                self.send_json(bottom_strategy_payload(entitlements(user)["paid"]))
+            except FileNotFoundError:
+                self.send_json(
+                    {"error": "策略数据暂不可用", "code": "bottom_strategy_missing"},
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
+            except (OSError, ValueError, json.JSONDecodeError):
+                self.send_json(
+                    {"error": "策略数据读取失败", "code": "bottom_strategy_invalid"},
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
             return
 
         if parsed.path == "/api/tools/funding-arbitrage":

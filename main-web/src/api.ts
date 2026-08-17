@@ -581,6 +581,67 @@ export type WatchlistItem = {
   updatedAt: string;
 };
 
+export type BottomStrategyRecord = {
+  signalDate: string;
+  entryDate: string;
+  entryPrice: number;
+  status: "complete" | "observing";
+  performance: Record<string, { maxPct?: number | null; endPct?: number | null }>;
+};
+
+export type BottomStrategyMarket = {
+  symbol: "QQQ" | "SPY" | string;
+  name: string;
+  asOf: string;
+  status: {
+    key: "normal" | "near" | "action";
+    title: string;
+    message: string;
+    position: number;
+    breadth?: number | null;
+    rsi6?: number | null;
+  };
+  summary: {
+    recentCount: number;
+    recentPositiveCount: number;
+    end180MedianPct: number;
+    bestEnd180Pct: number;
+    stageMaxMedianPct: Record<string, number>;
+    totalSignals: number;
+    completedSignals: number;
+    completedPositiveCount?: number;
+    completedNegativeCount?: number;
+  };
+  lastSignal?: {
+    signalDate: string;
+    tradingDaysObserved: number;
+    completedHorizon?: number | null;
+    completedEndPct?: number | null;
+  };
+  medianPath?: Array<{ day: number; pct: number }>;
+  recentRecords: BottomStrategyRecord[];
+  records: BottomStrategyRecord[];
+  priceSeries: Array<{ date: string; value: number }>;
+};
+
+export type BottomStrategyPayload = {
+  generatedAt: string;
+  asOf?: string;
+  preview?: boolean;
+  freshness?: {
+    status: "current" | "stale";
+    expectedAsOf?: string | null;
+    asOf?: string | null;
+  };
+  method: {
+    signal: string;
+    entry: string;
+    horizons: number[];
+    costsIncluded: boolean;
+  };
+  markets: Record<string, BottomStrategyMarket>;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -700,6 +761,7 @@ export const api = {
     }),
   removeWatchlist: (symbol: string) =>
     request<{ ok: boolean }>(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" }),
+  bottomStrategy: () => request<BottomStrategyPayload>("/api/tools/bottom-strategy"),
   openPortfolio: () => request<OpenPortfolioPayload>("/api/open-portfolio"),
   fundingScanner: (options: FundingScannerQuery) => {
     const params = new URLSearchParams();

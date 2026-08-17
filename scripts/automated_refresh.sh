@@ -361,6 +361,30 @@ run_root "build product DB" \
 run_root "verify product DB schema" \
   verify_product_db_schema "${ROOT}/data/product.db" "${PY}"
 
+run_root "verify bottom strategy freshness" \
+  "${PY}" - "${ROOT}/data/product.db" "${ASOF}" <<'PY'
+import json
+import sqlite3
+import sys
+
+db_path, expected_as_of = sys.argv[1:]
+with sqlite3.connect(db_path) as conn:
+    row = conn.execute(
+        "SELECT payload_json FROM datasets WHERE name = ?",
+        ("bottom-strategy",),
+    ).fetchone()
+if not row:
+    raise SystemExit("bottom-strategy dataset is missing")
+payload = json.loads(row[0])
+status = (payload.get("freshness") or {}).get("status")
+as_of = payload.get("asOf")
+if status != "current" or as_of != expected_as_of:
+    raise SystemExit(
+        f"bottom-strategy is not current: status={status!r}, asOf={as_of!r}, expected={expected_as_of!r}"
+    )
+print(f"bottom-strategy current through {as_of}")
+PY
+
 run_root "project checks" \
   npm run check
 
