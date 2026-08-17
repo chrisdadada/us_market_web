@@ -647,13 +647,19 @@ try {
           assert(conclusionText.includes("最近结论"), "calendar conclusion should identify the latest published result");
           assert(conclusionText.includes(headline) && conclusionText.includes(meaning), `calendar should show the verified ${tab} conclusion`);
         }
-        assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
+        assert(await page.locator(".calendarEarningsPreview article").count() <= 3, "calendar should keep the default earnings preview concise");
         const calendarSectionOrder = await page.evaluate(() => {
           const macro = document.querySelector(".calendarCoreMacro");
-          const earnings = document.querySelector(".calendarEarningsTable");
+          const earnings = document.querySelector(".calendarEarningsSection");
           return Boolean(macro && earnings && (macro.compareDocumentPosition(earnings) & Node.DOCUMENT_POSITION_FOLLOWING));
         });
         assert(calendarSectionOrder, "macro events should remain above the earnings calendar");
+        const earningsAction = page.locator(".calendarEarningsSection .calendarSectionAction");
+        assert(await earningsAction.count() === 1, "calendar should offer the complete earnings calendar on demand");
+        await earningsAction.click();
+        await page.waitForFunction(() => document.querySelector(".calendarEarningsSection h2")?.textContent?.includes("财报日历"));
+        assert(await page.locator(".calendarEarningsTable, .calendarEarningsSection .calendarState").count() === 1, "calendar should reveal the complete earnings calendar or its empty state on demand");
+        assert(await page.locator(".calendarPager").count() === 1, "calendar should paginate the complete earnings table");
         assert(!(await page.locator("body").innerText()).includes("优先看利率、通胀、就业"), "calendar should remove explanatory filler");
         assert(!(await page.locator("body").innerText()).includes("下一次公布 · 历史变化"), "calendar should remove redundant core macro helper copy");
         assert(!(await page.locator("body").innerText()).includes("按日期排列"), "calendar should remove redundant earnings helper copy");
@@ -662,7 +668,12 @@ try {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(200);
         assert(!(await page.locator(".calendarTableHead").first().isVisible()), "mobile calendar should hide desktop table headings");
-        assert(await page.locator(".calendarMobileMeta").first().isVisible(), "mobile calendar should show compact event context");
+        const mobileEventContext = page.locator(".calendarMobileMeta").first();
+        if (await mobileEventContext.count()) {
+          assert(await mobileEventContext.isVisible(), "mobile calendar should show compact event context");
+        } else {
+          assert(await page.locator(".calendarEarningsSection .calendarState").isVisible(), "mobile calendar should show an honest empty state when no earnings are scheduled");
+        }
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile calendar should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-calendar-mobile.png`, fullPage: true });
 

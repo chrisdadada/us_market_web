@@ -10,13 +10,46 @@ from build_index_valuation import (  # noqa: E402
     _ssga_section,
     build_qqq_forward_valuation,
     merge_official_metric_history,
+    market_valuation_level,
     official_metric_or_waiting,
+    parse_market_valuation_snapshot,
     qqq_official_snapshot,
     wilder_rsi,
 )
 
 
 class ForwardValuationTest(unittest.TestCase):
+    def test_builds_same_source_history_and_plain_level(self):
+        detail = {
+            "ts": 1786377600000,
+            "pe": 31.15,
+            "pb": 9.37,
+            "roe": 0.3007,
+            "yeild": 0.0043,
+            "peg": 1.55,
+            "pe_percentile": 0.5172,
+            "pb_percentile": 0.8224,
+        }
+        histories = {
+            "pe": {"index_eva_pe_growths": [{"ts": 1470844800000, "pe": 25.58}, {"ts": 1786377600000, "pe": 31.15}]},
+            "pb": {"index_eva_pb_growths": [{"ts": 1470844800000, "pb": 4.08}, {"ts": 1786377600000, "pb": 9.37}]},
+            "roe": {"index_eva_roe_growths": [{"ts": 1470844800000, "roe": 0.1597}, {"ts": 1786377600000, "roe": 0.3007}]},
+        }
+        result = parse_market_valuation_snapshot("QQQ", detail, histories)
+        metrics = {item["key"]: item for item in result["metrics"]}
+        self.assertEqual(result["level"], "偏高")
+        self.assertEqual(result["pePercentile"], 51.72)
+        self.assertEqual(metrics["roe"]["value"], 30.07)
+        self.assertEqual(len(metrics["pe"]["trend"]), 2)
+        self.assertEqual(metrics["pe"]["trend"][-1]["date"], "2026-08-11")
+        self.assertTrue(result["historyPercentiles"]["items"])
+
+    def test_market_valuation_level_uses_pe_and_pb_percentiles(self):
+        self.assertEqual(market_valuation_level(20, 20), "偏低")
+        self.assertEqual(market_valuation_level(40, 20), "适中")
+        self.assertEqual(market_valuation_level(40, 40), "偏高")
+        self.assertEqual(market_valuation_level(75, 20), "偏高")
+
     def test_builds_plain_language_inputs_from_official_snapshot(self):
         result = build_qqq_forward_valuation(
             {
@@ -112,6 +145,29 @@ class ForwardValuationTest(unittest.TestCase):
                 {"date": "2026-08-31", "value": 31.0},
             ],
         )
+
+    def test_keeps_full_current_market_history(self):
+        current = {
+            "indices": [{
+                "index": {"symbol": "QQQ"},
+                "metrics": [{
+                    "key": "pe",
+                    "value": 31.0,
+                    "asOf": "2026-08-11",
+                    "coverage": {"sourceName": "雪球基金指数估值"},
+                    "trend": [
+                        {"date": "2016-08-11", "value": 25.5},
+                        {"date": "2021-08-11", "value": 34.0},
+                        {"date": "2026-08-11", "value": 31.0},
+                    ],
+                }],
+            }],
+        }
+        result = merge_official_metric_history(current, None)
+        metric = result["indices"][0]["metrics"][0]
+        self.assertEqual(len(metric["trend"]), 3)
+        self.assertEqual(metric["trend"][0], {"date": "2016-08-11", "value": 25.5})
+        self.assertEqual(metric["historySourceName"], "雪球基金指数估值")
 
     def test_rejects_old_estimated_history(self):
         previous = {

@@ -2495,7 +2495,18 @@ function valuationValue(value?: number | null, unit?: string) {
   return `${value.toFixed(2)}${unit === "x" ? "倍" : unit || ""}`;
 }
 
-function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 }) {
+function valuationQuantile(values: number[], ratio: number) {
+  if (!values.length) return null;
+  const ordered = [...values].sort((a, b) => a - b);
+  const position = (ordered.length - 1) * ratio;
+  const lower = Math.floor(position);
+  const upper = Math.min(ordered.length - 1, lower + 1);
+  return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower);
+}
+
+type MarketChartReference = { label: string; value: number; tone: "low" | "middle" | "high" };
+
+function MarketLineChart({ item, years, references = [], showStats = true }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 | 10; references?: MarketChartReference[]; showStats?: boolean }) {
   const points = (item.points || []).filter((point) => Number.isFinite(point.value));
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   useEffect(() => setHoverIndex(null), [item.key, years]);
@@ -2505,9 +2516,10 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
   cutoff.setFullYear(cutoff.getFullYear() - years);
   const visible = points.filter((point) => new Date(`${point.date}T00:00:00`) >= cutoff);
   const values = visible.map((point) => point.value);
+  const referenceValues = references.map((reference) => reference.value).filter(Number.isFinite);
   const threshold = marketPressureThresholds[item.key.toLowerCase()];
-  const dataMin = Math.min(...values, Number.isFinite(threshold) ? threshold : Infinity);
-  const dataMax = Math.max(...values, Number.isFinite(threshold) ? threshold : -Infinity);
+  const dataMin = Math.min(...values, ...referenceValues, Number.isFinite(threshold) ? threshold : Infinity);
+  const dataMax = Math.max(...values, ...referenceValues, Number.isFinite(threshold) ? threshold : -Infinity);
   const dataSpan = Math.max(0.1, dataMax - dataMin);
   const min = dataMin - dataSpan * 0.08;
   const max = dataMax + dataSpan * 0.12;
@@ -2545,6 +2557,7 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
       >
         {thresholdY !== null ? <g className="marketPressureZone"><rect x={plot.left} y={plot.top} width={plotWidth} height={Math.max(0, thresholdY - plot.top)} /><line x1={plot.left} y1={thresholdY} x2={width - plot.right} y2={thresholdY} /><text x={plot.left + 8} y={Math.max(plot.top + 13, thresholdY - 6)}>压力区</text></g> : null}
         {yTicks.map((tick) => <g className="marketChartGrid" key={tick}><line x1={plot.left} y1={yFor(tick)} x2={width - plot.right} y2={yFor(tick)} /><text x={plot.left - 8} y={yFor(tick) + 4}>{formatSeriesValue(tick, item.unit)}</text></g>)}
+        {references.map((reference) => <line className={`marketChartReference ${reference.tone}`} key={reference.label} x1={plot.left} y1={yFor(reference.value)} x2={width - plot.right} y2={yFor(reference.value)} />)}
         {dateIndexes.map((index) => <text className="marketChartDate" key={visible[index].date} x={xFor(index)} y={height - 12} style={{ textAnchor: index === 0 ? "start" : index === visible.length - 1 ? "end" : "middle" }}>{visible[index].date.slice(0, 7)}</text>)}
         <polyline className="marketChartPath" points={coordinates} />
         <line className="marketChartCrosshair" x1={activeX} y1={plot.top} x2={activeX} y2={height - plot.bottom} />
@@ -2555,12 +2568,12 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
           <text x="9" y="31">{formatSeriesValue(active.value, item.unit)}</text>
         </g>
       </svg>
-      <div className="marketChartStats">
+      {showStats ? <div className="marketChartStats">
         <span>区间最低<strong>{formatSeriesValue(Math.min(...values), item.unit)}</strong></span>
         <span>区间最高<strong>{formatSeriesValue(Math.max(...values), item.unit)}</strong></span>
         <span>区间变化<strong className={signedClass(periodChange)}>{periodChange > 0 ? "+" : ""}{formatSeriesValue(periodChange, item.unit)}</strong></span>
         <span>最新日期<strong>{visible.at(-1)?.date}</strong></span>
-      </div>
+      </div> : null}
     </div>
   );
 }
@@ -2649,7 +2662,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
   const [payload, setPayload] = useState<IndexValuationPayload | null>(null);
   const [symbol, setSymbol] = useState("QQQ");
   const [metricKey, setMetricKey] = useState("pe");
-  const [years, setYears] = useState<1 | 3 | 5>(1);
+  const [years, setYears] = useState<3 | 5 | 10>(5);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [reload, setReload] = useState(0);
 
@@ -2665,25 +2678,18 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
 
   const indices = payload?.indices || [];
   const selected = indices.find((item) => item.index?.symbol === symbol) || indices[0];
-  const currentMetrics = (selected?.metrics || []).filter((item) => item.value !== null && item.value !== undefined && item.key !== "peg");
+  const currentMetrics = (selected?.metrics || []).filter((item) => ["pe", "pb", "roe"].includes(item.key) && item.value !== null && item.value !== undefined);
   const selectedMetric = currentMetrics.find((item) => item.key === metricKey) || currentMetrics[0];
-  const forwardMetric = currentMetrics.find((item) => item.key === "forwardPe");
   const peMetric = currentMetrics.find((item) => item.key === "pe");
   const pbMetric = currentMetrics.find((item) => item.key === "pb");
   const roeMetric = currentMetrics.find((item) => item.key === "roe");
-  const dividendMetric = currentMetrics.find((item) => item.key === "dividendYield");
-  const forward = selected?.forwardValuation;
-  const premium = forward?.premiumToTenYearAveragePct;
-  const overviewStats = selected?.index?.symbol === "QQQ" ? [
-    { label: "十年前瞻 PE 均值", value: valuationValue(forward?.tenYearAverageForwardPe, "x") },
-    { label: "隐含盈利增长", value: valuationValue(forward?.impliedEarningsGrowthPct, "%") },
-    { label: "市净率", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
-    { label: "ROE", value: valuationValue(roeMetric?.value, roeMetric?.unit) }
-  ] : [
-    { label: "市盈率", value: valuationValue(peMetric?.value, peMetric?.unit) },
-    { label: "市净率", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
-    { label: "股息率", value: valuationValue(dividendMetric?.value, dividendMetric?.unit) },
-    { label: "数据日期", value: formatDate(forwardMetric?.asOf || selected?.asOf) }
+  const summary = selected?.valuationSummary;
+  const overviewStats = [
+    { label: "PB", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
+    { label: "PB 百分位", value: summary?.pbPercentile === null || summary?.pbPercentile === undefined ? "--" : `${summary.pbPercentile.toFixed(2)}%` },
+    { label: "ROE", value: valuationValue(roeMetric?.value, roeMetric?.unit) },
+    { label: "股息率", value: valuationValue(summary?.dividendYield, "%") },
+    { label: "预测 PEG", value: valuationValue(summary?.peg, "x") }
   ];
 
   useEffect(() => {
@@ -2701,9 +2707,23 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
     points: selectedMetric.trend
   } : null;
   const historyReady = (selectedMetric?.trend?.length || 0) > 1;
-  const overviewValue = forward?.forwardPe ?? forwardMetric?.value;
-  const overviewDate = forward?.asOf || forwardMetric?.asOf;
-  const overviewStatus = premium === undefined ? "当前估值" : premium > 0 ? "高于十年均值" : "低于十年均值";
+  const latestDate = selectedMetric?.trend?.at(-1)?.date || selectedMetric?.asOf || summary?.asOf;
+  const rangeCutoff = latestDate ? new Date(`${latestDate}T00:00:00`) : null;
+  rangeCutoff?.setFullYear(rangeCutoff.getFullYear() - years);
+  const rangePoints = (selectedMetric?.trend || []).filter((point) => !rangeCutoff || new Date(`${point.date}T00:00:00`) >= rangeCutoff);
+  const rangeValues = rangePoints.map((point) => point.value).filter(Number.isFinite);
+  const p30 = valuationQuantile(rangeValues, 0.3);
+  const median = valuationQuantile(rangeValues, 0.5);
+  const p70 = valuationQuantile(rangeValues, 0.7);
+  const currentValue = selectedMetric?.value;
+  const rangePercentile = currentValue === null || currentValue === undefined || !rangeValues.length
+    ? null
+    : 100 * rangeValues.filter((value) => value <= currentValue).length / rangeValues.length;
+  const chartReferences: MarketChartReference[] = [
+    { label: "30分位", value: p30, tone: "low" },
+    { label: "中位值", value: median, tone: "middle" },
+    { label: "70分位", value: p70, tone: "high" }
+  ].filter((item): item is MarketChartReference => item.value !== null);
 
   return (
     <div className="marketToolPage indexValuationPage" data-testid="index-valuation-page">
@@ -2713,14 +2733,14 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
         <section className="marketToolPanel valuationPanel">
           <div className="valuationPanelHead">
             <div className="valuationIndexTabs" role="tablist" aria-label="选择指数">
-              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey(item.index?.symbol === "SPY" ? "forwardPe" : "pe"); setYears(1); }}>{item.index?.symbol} <small>{item.index?.symbol === "QQQ" ? "纳指 100" : item.index?.symbol === "SPY" ? "标普 500" : item.index?.name}</small></button>)}
+              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey("pe"); setYears(5); }}>{item.index?.symbol} <small>{item.index?.symbol === "QQQ" ? "纳指 100" : item.index?.symbol === "SPY" ? "标普 500" : item.index?.name}</small></button>)}
             </div>
+            <span>{formatDate(summary?.asOf || selected?.asOf)}</span>
           </div>
           <div className="valuationOverview">
             <article className="valuationLead">
-              <span>{overviewStatus}</span>
-              <div><strong>{valuationValue(overviewValue, "x")}</strong>{premium !== undefined ? <b>{premium > 0 ? "高" : "低"} {Math.abs(premium).toFixed(1)}%</b> : null}</div>
-              <small>前瞻市盈率 · {formatDate(overviewDate)}</small>
+              <strong className={`valuationLevel ${summary?.level === "偏低" ? "low" : summary?.level === "适中" ? "middle" : "high"}`}>估值{summary?.level || "--"}</strong>
+              <div><span>PE</span><b>{valuationValue(peMetric?.value, peMetric?.unit)}</b><span>PE 百分位</span><b>{summary?.pePercentile === null || summary?.pePercentile === undefined ? "--" : `${summary.pePercentile.toFixed(2)}%`}</b></div>
             </article>
             <div className="valuationOverviewStats">{overviewStats.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong></article>)}</div>
           </div>
@@ -2728,9 +2748,9 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
             {currentMetrics.map((item: IndexValuationMetric) => <button type="button" key={item.key} className={selectedMetric?.key === item.key ? "active" : ""} onClick={() => setMetricKey(item.key)}>{item.label || item.key.toUpperCase()}走势</button>)}
           </div>
           <div className="valuationChartStage">
-            <div className="valuationChartTitle"><h2>{selectedMetric?.label || "估值"}走势</h2><span>当前 {valuationValue(selectedMetric?.value, selectedMetric?.unit)} · {formatDate(selectedMetric?.asOf)}</span></div>
-            {historyReady && chartItem ? <MarketLineChart item={chartItem} years={years} /> : <div className="valuationHistoryPending"><i /><strong>{valuationValue(selectedMetric?.value, selectedMetric?.unit)}</strong><small>{formatDate(selectedMetric?.asOf)}</small><span>下一期官方数据更新后开始连接历史曲线</span></div>}
-            <div className="valuationRange">{([1, 3, 5] as const).map((range) => <button type="button" key={range} disabled={!historyReady} className={years === range ? "active" : ""} onClick={() => setYears(range)}>近 {range} 年</button>)}</div>
+            <div className="valuationChartTitle"><div><h2>{selectedMetric?.label || "估值"}走势</h2><span>{rangePercentile === null ? "--" : `当前处于近${years}年 ${rangePercentile.toFixed(2)}% 分位`}</span></div><div className="valuationReferenceLegend">{chartReferences.map((item) => <span className={item.tone} key={item.label}>{item.label}<b>{valuationValue(item.value, selectedMetric?.unit)}</b></span>)}</div></div>
+            {historyReady && chartItem ? <MarketLineChart item={chartItem} years={years} references={chartReferences} showStats={false} /> : <div className="marketToolEmpty compact">暂无历史估值数据</div>}
+            <div className="valuationRange">{([3, 5, 10] as const).map((range) => <button type="button" key={range} disabled={!historyReady} className={years === range ? "active" : ""} onClick={() => setYears(range)}>近 {range} 年</button>)}</div>
           </div>
         </section>
       )}
@@ -3796,9 +3816,10 @@ function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | 
 
 function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const pageSize = 30;
-  const [windowDays, setWindowDays] = useState("30");
+  const [windowDays, setWindowDays] = useState("7");
   const [impact, setImpact] = useState("all");
   const [pageIndex, setPageIndex] = useState(0);
+  const [showAllEarnings, setShowAllEarnings] = useState(false);
   const [macroRows, setMacroRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "macro"));
   const [earningsRows, setEarningsRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "earnings"));
   const [resultRows, setResultRows] = useState<CalendarEvent[]>([]);
@@ -3813,6 +3834,8 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [resultError, setResultError] = useState(false);
   const [resultRetry, setResultRetry] = useState(0);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const featuredEarnings = earningsRows.filter((event) => event.impact === "high").slice(0, 3);
+  const showEarningsTable = showAllEarnings || impact !== "all";
 
   useEffect(() => {
     setPageIndex(0);
@@ -3883,32 +3906,15 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   return (
     <div className="calendarPage calendarV3">
       <section className="calendarWorkbench">
-        <div className="calendarFilters">
-          <div className="calendarFilterControls">
-            <div className="calendarWindowTabs">
-              {[
-                ["7", "未来7天"],
-                ["30", "未来30天"],
-                ["45", "未来45天"]
-              ].map(([value, label]) => (
-                <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => setWindowDays(value)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <select value={impact} onChange={(event) => setImpact(event.target.value)}>
-              <option value="all">全部影响</option>
-              <option value="high">高</option>
-              <option value="medium">中</option>
-              <option value="low">低</option>
-            </select>
-          </div>
-        </div>
         <CoreMacroTracker
           upcomingRows={macroRows}
           resultRows={resultRows}
+          windowDays={windowDays}
+          impact={impact}
           loading={macroLoading || resultLoading}
           error={macroError || resultError}
+          onWindowDaysChange={setWindowDays}
+          onImpactChange={setImpact}
           onRetry={() => {
             setMacroRetry((value) => value + 1);
             setResultRetry((value) => value + 1);
@@ -3930,22 +3936,54 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
         ) : null}
         <section className="calendarSection calendarEarningsSection">
           <div className="calendarSectionHead">
-            <h2>财报日历</h2>
+            <h2>{showEarningsTable ? "财报日历" : "近期高影响财报"}</h2>
+            {impact === "all" ? (
+              <button type="button" className="calendarSectionAction" onClick={() => setShowAllEarnings((value) => !value)}>
+                {showAllEarnings ? "收起" : "查看全部"}
+              </button>
+            ) : null}
           </div>
-          <CalendarEventsTable
-            kind="earnings"
-            rows={earningsRows}
-            loading={earningsLoading}
-            error={earningsError}
-            onRetry={() => setEarningsRetry((value) => value + 1)}
-          />
-          <div className="calendarPager">
-            <span>第 {pageIndex + 1} 页</span>
-            <div>
-              <button type="button" disabled={pageIndex <= 0 || earningsLoading} onClick={() => setPageIndex((page) => Math.max(0, page - 1))}>上一页</button>
-              <button type="button" disabled={pageIndex >= pageCount - 1 || earningsLoading} onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}>下一页</button>
+          {showEarningsTable ? (
+            <>
+              <CalendarEventsTable
+                kind="earnings"
+                rows={earningsRows}
+                loading={earningsLoading}
+                error={earningsError}
+                onRetry={() => setEarningsRetry((value) => value + 1)}
+              />
+              <div className="calendarPager">
+                <span>第 {pageIndex + 1} 页</span>
+                <div>
+                  <button type="button" disabled={pageIndex <= 0 || earningsLoading} onClick={() => setPageIndex((page) => Math.max(0, page - 1))}>上一页</button>
+                  <button type="button" disabled={pageIndex >= pageCount - 1 || earningsLoading} onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}>下一页</button>
+                </div>
+              </div>
+            </>
+          ) : earningsLoading && !featuredEarnings.length ? (
+            <div className="calendarState calendarStateLoading" aria-label="正在加载" />
+          ) : earningsError && !featuredEarnings.length ? (
+            <div className="calendarState">
+              <span>加载失败</span>
+              <button type="button" onClick={() => setEarningsRetry((value) => value + 1)}>重新加载</button>
             </div>
-          </div>
+          ) : featuredEarnings.length ? (
+            <div className={`calendarEarningsPreview ${earningsLoading ? "isLoading" : ""}`}>
+              {featuredEarnings.map((event) => {
+                const summary = calendarSummaryParts(event).lead;
+                const [company, detail] = summary.split("：", 2);
+                return (
+                  <article key={event.id}>
+                    <strong>{calendarTitle(event.title).replace(/\s*财报$/, "")}</strong>
+                    <div><b>{company || calendarTitle(event.title)}</b><small>{detail || calendarDataText(event)}</small></div>
+                    <time>{formatDate(event.date).slice(5)} {calendarTime24(event.time).slice(0, 5)}</time>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="calendarState">这段时间暂无高影响财报</div>
+          )}
         </section>
       </section>
     </div>
@@ -3955,19 +3993,27 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
 function CoreMacroTracker({
   upcomingRows,
   resultRows,
+  windowDays,
+  impact,
   loading,
   error,
+  onWindowDaysChange,
+  onImpactChange,
   onRetry
 }: {
   upcomingRows: CalendarEvent[];
   resultRows: CalendarEvent[];
+  windowDays: string;
+  impact: string;
   loading: boolean;
   error: boolean;
+  onWindowDaysChange: (value: string) => void;
+  onImpactChange: (value: string) => void;
   onRetry: () => void;
 }) {
   const coreResults = resultRows.filter((event) => coreMacroKind(event));
   const publishedIds = new Set(coreResults.map((event) => event.id));
-  const coreUpcoming = upcomingRows.filter((event) => coreMacroKind(event) && !publishedIds.has(event.id));
+  const coreUpcoming = upcomingRows.filter((event) => coreMacroKind(event) && !publishedIds.has(event.id) && (impact === "all" || event.impact === impact));
   const nextCore = coreUpcoming[0] || null;
   const [selectedKind, setSelectedKind] = useState<CoreMacroKind | null>(null);
   const activeKind = selectedKind || coreMacroKind(nextCore) || coreMacroKind(coreResults[0]) || "cpi";
@@ -3982,6 +4028,27 @@ function CoreMacroTracker({
 
   return (
     <section className="calendarCoreMacro">
+      <div className="calendarCoreToolbar">
+        <div className="calendarFilterControls">
+          <div className="calendarWindowTabs">
+            {[
+              ["7", "未来7天"],
+              ["30", "未来30天"],
+              ["45", "未来45天"]
+            ].map(([value, label]) => (
+              <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => onWindowDaysChange(value)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <select value={impact} aria-label="影响级别" onChange={(event) => onImpactChange(event.target.value)}>
+            <option value="all">全部影响</option>
+            <option value="high">高影响</option>
+            <option value="medium">中影响</option>
+            <option value="low">低影响</option>
+          </select>
+        </div>
+      </div>
       <div className="calendarNextEvent">
         <div>
           <span>下一项重点</span>
@@ -4014,6 +4081,7 @@ function CoreMacroTracker({
             {tab.label}
           </button>
         ))}
+        <span>最近结果与历史变化</span>
       </div>
       {error ? (
         <div className="calendarInlineError">

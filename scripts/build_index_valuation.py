@@ -12,6 +12,7 @@ from html import unescape
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +57,10 @@ OFFICIAL_HISTORY_SOURCES = {
     "Invesco QQQ fund characteristics",
     "State Street SPY fund and index characteristics",
 }
+MARKET_HISTORY_SOURCE = "雪球基金指数估值"
+SUPPORTED_HISTORY_SOURCES = OFFICIAL_HISTORY_SOURCES | {MARKET_HISTORY_SOURCE}
+DANJUAN_INDEX_CODES = {"QQQ": "NDX", "SPY": "SP500"}
+DANJUAN_BASE_URL = "https://danjuanfunds.com/djapi/index_eva"
 OFFICIAL_HISTORY_SEEDS = {
     "SPY": {
         "forwardPe": [{"date": "2026-06-30", "value": 22.50}],
@@ -69,6 +74,7 @@ OFFICIAL_HISTORY_SEED_SOURCE = (
 )
 OFFICIAL_HISTORY_SEED_SHA256 = "920347cf84e218ebb3fc1a962de24a0f2deb694e94b7415711ac5b7531ce9d58"
 MAX_OFFICIAL_HISTORY_POINTS = 1300
+BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 
 REQUIRED_DATASETS = [
     {
@@ -148,6 +154,26 @@ def safe_float(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return number if number == number and number not in (float("inf"), float("-inf")) else None
+
+
+def percentile(values: list[float], ratio: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * ratio
+    lower = int(position)
+    upper = min(len(ordered) - 1, lower + 1)
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+
+
+def market_valuation_level(pe_percentile: float | None, pb_percentile: float | None) -> str | None:
+    if pe_percentile is None or pb_percentile is None:
+        return None
+    if pe_percentile < 30 and pb_percentile < 30:
+        return "偏低"
+    if pe_percentile > 70 or (pe_percentile > 30 and pb_percentile > 30):
+        return "偏高"
+    return "适中"
 
 
 def normalize_symbol(value: Any) -> str:
@@ -295,6 +321,121 @@ def qqq_official_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
             "roe": safe_float(snapshot.get("returnOnEquity")),
         },
     }
+
+
+def fetch_json(url: str, referer: str | None = None) -> dict[str, Any]:
+    headers = {"User-Agent": "Mozilla/5.0"}
+    if referer:
+        headers["Referer"] = referer
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        payload = json.load(response)
+    if not isinstance(payload, dict) or payload.get("result_code") not in (None, 0):
+        raise ValueError(f"Unexpected JSON response from {url}")
+    return payload
+
+
+def parse_market_valuation_snapshot(
+    symbol: str,
+    detail: dict[str, Any],
+    histories: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    source_code = DANJUAN_INDEX_CODES[symbol]
+    as_of_timestamp = safe_float(detail.get("ts"))
+    as_of = (
+        datetime.fromtimestamp(as_of_timestamp / 1000, BEIJING_TZ).date().isoformat()
+        if as_of_timestamp is not None
+        else None
+    )
+    pe_percentile = safe_float(detail.get("pe_percentile"))
+    pb_percentile = safe_float(detail.get("pb_percentile"))
+    if pe_percentile is not None:
+        pe_percentile *= 100
+    if pb_percentile is not None:
+        pb_percentile *= 100
+
+    metric_specs = {
+        "pe": ("市盈率", "x", "index_eva_pe_growths", 1.0),
+        "pb": ("市净率", "x", "index_eva_pb_growths", 1.0),
+        "roe": ("ROE", "%", "index_eva_roe_growths", 100.0),
+    }
+    metrics = []
+    percentile_items = []
+    for key, (label, unit, series_key, multiplier) in metric_specs.items():
+        raw_series = (histories.get(key) or {}).get(series_key) or []
+        trend = []
+        for raw_point in raw_series:
+            timestamp = safe_float(raw_point.get("ts"))
+            value = safe_float(raw_point.get(key))
+            if timestamp is None or value is None:
+                continue
+            trend.append({
+                "date": datetime.fromtimestamp(timestamp / 1000, BEIJING_TZ).date().isoformat(),
+                "value": round(value * multiplier, 4),
+            })
+        trend = sorted({item["date"]: item for item in trend}.values(), key=lambda item: item["date"])
+        current = safe_float(detail.get(key))
+        current = None if current is None else current * multiplier
+        values = [item["value"] for item in trend]
+        references = {
+            "p30": percentile(values, 0.3),
+            "median": percentile(values, 0.5),
+            "p70": percentile(values, 0.7),
+        }
+        current_percentile = (
+            pe_percentile if key == "pe" else pb_percentile if key == "pb" else
+            (100 * sum(value <= current for value in values) / len(values) if current is not None and values else None)
+        )
+        metrics.append({
+            "key": key,
+            "label": label,
+            "unit": unit,
+            "status": "computed",
+            "value": None if current is None else round(current, 4),
+            "display": None if current is None else f"{current:.2f}{'%' if unit == '%' else 'x'}",
+            "asOf": as_of,
+            "note": "同口径历史估值序列",
+            "coverage": {
+                "sourceName": MARKET_HISTORY_SOURCE,
+                "sourceCode": source_code,
+                "methodNote": "PE、PB、ROE及历史序列沿用数据源公开口径。",
+            },
+            "percentile": None if current_percentile is None else round(current_percentile, 2),
+            "references": {name: None if value is None else round(value, 4) for name, value in references.items()},
+            "trend": trend,
+            "method": "同一数据源、同一指标口径的十年周度序列。",
+        })
+        percentile_items.append({
+            "key": key,
+            "percentile": None if current_percentile is None else round(current_percentile, 2),
+            **{name: None if value is None else round(value, 4) for name, value in references.items()},
+        })
+
+    return {
+        "asOf": as_of,
+        "sourceName": MARKET_HISTORY_SOURCE,
+        "sourceCode": source_code,
+        "sourceUrl": f"https://danjuanfunds.com/dj-valuation-table-detail/{source_code}",
+        "level": market_valuation_level(pe_percentile, pb_percentile),
+        "pePercentile": None if pe_percentile is None else round(pe_percentile, 2),
+        "pbPercentile": None if pb_percentile is None else round(pb_percentile, 2),
+        "dividendYield": pct((safe_float(detail.get("yeild")) or 0) * 100, 2),
+        "peg": pct(safe_float(detail.get("peg")), 2),
+        "metrics": metrics,
+        "historyPercentiles": {"lookbackYears": 10, "status": "computed", "items": percentile_items},
+    }
+
+
+def fetch_market_valuation_snapshot(symbol: str) -> dict[str, Any]:
+    source_code = DANJUAN_INDEX_CODES[symbol]
+    referer = f"https://danjuanfunds.com/dj-valuation-table-detail/{source_code}"
+    detail = (fetch_json(f"{DANJUAN_BASE_URL}/detail/{source_code}", referer).get("data") or {})
+    histories = {}
+    for metric in ("pe", "pb", "roe"):
+        histories[metric] = (
+            fetch_json(f"{DANJUAN_BASE_URL}/{metric}_history/{source_code}?day=all", referer).get("data") or {}
+        )
+    return parse_market_valuation_snapshot(symbol, detail, histories)
 
 
 def _html_text(value: str) -> str:
@@ -1104,7 +1245,7 @@ def official_metric_source(metric: dict[str, Any] | None) -> str | None:
         return None
     coverage = metric.get("coverage") or {}
     source = coverage.get("sourceName") or metric.get("historySourceName")
-    return source if source in OFFICIAL_HISTORY_SOURCES else None
+    return source if source in SUPPORTED_HISTORY_SOURCES else None
 
 
 def metric_history_point(item: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -1132,7 +1273,7 @@ def merge_official_metric_history(current: dict[str, Any], previous: dict[str, A
             previous_source = official_metric_source(previous_metric)
             source = current_source or previous_source
             points: dict[str, dict[str, Any]] = {}
-            if source:
+            if source in OFFICIAL_HISTORY_SOURCES:
                 for item in (OFFICIAL_HISTORY_SEEDS.get(symbol) or {}).get(metric.get("key")) or []:
                     point = metric_history_point(item)
                     if point:
@@ -1149,6 +1290,10 @@ def merge_official_metric_history(current: dict[str, Any], previous: dict[str, A
                 if point:
                     points[point["date"]] = point
             if source and current_source == source:
+                for item in metric.get("trend") or []:
+                    point = metric_history_point(item)
+                    if point:
+                        points[point["date"]] = point
                 point = metric_history_point(metric)
                 if point:
                     points[point["date"]] = point
@@ -1156,6 +1301,42 @@ def merge_official_metric_history(current: dict[str, Any], previous: dict[str, A
             if source and metric["trend"]:
                 metric["historySourceName"] = source
     return current
+
+
+def apply_market_valuation_snapshot(payload: dict[str, Any], snapshot: dict[str, Any]) -> None:
+    snapshot_metrics = {item["key"]: item for item in snapshot.get("metrics") or []}
+    payload["metrics"] = [
+        snapshot_metrics.get(metric.get("key"), metric)
+        for metric in payload.get("metrics") or []
+    ]
+    payload["asOf"] = snapshot.get("asOf") or payload.get("asOf")
+    payload["valuationSummary"] = {
+        key: snapshot.get(key)
+        for key in [
+            "asOf", "sourceName", "sourceCode", "sourceUrl", "level",
+            "pePercentile", "pbPercentile", "dividendYield", "peg",
+        ]
+    }
+    payload["historyPercentiles"] = snapshot.get("historyPercentiles")
+    readiness = payload.get("dataReadiness") or {}
+    readiness["canComputeHistoricalPercentiles"] = True
+    readiness["canComputeTrendSeries"] = True
+    payload["dataReadiness"] = readiness
+
+
+def restore_previous_market_valuation(payload: dict[str, Any], previous_index: dict[str, Any] | None) -> None:
+    if not previous_index or not previous_index.get("valuationSummary"):
+        return
+    previous_metrics = {
+        item.get("key"): item
+        for item in previous_index.get("metrics") or []
+        if ((item.get("coverage") or {}).get("sourceName") == MARKET_HISTORY_SOURCE)
+    }
+    if not previous_metrics:
+        return
+    payload["metrics"] = [previous_metrics.get(metric.get("key"), metric) for metric in payload.get("metrics") or []]
+    payload["valuationSummary"] = previous_index.get("valuationSummary")
+    payload["historyPercentiles"] = previous_index.get("historyPercentiles")
 
 
 def readiness_datasets(partial_ready: bool, index_label: str = "指数") -> list[dict[str, Any]]:
@@ -1391,6 +1572,7 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
             if key in forward_valuation
         },
         "marketIndicators": payload.get("marketIndicators") or {},
+        "valuationSummary": payload.get("valuationSummary") or {},
         "holdingsCoverage": holdings_summary,
         "topHoldings": payload.get("topHoldings") or [],
         "dataReadiness": {
@@ -1418,6 +1600,10 @@ def build_payload(
     spy_characteristics_url: str = DEFAULT_SPY_CHARACTERISTICS_URL,
     previous_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    previous_indices = {
+        str((item.get("index") or {}).get("symbol") or "").upper(): item
+        for item in (previous_payload or {}).get("indices") or []
+    }
     qqq_characteristics: dict[str, Any] | None = None
     try:
         qqq_characteristics = fetch_qqq_characteristics()
@@ -1442,6 +1628,10 @@ def build_payload(
     if qqq_characteristics:
         qqq_payload["forwardValuation"] = build_qqq_forward_valuation(qqq_characteristics)
     qqq_payload["marketIndicators"] = build_market_indicators(market_data_root, "QQQ", qqq_payload.get("priceAsOf"))
+    try:
+        apply_market_valuation_snapshot(qqq_payload, fetch_market_valuation_snapshot("QQQ"))
+    except Exception:
+        restore_previous_market_valuation(qqq_payload, previous_indices.get("QQQ"))
 
     try:
         spy_snapshot = fetch_spy_characteristics(spy_characteristics_url)
@@ -1468,6 +1658,10 @@ def build_payload(
             "asOf": spy_snapshot.get("asOf"),
             "forwardPe": spy_forward_pe,
         }
+    try:
+        apply_market_valuation_snapshot(spy_payload, fetch_market_valuation_snapshot("SPY"))
+    except Exception:
+        restore_previous_market_valuation(spy_payload, previous_indices.get("SPY"))
     qqq_frontend = frontend_index_payload(qqq_payload)
     spy_frontend = frontend_index_payload(spy_payload)
     payload = {
@@ -1477,7 +1671,7 @@ def build_payload(
         "module": "index-valuation",
         "title": "指数估值观察",
         "status": qqq_frontend.get("status"),
-        "summary": "已接入 QQQ 与 SPY 官方估值、当前持仓权重和最新价格；历史分位和 PEG 不展示推算值。",
+        "summary": "已接入 QQQ 与 SPY 当前估值及同口径历史估值序列。",
         "index": qqq_frontend.get("index"),
         "frontendHints": qqq_frontend.get("frontendHints"),
         "availableIndices": [
