@@ -507,7 +507,7 @@ try {
         assert(await page.locator(".frontHomeMobileList").isVisible(), "mobile home should show the compact stock list");
         assert(!(await page.locator(".frontHomeDesktopTable").isVisible()), "mobile home should hide the desktop stock table");
         assert(await page.locator(".frontHomeMobileRow").count() > 0, "mobile home should keep the stock rows");
-        const firstHomeMobileRow = page.locator(".frontHomeMobileRow").first();
+        const firstHomeMobileRow = page.locator(".frontHomeMobileRow", { hasText: "AAPL" });
         const firstHomeMobileText = await firstHomeMobileRow.innerText();
         for (const label of ["近1天", "近1周", "近1月", "成交额", "关键点位", "支撑", "阻力"]) {
           assert(firstHomeMobileText.includes(label), `mobile home should keep ${label}`);
@@ -563,7 +563,7 @@ try {
         await page.waitForTimeout(200);
         assert(!(await page.locator(".trackingDesktopTable").isVisible()), "mobile tracking list should hide the desktop table");
         assert(await page.locator(".trackingMobileList").isVisible(), "mobile tracking list should show compact stock rows");
-        const mobileTrackingText = await page.locator(".trackingMobileRow").first().innerText();
+        const mobileTrackingText = await page.locator(".trackingMobileRow", { hasText: "AAPL" }).innerText();
         for (const label of ["近1月", "近1周", "成交倍数", "支撑", "阻力", "查看详情"]) {
           assert(mobileTrackingText.includes(label), `mobile tracking row should keep ${label}`);
         }
