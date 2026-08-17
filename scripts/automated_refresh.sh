@@ -367,6 +367,30 @@ fi
 run_root "build product DB" \
   env TRACKING_ASOF="${ASOF}" MARKET_DATA_ROOT="${DATA_ROOT}" OPTIONS_START_DATE="${OPTIONS_START_DATE:-${START_DATE}}" OPTIONS_END_DATE="${OPTIONS_END_DATE:-${ASOF}}" PYTHON_BIN="${PY}" bash scripts/update_product_data.sh
 
+run_root "verify bottom strategy freshness" \
+  "${PY}" - "${ROOT}/data/product.db" "${ASOF}" <<'PY'
+import json
+import sqlite3
+import sys
+
+db_path, expected_as_of = sys.argv[1:]
+with sqlite3.connect(db_path) as conn:
+    row = conn.execute(
+        "SELECT payload_json FROM datasets WHERE name = ?",
+        ("bottom-strategy",),
+    ).fetchone()
+if not row:
+    raise SystemExit("bottom-strategy dataset is missing")
+payload = json.loads(row[0])
+status = (payload.get("freshness") or {}).get("status")
+as_of = payload.get("asOf")
+if status != "current" or as_of != expected_as_of:
+    raise SystemExit(
+        f"bottom-strategy is not current: status={status!r}, asOf={as_of!r}, expected={expected_as_of!r}"
+    )
+print(f"bottom-strategy current through {as_of}")
+PY
+
 run_root "release gate" \
   "${PY}" -m unittest tests.test_release_gate -v
 

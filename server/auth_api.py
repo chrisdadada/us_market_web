@@ -1704,23 +1704,34 @@ def has_yearly_access(row: sqlite3.Row | None) -> bool:
 
 
 def bottom_strategy_payload(include_details: bool) -> dict[str, Any]:
-    payload = json.loads(BOTTOM_STRATEGY_PATH.read_text(encoding="utf-8"))
-    if include_details:
-        return {**payload, "preview": False}
-    markets = {
-        key: {
-            "symbol": item.get("symbol"),
-            "name": item.get("name"),
-            "asOf": item.get("asOf"),
-            "status": item.get("status"),
-            "summary": item.get("summary"),
-            "recentRecords": [],
-            "records": [],
-            "priceSeries": [],
-        }
-        for key, item in payload.get("markets", {}).items()
+    payload: dict[str, Any] | None = None
+    try:
+        with product_db() as conn:
+            payload = product_raw_payload(conn, "bottom-strategy")
+    except (FileNotFoundError, sqlite3.Error):
+        payload = None
+    if payload is None:
+        payload = json.loads(BOTTOM_STRATEGY_PATH.read_text(encoding="utf-8"))
+
+    markets: dict[str, Any] = {}
+    for key, source in payload.get("markets", {}).items():
+        item = {field: value for field, value in source.items() if field not in {"machineState", "dailyStates"}}
+        if not include_details:
+            item["recentRecords"] = []
+            item["records"] = []
+            item["priceSeries"] = []
+        markets[key] = item
+    freshness = {
+        field: value
+        for field, value in (payload.get("freshness") or {}).items()
+        if field != "reason"
     }
-    return {**payload, "markets": markets, "preview": True}
+    return {
+        **payload,
+        "freshness": freshness,
+        "markets": markets,
+        "preview": not include_details,
+    }
 
 
 def find_user_by_id(user_id: int) -> sqlite3.Row | None:

@@ -293,20 +293,45 @@
   .strengthFilters { justify-content: flex-start; }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 960px) {
   .strengthMetrics { grid-template-columns: 1fr 1fr; }
   .strengthListHead { position: sticky; top: 58px; z-index: 8; align-items: stretch; flex-direction: column; gap: 10px; padding: 10px 12px; background: #fff; }
   .strengthListHead .marketToolTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; overflow: visible; }
   .strengthListHead .marketToolTabs button { min-width: 0; padding: 0 5px; font-size: 12px; white-space: nowrap; }
   .strengthListHead .marketToolTabs button small { margin-left: 3px; font-size: 10px; }
   .strengthDesktopFilters { display: none; }
-  .strengthTable { display: block; }
+  .strengthTable { display: none; }
   .strengthMobileControls { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 8px; width: 100%; }
   .strengthMobileControls input,
   .strengthMobileControls button { min-width: 0; height: 36px; border: 1px solid #d7e0ec; border-radius: 6px; background: #fff; color: #172033; padding: 0 10px; font-size: 12px; }
   .strengthMobileControls button { color: #1268d5; border-color: #bcd7fb; background: #edf5ff; cursor: pointer; }
   .strengthMobileControls b { display: inline-grid; min-width: 17px; height: 17px; margin-left: 5px; place-items: center; border-radius: 9px; background: #1677ff; color: #fff; font-size: 10px; }
-  .strengthMobileList { display: none; }
+  .strengthMobileList { display: grid; }
+  .strengthMobileRow {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 58px 66px;
+    gap: 9px;
+    min-height: 72px;
+    align-items: center;
+    border: 0;
+    border-bottom: 1px solid #e7edf4;
+    background: #fff;
+    padding: 10px 12px;
+    color: #172033;
+    text-align: left;
+  }
+  .strengthMobileRow:last-child { border-bottom: 0; }
+  .strengthMobileScore { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .strengthMobileIdentity { min-width: 0; }
+  .strengthMobileIdentity > strong,
+  .strengthMobileIdentity > small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .strengthMobileIdentity > strong { font-size: 14px; }
+  .strengthMobileIdentity > small { margin: 2px 0 5px; color: #718096; font-size: 10px; }
+  .strengthMobileDatum { min-width: 0; text-align: right; }
+  .strengthMobileDatum small,
+  .strengthMobileDatum strong { display: block; white-space: nowrap; }
+  .strengthMobileDatum small { margin-bottom: 4px; color: #8794a7; font-size: 9px; }
+  .strengthMobileDatum strong { font-size: 11px; font-variant-numeric: tabular-nums; }
   .strengthPagination { min-height: 46px; padding: 7px 12px; }
   .strengthPagination > span { font-size: 11px; }
   .strengthPagination > div { gap: 6px; }

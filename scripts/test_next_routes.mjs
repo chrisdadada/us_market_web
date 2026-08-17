@@ -238,12 +238,13 @@ try {
   }));
   await page.goto(`${server.rootUrl}?page=bottom`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='bottom-strategy-page']").isVisible(), "Paid bottom strategy page should be visible");
-  assert((await page.locator(".bottomStrategySummary h1").innerText()).includes("全部走出上涨行情"), "Bottom strategy summary should show verified recent results");
+  assert((await page.locator(".bottomStrategyDecision h1").innerText()).includes("继续等待"), "Bottom strategy should lead with the current action");
+  assert((await page.locator(".bottomStrategySummaryRow h2").innerText()).includes("均走出上涨行情"), "Bottom strategy summary should show verified recent results");
   assert(await page.locator(".bottomStrategyRecent p").count() === 5, "Bottom strategy should show five recent completed signals");
-  await page.locator(".bottomStrategyRecent button").click();
+  await page.getByRole("button", { name: "完整记录" }).click();
   assert(await page.locator(".bottomStrategyRecords tbody tr").count() === 8, "Bottom strategy should preserve all eight QQQ signals");
   assert(await page.locator(".bottomStrategyRecords .negative").count() === 2, "Bottom strategy should preserve the two early negative QQQ outcomes");
-  await page.locator(".bottomStrategyResults header button").nth(1).click();
+  await page.getByRole("button", { name: "信号位置" }).click();
   assert(await page.locator(".bottomStrategyChart svg").isVisible(), "Bottom strategy signal position chart should be visible");
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Desktop bottom strategy should not overflow horizontally");
   if (process.env.BOTTOM_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.BOTTOM_STRATEGY_SCREENSHOT_PREFIX}-desktop.png`, fullPage: true });

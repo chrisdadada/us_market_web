@@ -510,7 +510,16 @@ export type BottomStrategyMarket = {
     stageMaxMedianPct: Record<string, number>;
     totalSignals: number;
     completedSignals: number;
+    completedPositiveCount?: number;
+    completedNegativeCount?: number;
   };
+  lastSignal?: {
+    signalDate: string;
+    tradingDaysObserved: number;
+    completedHorizon?: number | null;
+    completedEndPct?: number | null;
+  };
+  medianPath?: Array<{ day: number; pct: number }>;
   recentRecords: BottomStrategyRecord[];
   records: BottomStrategyRecord[];
   priceSeries: Array<{ date: string; value: number }>;
@@ -518,7 +527,13 @@ export type BottomStrategyMarket = {
 
 export type BottomStrategyPayload = {
   generatedAt: string;
+  asOf?: string;
   preview?: boolean;
+  freshness?: {
+    status: "current" | "stale";
+    expectedAsOf?: string | null;
+    asOf?: string | null;
+  };
   method: {
     signal: string;
     entry: string;
