@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Any
 
 
 MONTHLY_KEYS = {"fedfunds", "cpiaucsl", "unrate"}
@@ -53,6 +54,17 @@ def freshness_fields(key: str, as_of: str | None, reference_as_of: str | None) -
         "stale": stale,
         "includedInScore": not stale,
     }
+
+
+def partition_fresh_indicators(
+    indicators: list[dict[str, Any]], reference_as_of: str | None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    visible: list[dict[str, Any]] = []
+    hidden: list[dict[str, Any]] = []
+    for item in indicators:
+        item.update(freshness_fields(str(item.get("key") or ""), item.get("asOf"), reference_as_of))
+        (hidden if item["stale"] else visible).append(item)
+    return visible, hidden
 
 
 def self_test() -> None:

@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from macro_freshness import MONTHLY_KEYS, freshness_fields
+from macro_freshness import MONTHLY_KEYS, partition_fresh_indicators
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -643,7 +643,6 @@ def build_market_temperature() -> dict[str, Any]:
             })
             continue
         status, level, risk_score, explain = risk_for_indicator(series_id, item["value"], item["change"])
-        risks[series_id] = risk_score
         value_label = f"{item['value']}{unit}" if unit != "美元" else f"${item['value']}"
         previous_label = f"{item['previous']}{unit}" if unit != "美元" else f"${item['previous']}"
         change_label = f"{item['change']:+.2f}{unit}" if unit != "美元" else f"{'+' if item['change'] >= 0 else '-'}${abs(item['change']):.2f}"
@@ -666,16 +665,18 @@ def build_market_temperature() -> dict[str, Any]:
         if item.get("asOf") and item["key"] not in MONTHLY_KEYS
     ]
     reference_as_of = max(daily_as_of) if daily_as_of else ""
-    freshness = {"current": 0, "monthly": 0, "delayed": 0}
+    indicators, hidden_indicators = partition_fresh_indicators(indicators, reference_as_of)
+    freshness = {"current": 0, "monthly": 0, "delayed": len(hidden_indicators)}
     for item in indicators:
-        item.update(freshness_fields(item["key"], item.get("asOf"), reference_as_of))
-        item.pop("_riskScore", None)
+        risk_score = item.pop("_riskScore", None)
+        if risk_score is not None:
+            risks[item["key"].upper()] = risk_score
         if item["frequency"] == "monthly":
             freshness["monthly"] += 1
-        elif item["stale"]:
-            freshness["delayed"] += 1
         else:
             freshness["current"] += 1
+    for item in hidden_indicators:
+        item.pop("_riskScore", None)
 
     v2 = market_temperature_v2_score(risks, latest_benchmark_trends())
     if v2:

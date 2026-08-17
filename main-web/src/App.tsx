@@ -2590,12 +2590,12 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
     return () => { active = false; };
   }, [enabled, reload]);
 
-  const indicators = payload?.indicators || [];
-  const priority = indicators.filter((item) => !indicatorIsStale(item, payload?.asOf)).sort((a, b) => {
+  const indicators = (payload?.indicators || []).filter((item) => !indicatorIsStale(item, payload?.asOf));
+  const priority = [...indicators].sort((a, b) => {
     const order: Record<string, number> = { watch: 0, neutral: 1, positive: 2 };
     return (order[a.status || "neutral"] ?? 1) - (order[b.status || "neutral"] ?? 1);
   });
-  const seriesItems = series?.indicators || [];
+  const seriesItems = (series?.indicators || []).filter((item) => !indicatorIsStale(item, payload?.asOf || series?.asOf));
   const selectedSeries = seriesItems.find((item) => item.key === selectedKey) || seriesItems[0];
   useEffect(() => {
     if (!seriesItems.length || seriesItems.some((item) => item.key === selectedKey)) return;
@@ -2608,10 +2608,9 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
   const temperatureAdvice = marketTemperatureAdvice[payload?.overall?.label || ""] || (hasScore ? "" : marketTemperatureAdvice.待更新);
   const freshness = indicators.reduce((result, item) => {
     if (indicatorFrequency(item) === "monthly") result.monthly += 1;
-    else if (indicatorIsStale(item, payload?.asOf)) result.delayed += 1;
     else result.current += 1;
     return result;
-  }, { current: 0, monthly: 0, delayed: 0 });
+  }, { current: 0, monthly: 0 });
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
@@ -2626,19 +2625,19 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
               {temperatureAdvice ? <small className="temperatureAdvice">{temperatureAdvice}</small> : null}
             </article>
             <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{indicatorPeriodLabel(item)}</small></button>)}</div>
-            <article className="temperatureFreshness"><span>数据状态</span><strong>{freshness.current} 项正常</strong><small>{freshness.monthly} 项月度 · {freshness.delayed} 项更新延迟</small></article>
+            <article className="temperatureFreshness"><span>数据状态</span><strong>{freshness.current} 项正常</strong><small>{freshness.monthly} 项月度</small></article>
           </section>
           <section className="marketToolPanel temperatureChartPanel">
             <div className="marketToolPanelHead"><div><h2>指标走势</h2><span>{selectedSeries?.name || "--"}</span></div><div className="marketToolRange">{([1, 3, 5] as const).map((range) => <button key={range} className={years === range ? "active" : ""} onClick={() => setYears(range)}>{range}年</button>)}</div></div>
             <div className="temperatureChartLayout">
-              <nav className="temperatureIndicatorNav" aria-label="市场指标">{seriesItems.map((item) => <button type="button" key={item.key} className={selectedSeries?.key === item.key ? "active" : ""} onClick={() => setSelectedKey(item.key)}><span>{item.name}</span><strong>{item.value || item.current || "--"}</strong><small>{indicatorPeriodLabel(item)}{indicatorIsStale(item, series?.asOf) ? " · 更新延迟" : ""}</small></button>)}</nav>
+              <nav className="temperatureIndicatorNav" aria-label="市场指标">{seriesItems.map((item) => <button type="button" key={item.key} className={selectedSeries?.key === item.key ? "active" : ""} onClick={() => setSelectedKey(item.key)}><span>{item.name}</span><strong>{item.value || item.current || "--"}</strong><small>{indicatorPeriodLabel(item)}</small></button>)}</nav>
               <div className="temperatureChartStage">{selectedSeries ? <MarketLineChart item={selectedSeries} years={years} /> : <div className="marketToolEmpty compact">暂无走势数据</div>}</div>
             </div>
           </section>
           <section className="marketToolPanel temperatureTablePanel">
             <div className="marketToolPanelHead"><h2>全部指标</h2><span>{indicators.length} 项</span></div>
             <div className="marketToolTable"><table><thead><tr><th>因子</th><th>数据周期</th><th>当前读数</th><th>变化</th><th>压力</th><th>主要影响</th></tr></thead><tbody>
-              {indicators.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong></td><td>{indicatorPeriodLabel(item)}{indicatorIsStale(item, payload.asOf) ? <small className="freshnessBadge">更新延迟</small> : null}</td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
+              {indicators.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong></td><td>{indicatorPeriodLabel(item)}</td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
             </tbody></table></div>
           </section>
         </>
