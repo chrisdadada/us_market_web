@@ -12,6 +12,7 @@ assert.match(app, /"全部历史"/);
 assert.match(app, /valuationReferenceCards/);
 assert.match(app, /fillArea/);
 assert.doesNotMatch(app, /PE 百分位<\/span><b>\{summary\?\.pePercentile/);
+assert.doesNotMatch(app, /selected\.index\?\./);
 assert.match(css, /\.valuationChartLayout\s*\{[^}]*grid-template-columns:/s);
 assert.match(css, /\.valuationChartStage \.marketChartArea\s*\{[^}]*fill:/s);
 

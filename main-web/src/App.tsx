@@ -2739,7 +2739,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
   const pbPercentile = valuationRangePercentile(pbMetric, years);
   const valuationLevel = valuationRangeLevel(pePercentile, pbPercentile, summary?.level);
   const rangeLabel = years === "all" ? "全部历史" : `近${years}年`;
-  const indexLabel = selected.index?.symbol === "QQQ" ? "纳指100" : selected.index?.symbol === "SPY" ? "标普500" : selected.index?.name || "指数";
+  const indexLabel = selected?.index?.symbol === "QQQ" ? "纳指100" : selected?.index?.symbol === "SPY" ? "标普500" : selected?.index?.name || "指数";
   const peRangePoints = valuationRangePoints(peMetric, years);
   const sampleStart = peRangePoints[0]?.date.slice(0, 7);
   const sampleEnd = peRangePoints.at(-1)?.date.slice(0, 7);
@@ -2781,7 +2781,7 @@ function IndexValuationPage({ enabled }: { enabled: boolean }) {
           </div>
           <div className="valuationIndexBar">
             <div className="valuationIndexTabs" role="tablist" aria-label="选择指数">
-              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey("pe"); setYears(5); }}>{item.index?.symbol === "QQQ" ? "纳指100" : item.index?.symbol === "SPY" ? "标普500" : item.index?.name}</button>)}
+              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected?.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey("pe"); setYears(5); }}>{item.index?.symbol === "QQQ" ? "纳指100" : item.index?.symbol === "SPY" ? "标普500" : item.index?.name}</button>)}
             </div>
           </div>
           <div className="valuationOverview">
