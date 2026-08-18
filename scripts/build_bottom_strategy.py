@@ -483,7 +483,7 @@ def build_market_data_payload(data_root: Path, baseline: dict[str, Any]) -> dict
     holdings = official_holdings()
     all_symbols = set().union(*holdings.values(), {"QQQ", "SPY"})
     history = adjusted_history(data_root, all_symbols, max(2020, baseline_year - 1))
-    price_history = adjusted_history(data_root, {"QQQ", "SPY"}, 2021)
+    price_history = adjusted_history(data_root, {"QQQ", "SPY"}, 2020)
 
     expected_dates: list[str] = []
     for symbol, market in payload["markets"].items():
