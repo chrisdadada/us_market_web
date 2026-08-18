@@ -4012,7 +4012,7 @@ function CoreMacroTracker({
   const latestConclusion = latestResult?.resultHeadline && latestResult?.resultMeaning ? latestResult : null;
   const timeline = [...selectedUpcoming, ...selectedResults]
     .filter((event, index, rows) => rows.findIndex((candidate) => candidate.id === event.id) === index)
-    .slice(0, 6);
+    .slice(0, 8);
 
   return (
     <section className="calendarCoreMacro">

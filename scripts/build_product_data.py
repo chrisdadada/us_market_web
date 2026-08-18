@@ -6,6 +6,7 @@ import os
 import re
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -240,11 +241,87 @@ def china_event_time(et_value: str) -> tuple[str, str] | None:
     return cn.date().isoformat(), cn.strftime("%H:%M")
 
 
+class BlsScheduleParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.in_row = False
+        self.cell_class = ""
+        self.cell_text: list[str] = []
+        self.cells: dict[str, str] = {}
+        self.rows: list[tuple[str, str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "tr":
+            self.in_row = True
+            self.cells = {}
+        elif self.in_row and tag == "td":
+            self.cell_class = str(dict(attrs).get("class") or "")
+            self.cell_text = []
+
+    def handle_data(self, data: str) -> None:
+        if self.cell_class:
+            self.cell_text.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "td" and self.cell_class:
+            self.cells[self.cell_class] = " ".join("".join(self.cell_text).split())
+            self.cell_class = ""
+            self.cell_text = []
+        elif tag == "tr" and self.in_row:
+            self.in_row = False
+            day = self.cells.get("date-cell", "")
+            event_time = self.cells.get("time-cell", "")
+            release = self.cells.get("desc-cell", "")
+            if day and event_time and release:
+                self.rows.append((day, event_time, release))
+
+
+def build_bls_schedule_events(start: date, end: date) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for year in range(start.year, end.year + 1):
+        try:
+            parser = BlsScheduleParser()
+            parser.feed(fetch_text(f"https://www.bls.gov/schedule/{year}/home.htm"))
+        except Exception:
+            continue
+        for raw_day, raw_time, release in parser.rows:
+            if release.startswith("Employment Situation for"):
+                title = "美国非农就业"
+                summary_text = "就业数据会影响降息预期、小盘风险偏好和美元利率交易。"
+            elif release.startswith("Consumer Price Index for"):
+                title = "美国 CPI"
+                summary_text = "通胀数据会影响降息预期、成长股估值和美债利率。"
+            else:
+                continue
+            try:
+                released = datetime.strptime(f"{raw_day} {raw_time}", "%A, %B %d, %Y %I:%M %p").replace(
+                    tzinfo=ZoneInfo("America/New_York")
+                ).astimezone(ZoneInfo("Asia/Shanghai"))
+            except ValueError:
+                continue
+            if not (start <= released.date() <= end):
+                continue
+            events.append(
+                {
+                    "date": released.date().isoformat(),
+                    "time": released.strftime("%H:%M"),
+                    "title": title,
+                    "type": "macro",
+                    "impact": "high",
+                    "sourceName": "BLS",
+                    "relatedModules": ["美股重点财经前瞻"],
+                    "relatedAssets": [],
+                    "summary": summary_text,
+                }
+            )
+    return events
+
+
 def build_bls_macro_events(start: date, end: date) -> list[dict[str, Any]]:
     try:
         text = fetch_text("https://www.bls.gov/schedule/news_release/bls.ics")
     except Exception:
-        return []
+        text = ""
     events: list[dict[str, Any]] = []
     for block in text.split("BEGIN:VEVENT"):
         summary = re.search(r"^SUMMARY:(.+)$", block, re.M)
@@ -276,7 +353,7 @@ def build_bls_macro_events(start: date, end: date) -> list[dict[str, Any]]:
                 "summary": summary_text,
             }
         )
-    return events
+    return [*events, *build_bls_schedule_events(start, end)]
 
 
 def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
@@ -351,7 +428,7 @@ def build_events_calendar() -> dict[str, Any]:
     existing: dict[str, Any] = {}
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     horizon_end = today + timedelta(days=90)
-    macro_start = date(today.year, 1, 1)
+    macro_start = today - timedelta(days=365)
     base_events = [
         event
         for event in existing.get("events", [])
