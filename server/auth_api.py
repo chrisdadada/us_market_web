@@ -1753,19 +1753,29 @@ def _index_valuation_qqq(payload: dict[str, Any]) -> dict[str, Any]:
 def _low_window_dates(history: list[dict[str, Any]], threshold: float | None) -> list[str]:
     if threshold is None:
         return []
-    windows: list[str] = []
+    windows: list[tuple[str, float]] = []
     current: list[tuple[str, float]] = []
     for item in history:
         value = item.get("value")
         item_date = str(item.get("date") or "")[:10]
+        if item_date and item_date < "2020-01-01":
+            continue
         if item_date and isinstance(value, (int, float)) and value <= threshold:
             current.append((item_date, float(value)))
         elif current:
-            windows.append(min(current, key=lambda point: point[1])[0])
+            windows.append(min(current, key=lambda point: point[1]))
             current = []
     if current:
-        windows.append(min(current, key=lambda point: point[1])[0])
-    return windows
+        windows.append(min(current, key=lambda point: point[1]))
+
+    cycles: list[list[tuple[str, float]]] = []
+    for point in windows:
+        previous_date = datetime.fromisoformat(cycles[-1][-1][0]) if cycles else None
+        if previous_date is None or datetime.fromisoformat(point[0]) - previous_date > timedelta(days=180):
+            cycles.append([point])
+        else:
+            cycles[-1].append(point)
+    return [min(cycle, key=lambda point: point[1])[0] for cycle in cycles]
 
 
 def _normalized_location_series(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1794,7 +1804,11 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
 
     qqq_index = _index_valuation_qqq(index_payload)
     forward = qqq_index.get("forwardValuation") or {}
-    history = forward.get("history") or []
+    history = [
+        item
+        for item in forward.get("history") or []
+        if str(item.get("date") or "")[:10] >= "2020-01-01"
+    ]
     ranges = forward.get("ranges") or {}
     five_year = ranges.get("5y") or {}
     threshold = five_year.get("p30")
@@ -1808,7 +1822,11 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
         boundary_position = None
 
     qqq_market = (bottom_payload.get("markets") or {}).get("QQQ") or {}
-    price_series = qqq_market.get("priceSeries") or []
+    price_series = [
+        item
+        for item in qqq_market.get("priceSeries") or []
+        if str(item.get("date") or "")[:10] >= "2020-01-01"
+    ]
     opportunity_dates_2 = [
         str(record.get("signalDate"))[:10]
         for record in qqq_market.get("records") or []

@@ -51,15 +51,18 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         self.assertEqual(preview["markets"]["QQQ"]["opportunityDates"], [record["signalDate"] for record in full["markets"]["QQQ"]["records"]])
         self.assertEqual(preview["markets"]["QQQ"]["summary"], {"totalSignals": 8})
 
-    def test_low_windows_use_each_contiguous_zone_minimum(self) -> None:
+    def test_low_windows_merge_repeated_entries_in_the_same_cycle(self) -> None:
         history = [
-            {"date": "2026-01-01", "value": 30},
-            {"date": "2026-01-02", "value": 19},
-            {"date": "2026-01-03", "value": 18},
-            {"date": "2026-01-04", "value": 24},
-            {"date": "2026-01-05", "value": 20},
+            {"date": "2018-12-21", "value": 16},
+            {"date": "2022-03-11", "value": 19},
+            {"date": "2022-03-18", "value": 24},
+            {"date": "2022-06-17", "value": 18},
+            {"date": "2022-06-24", "value": 24},
+            {"date": "2022-10-14", "value": 17},
+            {"date": "2022-10-21", "value": 24},
+            {"date": "2023-10-27", "value": 20},
         ]
-        self.assertEqual(auth_api._low_window_dates(history, 20), ["2026-01-03", "2026-01-05"])
+        self.assertEqual(auth_api._low_window_dates(history, 20), ["2022-10-14", "2023-10-27"])
 
 
 if __name__ == "__main__":

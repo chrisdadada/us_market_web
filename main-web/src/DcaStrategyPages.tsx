@@ -33,7 +33,8 @@ function sample<T>(points: T[], maximum = 520) {
 function nearest(points: Point[], date: string) {
   const target = Date.parse(date);
   if (!Number.isFinite(target) || !points.length) return null;
-  return points.reduce((best, point) => Math.abs(Date.parse(point.date) - target) < Math.abs(Date.parse(best.date) - target) ? point : best);
+  const match = points.reduce((best, point) => Math.abs(Date.parse(point.date) - target) < Math.abs(Date.parse(best.date) - target) ? point : best);
+  return Math.abs(Date.parse(match.date) - target) <= 7 * 24 * 60 * 60 * 1000 ? match : null;
 }
 
 function year(value?: string | null) {
