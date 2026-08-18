@@ -18,6 +18,7 @@ from macro_freshness import MONTHLY_KEYS, partition_fresh_indicators
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
+BLS_SCHEDULE_CACHE = ROOT / "scripts" / "data" / "bls_release_schedule.json"
 EXTERNAL = Path("/Volumes/Extreme SSD/market-data-lab/data")
 FRED_DIR = EXTERNAL / "raw" / "fred"
 DXY_PARQUET = Path(os.environ.get("DXY_PARQUET", EXTERNAL / "raw" / "dxy" / "DXY.parquet"))
@@ -278,13 +279,21 @@ class BlsScheduleParser(HTMLParser):
 
 def build_bls_schedule_events(start: date, end: date) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
+    try:
+        cached_rows = json.loads(BLS_SCHEDULE_CACHE.read_text())["rows"]
+    except (OSError, KeyError, TypeError, json.JSONDecodeError):
+        cached_rows = []
     for year in range(start.year, end.year + 1):
+        rows: list[tuple[str, str, str]] = []
         try:
             parser = BlsScheduleParser()
             parser.feed(fetch_text(f"https://www.bls.gov/schedule/{year}/home.htm"))
+            rows = parser.rows
         except Exception:
-            continue
-        for raw_day, raw_time, release in parser.rows:
+            pass
+        if not rows:
+            rows = [tuple(row) for row in cached_rows if str(year) in str(row[0])]
+        for raw_day, raw_time, release in rows:
             if release.startswith("Employment Situation for"):
                 title = "美国非农就业"
                 summary_text = "就业数据会影响降息预期、小盘风险偏好和美元利率交易。"
