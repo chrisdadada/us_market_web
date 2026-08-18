@@ -69,6 +69,18 @@ async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/auth/status") return authProfile;
   if (url.pathname === "/api/auth/logout") return { ok: true };
   if (url.pathname === "/api/open-portfolio") return { curve: [], holdings: [], trades: [] };
+  if (url.pathname === "/api/tools/dca-strategies") {
+    const bottom = JSON.parse(await readFile(join(root, "server", "bottom_strategy.json"), "utf8"));
+    const qqq = bottom.markets.QQQ;
+    const unlocked = Boolean(authProfile.entitlements.paid || authProfile.entitlements.admin);
+    return {
+      preview: !unlocked,
+      products: {
+        dca1: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "继续等待，不加快投入", action: "保持原有节奏，等待低位窗口" } : null, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), locationSeries: qqq.priceSeries.map((point, index, rows) => ({ date: point.date, position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15) })), lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
+        dca2: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "继续等待，不提前投入", action: "保持观察，等待市场确认" } : null, opportunityDates: qqq.records.map((item) => item.signalDate), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+      },
+    };
+  }
 
   const ytd = await readDataset("ytd-gainers");
   const movers = await readDataset("market-movers");
@@ -219,6 +231,7 @@ const scenarios = [
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
   { profile: "anonymous", page: "risk", present: ["注册后查看"] },
   { profile: "anonymous", page: "position", present: [gates.open] },
+  { profile: "anonymous", page: "dca1", present: ["登录后查看定投产品"] },
   { profile: "anonymous", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
   { profile: "free", page: "tracking", presentSelector: ".lockedStockName" },
@@ -227,6 +240,8 @@ const scenarios = [
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "free", page: "position", present: [gates.open] },
+  { profile: "free", page: "dca1", presentSelector: ".dcaGate", present: ["今日状态已更新"] },
+  { profile: "free", page: "dca2", presentSelector: ".dcaGate", present: ["今日状态已更新"] },
   { profile: "free", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },
@@ -236,6 +251,8 @@ const scenarios = [
   { profile: "monthly", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "monthly", page: "strength", presentSelector: "[data-testid='market-strength-page']", absent: Object.values(gates) },
   { profile: "monthly", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
+  { profile: "monthly", page: "dca1", presentSelector: "[data-testid='dca1-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
+  { profile: "monthly", page: "dca2", presentSelector: "[data-testid='dca2-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
   { profile: "yearly", page: "opinions", absent: Object.values(gates) },
   { profile: "yearly", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "yearly", page: "open", absent: [gates.open] },

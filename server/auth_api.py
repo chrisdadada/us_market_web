@@ -1716,10 +1716,19 @@ def bottom_strategy_payload(include_details: bool) -> dict[str, Any]:
     markets: dict[str, Any] = {}
     for key, source in payload.get("markets", {}).items():
         item = {field: value for field, value in source.items() if field not in {"machineState", "dailyStates"}}
+        records = source.get("records") or []
+        item["opportunityDates"] = [
+            str(record.get("signalDate"))[:10]
+            for record in records
+            if record.get("signalDate")
+        ]
         if not include_details:
+            item["status"] = None
+            item["summary"] = {"totalSignals": len(item["opportunityDates"])}
+            item["lastSignal"] = None
+            item["medianPath"] = []
             item["recentRecords"] = []
             item["records"] = []
-            item["priceSeries"] = []
         markets[key] = item
     freshness = {
         field: value
@@ -1731,6 +1740,116 @@ def bottom_strategy_payload(include_details: bool) -> dict[str, Any]:
         "freshness": freshness,
         "markets": markets,
         "preview": not include_details,
+    }
+
+
+def _index_valuation_qqq(payload: dict[str, Any]) -> dict[str, Any]:
+    for item in payload.get("indices") or []:
+        if (item.get("index") or {}).get("symbol") == "QQQ":
+            return item
+    return payload
+
+
+def _low_window_dates(history: list[dict[str, Any]], threshold: float | None) -> list[str]:
+    if threshold is None:
+        return []
+    windows: list[str] = []
+    current: list[tuple[str, float]] = []
+    for item in history:
+        value = item.get("value")
+        item_date = str(item.get("date") or "")[:10]
+        if item_date and isinstance(value, (int, float)) and value <= threshold:
+            current.append((item_date, float(value)))
+        elif current:
+            windows.append(min(current, key=lambda point: point[1])[0])
+            current = []
+    if current:
+        windows.append(min(current, key=lambda point: point[1])[0])
+    return windows
+
+
+def _normalized_location_series(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    points = [
+        (str(item.get("date"))[:10], float(item["value"]))
+        for item in history
+        if item.get("date") and isinstance(item.get("value"), (int, float))
+    ]
+    if len(points) < 2:
+        return []
+    values = [value for _, value in points]
+    low, high = min(values), max(values)
+    span = high - low or 1.0
+    return [
+        {"date": item_date, "position": round((value - low) / span * 100, 2)}
+        for item_date, value in points
+    ]
+
+
+def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
+    with product_db() as conn:
+        index_payload = product_raw_payload(conn, "index-valuation") or {}
+        bottom_payload = product_raw_payload(conn, "bottom-strategy") or {}
+    if not bottom_payload:
+        bottom_payload = json.loads(BOTTOM_STRATEGY_PATH.read_text(encoding="utf-8"))
+
+    qqq_index = _index_valuation_qqq(index_payload)
+    forward = qqq_index.get("forwardValuation") or {}
+    history = forward.get("history") or []
+    ranges = forward.get("ranges") or {}
+    five_year = ranges.get("5y") or {}
+    threshold = five_year.get("p30")
+    opportunity_dates_1 = _low_window_dates(history, float(threshold) if isinstance(threshold, (int, float)) else None)
+    location_series = _normalized_location_series(history)
+    if location_series and isinstance(threshold, (int, float)):
+        raw_values = [float(item["value"]) for item in history if isinstance(item.get("value"), (int, float))]
+        low, high = min(raw_values), max(raw_values)
+        boundary_position = round((float(threshold) - low) / (high - low or 1.0) * 100, 2)
+    else:
+        boundary_position = None
+
+    qqq_market = (bottom_payload.get("markets") or {}).get("QQQ") or {}
+    price_series = qqq_market.get("priceSeries") or []
+    opportunity_dates_2 = [
+        str(record.get("signalDate"))[:10]
+        for record in qqq_market.get("records") or []
+        if record.get("signalDate")
+    ]
+    opportunity_dates_2.sort()
+    value_status = forward.get("status")
+    value_status_map = {
+        "high": {"key": "waiting", "position": 0, "headline": "继续等待，不加快投入", "action": "保持原有节奏，等待低位窗口"},
+        "above_ten_year_average": {"key": "waiting", "position": 0, "headline": "继续等待，不加快投入", "action": "保持原有节奏，等待低位窗口"},
+        "middle": {"key": "near", "position": 1, "headline": "接近低位，继续观察", "action": "保持关注，暂不加快投入"},
+        "below_ten_year_average": {"key": "near", "position": 1, "headline": "接近低位，继续观察", "action": "保持关注，暂不加快投入"},
+        "low": {"key": "action", "position": 2, "headline": "可以开始分批投入", "action": "按计划分批投入，不必一次买完"},
+    }
+    reversal_status = (qqq_market.get("status") or {}).get("key")
+    reversal_status_map = {
+        "normal": {"key": "waiting", "position": 0, "headline": "继续等待，不提前投入", "action": "保持观察，等待市场确认"},
+        "near": {"key": "near", "position": 1, "headline": "接近机会，继续观察", "action": "保持关注，等待确认后再分批"},
+        "action": {"key": "action", "position": 2, "headline": "可以开始分批投入", "action": "确认后分批投入，不必一次买完"},
+    }
+    return {
+        "generatedAt": bottom_payload.get("generatedAt") or index_payload.get("generatedAt"),
+        "preview": not include_details,
+        "products": {
+            "dca1": {
+                "asOf": forward.get("asOf") or qqq_index.get("asOf"),
+                "status": value_status_map.get(value_status) if include_details else None,
+                "opportunityDates": opportunity_dates_1,
+                "locationSeries": location_series,
+                "lowBoundaryPosition": boundary_position,
+                "priceSeries": price_series,
+            },
+            "dca2": {
+                "asOf": qqq_market.get("asOf"),
+                "status": reversal_status_map.get(reversal_status) if include_details else None,
+                "opportunityDates": opportunity_dates_2,
+                "locationSeries": [],
+                "lowBoundaryPosition": None,
+                "priceSeries": price_series,
+            },
+        },
     }
 
 
@@ -4477,6 +4596,16 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "策略数据暂不可用", "code": "bottom_strategy_missing"}, HTTPStatus.SERVICE_UNAVAILABLE)
             except (OSError, ValueError, json.JSONDecodeError):
                 self.send_json({"error": "策略数据读取失败", "code": "bottom_strategy_invalid"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        if parsed.path == "/api/tools/dca-strategies":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                self.send_json(dca_strategies_payload(entitlements(user)["paid"]))
+            except (FileNotFoundError, sqlite3.Error):
+                self.send_json({"error": "定投产品数据暂不可用", "code": "dca_strategy_missing"}, HTTPStatus.SERVICE_UNAVAILABLE)
             return
 
         if parsed.path == "/api/admin/open-portfolio":

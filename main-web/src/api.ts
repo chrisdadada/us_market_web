@@ -523,6 +523,7 @@ export type BottomStrategyMarket = {
   recentRecords: BottomStrategyRecord[];
   records: BottomStrategyRecord[];
   priceSeries: Array<{ date: string; value: number }>;
+  opportunityDates?: string[];
 };
 
 export type BottomStrategyPayload = {
@@ -541,6 +542,29 @@ export type BottomStrategyPayload = {
     costsIncluded: boolean;
   };
   markets: Record<string, BottomStrategyMarket>;
+};
+
+export type DcaStrategyProduct = {
+  asOf?: string | null;
+  status?: {
+    key: "waiting" | "near" | "action";
+    position: number;
+    headline: string;
+    action: string;
+  } | null;
+  opportunityDates: string[];
+  locationSeries: Array<{ date: string; position: number }>;
+  lowBoundaryPosition?: number | null;
+  priceSeries: Array<{ date: string; value: number }>;
+};
+
+export type DcaStrategiesPayload = {
+  generatedAt?: string | null;
+  preview: boolean;
+  products: {
+    dca1: DcaStrategyProduct;
+    dca2: DcaStrategyProduct;
+  };
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -634,6 +658,7 @@ export const api = {
   signals: () => request<SignalPayload>("/api/signals"),
   openPortfolio: () => request<OpenPortfolioPayload>("/api/open-portfolio"),
   bottomStrategy: () => request<BottomStrategyPayload>("/api/tools/bottom-strategy"),
+  dcaStrategies: () => request<DcaStrategiesPayload>("/api/tools/dca-strategies"),
   fundingScanner: (options: FundingScannerQuery) => {
     const params = new URLSearchParams();
     Object.entries(options).forEach(([key, value]) => params.set(key, String(value)));

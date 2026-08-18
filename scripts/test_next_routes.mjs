@@ -45,6 +45,21 @@ async function apiPayload(url) {
   if (url.pathname === "/api/tools/bottom-strategy") {
     return JSON.parse(await readFile(join(root, "server", "bottom_strategy.json"), "utf8"));
   }
+  if (url.pathname === "/api/tools/dca-strategies") {
+    const bottom = JSON.parse(await readFile(join(root, "server", "bottom_strategy.json"), "utf8"));
+    const qqq = bottom.markets.QQQ;
+    const locations = qqq.priceSeries.map((point, index, rows) => ({
+      date: point.date,
+      position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15),
+    }));
+    return {
+      preview: false,
+      products: {
+        dca1: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "继续等待，不加快投入", action: "保持原有节奏，等待低位窗口" }, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), locationSeries: locations, lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
+        dca2: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "继续等待，不提前投入", action: "保持观察，等待市场确认" }, opportunityDates: qqq.records.map((item) => item.signalDate), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+      },
+    };
+  }
 
   const ytd = await readDataset("ytd-gainers");
   const movers = await readDataset("market-movers");
@@ -185,7 +200,9 @@ const routeCases = [
   { query: "?page=stocks&symbol=MU", text: "股票库" },
   { query: "?page=calendar", text: "美股重点财经前瞻" },
   { query: "?page=open", text: "Open 持仓参考" },
-  { query: "?page=bottom", text: "开通查看完整内容" },
+  { query: "?page=dca1", text: "登录后查看定投产品" },
+  { query: "?page=dca2", text: "登录后查看定投产品" },
+  { query: "?page=bottom", text: "登录后查看定投产品" },
   { query: "?page=forum", text: "论坛讨论区" },
 ];
 
@@ -219,6 +236,7 @@ try {
   page.on("pageerror", (error) => console.error(error.stack));
   for (const baseUrl of [server.rootUrl, server.nextUrl]) {
     for (const item of routeCases) {
+      if (process.env.ROUTE_TRACE) console.log("route", baseUrl, item.query || "/");
       await page.goto(`${baseUrl}${item.query}`, { waitUntil: "networkidle" });
       const text = await page.locator("body").innerText();
       const height = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -236,24 +254,23 @@ try {
       entitlements: { paid: true, pro: true, proPlus: false, admin: false, yearly: false },
     }),
   }));
+  await page.goto(`${server.rootUrl}?page=dca1`, { waitUntil: "networkidle" });
+  assert(await page.locator("[data-testid='dca1-strategy-page']").isVisible(), "Paid DCA 1 page should be visible");
+  assert((await page.locator(".dcaCurrent strong").innerText()).includes("继续等待"), "DCA 1 should show the current action");
+  assert(await page.locator(".dcaChart").isVisible(), "DCA 1 history chart should be visible");
+  assert((await page.locator("body").innerText()).includes("收益") === false, "DCA pages should not market historical returns");
+  if (process.env.DCA_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.DCA_STRATEGY_SCREENSHOT_PREFIX}-dca1-desktop.png`, fullPage: true });
   await page.goto(`${server.rootUrl}?page=bottom`, { waitUntil: "networkidle" });
-  assert(await page.locator("[data-testid='bottom-strategy-page']").isVisible(), "Paid bottom strategy page should be visible");
-  assert((await page.locator(".bottomStrategyDecision h1").innerText()).includes("继续等待"), "Bottom strategy should lead with the current action");
-  assert((await page.locator(".bottomStrategySummaryRow h2").innerText()).includes("均走出上涨行情"), "Bottom strategy summary should show verified recent results");
-  assert(await page.locator(".bottomStrategyRecent p").count() === 5, "Bottom strategy should show five recent completed signals");
-  await page.getByRole("button", { name: "完整记录" }).click();
-  assert(await page.locator(".bottomStrategyRecords tbody tr").count() === 8, "Bottom strategy should preserve all eight QQQ signals");
-  assert(await page.locator(".bottomStrategyRecords .negative").count() === 2, "Bottom strategy should preserve the two early negative QQQ outcomes");
-  await page.getByRole("button", { name: "信号位置" }).click();
-  assert(await page.locator(".bottomStrategyChart svg").isVisible(), "Bottom strategy signal position chart should be visible");
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Desktop bottom strategy should not overflow horizontally");
-  if (process.env.BOTTOM_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.BOTTOM_STRATEGY_SCREENSHOT_PREFIX}-desktop.png`, fullPage: true });
+  assert(await page.locator("[data-testid='dca2-strategy-page']").isVisible(), "Legacy bottom route should open DCA 2");
+  assert(await page.locator(".dcaChart").isVisible(), "DCA 2 history chart should be visible");
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Desktop DCA page should not overflow horizontally");
+  if (process.env.DCA_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.DCA_STRATEGY_SCREENSHOT_PREFIX}-dca2-desktop.png`, fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${server.rootUrl}?page=bottom`, { waitUntil: "networkidle" });
-  assert(await page.locator("[data-testid='bottom-strategy-page']").isVisible(), "Mobile bottom strategy page should be visible");
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Mobile bottom strategy should not overflow horizontally");
-  if (process.env.BOTTOM_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.BOTTOM_STRATEGY_SCREENSHOT_PREFIX}-mobile.png`, fullPage: true });
+  await page.goto(`${server.rootUrl}?page=dca2`, { waitUntil: "networkidle" });
+  assert(await page.locator("[data-testid='dca2-strategy-page']").isVisible(), "Mobile DCA page should be visible");
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Mobile DCA page should not overflow horizontally");
+  if (process.env.DCA_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.DCA_STRATEGY_SCREENSHOT_PREFIX}-dca2-mobile.png`, fullPage: true });
 } finally {
   await browser.close();
   await server.close();

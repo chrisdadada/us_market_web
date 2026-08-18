@@ -46,8 +46,20 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         full = auth_api.bottom_strategy_payload(True)
         self.assertTrue(preview["preview"])
         self.assertEqual(preview["markets"]["QQQ"]["records"], [])
-        self.assertEqual(preview["markets"]["QQQ"]["priceSeries"], [])
-        self.assertEqual(preview["markets"]["QQQ"]["summary"], full["markets"]["QQQ"]["summary"])
+        self.assertEqual(preview["markets"]["QQQ"]["status"], None)
+        self.assertEqual(preview["markets"]["QQQ"]["priceSeries"], full["markets"]["QQQ"]["priceSeries"])
+        self.assertEqual(preview["markets"]["QQQ"]["opportunityDates"], [record["signalDate"] for record in full["markets"]["QQQ"]["records"]])
+        self.assertEqual(preview["markets"]["QQQ"]["summary"], {"totalSignals": 8})
+
+    def test_low_windows_use_each_contiguous_zone_minimum(self) -> None:
+        history = [
+            {"date": "2026-01-01", "value": 30},
+            {"date": "2026-01-02", "value": 19},
+            {"date": "2026-01-03", "value": 18},
+            {"date": "2026-01-04", "value": 24},
+            {"date": "2026-01-05", "value": 20},
+        ]
+        self.assertEqual(auth_api._low_window_dates(history, 20), ["2026-01-03", "2026-01-05"])
 
 
 if __name__ == "__main__":
