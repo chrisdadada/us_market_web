@@ -1402,7 +1402,6 @@
 .marketToolTable td small { display: block; }
 .marketToolTable td strong { font-size: var(--front-table-body-size); font-weight: var(--front-table-body-weight); }
 .marketToolTable td small { max-width: 240px; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: var(--front-table-sub-size); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
-.marketToolTable td .freshnessBadge { width: max-content; margin-top: 4px; color: #ad6800; }
 .marketToolTable tbody tr:last-child td { border-bottom: 0; }
 .strengthTable tbody tr { cursor: pointer; }
 .strengthTable tbody tr:hover { background: #f6f9fd; }
