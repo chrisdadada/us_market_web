@@ -30,7 +30,7 @@ import {
 } from "./api";
 import { calculatePositionSizing, type PositionDirection, type PositionSizingResult } from "./positionSizing";
 import type { CryptoEtfAssetKey, CryptoEtfInterval } from "./CryptoEtfChart";
-import { BottomStrategyPage } from "./BottomStrategyPage";
+import { ReversalDcaPage, ValueDcaPage } from "./DcaStrategyPages";
 import {
   LockedStockName,
   SignalDirectionBadge,
@@ -54,7 +54,7 @@ import {
   trackingDirectionClass
 } from "./shared";
 
-type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "valuation" | "stocks" | "calendar" | "open" | "position" | "watchlist" | "bottom" | "funding" | "forum" | "courses";
+type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "valuation" | "stocks" | "calendar" | "open" | "position" | "watchlist" | "dca1" | "dca2" | "funding" | "forum" | "courses";
 type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
 
@@ -77,7 +77,8 @@ const pageLabels: Record<PageKey, string> = {
   forum: "论坛讨论区",
   position: "以损定仓",
   watchlist: "自选",
-  bottom: "抄底策略",
+  dca1: "纳指定投 1 号",
+  dca2: "纳指定投 2 号",
   funding: "资金费套利扫描"
 };
 
@@ -109,7 +110,8 @@ const legacyMigrationNavItems: Array<{ href: string; label: string }> = [
 
 const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
   { key: "watchlist", label: pageLabels.watchlist },
-  { key: "bottom", label: pageLabels.bottom },
+  { key: "dca1", label: pageLabels.dca1 },
+  { key: "dca2", label: pageLabels.dca2 },
   { key: "position", label: pageLabels.position }
 ];
 
@@ -156,7 +158,7 @@ function readRouteState(): RouteState {
   const params = new URLSearchParams(window.location.search);
   const pageParam = params.get("page") as PageKey | null;
   return {
-    page: pageParam && validPageKeys.has(pageParam) ? pageParam : "home",
+    page: params.get("page") === "bottom" ? "dca2" : pageParam && validPageKeys.has(pageParam) ? pageParam : "home",
     opinionId: params.get("opinion") || "",
     symbol: (params.get("symbol") || "").trim().toUpperCase(),
     courseId: params.get("course") || "",
@@ -288,11 +290,6 @@ const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: stri
     title: "会员可用以损定仓",
     text: "开通后按买入价、止损价和单笔最大亏损计算建议仓位。"
   },
-  bottom: {
-    level: "monthly",
-    title: "会员可看完整抄底策略",
-    text: "开通后查看当前信号、历史表现和全部信号记录。"
-  },
   risk: {
     level: "registered",
     title: `注册后查看${pageLabels.risk}`,
@@ -307,6 +304,16 @@ const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: stri
     level: "registered",
     title: `注册后查看${pageLabels.valuation}`,
     text: "登录后查看指数估值和走势。"
+  },
+  dca1: {
+    level: "monthly",
+    title: "会员可看纳指定投 1 号",
+    text: "开通后查看今日阶段和行动建议。"
+  },
+  dca2: {
+    level: "monthly",
+    title: "会员可看纳指定投 2 号",
+    text: "开通后查看今日阶段和行动建议。"
   }
 };
 
@@ -1103,9 +1110,7 @@ function App() {
   const trackingRows = useMemo(() => mergedTrackingRows(bootstrap, signalStates), [bootstrap, signalStates]);
   const latestOpinion = opinions[0];
   const selected = opinions.find((item) => item.id === selectedOpinion) || latestOpinion;
-  const gatedRule = page === "opinions" || page === "tracking" || (page === "bottom" && auth?.authenticated)
-    ? undefined
-    : pageAccessRules[page];
+  const gatedRule = page === "opinions" || page === "tracking" || page === "dca1" || page === "dca2" ? undefined : pageAccessRules[page];
   const pageUnlocked = hasPageAccess(auth, page);
   const onboardingOpen = Boolean(
     auth?.authenticated &&
@@ -1262,7 +1267,8 @@ function App() {
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
             {page === "open" ? <OpenPortfolioPage /> : null}
             {page === "watchlist" ? <WatchlistPage onOpenStock={selectSymbol} /> : null}
-            {page === "bottom" ? <BottomStrategyPage unlocked={pageUnlocked} onUnlock={requestUnlock} /> : null}
+            {page === "dca1" ? <ValueDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
+            {page === "dca2" ? <ReversalDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
             {page === "position" ? <PositionSizingPage /> : null}
             {page === "funding" ? <FundingArbitragePage isAdmin={Boolean(auth?.entitlements?.admin)} /> : null}
             {page === "forum" ? <ComingSoonPage title="论坛讨论区" /> : null}
