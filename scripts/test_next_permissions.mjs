@@ -634,7 +634,7 @@ try {
         assert(await page.locator(".calendarMacroTabs").count() === 1, "calendar should provide the three core macro tabs");
         assert(await page.locator(".calendarCoreHead").count() === 0, "calendar should not add a redundant core macro heading");
         assert(await page.locator(".calendarNextEvent > div").count() === 4, "calendar next event should keep date, event, forecast and previous value");
-        assert(await page.locator(".calendarMacroTimeline article").count() <= 6, "calendar should keep the core timeline concise");
+        assert(await page.locator(".calendarMacroTimeline article").count() <= 8, "calendar should keep the expanded core timeline concise");
         const conclusion = page.locator(".calendarMacroConclusion");
         for (const [tab, headline, meaning] of [
           ["CPI", "低于预期", "通胀更低"],
