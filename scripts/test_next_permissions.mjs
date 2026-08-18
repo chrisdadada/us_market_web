@@ -633,6 +633,16 @@ try {
         assert(await page.locator(".calendarCoreMacro").count() === 1, "calendar should keep CPI, payrolls and FOMC in the core macro tracker");
         assert(await page.locator(".calendarMacroTabs").count() === 1, "calendar should provide the three core macro tabs");
         assert(await page.locator(".calendarCoreHead").count() === 0, "calendar should not add a redundant core macro heading");
+        const calendarAccountOverlapsFilters = await page.evaluate(() => {
+          const account = document.querySelector(".calendarTopbar .accountButton");
+          const filters = document.querySelector(".calendarFilterControls");
+          if (!account || !filters) return false;
+          const accountRect = account.getBoundingClientRect();
+          const filterRect = filters.getBoundingClientRect();
+          return accountRect.left < filterRect.right && accountRect.right > filterRect.left
+            && accountRect.top < filterRect.bottom && accountRect.bottom > filterRect.top;
+        });
+        assert(!calendarAccountOverlapsFilters, "calendar account control should not overlap the date and impact filters");
         assert(await page.locator(".calendarNextEvent > div").count() === 4, "calendar next event should keep date, event, forecast and previous value");
         assert(await page.locator(".calendarMacroTimeline article").count() <= 8, "calendar should keep the expanded core timeline concise");
         const conclusion = page.locator(".calendarMacroConclusion");

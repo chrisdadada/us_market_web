@@ -11028,19 +11028,18 @@ body,
 /* Calendar V3: macro events stay visible above the paged earnings calendar. */
 .topbar.calendarTopbar {
   grid-template-columns: auto;
-  height: 0 !important;
-  min-height: 0 !important;
-  border: 0 !important;
-  padding: 0 28px !important;
-  background: transparent !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  border-bottom: 1px solid #dfe7f2 !important;
+  padding: 12px 28px !important;
+  background: rgba(246, 249, 253, .94) !important;
 }
 
 .topbar.calendarTopbar .accountMenu,
 .topbar.calendarTopbar > .accountButton {
-  position: fixed;
-  top: 14px;
-  right: 28px;
-  z-index: 30;
+  position: relative;
+  top: auto;
+  right: auto;
 }
 
 .calendarPage.calendarV3 {
