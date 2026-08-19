@@ -9,6 +9,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from build_index_valuation import (  # noqa: E402
     _ssga_section,
     build_qqq_forward_valuation,
+    build_qqq_forward_valuation_history,
+    frontend_index_payload,
     merge_official_metric_history,
     market_valuation_level,
     official_metric_or_waiting,
@@ -75,6 +77,31 @@ class ForwardValuationTest(unittest.TestCase):
         self.assertEqual(result["asOf"], "2026-07-31")
         self.assertEqual(result["premiumToTenYearAveragePct"], 17.1)
         self.assertEqual(result["impliedEarningsGrowthPct"], 12.3)
+
+    def test_builds_and_keeps_forward_history_for_dca_products(self):
+        result = build_qqq_forward_valuation_history({
+            "current": {"forward": 22.4, "trailing": 28.3},
+            "forward": [
+                {"date": "2020-08-18", "value": 30.0},
+                {"date": "2021-08-18", "value": 25.0},
+                {"date": "2022-08-18", "value": 20.0},
+                {"date": "2023-08-18", "value": 23.0},
+                {"date": "2024-08-18", "value": 27.0},
+                {"date": "2025-08-18", "value": 24.0},
+                {"date": "2026-08-05", "value": 22.4},
+            ],
+            "forwardOwn": [{"date": "2026-08-18", "value": 22.0}],
+        })
+        frontend = frontend_index_payload({
+            "index": {"symbol": "QQQ"},
+            "forwardValuation": result,
+        })
+
+        self.assertEqual(result["asOf"], "2026-08-18")
+        self.assertEqual(len(result["history"]), 7)
+        self.assertIn("5y", result["ranges"])
+        self.assertEqual(frontend["forwardValuation"]["history"], result["history"])
+        self.assertEqual(frontend["forwardValuation"]["ranges"], result["ranges"])
 
     def test_rejects_missing_or_non_positive_pe(self):
         with self.assertRaises(ValueError):
