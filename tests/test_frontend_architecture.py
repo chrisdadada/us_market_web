@@ -8,6 +8,7 @@ MAIN_APP = (ROOT / "main-web/src/App.tsx").read_text(encoding="utf-8")
 MAIN_ENTRY = (ROOT / "main-web/src/main.tsx").read_text(encoding="utf-8")
 MAIN_HTML = (ROOT / "main-web/index.html").read_text(encoding="utf-8")
 MAIN_STYLES = (ROOT / "main-web/src/styles.css").read_text(encoding="utf-8")
+PRODUCT_CONFIG = (ROOT / "main-web/src/productConfig.ts").read_text(encoding="utf-8")
 DEPLOY = (ROOT / "scripts/deploy_dev.sh").read_text(encoding="utf-8")
 
 LEGACY_MIGRATION_ROUTES = {
@@ -27,6 +28,17 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertNotIn("app.js", MAIN_HTML)
         self.assertNotIn("styles.css", MAIN_HTML)
 
+    def test_product_navigation_has_one_source_of_truth(self) -> None:
+        self.assertIn('from "./productConfig"', MAIN_APP)
+        self.assertNotIn("const pageLabels", MAIN_APP)
+        block = re.search(r"primaryNavItems: NavItem\[\] = \[(.*?)\];", PRODUCT_CONFIG, re.S)
+        self.assertIsNotNone(block)
+        keys = re.findall(r'key: "([^"]+)"', block.group(1))
+        self.assertEqual(keys, [
+            "home", "opinions", "calendar", "tracking", "stocks", "market", "risk",
+            "strength", "valuation", "courses", "watchlist", "dca1", "dca2",
+        ])
+
     def test_only_the_explicit_migration_list_can_open_legacy(self) -> None:
         references: dict[str, list[str]] = {}
         for path in (ROOT / "main-web/src").rglob("*"):
@@ -35,7 +47,7 @@ class FrontendArchitectureTest(unittest.TestCase):
             matches = re.findall(r'/legacy/[^"\'\s)]+', path.read_text(encoding="utf-8"))
             if matches:
                 references[str(path.relative_to(ROOT))] = sorted(matches)
-        self.assertEqual(references, {"main-web/src/App.tsx": sorted(LEGACY_MIGRATION_ROUTES)})
+        self.assertEqual(references, {"main-web/src/productConfig.ts": sorted(LEGACY_MIGRATION_ROUTES)})
 
     def test_legacy_is_isolated_from_the_default_dev_site(self) -> None:
         self.assertIn("cp -a /opt/dongbimao-dev/main-web/dist/. /var/www/dongbimao-dev/", DEPLOY)
