@@ -6,6 +6,7 @@ import {
   CalendarEvent,
   CryptoEtfFlowPayload,
   CourseSeries,
+  DcaStrategiesPayload,
   FundingScannerRow,
   KeyLevel,
   IndexValuationIndex,
@@ -811,9 +812,14 @@ function App() {
 
   const refreshCalendar = useCallback(() => {
     setCalendarLoading(true);
-    return api.calendar({ limit: 8, windowDays: "45" })
-      .then((payload) => {
-        setCalendar(payload.rows || []);
+    return Promise.allSettled([
+      api.calendar({ limit: 4, windowDays: "45", type: "macro" }),
+      api.calendar({ limit: 4, windowDays: "45", type: "earnings" })
+    ])
+      .then(([macro, earnings]) => {
+        const rows = [macro, earnings].flatMap((result) => result.status === "fulfilled" ? result.value.rows || [] : []);
+        if (!rows.length && macro.status === "rejected" && earnings.status === "rejected") throw macro.reason;
+        setCalendar(rows);
         setCalendarLoaded(true);
       })
       .finally(() => setCalendarLoading(false));
@@ -1439,6 +1445,20 @@ function HomePage({
   onUnlock: () => void;
   onPage: (page: PageKey) => void;
 }) {
+  const [temperature, setTemperature] = useState<MarketTemperaturePayload | null>(null);
+  const [dcaStrategies, setDcaStrategies] = useState<DcaStrategiesPayload | null>(null);
+
+  useEffect(() => {
+    if (!authenticated) return;
+    let active = true;
+    Promise.allSettled([api.marketTemperature(), api.dcaStrategies()]).then(([temperatureResult, dcaResult]) => {
+      if (!active) return;
+      if (temperatureResult.status === "fulfilled") setTemperature(temperatureResult.value);
+      if (dcaResult.status === "fulfilled") setDcaStrategies(dcaResult.value);
+    });
+    return () => { active = false; };
+  }, [authenticated]);
+
   const opinionRows = opinions.filter(isHomepageOpinion);
   const latest = opinionRows.find((item) => item.featured) || opinionRows.find((item) => (item.summary || item.body || "").length > 40) || opinionRows[0];
   const focusRows = trackingRows
@@ -1461,13 +1481,43 @@ function HomePage({
       const bHigh = b.impact === "high" ? 0 : 1;
       const dateCompare = String(a.date || "").localeCompare(String(b.date || ""));
       return dateCompare || aHigh - bHigh || String(a.time || "").localeCompare(String(b.time || ""));
-    })
-    .slice(0, 3);
+    });
+  const macroEvent = eventRows.find((item) => item.type === "macro");
+  const earningsRows = eventRows.filter((item) => item.type === "earnings").slice(0, 2);
+  const pressureIndicator = temperature?.indicators?.find((item) => item.status === "watch") || null;
+  const temperatureScore = temperature?.overall?.score;
+  const temperatureValue = typeof temperatureScore === "number" && Number.isFinite(temperatureScore)
+    ? `${temperatureScore} · ${temperature?.overall?.label || "--"}`
+    : temperature?.overall?.label || "--";
+  const dcaStatus = dcaStrategies?.products?.dca1?.status;
   const trackingUpdatedAt = bootstrap?.strength?.asOf || bootstrap?.meta?.generatedAt;
   const sectorUpdatedAt = bootstrap?.sectorFlow?.asOf;
   const stocksUpdatedAt = bootstrap?.movers?.updatedAt;
   return (
     <div className="frontHomePage">
+      <section className="frontHomeMarketStrip" aria-label="今日市场">
+        <button type="button" onClick={() => onPage("risk")}>
+          <span>市场活跃</span>
+          <strong>{temperatureValue}</strong>
+          <small>{temperature?.overall?.action || "查看市场状态"}</small>
+        </button>
+        <button type="button" onClick={() => onPage("risk")}>
+          <span>主要压力</span>
+          <strong>{pressureIndicator?.value || "--"}</strong>
+          <small>{pressureIndicator?.name || "查看市场指标"}</small>
+        </button>
+        <button type="button" onClick={() => onPage("market")}>
+          <span>资金领先</span>
+          <strong>{sectorRows[0]?.sector || "--"}</strong>
+          <small>{sectorRows[0] ? money(sectorRows[0].netFlowProxy) : "查看资金流向"}</small>
+        </button>
+        <button type="button" onClick={() => onPage("dca1")}>
+          <span>纳指定投 1 号</span>
+          <strong>{dcaStatus?.headline || "--"}</strong>
+          <small>{dcaStatus?.action || "查看本期状态"}</small>
+        </button>
+      </section>
+
       <section className="frontHomeBoard">
         <article className="frontLeadPanel">
           <div className="frontLeadMeta">
@@ -1489,11 +1539,18 @@ function HomePage({
             <strong>{pageLabels.calendar}</strong>
             <button type="button" onClick={() => onPage("calendar")}>查看日历</button>
           </div>
-          {eventRows.map((item) => (
+          {macroEvent ? (
+            <button type="button" className="frontCalendarFeature" onClick={() => onPage("calendar")}>
+              <span>宏观重点</span>
+              <strong>{calendarTitle(macroEvent.title)}</strong>
+              <small>{dayDistanceLabel(macroEvent.date)} {calendarTime24(macroEvent.time)}</small>
+            </button>
+          ) : null}
+          {earningsRows.length ? <div className="frontCalendarSectionLabel">近期财报</div> : null}
+          {earningsRows.map((item) => (
             <button type="button" key={item.id} className={`frontCalendarEvent ${item.impact === "high" ? "highImpact" : ""}`} onClick={() => onPage("calendar")}>
               <span>{dayDistanceLabel(item.date)} {calendarTime24(item.time)}</span>
-              <strong>{calendarTitle(item.title)}</strong>
-              <small>{(item.relatedAssets || []).slice(0, 3).join(" / ") || eventTypeLabel(item.type)}</small>
+              <strong>{calendarTitle(item.title).replace(/\s*财报$/, "")}</strong>
               <em className={impactClass(item.impact)}>{impactLabel(item.impact)}</em>
             </button>
           ))}

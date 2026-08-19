@@ -71,6 +71,13 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn('"近期高影响财报"', MAIN_APP)
         self.assertIn(".calendarV3 .calendarCoreToolbar", MAIN_STYLES)
 
+    def test_homepage_keeps_macro_events_separate_from_earnings(self) -> None:
+        self.assertIn('className="frontHomeMarketStrip"', MAIN_APP)
+        self.assertIn('type: "macro"', MAIN_APP)
+        self.assertIn('type: "earnings"', MAIN_APP)
+        self.assertIn('const macroEvent = eventRows.find((item) => item.type === "macro")', MAIN_APP)
+        self.assertIn('const earningsRows = eventRows.filter((item) => item.type === "earnings")', MAIN_APP)
+
     def test_global_search_only_promises_supported_stock_code_search(self) -> None:
         self.assertNotIn("搜索股票、观点、财报、页面", MAIN_APP)
         self.assertGreaterEqual(MAIN_APP.count('placeholder="搜索股票代码"'), 2)

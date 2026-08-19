@@ -7484,8 +7484,59 @@ body,
   gap: 14px;
 }
 
+.frontHomeMarketStrip {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #dfe7f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+}
+
+.frontHomeMarketStrip button {
+  display: grid;
+  min-width: 0;
+  min-height: 92px;
+  gap: 4px;
+  align-content: center;
+  border: 0;
+  border-right: 1px solid #e5ecf5;
+  background: #fff;
+  padding: 14px 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.frontHomeMarketStrip button:last-child {
+  border-right: 0;
+}
+
+.frontHomeMarketStrip button:hover {
+  background: #f7fbff;
+}
+
+.frontHomeMarketStrip span,
+.frontHomeMarketStrip small {
+  overflow: hidden;
+  color: #718096;
+  font-size: 11px;
+  font-weight: 440;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frontHomeMarketStrip strong {
+  overflow: hidden;
+  color: #172033;
+  font-size: 18px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .frontHomeBoard {
-  grid-template-columns: minmax(0, 1.35fr) 360px;
+  grid-template-columns: minmax(0, 1.35fr) 400px;
   gap: 14px;
 }
 
@@ -7529,8 +7580,8 @@ body,
   overflow: hidden;
   margin-top: 13px;
   max-width: 760px;
-  font-size: 30px;
-  line-height: 1.28;
+  font-size: 24px;
+  line-height: 1.34;
   font-weight: 560;
   color: #111827;
   -webkit-box-orient: vertical;
@@ -7614,6 +7665,53 @@ body,
   font-size: 13px;
   font-weight: 620;
   color: #172033;
+}
+
+.frontCalendarFeature {
+  display: grid;
+  width: 100%;
+  min-height: 78px;
+  gap: 4px;
+  align-content: center;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  background: #f7fbff;
+  padding: 12px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.frontCalendarFeature:hover {
+  background: #eef6ff;
+}
+
+.frontCalendarFeature span,
+.frontCalendarSectionLabel {
+  color: #1677ff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.frontCalendarFeature strong {
+  overflow: hidden;
+  color: #172033;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frontCalendarFeature small {
+  color: #718096;
+  font-size: 11px;
+  font-weight: 440;
+}
+
+.frontCalendarSectionLabel {
+  min-height: 26px;
+  padding: 8px 16px 4px;
+  background: #fff;
+  color: #718096;
 }
 
 .frontHomeStrengthPanel {
@@ -7748,6 +7846,18 @@ body,
   .frontHomeBoard,
   .frontHomeBottomGrid {
     grid-template-columns: 1fr;
+  }
+
+  .frontHomeMarketStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .frontHomeMarketStrip button:nth-child(2) {
+    border-right: 0;
+  }
+
+  .frontHomeMarketStrip button:nth-child(-n + 2) {
+    border-bottom: 1px solid #e5ecf5;
   }
 }
 
@@ -10281,6 +10391,19 @@ body,
 
   .frontHomeBoard {
     gap: 10px;
+  }
+
+  .frontHomeMarketStrip {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .frontHomeMarketStrip button {
+    min-height: 78px;
+    padding: 12px 14px;
+  }
+
+  .frontHomeMarketStrip strong {
+    font-size: 15px;
   }
 
   .frontLeadPanel {
