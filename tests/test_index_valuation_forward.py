@@ -48,9 +48,15 @@ class ForwardValuationTest(unittest.TestCase):
 
     def test_market_valuation_level_uses_pe_and_pb_percentiles(self):
         self.assertEqual(market_valuation_level(20, 20), "偏低")
+        self.assertEqual(market_valuation_level(29.99, 29.99), "偏低")
+        self.assertEqual(market_valuation_level(30, 20), "适中")
         self.assertEqual(market_valuation_level(40, 20), "适中")
-        self.assertEqual(market_valuation_level(40, 40), "偏高")
+        self.assertEqual(market_valuation_level(40, 40), "适中")
+        self.assertEqual(market_valuation_level(69.99, 69.99), "适中")
+        self.assertEqual(market_valuation_level(70, 20), "偏高")
+        self.assertEqual(market_valuation_level(20, 70), "偏高")
         self.assertEqual(market_valuation_level(75, 20), "偏高")
+        self.assertIsNone(market_valuation_level(None, 20))
 
     def test_missing_dividend_yield_stays_missing(self):
         result = parse_market_valuation_snapshot(

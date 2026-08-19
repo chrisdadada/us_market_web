@@ -172,7 +172,7 @@ def market_valuation_level(pe_percentile: float | None, pb_percentile: float | N
         return None
     if pe_percentile < 30 and pb_percentile < 30:
         return "偏低"
-    if pe_percentile > 70 or (pe_percentile > 30 and pb_percentile > 30):
+    if pe_percentile >= 70 or pb_percentile >= 70:
         return "偏高"
     return "适中"
 

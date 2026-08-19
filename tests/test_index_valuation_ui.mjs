@@ -6,6 +6,8 @@ const css = readFileSync(new URL("../main-web/src/styles.css", import.meta.url),
 
 assert.match(app, /valuationRangePercentile\(peMetric, years\)/);
 assert.match(app, /valuationRangePercentile\(pbMetric, years\)/);
+assert.match(app, /pePercentile >= 70 \|\| pbPercentile >= 70/);
+assert.doesNotMatch(app, /pePercentile > 30 && pbPercentile > 30/);
 assert.match(app, /PE位于\$\{rangeLabel\}/);
 assert.match(app, /新增资金更适合分批/);
 assert.match(app, /"全部历史"/);

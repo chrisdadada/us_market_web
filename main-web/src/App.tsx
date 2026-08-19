@@ -2406,7 +2406,7 @@ function valuationRangePercentile(metric: IndexValuationMetric | undefined, rang
 function valuationRangeLevel(pePercentile: number | null, pbPercentile: number | null, fallback?: string) {
   if (pePercentile === null || pbPercentile === null) return fallback;
   if (pePercentile < 30 && pbPercentile < 30) return "偏低";
-  if (pePercentile >= 70 || pbPercentile >= 70 || (pePercentile > 30 && pbPercentile > 30)) return "偏高";
+  if (pePercentile >= 70 || pbPercentile >= 70) return "偏高";
   return "适中";
 }
 
