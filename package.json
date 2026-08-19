@@ -14,6 +14,8 @@
     "test:routes": "node scripts/test_frontend_routes.mjs",
     "test:next": "node scripts/test_next_routes.mjs",
     "test:next:permissions": "node scripts/test_next_permissions.mjs",
+    "test:dca": "DCA_ONLY=1 node scripts/test_next_routes.mjs && DCA_ONLY=1 node scripts/test_next_permissions.mjs",
+    "verify:dev": "bash scripts/verify_dev.sh",
     "test:position": "node --test tests/test_position_sizing.mjs",
     "test:frontend-typography": "node tests/test_frontend_typography.mjs",
     "test:frontend-style": "node tests/test_frontend_style_contract.mjs",

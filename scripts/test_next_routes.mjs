@@ -9,6 +9,7 @@ import { strengthPageFixture } from "./strength_page_fixture.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
+const dcaOnly = process.env.DCA_ONLY === "1";
 
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -56,8 +57,8 @@ async function apiPayload(url) {
     return {
       preview: false,
       products: {
-        dca1: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: locations, lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
-        dca2: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+        dca1: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: null, locationSeries: locations, lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
+        dca2: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: qqq.records.at(-1)?.signalDate || null, locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
       },
     };
   }
@@ -208,6 +209,9 @@ const routeCases = [
   { query: "?page=bottom", text: "登录后查看定投产品" },
   { query: "?page=forum", text: "论坛讨论区" },
 ];
+const selectedRouteCases = dcaOnly
+  ? routeCases.filter((item) => ["?page=dca1", "?page=dca2", "?page=bottom"].includes(item.query))
+  : routeCases;
 
 const moverFixture = await readDataset("market-movers");
 const topSectorByBoard = ["day", "week", "month"].map((board) => {
@@ -238,7 +242,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   page.on("pageerror", (error) => console.error(error.stack));
   for (const baseUrl of [server.rootUrl, server.nextUrl]) {
-    for (const item of routeCases) {
+    for (const item of selectedRouteCases) {
       if (process.env.ROUTE_TRACE) console.log("route", baseUrl, item.query || "/");
       await page.goto(`${baseUrl}${item.query}`, { waitUntil: "networkidle" });
       const text = await page.locator("body").innerText();
@@ -284,4 +288,4 @@ try {
   await server.close();
 }
 
-console.log(`Next/root front regression passed (${routeCases.length * 2 + 2} checks).`);
+console.log(`Next/root front regression passed (${selectedRouteCases.length * 2 + 3} checks).`);

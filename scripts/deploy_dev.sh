@@ -7,6 +7,7 @@ REMOTE_ARCHIVE="/tmp/${ARCHIVE}"
 PY="${PYTHON_BIN:-/opt/anaconda3/envs/quant/bin/python}"
 LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-${HOME}/.dongbimao/refresh.env}"
 EXPECTED_DEV_BRANCH="codex/dev-integration"
+DEV_VERIFIED_MARKER="${DEV_VERIFIED_MARKER:-.local/dev-verified-commit}"
 
 cd "$(dirname "$0")/.."
 
@@ -54,15 +55,13 @@ ensure_web_dependencies() {
 
 ensure_web_dependencies admin-web
 ensure_web_dependencies main-web
-if [ -n "${DEV_VERIFIED_MARKER:-}" ]; then
-  if [ ! -r "${DEV_VERIFIED_MARKER}" ] \
-    || [ "$(cat "${DEV_VERIFIED_MARKER}")" != "${release_commit}" ]; then
-    echo "Dev verification marker does not match ${release_commit}." >&2
-    exit 1
-  fi
+if [ -r "${DEV_VERIFIED_MARKER}" ] \
+  && [ "$(cat "${DEV_VERIFIED_MARKER}")" = "${release_commit}" ]; then
   echo "Reusing checks already passed for ${release_commit}."
 else
   npm run check
+  mkdir -p "$(dirname "${DEV_VERIFIED_MARKER}")"
+  printf '%s\n' "${release_commit}" > "${DEV_VERIFIED_MARKER}"
 fi
 
 release_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"

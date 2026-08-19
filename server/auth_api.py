@@ -83,6 +83,8 @@ ROLES = {"user", "admin", "super_admin"}
 LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus", "monthly", "yearly"}
 REGISTERED_DATASETS = {"market-temperature", "macro-series"}
 PAID_DATASETS = {"strength-scanner", "strength-review", "crypto-etf-flows"}
+DCA1_LOW_THRESHOLD = 23.5
+DCA1_NEAR_THRESHOLD = 24.5
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
@@ -1750,27 +1752,12 @@ def _index_valuation_qqq(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def _linear_quantile(values: list[float], probability: float) -> float:
-    ordered = sorted(values)
-    position = (len(ordered) - 1) * probability
-    lower = int(position)
-    upper = min(len(ordered) - 1, lower + 1)
-    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
-
-
-def _years_before(value: date, years: int) -> date:
-    try:
-        return value.replace(year=value.year - years)
-    except ValueError:
-        return value.replace(year=value.year - years, day=28)
-
-
-def _point_in_time_low_windows(
+def _fixed_low_valuation_cycles(
     history: list[dict[str, Any]],
-    lookback_years: int = 5,
-    percentile: float = 0.30,
-    minimum_points: int = 104,
-) -> list[dict[str, str]]:
+    threshold: float = DCA1_LOW_THRESHOLD,
+    window_gap_days: int = 21,
+    cycle_gap_days: int = 180,
+) -> dict[str, Any]:
     points: list[tuple[date, float]] = []
     for item in history:
         if not item.get("date") or not isinstance(item.get("value"), (int, float)):
@@ -1780,35 +1767,63 @@ def _point_in_time_low_windows(
         except ValueError:
             continue
     points.sort(key=lambda point: point[0])
-    windows: list[dict[str, str]] = []
-    current: dict[str, str] | None = None
-    for index, (item_date, value) in enumerate(points):
+    raw_windows: list[dict[str, str]] = []
+    current_window: dict[str, str] | None = None
+    for item_date, value in points:
         if item_date < date(2020, 1, 1):
             continue
-        cutoff = _years_before(item_date, lookback_years)
-        available = [point_value for point_date, point_value in points[: index + 1] if point_date >= cutoff]
-        is_low = len(available) >= minimum_points and value <= _linear_quantile(available, percentile)
-        if is_low:
-            if current is None:
-                current = {"startDate": item_date.isoformat(), "endDate": item_date.isoformat()}
+        if value <= threshold:
+            if current_window is None:
+                current_window = {"startDate": item_date.isoformat(), "endDate": item_date.isoformat()}
             else:
-                current["endDate"] = item_date.isoformat()
-        elif current is not None:
-            windows.append(current)
-            current = None
-    if current is not None:
-        windows.append(current)
+                current_window["endDate"] = item_date.isoformat()
+        elif current_window is not None:
+            raw_windows.append(current_window)
+            current_window = None
+    if current_window is not None:
+        raw_windows.append(current_window)
 
-    merged: list[dict[str, str]] = []
+    windows: list[dict[str, str]] = []
+    for window in raw_windows:
+        gap = (
+            datetime.fromisoformat(window["startDate"]) - datetime.fromisoformat(windows[-1]["endDate"])
+        ).days if windows else None
+        if gap is not None and gap <= window_gap_days:
+            windows[-1]["endDate"] = window["endDate"]
+        else:
+            windows.append(window)
+
+    cycles: list[list[dict[str, str]]] = []
     for window in windows:
         gap = (
-            datetime.fromisoformat(window["startDate"]) - datetime.fromisoformat(merged[-1]["endDate"])
-        ).days if merged else None
-        if gap is not None and gap <= 21:
-            merged[-1]["endDate"] = window["endDate"]
+            datetime.fromisoformat(window["startDate"]) - datetime.fromisoformat(cycles[-1][-1]["endDate"])
+        ).days if cycles else None
+        if gap is not None and gap <= cycle_gap_days:
+            cycles[-1].append(window)
         else:
-            merged.append(window)
-    return merged
+            cycles.append([window])
+
+    latest_date = points[-1][0].isoformat() if points else None
+    latest_value = points[-1][1] if points else None
+    active_cycle = cycles[-1] if cycles and latest_value is not None and latest_value <= threshold else None
+    completed_cycles = cycles[:-1] if active_cycle else cycles
+    historical_dates: list[str] = []
+    for cycle in completed_cycles:
+        low_points = [
+            (item_date, value)
+            for item_date, value in points
+            if any(window["startDate"] <= item_date.isoformat() <= window["endDate"] for window in cycle)
+        ]
+        if low_points:
+            historical_dates.append(min(low_points, key=lambda point: point[1])[0].isoformat())
+
+    return {
+        "windows": windows,
+        "historicalDates": historical_dates,
+        "activeStartDate": active_cycle[0]["startDate"] if active_cycle else None,
+        "latestDate": latest_date,
+        "latestValue": latest_value,
+    }
 
 
 def _normalized_location_series(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1846,8 +1861,10 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     latest_value = forward.get("forwardPe")
     if latest_date and isinstance(latest_value, (int, float)) and (not history or latest_date > str(history[-1].get("date") or "")[:10]):
         history.append({"date": latest_date, "value": float(latest_value)})
-    opportunity_windows_1 = _point_in_time_low_windows(history)
-    opportunity_dates_1 = [item["startDate"] for item in opportunity_windows_1]
+    valuation_cycles = _fixed_low_valuation_cycles(history)
+    opportunity_windows_1 = valuation_cycles["windows"]
+    opportunity_dates_1 = valuation_cycles["historicalDates"]
+    current_cycle_start_1 = valuation_cycles["activeStartDate"]
     visible_history = [item for item in history if str(item.get("date") or "")[:10] >= "2020-01-01"]
     ranges = forward.get("ranges") or {}
     five_year = ranges.get("5y") or {}
@@ -1873,14 +1890,13 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     ]
     opportunity_dates_2.sort()
     opportunity_windows_2 = [{"startDate": item, "endDate": item} for item in opportunity_dates_2]
-    value_status = forward.get("status")
-    value_status_map = {
-        "high": {"key": "waiting", "position": 0, "headline": "暂未触发", "action": "暂不执行"},
-        "above_ten_year_average": {"key": "waiting", "position": 0, "headline": "暂未触发", "action": "暂不执行"},
-        "middle": {"key": "near", "position": 1, "headline": "接近触发", "action": "继续观察"},
-        "below_ten_year_average": {"key": "near", "position": 1, "headline": "接近触发", "action": "继续观察"},
-        "low": {"key": "action", "position": 2, "headline": "已触发", "action": "分批执行"},
-    }
+    current_forward_pe = valuation_cycles["latestValue"]
+    if isinstance(current_forward_pe, (int, float)) and current_forward_pe <= DCA1_LOW_THRESHOLD:
+        value_status = {"key": "action", "position": 2, "headline": "已触发", "action": "分批执行"}
+    elif isinstance(current_forward_pe, (int, float)) and current_forward_pe <= DCA1_NEAR_THRESHOLD:
+        value_status = {"key": "near", "position": 1, "headline": "接近触发", "action": "继续观察"}
+    else:
+        value_status = {"key": "waiting", "position": 0, "headline": "暂未触发", "action": "暂不执行"}
     reversal_status = (qqq_market.get("status") or {}).get("key")
     reversal_status_map = {
         "normal": {"key": "waiting", "position": 0, "headline": "暂未触发", "action": "暂不执行"},
@@ -1893,9 +1909,10 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
         "products": {
             "dca1": {
                 "asOf": forward.get("asOf") or qqq_index.get("asOf"),
-                "status": value_status_map.get(value_status) if include_details else None,
+                "status": value_status if include_details else None,
                 "opportunityDates": opportunity_dates_1,
                 "opportunityWindows": opportunity_windows_1,
+                "currentCycleStart": current_cycle_start_1,
                 "locationSeries": location_series,
                 "lowBoundaryPosition": boundary_position,
                 "priceSeries": price_series,
@@ -1905,6 +1922,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
                 "status": reversal_status_map.get(reversal_status) if include_details else None,
                 "opportunityDates": opportunity_dates_2,
                 "opportunityWindows": opportunity_windows_2,
+                "currentCycleStart": opportunity_dates_2[-1] if opportunity_dates_2 else None,
                 "locationSeries": [],
                 "lowBoundaryPosition": None,
                 "priceSeries": price_series,

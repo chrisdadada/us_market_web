@@ -663,6 +663,7 @@ export type DcaStrategyProduct = {
   } | null;
   opportunityDates: string[];
   opportunityWindows?: Array<{ startDate: string; endDate: string }>;
+  currentCycleStart?: string | null;
   locationSeries: Array<{ date: string; position: number }>;
   lowBoundaryPosition?: number | null;
   priceSeries: Array<{ date: string; value: number }>;

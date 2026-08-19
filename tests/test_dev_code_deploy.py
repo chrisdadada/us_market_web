@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEPLOY = (ROOT / "scripts" / "deploy_dev.sh").read_text(encoding="utf-8")
 DATA_DEPLOY = (ROOT / "scripts" / "deploy_dev_data.sh").read_text(encoding="utf-8")
 RELEASE = (ROOT / "scripts" / "release_dev.sh").read_text(encoding="utf-8")
+VERIFY = (ROOT / "scripts" / "verify_dev.sh").read_text(encoding="utf-8")
 
 
 class DevCodeDeployTest(unittest.TestCase):
@@ -32,7 +33,14 @@ class DevCodeDeployTest(unittest.TestCase):
 
     def test_reuses_checks_only_for_the_exact_verified_commit(self) -> None:
         self.assertIn('DEV_VERIFIED_MARKER', DEPLOY)
-        self.assertIn('!= "${release_commit}"', DEPLOY)
+        self.assertIn('= "${release_commit}"', DEPLOY)
+        self.assertIn('.local/dev-verified-commit', DEPLOY)
+
+    def test_targeted_dev_verification_records_the_exact_commit(self) -> None:
+        self.assertIn('npm run check', VERIFY)
+        self.assertIn('npm run test:dca', VERIFY)
+        self.assertIn('git rev-parse HEAD', VERIFY)
+        self.assertIn('.local/dev-verified-commit', VERIFY)
 
     def test_one_shot_release_runs_checks_and_gate_once(self) -> None:
         self.assertEqual(RELEASE.count("npm run check"), 1)

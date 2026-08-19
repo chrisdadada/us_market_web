@@ -51,23 +51,29 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         self.assertEqual(preview["markets"]["QQQ"]["opportunityDates"], [record["signalDate"] for record in full["markets"]["QQQ"]["records"]])
         self.assertEqual(preview["markets"]["QQQ"]["summary"], {"totalSignals": 8})
 
-    def test_point_in_time_low_window_does_not_move_to_a_later_low(self) -> None:
+    def test_fixed_low_valuation_cycles_keep_history_and_current_cycle_separate(self) -> None:
         history = [
-            {"date": "2020-01-03", "value": 30.0},
-            {"date": "2020-01-10", "value": 29.0},
-            {"date": "2020-01-17", "value": 20.0},
+            {"date": "2020-01-03", "value": 25.0},
+            {"date": "2020-01-10", "value": 23.4},
+            {"date": "2020-01-17", "value": 21.0},
+            {"date": "2020-01-24", "value": 24.0},
+            {"date": "2020-04-01", "value": 23.2},
+            {"date": "2020-04-08", "value": 22.0},
+            {"date": "2020-04-15", "value": 25.0},
+            {"date": "2021-01-01", "value": 23.0},
+            {"date": "2021-01-08", "value": 22.0},
         ]
-        initial = auth_api._point_in_time_low_windows(history, minimum_points=3)
-        extended = auth_api._point_in_time_low_windows(
-            history
-            + [
-                {"date": "2020-01-24", "value": 18.0},
-                {"date": "2020-01-31", "value": 32.0},
+        result = auth_api._fixed_low_valuation_cycles(history)
+        self.assertEqual(result["historicalDates"], ["2020-01-17"])
+        self.assertEqual(result["activeStartDate"], "2021-01-01")
+        self.assertEqual(
+            result["windows"],
+            [
+                {"startDate": "2020-01-10", "endDate": "2020-01-17"},
+                {"startDate": "2020-04-01", "endDate": "2020-04-08"},
+                {"startDate": "2021-01-01", "endDate": "2021-01-08"},
             ],
-            minimum_points=3,
         )
-        self.assertEqual(initial, [{"startDate": "2020-01-17", "endDate": "2020-01-17"}])
-        self.assertEqual(extended, [{"startDate": "2020-01-17", "endDate": "2020-01-24"}])
 
 
 if __name__ == "__main__":

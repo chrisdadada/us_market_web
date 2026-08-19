@@ -12,8 +12,9 @@ const productCopy = {
     subtitle: "低位分批参考",
     phases: ["观察中", "临近", "已触发"],
     lockedTitle: "开通查看本期建议",
-    chartTitle: "QQQ 走势与历史信号",
-    opportunityText: "策略触发"
+    chartTitle: "QQQ 走势与历史低位",
+    historyTitle: "历史低位",
+    opportunityText: "低位区间"
   },
   dca2: {
     title: "纳指定投 2 号",
@@ -21,6 +22,7 @@ const productCopy = {
     phases: ["观察中", "临近", "已触发"],
     lockedTitle: "开通查看本期建议",
     chartTitle: "QQQ 走势与历史信号",
+    historyTitle: "历史信号",
     opportunityText: "策略触发"
   }
 } as const;
@@ -147,7 +149,7 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
   const statusKey = product.status?.key || "waiting";
   const presentation = statusCopy[kind][statusKey];
   const opportunityDates = [...product.opportunityDates].sort();
-  const lastOpportunity = opportunityDates.at(-1);
+  const lastOpportunity = product.currentCycleStart || opportunityDates.at(-1);
   const currentStep = unlocked ? product.status?.position ?? 0 : -1;
 
   return (
@@ -180,7 +182,7 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
 
       {opportunityDates.length ? (
         <section className={`dcaPanel dcaHistory ${kind}`}>
-          <div className="dcaPanelHead"><strong>历史信号</strong></div>
+          <div className="dcaPanelHead"><strong>{copy.historyTitle}</strong></div>
           <div className="dcaTimeline">{opportunityDates.map((date) => <div key={date}><time>{date}</time><span>{copy.opportunityText}</span></div>)}</div>
         </section>
       ) : null}

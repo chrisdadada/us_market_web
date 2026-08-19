@@ -9,6 +9,7 @@ import { strengthPageFixture } from "./strength_page_fixture.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
+const dcaOnly = process.env.DCA_ONLY === "1";
 
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -196,8 +197,8 @@ async function apiPayload(url, authProfile) {
     return {
       preview: !unlocked,
       products: {
-        dca1: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: qqq.priceSeries.map((point, index, rows) => ({ date: point.date, position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15) })), lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
-        dca2: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+        dca1: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: null, locationSeries: qqq.priceSeries.map((point, index, rows) => ({ date: point.date, position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15) })), lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
+        dca2: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: qqq.records.at(-1)?.signalDate || null, locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
       },
     };
   }
@@ -412,16 +413,19 @@ const scenarios = [
   { profile: "admin", page: "market", absent: Object.values(gates) },
   { profile: "admin", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
 ];
+const selectedScenarios = dcaOnly
+  ? scenarios.filter((item) => ["dca1", "dca2"].includes(item.page) && ["anonymous", "free", "monthly"].includes(item.profile))
+  : scenarios;
 
 const browser = await launchBrowser();
 try {
-  for (const [profileName, authProfile] of Object.entries(profiles)) {
+  for (const [profileName, authProfile] of Object.entries(profiles).filter(([name]) => selectedScenarios.some((item) => item.profile === name))) {
     const server = await startServer(authProfile);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     page.on("pageerror", (error) => console.error(`Browser error (${profileName}):`, error.stack));
     try {
       for (const baseUrl of [server.rootUrl, server.nextUrl]) {
-        for (const scenario of scenarios.filter((item) => item.profile === profileName)) {
+        for (const scenario of selectedScenarios.filter((item) => item.profile === profileName)) {
           await page.goto(`${baseUrl}?page=${scenario.page}`, { waitUntil: "networkidle" });
           if (scenario.page === "home") {
             await page.waitForSelector(".frontHomeStrengthPanel");
@@ -491,13 +495,13 @@ try {
         }
       }
       const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
-      if (profileName === "anonymous" || profileName === "free") {
+      if (!dcaOnly && (profileName === "anonymous" || profileName === "free")) {
         assert(strengthRequestCount === 0, `${profileName} should not request the paid strength dataset`);
       }
-      if (profileName === "monthly") {
+      if (!dcaOnly && profileName === "monthly") {
         assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
       }
-      if (profileName === "monthly") {
+      if (!dcaOnly && profileName === "monthly") {
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=home`, { waitUntil: "networkidle" });
         assert(await page.locator(".frontHomeDesktopTable").isVisible(), "desktop home should show the stock table");
@@ -850,4 +854,4 @@ try {
   await browser.close();
 }
 
-console.log(`Next/root permission regression passed (${scenarios.length * 2} checks).`);
+console.log(`Next/root permission regression passed (${selectedScenarios.length * 2} checks).`);
