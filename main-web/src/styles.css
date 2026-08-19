@@ -4112,43 +4112,21 @@ body,
   overflow: hidden;
 }
 
-.trackingPage .trackingAddStrip {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
+.trackingPage .trackingDataAsOf {
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
-  min-height: 50px;
+  min-height: 42px;
   border-bottom: 1px solid var(--line);
-  background: #fbfdff;
+  background: #fff;
   padding: 0 18px;
 }
 
-.trackingPage .trackingAddStrip > span,
-.trackingPage .trackingAddStrip time {
+.trackingPage .trackingDataAsOf time {
   color: #708096;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 520;
   white-space: nowrap;
-}
-
-.trackingPage .trackingAddStrip div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  min-width: 0;
-}
-
-.trackingPage .trackingAddStrip b {
-  display: inline-flex;
-  align-items: center;
-  height: 26px;
-  border: 1px solid #cfe5fa;
-  border-radius: 999px;
-  background: #f4f9ff;
-  color: #1677d2;
-  padding: 0 9px;
-  font-size: 13px;
-  font-weight: 560;
 }
 
 .trackingPage .screenerTable td strong {
@@ -4646,8 +4624,7 @@ body,
   background: #dfe6ef;
 }
 
-.lockedStockName small,
-.trackingAddLocked {
+.lockedStockName small {
   color: #8390a2;
   font-size: 11px;
   font-weight: 520;
@@ -6003,31 +5980,6 @@ body,
 /* Tracking final cleanup: denser table and lighter detail panels. */
 .trackingPage {
   padding: 22px 30px 44px;
-}
-
-.trackingPage .trackingAddStrip {
-  min-height: 44px;
-  gap: 10px;
-  padding: 0 16px;
-}
-
-.trackingPage .trackingAddStrip > span,
-.trackingPage .trackingAddStrip time {
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.trackingPage .trackingAddStrip div {
-  gap: 6px;
-}
-
-.trackingPage .trackingAddStrip b {
-  height: 24px;
-  border: 0;
-  background: transparent;
-  padding: 0 2px;
-  font-size: 13px;
-  font-weight: 620;
 }
 
 .trackingStockDetailPage {
@@ -7812,25 +7764,6 @@ body,
 
 .trackingPage {
   background: #f4f7fb;
-}
-
-.trackingPage .trackingAddStrip {
-  min-height: 42px;
-  border-bottom: 1px solid #e5ecf5;
-  background: #fff;
-}
-
-.trackingPage .trackingAddStrip > span,
-.trackingPage .trackingAddStrip time {
-  color: #718096;
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.trackingPage .trackingAddStrip b {
-  color: #1677ff;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .trackingPage .screenerTableWrap {
@@ -12422,15 +12355,9 @@ body,
 }
 
 @media (max-width: 760px) {
-  .trackingPage .trackingAddStrip {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 6px 9px;
-    padding: 10px 12px;
-  }
-
-  .trackingPage .trackingAddStrip time {
-    grid-column: 1 / -1;
-    white-space: normal;
+  .trackingPage .trackingDataAsOf {
+    min-height: 38px;
+    padding: 0 12px;
   }
 
   .trackingDesktopTable {

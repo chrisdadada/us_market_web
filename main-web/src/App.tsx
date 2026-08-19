@@ -206,8 +206,6 @@ const trackingSymbols = [
   "005930"
 ];
 
-const trackingAddedSymbols = ["SOXL", "DRAM", "MRVL", "SPCX", "DELL", "AMAT", "000660", "005930"];
-
 const trackingSymbolNames: Record<string, string> = {
   AAPL: "Apple Inc.",
   AMD: "Advanced Micro Devices",
@@ -1218,7 +1216,7 @@ function App() {
         <header className={`topbar ${page === "home" ? "homeTopbar" : ""} ${page === "calendar" ? "calendarTopbar" : ""}`}>
           {page !== "calendar" ? (
             <form className="globalSearch" onSubmit={submitGlobalSearch}>
-              <input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="搜索股票、观点、财报、页面" />
+              <input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="搜索股票代码" aria-label="搜索股票代码" />
             </form>
           ) : null}
           {auth?.authenticated && auth.user ? (
@@ -1973,8 +1971,7 @@ function TrackingKeyLevelsCell({
   if (levels?.status === "insufficient") {
     return (
       <div className="trackingKeyLevelsCell unavailable">
-        <strong>历史数据不足</strong>
-        <small>{levels.availableBars || 0} / {levels.requiredBars || 90} 个交易日</small>
+        <strong>暂时无法计算</strong>
       </div>
     );
   }
@@ -2132,15 +2129,7 @@ function TrackingPage({
   return (
     <div className="trackingPage">
       <section className="screenerCard">
-        <div className="trackingAddStrip">
-          <span>本次新增</span>
-          <div>
-            {locked ? (
-              <span className="trackingAddLocked">会员可见</span>
-            ) : trackingAddedSymbols.map((symbol) => (
-              <b key={symbol}>{symbol}</b>
-            ))}
-          </div>
+        <div className="trackingDataAsOf">
           <time>更新 {formatStoredDateTime(asOf)}</time>
         </div>
         <div className={locked ? "screenerTableWrap trackingLockedTable trackingDesktopTable" : "screenerTableWrap trackingDesktopTable"}>
@@ -2385,10 +2374,7 @@ function TrackingStockDetailPage({
           </>
         ) : (
           <div className="trackingLevelEmpty">
-            <strong>{keyLevels?.status === "insufficient" ? "历史数据不足" : "关键点位暂不可用"}</strong>
-            {keyLevels?.status === "insufficient" ? (
-              <span>当前 {keyLevels.availableBars || 0} 个交易日，满 {keyLevels.requiredBars || 90} 个交易日后自动计算。</span>
-            ) : null}
+            <strong>{keyLevels?.status === "insufficient" ? "暂时无法计算" : "关键点位暂不可用"}</strong>
           </div>
         )}
       </section>

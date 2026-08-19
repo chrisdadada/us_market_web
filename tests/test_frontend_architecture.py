@@ -59,6 +59,19 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn('"近期高影响财报"', MAIN_APP)
         self.assertIn(".calendarV3 .calendarCoreToolbar", MAIN_STYLES)
 
+    def test_global_search_only_promises_supported_stock_code_search(self) -> None:
+        self.assertNotIn("搜索股票、观点、财报、页面", MAIN_APP)
+        self.assertGreaterEqual(MAIN_APP.count('placeholder="搜索股票代码"'), 2)
+
+    def test_tracking_page_does_not_publish_hardcoded_new_symbols(self) -> None:
+        self.assertNotIn("trackingAddedSymbols", MAIN_APP)
+        self.assertNotIn("本次新增", MAIN_APP)
+        self.assertIn('className="trackingDataAsOf"', MAIN_APP)
+
+    def test_tracking_empty_state_hides_internal_data_thresholds(self) -> None:
+        self.assertNotIn("历史数据不足", MAIN_APP)
+        self.assertNotIn("个交易日后自动计算", MAIN_APP)
+
 
 if __name__ == "__main__":
     unittest.main()
