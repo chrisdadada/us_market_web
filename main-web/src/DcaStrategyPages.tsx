@@ -4,25 +4,39 @@ import "./dcaStrategy.css";
 
 type ProductKey = "dca1" | "dca2";
 type Point = { date: string; value: number };
+type StatusKey = NonNullable<DcaStrategyProduct["status"]>["key"];
 
 const productCopy = {
   dca1: {
     title: "纳指定投 1 号",
-    subtitle: "低位布局型 · 进入历史低位区后分批投入",
-    phases: ["等待机会", "接近低位", "定投窗口"],
-    lockedTitle: "查看是否进入定投窗口",
-    method: "分批投入",
-    methodNote: "覆盖一段低位区域"
+    subtitle: "适合希望分批把握低位机会的人",
+    phases: ["等待机会", "接近低位", "开始分批"],
+    lockedTitle: "开通查看今日建议",
+    chartTitle: "QQQ 走势与历史机会",
+    opportunityText: "进入机会区"
   },
   dca2: {
     title: "纳指定投 2 号",
-    subtitle: "反转确认型 · 等市场确认止跌后再分批投入",
-    phases: ["继续等待", "接近信号", "定投窗口"],
-    lockedTitle: "查看是否出现定投机会",
-    method: "确认后分批",
-    methodNote: "减少过早介入"
+    subtitle: "适合希望等市场企稳后再分批投入的人",
+    phases: ["继续等待", "接近机会", "开始分批"],
+    lockedTitle: "开通查看今日建议",
+    chartTitle: "QQQ 走势与确认机会",
+    opportunityText: "机会确认"
   }
 } as const;
+
+const statusCopy: Record<ProductKey, Record<StatusKey, { title: string; detail: string; today: string; next: string; planNote: string; watchNote: string }>> = {
+  dca1: {
+    waiting: { title: "继续等待", detail: "当前尚未进入分批区间", today: "保持原有节奏", next: "等待进入机会区", planNote: "现在不用一次买入，也不需要提前猜底。", watchNote: "进入合适阶段后，再开始分批投入。" },
+    near: { title: "接近低位", detail: "可以继续观察市场变化", today: "保持关注", next: "等待进入分批区", planNote: "接近低位阶段，暂时不用加快投入。", watchNote: "进入机会区后，再按计划分批投入。" },
+    action: { title: "可以开始分批", detail: "当前已进入分批区间", today: "按计划分批投入", next: "控制每次投入节奏", planNote: "分批执行，不必一次买完。", watchNote: "关注后续阶段变化，避免追高。" }
+  },
+  dca2: {
+    waiting: { title: "继续观察", detail: "市场尚未出现新的确认机会", today: "暂不加快投入", next: "等待市场确认", planNote: "市场还在等待确认，不需要提前行动。", watchNote: "确认出现后，再按计划分批投入。" },
+    near: { title: "接近机会", detail: "市场正在接近确认阶段", today: "保持关注", next: "等待机会确认", planNote: "继续观察，不必提前增加投入。", watchNote: "确认出现后，再开始分批投入。" },
+    action: { title: "可以开始分批", detail: "市场已经出现确认机会", today: "按计划分批投入", next: "控制每次投入节奏", planNote: "确认后分批执行，不必一次买完。", watchNote: "关注后续阶段变化，避免追高。" }
+  }
+};
 
 function sample<T>(points: T[], maximum = 520) {
   if (points.length <= maximum) return points;
@@ -43,63 +57,61 @@ function year(value?: string | null) {
 
 function OpportunityChart({ product, kind }: { product: DcaStrategyProduct; kind: ProductKey }) {
   const chart = useMemo(() => {
-    const location = sample(product.locationSeries.map((item) => ({ date: item.date, value: item.position })));
-    const prices = sample(product.priceSeries || []);
-    const dated = [...location, ...prices].filter((point) => Number.isFinite(Date.parse(point.date)));
-    if (prices.length < 2 || (kind === "dca1" && location.length < 2)) return null;
-    const start = Math.min(...dated.map((point) => Date.parse(point.date)));
-    const end = Math.max(...dated.map((point) => Date.parse(point.date)));
+    const prices = sample((product.priceSeries || []).filter((point) => Number.isFinite(Date.parse(point.date)) && Number.isFinite(point.value)));
+    if (prices.length < 2) return null;
+    const start = Date.parse(prices[0].date);
+    const end = Date.parse(prices.at(-1)!.date);
     const span = end - start || 1;
     const width = 1000;
-    const height = kind === "dca1" ? 420 : 320;
+    const height = 360;
     const left = 58;
-    const right = 22;
+    const right = 24;
+    const top = 30;
+    const bottom = 310;
     const x = (date: string) => left + ((Date.parse(date) - start) / span) * (width - left - right);
     const priceValues = prices.map((point) => point.value);
-    const priceMin = Math.min(...priceValues);
-    const priceMax = Math.max(...priceValues);
+    const rawMin = Math.min(...priceValues);
+    const rawMax = Math.max(...priceValues);
+    const padding = Math.max((rawMax - rawMin) * 0.08, 1);
+    const priceMin = rawMin - padding;
+    const priceMax = rawMax + padding;
     const priceSpan = priceMax - priceMin || 1;
-    const priceTop = kind === "dca1" ? 250 : 32;
-    const priceBottom = kind === "dca1" ? 374 : 275;
-    const priceY = (value: number) => priceBottom - ((value - priceMin) / priceSpan) * (priceBottom - priceTop);
-    const locationTop = 30;
-    const locationBottom = 190;
-    const locationY = (value: number) => locationBottom - (Math.max(0, Math.min(100, value)) / 100) * (locationBottom - locationTop);
-    const path = (points: Point[], y: (value: number) => number) => points.map((point, index) => `${index ? "L" : "M"}${x(point.date).toFixed(1)},${y(point.value).toFixed(1)}`).join(" ");
-    const opportunityPoints = product.opportunityDates.map((date) => ({ date, price: nearest(prices, date), location: nearest(location, date) })).filter((item) => item.price);
-    return { width, height, left, right, start, end, x, prices, location, priceMin, priceMax, priceY, locationY, priceTop, priceBottom, pricePath: path(prices, priceY), locationPath: path(location, locationY), opportunityPoints };
-  }, [kind, product]);
+    const priceY = (value: number) => bottom - ((value - priceMin) / priceSpan) * (bottom - top);
+    const pricePath = prices.map((point, index) => `${index ? "L" : "M"}${x(point.date).toFixed(1)},${priceY(point.value).toFixed(1)}`).join(" ");
+    const opportunityPoints = [...product.opportunityDates]
+      .sort()
+      .map((date) => ({ date, price: nearest(prices, date) }))
+      .filter((item): item is { date: string; price: Point } => Boolean(item.price));
+    return { width, height, left, right, top, bottom, start, end, x, prices, priceMin, priceMax, priceY, pricePath, opportunityPoints };
+  }, [product]);
 
-  if (!chart) return <div className="dcaChartEmpty">历史位置正在更新</div>;
-  const years = Array.from(new Set([year(new Date(chart.start).toISOString()), year(new Date((chart.start + chart.end) / 2).toISOString()), year(new Date(chart.end).toISOString())]));
-  const boundary = product.lowBoundaryPosition;
+  if (!chart) return <div className="dcaChartEmpty">暂时无法显示行情</div>;
+  const years = [year(new Date(chart.start).toISOString()), year(new Date((chart.start + chart.end) / 2).toISOString()), year(new Date(chart.end).toISOString())];
+  const current = chart.prices.at(-1)!;
 
   return (
     <div className="dcaChartScroll">
-      <svg className="dcaChart" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label="历史机会位置">
-        {kind === "dca1" ? (
-          <>
-            {Number.isFinite(boundary) ? <rect className="dcaLowZone" x={chart.left} y={chart.locationY(Number(boundary))} width={chart.width - chart.left - chart.right} height={190 - chart.locationY(Number(boundary))} /> : null}
-            {[0, 25, 50, 75, 100].map((value) => <line key={value} className="dcaGrid" x1={chart.left} y1={chart.locationY(value)} x2={chart.width - chart.right} y2={chart.locationY(value)} />)}
-            <text className="dcaAxis" x="14" y={chart.locationY(100) + 3}>高位</text>
-            <text className="dcaAxis" x="14" y={chart.locationY(50) + 3}>中位</text>
-            <text className="dcaAxis" x="14" y={chart.locationY(0) + 3}>低位</text>
-            <path className="dcaLocationLine" d={chart.locationPath} />
-            {chart.opportunityPoints.map((item) => item.location ? <circle key={`location-${item.date}`} className="dcaSignalDot" cx={chart.x(item.date)} cy={chart.locationY(item.location.value)} r="5" /> : null)}
-            <line className="dcaDivider" x1={chart.left} y1="220" x2={chart.width - chart.right} y2="220" />
-            <text className="dcaAxis" x="14" y="286">QQQ</text>
-          </>
-        ) : null}
-        {[0, 0.5, 1].map((ratio) => {
+      <svg className="dcaChart" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={productCopy[kind].chartTitle}>
+        {chart.opportunityPoints.map((item) => (
+          <rect key={`band-${item.date}`} className={`dcaOpportunityBand ${kind}`} x={Math.max(chart.left, chart.x(item.date) - 8)} y={chart.top} width="16" height={chart.bottom - chart.top} rx="3" />
+        ))}
+        {[0, 1 / 3, 2 / 3, 1].map((ratio) => {
           const value = chart.priceMax - (chart.priceMax - chart.priceMin) * ratio;
           const yPos = chart.priceY(value);
-          return <g key={ratio}><line className="dcaGrid" x1={chart.left} y1={yPos} x2={chart.width - chart.right} y2={yPos} /><text className="dcaAxis" x="12" y={yPos + 3}>{Math.round(value)}</text></g>;
+          return <g key={ratio}><line className="dcaGrid" x1={chart.left} y1={yPos} x2={chart.width - chart.right} y2={yPos} /><text className="dcaAxis" x="10" y={yPos + 3}>{Math.round(value)}</text></g>;
         })}
         <path className="dcaPriceLine" d={chart.pricePath} />
-        {chart.opportunityPoints.map((item) => <g key={`price-${item.date}`}><circle className="dcaSignalDot" cx={chart.x(item.date)} cy={chart.priceY(item.price!.value)} r="5" /><title>{item.date}</title></g>)}
+        {chart.opportunityPoints.map((item) => (
+          <g key={`price-${item.date}`}>
+            <circle className={`dcaOpportunityDot ${kind}`} cx={chart.x(item.date)} cy={chart.priceY(item.price.value)} r="6" />
+            <title>{item.date}</title>
+          </g>
+        ))}
+        <circle className="dcaCurrentDot" cx={chart.x(current.date)} cy={chart.priceY(current.value)} r="6" />
+        <text className="dcaCurrentLabel" x={chart.x(current.date) - 6} y={Math.max(18, chart.priceY(current.value) - 12)}>当前</text>
         {years.map((item, index) => {
           const position = index === 0 ? chart.left : index === years.length - 1 ? chart.width - chart.right : (chart.left + chart.width - chart.right) / 2;
-          return <text key={item} className={`dcaAxis dcaDate ${index === years.length - 1 ? "end" : ""}`} x={position} y={chart.height - 10}>{item}</text>;
+          return <text key={`${item}-${index}`} className={`dcaAxis dcaDate ${index === years.length - 1 ? "end" : ""}`} x={position} y={chart.height - 10}>{item}</text>;
         })}
       </svg>
     </div>
@@ -116,7 +128,7 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
     if (!authenticated) return;
     setLoading(true);
     setError("");
-    api.dcaStrategies().then(setPayload).catch((reason) => setError(reason?.message || "产品数据加载失败")).finally(() => setLoading(false));
+    api.dcaStrategies().then(setPayload).catch(() => setError("页面暂时无法打开")).finally(() => setLoading(false));
   };
 
   useEffect(load, [authenticated]);
@@ -124,13 +136,13 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
 
   if (!authenticated) return <div className="dcaPage"><div className="dcaPageState"><strong>登录后查看定投产品</strong><button type="button" onClick={onAuth}>登录 / 注册</button></div></div>;
   if (loading) return <div className="dcaPage"><div className="dcaPageState">正在加载</div></div>;
-  if (error || !product) return <div className="dcaPage"><div className="dcaPageState"><span>{error || "产品数据暂不可用"}</span><button type="button" onClick={load}>重新加载</button></div></div>;
+  if (error || !product) return <div className="dcaPage"><div className="dcaPageState"><span>{error || "页面暂时无法打开"}</span><button type="button" onClick={load}>重新加载</button></div></div>;
 
-  const status = product.status;
+  const statusKey = product.status?.key || "waiting";
+  const presentation = statusCopy[kind][statusKey];
   const opportunityDates = [...product.opportunityDates].sort();
-  const firstOpportunity = opportunityDates[0];
   const lastOpportunity = opportunityDates.at(-1);
-  const countLabel = product.opportunityDates.length ? `${product.opportunityDates.length} 处` : "--";
+  const currentStep = unlocked ? product.status?.position ?? 0 : -1;
 
   return (
     <div className="dcaPage" data-testid={`${kind}-strategy-page`}>
@@ -139,27 +151,40 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
         <div><span>更新 {product.asOf || "--"}</span>{!unlocked ? <button type="button" onClick={onUnlock}>开通会员</button> : null}</div>
       </header>
 
-      <section className="dcaPanel">
-        <div className="dcaProgress">
-          {copy.phases.map((phase, index) => <div key={phase} className={unlocked && status?.position === index ? "current" : ""}>{phase}</div>)}
+      <section className={`dcaDecision ${kind}`}>
+        <div className={`dcaDecisionMain ${!unlocked ? "locked" : ""}`}>
+          <div className="dcaDecisionContent"><small>今日建议</small><strong>{presentation.title}</strong><p>{presentation.detail}</p></div>
+          {!unlocked ? <div className="dcaGate"><small>今日状态已更新</small><strong>{copy.lockedTitle}</strong><button type="button" onClick={onUnlock}>开通会员查看</button></div> : null}
         </div>
-        <div className="dcaSummary">
-          <div className={`dcaCurrent ${!unlocked ? "locked" : ""}`}>
-            <div className="dcaCurrentContent"><small>今日状态</small><strong>{status?.headline || "状态已更新"}</strong><p>{status?.action || "当前阶段和行动建议"}</p></div>
-            {!unlocked ? <div className="dcaGate"><small>今日状态已更新</small><strong>{copy.lockedTitle}</strong><button type="button" onClick={onUnlock}>开通会员查看</button></div> : null}
+        <div className="dcaStage">
+          <small>当前阶段</small>
+          <div className="dcaProgress">{copy.phases.map((phase, index) => <div key={phase} className={currentStep === index ? "current" : ""}>{phase}</div>)}</div>
+          <div className="dcaStageMeta">
+            <div><span>上次机会</span><strong>{lastOpportunity || "--"}</strong></div>
+            <div><span>今天怎么做</span><strong>{unlocked ? presentation.today : "开通查看"}</strong></div>
+            <div><span>下一步</span><strong>{unlocked ? presentation.next : "开通查看"}</strong></div>
           </div>
-          <div><small>{kind === "dca2" ? "最近机会" : "最近更新"}</small><b>{kind === "dca2" ? lastOpportunity || "--" : product.asOf || "--"}</b><p>{kind === "dca2" ? status?.key === "action" ? "当前机会已出现" : "当前等待新机会" : "交易日收盘后"}</p></div>
-          <div><small>历史机会位置</small><b>{countLabel}</b><p>{firstOpportunity ? `${year(firstOpportunity)} 年至今` : "随数据持续更新"}</p></div>
-          <div><small>产品方式</small><b>{copy.method}</b><p>{copy.methodNote}</p></div>
-        </div>
-        <div className="dcaChartHead"><strong>历史机会位置</strong><div><span>红点：历史机会</span>{kind === "dca1" ? <span>绿色：低位区域</span> : null}</div></div>
-        <OpportunityChart product={product} kind={kind} />
-        <div className="dcaBenefits">
-          <div><small>交易日更新</small><strong>查看当前所处阶段</strong><p>状态随市场变化持续更新。</p></div>
-          <div><small>会员可见</small><strong>查看今日行动建议</strong><p>知道现在该等待还是分批投入。</p></div>
-          <div><small>分批执行</small><strong>覆盖一段机会区间</strong><p>用户自行决定投入金额与节奏。</p></div>
         </div>
       </section>
+
+      <div className="dcaContentGrid">
+        <section className="dcaPanel dcaChartPanel">
+          <div className="dcaPanelHead"><strong>{copy.chartTitle}</strong><span>当前 · {product.asOf || "--"}</span></div>
+          <OpportunityChart product={product} kind={kind} />
+        </section>
+        <section className={`dcaPanel dcaAdvice ${!unlocked ? "locked" : ""}`}>
+          <div><small>今日计划</small><strong>{unlocked ? product.status?.action || presentation.today : "今日计划已更新"}</strong><p>{presentation.planNote}</p></div>
+          <div><small>接下来关注</small><strong>{presentation.next}</strong><p>{presentation.watchNote}</p></div>
+          {!unlocked ? <button type="button" onClick={onUnlock}>开通查看完整建议</button> : null}
+        </section>
+      </div>
+
+      {opportunityDates.length ? (
+        <section className={`dcaPanel dcaHistory ${kind}`}>
+          <div className="dcaPanelHead"><strong>过去的机会</strong></div>
+          <div className="dcaTimeline">{opportunityDates.map((date) => <div key={date}><time>{date}</time><span>{copy.opportunityText}</span></div>)}</div>
+        </section>
+      ) : null}
     </div>
   );
 }

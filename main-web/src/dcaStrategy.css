@@ -5,13 +5,21 @@
   color: var(--text);
 }
 
+.dcaHeader,
+.dcaDecision,
+.dcaContentGrid,
+.dcaHistory {
+  max-width: 1240px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
 .dcaHeader {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  max-width: 1240px;
-  margin: 0 auto 14px;
+  margin-bottom: 14px;
 }
 
 .dcaHeader h1 { margin: 0; font-size: 20px; font-weight: 680; }
@@ -20,6 +28,7 @@
 .dcaHeader span { color: var(--muted); font-size: 10px; }
 .dcaHeader button,
 .dcaGate button,
+.dcaAdvice button,
 .dcaPageState button {
   border: 1px solid #b9d5fb;
   border-radius: 6px;
@@ -31,51 +40,31 @@
   font-weight: 700;
 }
 
-.dcaPanel {
+.dcaPanel,
+.dcaDecision {
   overflow: hidden;
-  max-width: 1240px;
-  margin: 0 auto;
   border: 1px solid var(--front-card-border);
   border-radius: var(--front-card-radius);
   background: var(--panel);
   box-shadow: var(--front-card-shadow);
 }
 
-.dcaProgress {
+.dcaDecision {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-bottom: 1px solid var(--line-soft);
+  grid-template-columns: minmax(300px, 1.05fr) minmax(460px, 1.35fr);
+  min-height: 158px;
+  border-top: 3px solid #0a9b6d;
 }
 
-.dcaProgress div {
-  position: relative;
-  border-right: 1px solid var(--line-soft);
-  padding: 12px 16px 13px;
-  background: #f8fafc;
-  color: #8794a7;
-  font-size: 11px;
-  text-align: center;
-}
+.dcaDecision.dca2 { border-top-color: var(--blue); }
+.dcaDecisionMain { position: relative; overflow: hidden; padding: 23px 26px; border-right: 1px solid var(--line-soft); }
+.dcaDecisionContent small,
+.dcaStage > small,
+.dcaAdvice small { color: #8290a5; font-size: 10px; font-weight: 650; }
+.dcaDecisionContent strong { display: block; margin-top: 8px; font-size: 23px; line-height: 1.2; }
+.dcaDecisionContent p { margin: 6px 0 0; color: #536278; font-size: 12px; }
+.dcaDecisionMain.locked .dcaDecisionContent { opacity: .32; filter: blur(4px); }
 
-.dcaProgress div:last-child { border-right: 0; }
-.dcaProgress div.current { background: #edf9f5; color: #087a55; font-weight: 750; }
-.dcaProgress div.current::after { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; background: #0a9b6d; content: ""; }
-
-.dcaSummary {
-  display: grid;
-  grid-template-columns: minmax(280px, 1.3fr) repeat(3, minmax(150px, .62fr));
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.dcaSummary > div { min-height: 94px; border-right: 1px solid var(--line-soft); padding: 15px 18px; }
-.dcaSummary > div:last-child { border-right: 0; }
-.dcaSummary small { display: block; margin-bottom: 7px; color: #8290a5; font-size: 10px; font-weight: 650; }
-.dcaSummary strong { display: block; color: #34445b; font-size: 18px; line-height: 1.35; }
-.dcaSummary b { display: block; font-size: 15px; font-weight: 680; font-variant-numeric: tabular-nums; }
-.dcaSummary p { margin: 5px 0 0; color: #65748c; font-size: 10px; }
-
-.dcaCurrent { position: relative; overflow: hidden; }
-.dcaCurrent.locked .dcaCurrentContent { opacity: .34; filter: blur(4px); }
 .dcaGate {
   position: absolute;
   inset: 0;
@@ -83,35 +72,77 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  padding: 12px 18px;
+  padding: 20px 26px;
   background: linear-gradient(90deg, rgba(255, 255, 255, .78), rgba(255, 255, 255, .97));
 }
-.dcaGate small { margin-bottom: 3px; }
-.dcaGate strong { font-size: 13px; }
-.dcaGate button { margin-top: 8px; border: 0; border-radius: 5px; padding: 6px 9px; background: var(--blue); color: #fff; font-size: 10px; }
+.dcaGate small { color: #8290a5; font-size: 10px; }
+.dcaGate strong { margin-top: 4px; font-size: 13px; }
+.dcaGate button { margin-top: 9px; border: 0; background: var(--blue); color: #fff; }
 
-.dcaChartHead { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 18px 4px; }
-.dcaChartHead strong { font-size: 13px; font-weight: 650; }
-.dcaChartHead div { display: flex; gap: 12px; color: var(--muted); font-size: 10px; }
-.dcaChartScroll { overflow-x: auto; padding: 2px 12px 8px; }
+.dcaStage { padding: 22px 28px; }
+.dcaProgress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+  border: 1px solid #d6e2ee;
+  border-radius: 6px;
+  background: #f6f9fc;
+}
+.dcaProgress div {
+  position: relative;
+  border-right: 1px solid var(--line-soft);
+  padding: 12px 8px;
+  color: #708096;
+  font-size: 11px;
+  text-align: center;
+}
+.dcaProgress div:last-child { border-right: 0; }
+.dcaProgress div.current { background: #edf9f5; color: #087a55; font-weight: 750; }
+.dcaDecision.dca2 .dcaProgress div.current { background: #eaf3ff; color: #1269d8; }
+.dcaProgress div.current::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 3px; background: #0a9b6d; content: ""; }
+.dcaDecision.dca2 .dcaProgress div.current::after { background: var(--blue); }
+
+.dcaStageMeta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
+.dcaStageMeta > div { padding-right: 16px; }
+.dcaStageMeta > div + div { border-left: 1px solid var(--line-soft); padding-left: 16px; }
+.dcaStageMeta span { display: block; color: #8290a5; font-size: 9px; }
+.dcaStageMeta strong { display: block; margin-top: 5px; font-size: 12px; font-weight: 680; }
+
+.dcaContentGrid { display: grid; grid-template-columns: minmax(0, 1fr) 286px; gap: 14px; margin-top: 14px; }
+.dcaChartPanel { padding: 0 20px 12px; }
+.dcaPanelHead { display: flex; height: 48px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); }
+.dcaPanelHead strong { font-size: 13px; font-weight: 680; }
+.dcaPanelHead span { color: #8290a5; font-size: 9px; }
+.dcaChartScroll { overflow-x: auto; padding-top: 10px; }
 .dcaChart { display: block; width: 100%; min-width: 680px; height: auto; }
 .dcaGrid { stroke: #e5edf5; stroke-width: 1; }
-.dcaDivider { stroke: #dbe5f0; stroke-width: 1; }
-.dcaLowZone { fill: #e7f7f1; }
 .dcaAxis { fill: #7b8aa1; font-size: 9px; }
 .dcaDate { text-anchor: start; }
 .dcaDate.end { text-anchor: end; }
-.dcaLocationLine { fill: none; stroke: #f07b22; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .dcaPriceLine { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.dcaSignalDot { fill: #d9485f; stroke: #fff; stroke-width: 2; }
-.dcaChartEmpty { display: grid; min-height: 260px; place-items: center; color: var(--muted); font-size: 12px; }
+.dcaOpportunityBand { fill: rgba(10, 155, 109, .09); }
+.dcaOpportunityBand.dca2 { fill: rgba(239, 123, 32, .09); }
+.dcaOpportunityDot { fill: #0a9b6d; stroke: #fff; stroke-width: 2; }
+.dcaOpportunityDot.dca2 { fill: #ef7b20; }
+.dcaCurrentDot { fill: var(--blue); stroke: #fff; stroke-width: 2; }
+.dcaCurrentLabel { fill: var(--blue); font-size: 9px; font-weight: 700; text-anchor: end; }
+.dcaChartEmpty { display: grid; min-height: 300px; place-items: center; color: var(--muted); font-size: 12px; }
 
-.dcaBenefits { display: grid; grid-template-columns: 1.15fr 1fr 1fr; border-top: 1px solid var(--line-soft); }
-.dcaBenefits > div { border-right: 1px solid var(--line-soft); padding: 13px 18px; }
-.dcaBenefits > div:last-child { border-right: 0; }
-.dcaBenefits small { display: block; margin-bottom: 5px; color: #8290a5; font-size: 9px; }
-.dcaBenefits strong { font-size: 13px; font-weight: 650; }
-.dcaBenefits p { margin: 4px 0 0; color: #65748c; font-size: 10px; line-height: 1.5; }
+.dcaAdvice { position: relative; display: flex; flex-direction: column; }
+.dcaAdvice > div { padding: 22px; }
+.dcaAdvice > div + div { border-top: 1px solid var(--line-soft); }
+.dcaAdvice strong { display: block; margin-top: 7px; font-size: 15px; line-height: 1.45; }
+.dcaAdvice p { margin: 7px 0 0; color: #617086; font-size: 11px; line-height: 1.55; }
+.dcaAdvice.locked > div { opacity: .3; filter: blur(3px); }
+.dcaAdvice > button { position: absolute; bottom: 22px; left: 22px; border: 0; background: var(--blue); color: #fff; }
+
+.dcaHistory { margin-top: 14px; padding: 0 20px 16px; }
+.dcaTimeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 9px; padding-top: 14px; }
+.dcaTimeline > div { position: relative; border: 1px solid #e0e8f1; border-radius: 6px; padding: 12px 12px 11px 18px; background: #fbfcfe; }
+.dcaTimeline > div::before { position: absolute; top: 16px; left: 8px; width: 5px; height: 5px; border-radius: 50%; background: #0a9b6d; content: ""; }
+.dcaHistory.dca2 .dcaTimeline > div::before { background: #ef7b20; }
+.dcaTimeline time { display: block; font-size: 11px; font-weight: 680; }
+.dcaTimeline span { display: block; margin-top: 4px; color: #8290a5; font-size: 9px; }
 
 .dcaPageState {
   display: flex;
@@ -130,23 +161,26 @@
 }
 .dcaPageState strong { color: var(--text); font-size: 14px; }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .dcaPage { padding: 14px 10px 22px; }
-  .dcaHeader { align-items: flex-start; }
-  .dcaHeader > div:last-child { align-items: flex-end; flex-direction: column; }
-  .dcaSummary { grid-template-columns: 1fr 1fr; }
-  .dcaSummary > div:nth-child(2n) { border-right: 0; }
-  .dcaSummary > div:nth-child(-n + 2) { border-bottom: 1px solid var(--line-soft); }
-  .dcaBenefits { grid-template-columns: 1fr; }
-  .dcaBenefits > div { border-right: 0; border-bottom: 1px solid var(--line-soft); }
-  .dcaBenefits > div:last-child { border-bottom: 0; }
+  .dcaDecision { grid-template-columns: 1fr; }
+  .dcaDecisionMain { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  .dcaContentGrid { grid-template-columns: 1fr; }
+  .dcaAdvice { min-height: 220px; }
 }
 
 @media (max-width: 520px) {
+  .dcaHeader { align-items: flex-start; }
   .dcaHeader h1 { font-size: 18px; }
   .dcaHeader p { max-width: 230px; }
-  .dcaSummary { grid-template-columns: 1fr; }
-  .dcaSummary > div { min-height: 86px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
-  .dcaSummary > div:last-child { border-bottom: 0; }
-  .dcaChartHead { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .dcaHeader > div:last-child { align-items: flex-end; flex-direction: column; }
+  .dcaDecisionMain,
+  .dcaStage { padding: 18px 16px; }
+  .dcaDecisionContent strong { font-size: 20px; }
+  .dcaStageMeta { grid-template-columns: 1fr; gap: 10px; }
+  .dcaStageMeta > div,
+  .dcaStageMeta > div + div { border-left: 0; padding: 0; }
+  .dcaChartPanel { padding-right: 12px; padding-left: 12px; }
+  .dcaPanelHead { align-items: flex-start; justify-content: center; flex-direction: column; gap: 4px; }
+  .dcaTimeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

@@ -259,9 +259,13 @@ try {
   }));
   await page.goto(`${server.rootUrl}?page=dca1`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca1-strategy-page']").isVisible(), "Paid DCA 1 page should be visible");
-  assert((await page.locator(".dcaCurrent strong").innerText()).includes("继续等待"), "DCA 1 should show the current action");
+  assert((await page.locator(".dcaDecisionContent strong").innerText()).includes("继续等待"), "DCA 1 should show the current action");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 1 history chart should be visible");
+  assert(await page.locator(".dcaOpportunityDot").count() === 5, "DCA 1 should place each fixture opportunity on the QQQ chart");
   assert((await page.locator("body").innerText()).includes("收益") === false, "DCA pages should not market historical returns");
+  for (const internalCopy of ["回测", "算法", "阈值", "数据来源", "交易日更新"]) {
+    assert((await page.locator("body").innerText()).includes(internalCopy) === false, `DCA pages should not expose internal copy: ${internalCopy}`);
+  }
   if (process.env.DCA_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.DCA_STRATEGY_SCREENSHOT_PREFIX}-dca1-desktop.png`, fullPage: true });
   await page.goto(`${server.rootUrl}?page=bottom`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca2-strategy-page']").isVisible(), "Legacy bottom route should open DCA 2");
