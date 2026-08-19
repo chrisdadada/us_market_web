@@ -1157,7 +1157,7 @@ function App() {
             {page === "risk" ? <MarketTemperaturePage enabled={pageUnlocked} /> : null}
             {page === "strength" ? <MarketStrengthPage enabled={pageUnlocked} onOpenStock={selectSymbol} /> : null}
             {page === "valuation" ? <IndexValuationPage enabled={pageUnlocked} /> : null}
-            {page === "stocks" && selectedSymbolSource === "tracking" ? <TrackingStockDetailPage symbol={selectedSymbol} rows={trackingRows} onBack={() => navigatePage("tracking")} onStocks={() => navigatePage("stocks")} onOpenStock={selectSymbol} /> : null}
+            {page === "stocks" && selectedSymbolSource === "tracking" ? <TrackingStockDetailPage symbol={selectedSymbol} rows={trackingRows} onBack={() => navigatePage("tracking")} onOpenStock={selectSymbol} /> : null}
             {page === "stocks" && selectedSymbolSource !== "tracking" ? <StocksPage selectedSymbol={selectedSymbol} signalStates={signalStates} bootstrap={bootstrap} onSelectSymbol={selectSymbol} /> : null}
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
             {page === "open" ? <OpenPortfolioPage /> : null}
@@ -1891,19 +1891,38 @@ function keyLevelDistance(levels?: TrackingKeyLevels) {
   return "";
 }
 
-function keyLevelObservation(direction: string, levels?: TrackingKeyLevels) {
-  if (!levels || levels.status !== "ready") return "";
-  const prefix = direction && direction !== "--" ? `趋势策略方向为${direction}。` : "";
+function keyLevelPositionSummary(levels?: TrackingKeyLevels) {
   const messages: Record<string, string> = {
-    at_support: "价格进入支撑区，先观察该区域能否守住。",
-    near_support: "价格靠近支撑区，先观察回落时是否出现承接。",
-    at_resistance: "价格进入阻力区，先观察能否有效突破。",
-    near_resistance: "价格靠近阻力区，先观察突破力度和回踩表现。",
-    above_resistance: "价格已越过近期阻力，关注回踩后能否站稳。",
-    below_support: "价格已跌破近期支撑，先观察能否收回失守区域。",
-    middle: "价格位于支撑与阻力之间，等待接近关键区域后再观察。"
+    at_support: "先看支撑区能否守住",
+    near_support: "先看支撑区能否守住",
+    at_resistance: "先看阻力区能否突破",
+    near_resistance: "先看阻力区能否突破",
+    above_resistance: "关注突破后能否站稳",
+    below_support: "先看能否收回支撑区",
+    middle: "价格位于支撑与阻力之间"
   };
-  return `${prefix}${messages[levels.position || "middle"] || messages.middle}`;
+  return messages[levels?.position || "middle"] || messages.middle;
+}
+
+function keyLevelNextFocus(levels?: TrackingKeyLevels) {
+  const support = levels?.support;
+  const resistance = levels?.resistance;
+  if (levels?.position === "at_support" || levels?.position === "near_support") {
+    return support?.lower ? `守住 ${priceDisplay(support.lower)}，再看反弹力度` : "观察支撑区能否守住";
+  }
+  if (levels?.position === "at_resistance" || levels?.position === "near_resistance") {
+    return resistance?.upper ? `突破 ${priceDisplay(resistance.upper)}，再看能否站稳` : "观察阻力区能否突破";
+  }
+  if (levels?.position === "above_resistance") {
+    return resistance?.upper ? `回踩 ${priceDisplay(resistance.upper)} 附近，关注能否站稳` : "关注突破后的回踩表现";
+  }
+  if (levels?.position === "below_support") {
+    return support?.lower ? `先看能否收回 ${priceDisplay(support.lower)}` : "先看能否收回支撑区";
+  }
+  if (support?.center && resistance?.center) {
+    return `关注 ${priceDisplay(support.center)} 支撑与 ${priceDisplay(resistance.center)} 阻力`;
+  }
+  return "等待接近关键位置";
 }
 
 function TrackingKeyLevelsCell({
@@ -1951,10 +1970,10 @@ function TrackingPriceChart({
   levels: TrackingKeyLevels;
 }) {
   const visible = points.filter((point) => Number.isFinite(point.close)).slice(-60);
-  if (visible.length < 2) return <div className="trackingLevelEmpty compact">暂无走势数据</div>;
+  if (visible.length < 2) return <div className="trackingDetailEmpty compact">暂无走势数据</div>;
   const width = 760;
   const height = 280;
-  const margin = { top: 18, right: 70, bottom: 34, left: 18 };
+  const margin = { top: 18, right: 76, bottom: 34, left: 52 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const levelValues = [levels.support?.lower, levels.support?.upper, levels.resistance?.lower, levels.resistance?.upper]
@@ -1980,14 +1999,21 @@ function TrackingPriceChart({
     );
   };
   const dateIndexes = [0, Math.floor((visible.length - 1) / 2), visible.length - 1];
+  const priceTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => max - (max - min) * ratio);
   const last = visible.at(-1)!;
 
   return (
     <div className="trackingPriceChart">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="近60个交易日价格走势与关键点位">
-        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+        {priceTicks.map((value, index) => {
+          const ratio = index / (priceTicks.length - 1);
           const gridY = margin.top + ratio * plotHeight;
-          return <line key={ratio} className="chartGridLine" x1={margin.left} x2={width - margin.right} y1={gridY} y2={gridY} />;
+          return (
+            <g key={value}>
+              <line className="chartGridLine" x1={margin.left} x2={width - margin.right} y1={gridY} y2={gridY} />
+              <text className="chartPriceLabel" x={margin.left - 8} y={gridY + 4} textAnchor="end">{priceDisplay(value)}</text>
+            </g>
+          );
         })}
         {zone(levels.resistance, "resistanceZone", "阻力区")}
         {zone(levels.support, "supportZone", "支撑区")}
@@ -2180,13 +2206,11 @@ function TrackingStockDetailPage({
   symbol,
   rows,
   onBack,
-  onStocks,
   onOpenStock
 }: {
   symbol: string;
   rows: ReturnType<typeof mergedTrackingRows>;
   onBack: () => void;
-  onStocks: () => void;
   onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void;
 }) {
   const [detail, setDetail] = useState<SymbolDetailPayload | null>(null);
@@ -2195,35 +2219,21 @@ function TrackingStockDetailPage({
   const row = rows.find((item) => item.symbol === activeSymbol) || rows[0] || null;
   const profile = detail?.profile;
   const displayName = profile?.company || profile?.chineseName || row?.name || row?.symbol || "--";
-  const direction = trackingDirection(row || undefined);
   const detailDay = detail?.marketRows.find((item) => item.board === "day");
   const keyLevels = detailDay?.keyLevels || row?.keyLevels;
   const priceHistory = detailDay?.priceHistory || row?.priceHistory || [];
-  const levelRows: Array<[string, KeyLevel | null | undefined]> = [
-    ["主要支撑", keyLevels?.support],
-    ["次级支撑", keyLevels?.secondarySupport],
-    ["主要阻力", keyLevels?.resistance]
-  ];
   const sameList = rows
     .filter((item) => item.symbol !== activeSymbol)
-    .slice(0, 5);
-  const rankBy = (score: (item: typeof rows[number]) => number) => {
-    const ranked = rows
-      .map((item) => ({ symbol: item.symbol, value: score(item) }))
-      .filter((item) => Number.isFinite(item.value))
-      .sort((a, b) => b.value - a.value);
-    const index = ranked.findIndex((item) => item.symbol === activeSymbol);
-    return index >= 0 ? index + 1 : null;
-  };
-  const rankRows: Array<[string, string | null | undefined, number | null]> = [
-    ["近1月强度", row?.oneMonth, rankBy((item) => numericPercent(item.oneMonth))],
-    ["近1周表现", row?.oneWeek, rankBy((item) => numericPercent(item.oneWeek))],
-    ["成交额", row?.liquidity, rankBy((item) => moneyNumber(item.liquidity))]
-  ];
+    .slice(0, 3);
+  const currentPrice = row?.currentPrice ?? keyLevels?.currentPrice ?? detailDay?.price ?? profile?.price;
+  const dollarVolume = row?.liquidity || compactMoney(detailDay?.dollarVolume ?? profile?.dollarVolume);
+  const volumeRatio = row?.volume || ratioDisplay(detailDay?.volumeRatio ?? profile?.volumeRatio);
+  const yearChange = detailDay?.changeYtd ?? profile?.ytdChange;
 
   useEffect(() => {
     if (!activeSymbol) return;
     let cancelled = false;
+    setDetail(null);
     setLoading(true);
     api.symbolDetail(activeSymbol)
       .then((payload) => {
@@ -2240,122 +2250,75 @@ function TrackingStockDetailPage({
     };
   }, [activeSymbol]);
 
-  if (!row && loading) return <div className="trackingStockDetailPage"><div className="loading" /></div>;
-  if (!row) return <div className="trackingStockDetailPage"><div className="loading">--</div></div>;
+  if (!row && loading) return <div className="trackingDetailPage"><div className="loading" /></div>;
+  if (!row) return <div className="trackingDetailPage"><div className="loading">--</div></div>;
 
   return (
-    <div className="trackingStockDetailPage">
-      <section className="trackingStockHero">
-        <button type="button" className="detailBackLink" onClick={onBack}>返回{pageLabels.tracking}</button>
-        <div className="trackingStockHead">
-          <div>
-            <h1>{row.symbol}</h1>
-            <p>{displayName}</p>
-          </div>
-          <div className="trackingStockBadges">
-            <SignalDirectionBadge label={direction} />
-            <span>信号发出 {row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</span>
-            <AddToWatchlistButton symbol={activeSymbol} />
-          </div>
+    <div className="trackingDetailPage">
+      <button type="button" className="trackingDetailBack" onClick={onBack}>返回{pageLabels.tracking}</button>
+
+      <section className="trackingDetailQuote">
+        <div className="trackingDetailIdentity">
+          <h1>{row.symbol}</h1>
+          <p>{displayName}</p>
         </div>
-        <div className="trackingStockMetrics">
-          <div><span>近1天</span><strong className={signedClass(row.oneDay)}>{signed(row.oneDay)}</strong></div>
-          <div><span>近1周</span><strong className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</strong></div>
-          <div><span>近1月</span><strong className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</strong></div>
-          <div><span>成交额</span><strong>{row.liquidity || compactMoney(profile?.dollarVolume)}</strong></div>
-          <div><span>市值</span><strong>{marketCapDisplay(profile || row)}</strong></div>
-        </div>
-        <div className="trackingStockActions">
-          <button type="button" onClick={onStocks}>查看{pageLabels.stocks}</button>
-        </div>
+        <div className="trackingDetailPrice"><span>现价</span><strong>{priceDisplay(currentPrice)}</strong></div>
+        <div><span>近1天</span><strong className={signedClass(row.oneDay)}>{signed(row.oneDay)}</strong></div>
+        <div><span>近1周</span><strong className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</strong></div>
+        <div><span>近1月</span><strong className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</strong></div>
+        <div><span>成交额</span><strong>{dollarVolume || "--"}</strong></div>
+        <div><span>成交倍数</span><strong>{volumeRatio || "--"}</strong></div>
+        <AddToWatchlistButton symbol={activeSymbol} />
       </section>
 
-      <section className="trackingKeyLevelsPanel">
-        <div className="trackingLevelPanelHead">
-          <div>
-            <h2>关键点位 <InfoTip text={keyLevelsHelp} focusable /></h2>
-            <span>{keyLevels?.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</span>
-          </div>
-          {keyLevels?.status === "ready" ? (
-            <strong className={`trackingPositionTag ${keyLevels.position || "middle"}`}>
-              {keyLevels.positionText || "区间中部"}{keyLevelDistance(keyLevels)}
-            </strong>
-          ) : null}
-        </div>
-        {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance) ? (
-          <>
-            <div className="trackingLevelWorkspace">
-              <div className="trackingChartColumn">
-                <TrackingPriceChart points={priceHistory} levels={keyLevels} />
-                <div className="trackingObservation">
-                  <span>观察提示</span>
-                  <strong>{keyLevelObservation(direction, keyLevels)}</strong>
-                </div>
-              </div>
-              <aside className="trackingLevelFacts">
-                <section>
-                  <h3>点位依据</h3>
-                  {levelRows.map(([label, level]) => (
-                    <div className="trackingLevelFact" key={label}>
-                      <span>{label}</span>
-                      {level ? (
-                        <>
-                          <strong>{keyLevelZone(level)}</strong>
-                          <em className={keyLevelStrengthClass(level)}>{level.strengthText || "--"}</em>
-                          <small>{level.basis || "--"}{level.lastConfirmedAt ? ` · ${formatDate(level.lastConfirmedAt)}` : ""}</small>
-                        </>
-                      ) : <strong>--</strong>}
-                    </div>
-                  ))}
-                </section>
-                <section>
-                  <h3>趋势参考</h3>
-                  <dl>
-                    <div><dt>趋势状态</dt><dd>{keyLevels.trendText || "--"}</dd></div>
-                    <div><dt>MA20</dt><dd>{priceDisplay(keyLevels.ma20)}</dd></div>
-                    <div><dt>MA60</dt><dd>{priceDisplay(keyLevels.ma60)}</dd></div>
-                    <div><dt>ATR14</dt><dd>{priceDisplay(keyLevels.atr14)}{Number.isFinite(keyLevels.atrPct) ? ` · ${keyLevels.atrPct}%` : ""}</dd></div>
-                  </dl>
-                </section>
-              </aside>
+      {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance) ? (
+        <section className="trackingDetailMain">
+          <article className="trackingDetailChartPanel">
+            <header><strong>价格与关键点位</strong><time>{keyLevels.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</time></header>
+            <TrackingPriceChart points={priceHistory} levels={keyLevels} />
+            <div className="trackingDetailLegend"><span><i className="price" />价格</span><span><i className="support" />支撑区</span><span><i className="resistance" />阻力区</span></div>
+          </article>
+          <aside className={`trackingDetailDecision ${keyLevels.position || "middle"}`}>
+            <div className="trackingDetailPosition">
+              <span>当前位置</span>
+              <h2>{keyLevels.positionText || "区间中部"}</h2>
+              <p>{keyLevelPositionSummary(keyLevels)}</p>
             </div>
-          </>
-        ) : (
-          <div className="trackingLevelEmpty">
-            <strong>{keyLevels?.status === "insufficient" ? "暂时无法计算" : "关键点位暂不可用"}</strong>
-          </div>
-        )}
-      </section>
-
-      <div className="trackingStockGrid">
-        <section className="trackingStockPanel">
-          <h2>榜单位置</h2>
-          <table>
-            <thead><tr><th>维度</th><th>位置</th><th>当前值</th></tr></thead>
-            <tbody>
-              {rankRows.map(([label, value, rank]) => (
-                <tr key={label}>
-                  <td>{label}</td>
-                  <td><b>{rank ? `第 ${rank}` : "--"}</b><span><i style={{ width: `${rank ? Math.max(10, 100 - (rank - 1) * 6) : 0}%` }} /></span></td>
-                  <td className={label === "成交额" ? "" : signedClass(value)}>{label === "成交额" ? value || "--" : signed(value)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="trackingDetailLevel"><span>支撑区</span><strong>{keyLevelZone(keyLevels.support)}</strong><em className={keyLevelStrengthClass(keyLevels.support)}>{keyLevels.support?.strengthText || "--"}</em></div>
+            <div className="trackingDetailLevel"><span>阻力区</span><strong>{keyLevelZone(keyLevels.resistance)}</strong><em className={keyLevelStrengthClass(keyLevels.resistance)}>{keyLevels.resistance?.strengthText || "--"}</em></div>
+            <div className="trackingDetailNext"><span>接下来关注</span><strong>{keyLevelNextFocus(keyLevels)}</strong></div>
+          </aside>
         </section>
-        <section className="trackingStockPanel">
-          <h2>同榜对比</h2>
-          <div className="trackingPeerList">
+      ) : (
+        <section className="trackingDetailEmpty">
+          <strong>{keyLevels?.status === "insufficient" ? "暂时无法计算" : "关键点位暂不可用"}</strong>
+        </section>
+      )}
+
+      <section className="trackingDetailBottom">
+        <article className="trackingDetailPanel">
+          <header><strong>当前表现</strong><span>趋势：{keyLevels?.trendText || "--"}</span></header>
+          <div className="trackingDetailFacts">
+            <div><span>MA20</span><strong>{priceDisplay(keyLevels?.ma20)}</strong></div>
+            <div><span>MA60</span><strong>{priceDisplay(keyLevels?.ma60)}</strong></div>
+            <div><span>ATR14</span><strong>{priceDisplay(keyLevels?.atr14)}</strong></div>
+            <div><span>今年以来</span><strong className={signedClass(yearChange)}>{signed(yearChange)}</strong></div>
+          </div>
+        </article>
+        <article className="trackingDetailPanel">
+          <header><strong>同榜对比</strong><span>近1月</span></header>
+          <div className="trackingDetailPeers">
             {sameList.map((item) => (
-                <button type="button" key={item.symbol} onClick={() => onOpenStock(item.symbol, "tracking")}>
+              <button type="button" key={item.symbol} onClick={() => onOpenStock(item.symbol, "tracking")}>
                 <strong>{item.symbol}</strong>
                 <small>{item.name && item.name !== item.symbol ? item.name : trackingSymbolNames[item.symbol] || item.symbol}</small>
-                <span className={signedClass(item.oneMonth)}>{signed(item.oneMonth)}</span>
+                <b className={signedClass(item.oneMonth)}>{signed(item.oneMonth)}</b>
+                <span>{trackingDirection(item)}</span>
               </button>
             ))}
           </div>
-        </section>
-      </div>
+        </article>
+      </section>
     </div>
   );
 }

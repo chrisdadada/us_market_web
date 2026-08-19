@@ -4144,241 +4144,6 @@ body,
   white-space: nowrap;
 }
 
-/* Tracking detail: confirmed compact white UI, existing data only. */
-.trackingStockDetailPage {
-  display: grid;
-  gap: 16px;
-  padding: 24px 28px 42px;
-}
-
-.trackingStockHero,
-.trackingStockPanel {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(29, 43, 64, 0.05);
-}
-
-.trackingStockHero {
-  overflow: hidden;
-  padding: 0;
-}
-
-.detailBackLink {
-  margin: 0 0 14px;
-  border: 0;
-  background: transparent;
-  color: #1677d2;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.trackingStockHead {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px;
-  align-items: start;
-  margin: 0;
-  border-bottom: 1px solid var(--line);
-  padding: 22px 24px 18px;
-}
-
-.trackingStockHead h1 {
-  margin: 0 0 6px;
-  color: #172033;
-  font-size: 26px;
-  line-height: 1.1;
-  font-weight: 640;
-}
-
-.trackingStockHead p {
-  max-width: 620px;
-  overflow: hidden;
-  margin: 0;
-  color: #708096;
-  font-size: 14px;
-  font-weight: 400;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.trackingStockBadges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.trackingStockBadges > span:not(.signalDirectionBadge) {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  border: 1px solid #dce5ef;
-  border-radius: 999px;
-  background: #f3f6fa;
-  color: #748398;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.trackingStockMetrics {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-}
-
-.trackingStockMetrics div {
-  min-height: 76px;
-  border-right: 1px solid var(--line);
-  background: #fff;
-  padding: 14px 18px;
-}
-
-.trackingStockMetrics div:last-child {
-  border-right: 0;
-}
-
-.trackingStockMetrics span {
-  margin-bottom: 8px;
-  color: #708096;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.trackingStockMetrics strong {
-  color: #172033;
-  font-size: 20px;
-  line-height: 1.1;
-  font-weight: 600;
-}
-
-.trackingStockActions {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0;
-  border-top: 1px solid var(--line);
-  background: #fbfdff;
-  padding: 14px 20px;
-}
-
-.trackingStockActions button {
-  min-height: 34px;
-  border: 1px solid #cbd8e7;
-  border-radius: 9px;
-  background: #fff;
-  color: #526279;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.trackingStockGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr);
-  gap: 18px;
-}
-
-.trackingStockPanel {
-  overflow: hidden;
-}
-
-.trackingStockPanel h2 {
-  margin: 0;
-  border-bottom: 1px solid var(--line);
-  padding: 15px 18px;
-  color: #172033;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.trackingStockPanel table {
-  table-layout: fixed;
-}
-
-.trackingStockPanel th,
-.trackingStockPanel td {
-  padding: 13px 18px;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.trackingStockPanel th {
-  background: #f8fbff;
-  color: #708096;
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.trackingStockPanel td:nth-child(2) {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  gap: 10px;
-}
-
-.trackingStockPanel td:nth-child(2) b {
-  font-weight: 560;
-}
-
-.trackingStockPanel td:nth-child(2) span {
-  height: 6px;
-  background: #e8edf4;
-}
-
-.trackingPeerList {
-  padding: 0;
-}
-
-.trackingPeerList button {
-  display: grid;
-  grid-template-columns: 80px minmax(0, 1fr) 80px;
-  gap: 12px;
-  align-items: center;
-  min-height: 54px;
-  border-bottom: 1px solid var(--line);
-  padding: 0 18px;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.trackingPeerList strong {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.trackingPeerList small {
-  overflow: hidden;
-  color: #708096;
-  font-size: 13px;
-  font-weight: 400;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.trackingPeerList span {
-  text-align: right;
-  font-weight: 560;
-}
-
-@media (max-width: 980px) {
-  .trackingStockHead,
-  .trackingStockGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .trackingStockBadges {
-    justify-content: flex-start;
-  }
-
-  .trackingStockMetrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 /* Auth modal: compact white override. */
 .authOverlay {
   position: fixed;
@@ -5977,60 +5742,9 @@ body,
   margin-top: 14px;
 }
 
-/* Tracking final cleanup: denser table and lighter detail panels. */
+/* Tracking final cleanup: denser table. */
 .trackingPage {
   padding: 22px 30px 44px;
-}
-
-.trackingStockDetailPage {
-  gap: 14px;
-  padding: 22px 30px 44px;
-}
-
-.trackingStockHero,
-.trackingStockPanel {
-  border-radius: 14px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, .05);
-}
-
-.trackingStockHead {
-  padding: 18px 22px 16px;
-}
-
-.trackingStockHead h1 {
-  font-size: 24px;
-  font-weight: 620;
-}
-
-.trackingStockMetrics div {
-  min-height: 68px;
-  padding: 12px 16px;
-}
-
-.trackingStockMetrics strong {
-  font-size: 18px;
-  font-weight: 620;
-}
-
-.trackingStockGrid {
-  gap: 14px;
-}
-
-.trackingStockPanel h2 {
-  padding: 13px 16px;
-  font-size: 14px;
-  font-weight: 620;
-}
-
-.trackingStockPanel th,
-.trackingStockPanel td {
-  padding: 11px 16px;
-  font-size: 13px;
-}
-
-.trackingPeerList button {
-  min-height: 50px;
-  padding: 0 16px;
 }
 
 /* Home final cleanup: less hero weight, denser lower panels. */
@@ -6391,7 +6105,7 @@ body,
 .opinionProductPage,
 .opinionReaderPage,
 .trackingPage,
-.trackingStockDetailPage,
+.trackingDetailPage,
 .calendarPage,
 .stocksPage,
 .openPortfolioPage {
@@ -6648,210 +6362,6 @@ body,
   font-weight: 560;
   color: #697891;
 }
-/* Tracking detail + market funds polish pass. */
-.trackingStockDetailPage {
-  padding: 24px 28px 48px;
-  gap: 14px;
-  background: #f4f7fb;
-}
-
-.trackingStockHero,
-.trackingStockPanel {
-  border: 1px solid #dfe7f2;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
-}
-
-.trackingStockHero {
-  padding: 18px 20px;
-}
-
-.detailBackLink {
-  height: 32px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #1677ff;
-  font-size: 13px;
-  font-weight: 560;
-}
-
-.trackingStockHead {
-  margin-top: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #e5ecf5;
-}
-
-.trackingStockHead h1 {
-  font-size: 34px;
-  line-height: 1.1;
-  font-weight: 560;
-  color: #111827;
-}
-
-.trackingStockHead p {
-  margin-top: 4px;
-  font-size: 14px;
-  font-weight: 420;
-  color: #6b7a90;
-}
-
-.trackingStockBadges {
-  gap: 8px;
-}
-
-.trackingStockBadges > span:not(.signalDirectionBadge) {
-  min-height: 30px;
-  border-radius: 999px;
-  padding: 0 11px;
-  background: #f6f8fb;
-  border: 1px solid #dfe7f2;
-  color: #697891;
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.trackingStockMetrics {
-  margin-top: 14px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  border: 1px solid #e5ecf5;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.trackingStockMetrics div {
-  min-height: 68px;
-  padding: 11px 13px;
-  border-right: 1px solid #e5ecf5;
-  background: #fbfdff;
-}
-
-.trackingStockMetrics span {
-  font-size: 12px;
-  font-weight: 560;
-  color: #718096;
-}
-
-.trackingStockMetrics strong {
-  margin-top: 7px;
-  font-size: 17px;
-  font-weight: 520;
-}
-
-.trackingStockActions {
-  margin-top: 12px;
-  justify-content: flex-end;
-}
-
-.trackingStockActions button {
-  height: 34px;
-  border-radius: 9px;
-  background: #fff;
-  border: 1px solid #d8e2ef;
-  color: #1677ff;
-  font-size: 13px;
-  font-weight: 560;
-}
-
-.trackingStockGrid {
-  grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr);
-  gap: 14px;
-}
-
-.trackingStockPanel {
-  padding: 0;
-  overflow: hidden;
-}
-
-.trackingStockPanel h2 {
-  margin: 0;
-  min-height: 42px;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid #e5ecf5;
-  font-size: 14px;
-  font-weight: 520;
-  color: #172033;
-}
-
-.trackingStockPanel table {
-  table-layout: fixed;
-}
-
-.trackingStockPanel th,
-.trackingStockPanel td {
-  padding: 11px 14px;
-  border-bottom: 1px solid #edf2f7;
-  font-size: 13px;
-}
-
-.trackingStockPanel th {
-  background: #f8fafc;
-  color: #697891;
-  font-weight: 560;
-}
-
-.trackingStockPanel td:nth-child(2) {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-}
-
-.trackingStockPanel td:nth-child(2) b {
-  font-size: 13px;
-  font-weight: 520;
-}
-
-.trackingStockPanel td:nth-child(2) span {
-  height: 6px;
-  border-radius: 999px;
-  background: #e8eef6;
-}
-
-.trackingPeerList {
-  display: grid;
-}
-
-.trackingPeerList button {
-  display: grid;
-  grid-template-columns: 74px minmax(0, 1fr) 82px;
-  gap: 12px;
-  align-items: center;
-  min-height: 52px;
-  padding: 0 16px;
-  border: 0;
-  border-bottom: 1px solid #edf2f7;
-  background: #fff;
-  color: #172033;
-  text-align: left;
-}
-
-.trackingPeerList button:hover {
-  background: #f7fbff;
-}
-
-.trackingPeerList strong {
-  font-size: 14px;
-  font-weight: 520;
-}
-
-.trackingPeerList small {
-  overflow: hidden;
-  color: #6b7a90;
-  font-size: 12px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.trackingPeerList span {
-  text-align: right;
-  font-size: 13px;
-  font-weight: 520;
-}
-
 .marketFundsHero {
   margin-bottom: 14px;
 }
@@ -10793,114 +10303,6 @@ body,
   font-weight: 520;
 }
 
-/* Tracking detail final pass: compact terminal-like detail. */
-.trackingStockDetailPage {
-  gap: 12px;
-  padding: 20px 28px 44px;
-}
-
-.trackingStockHero,
-.trackingStockPanel {
-  border-radius: 14px;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, .045);
-}
-
-.trackingStockHero {
-  padding: 14px 16px;
-}
-
-.trackingStockHead {
-  margin-top: 8px;
-  padding-bottom: 12px;
-}
-
-.trackingStockHead h1 {
-  font-size: 28px;
-  font-weight: 640;
-  letter-spacing: 0;
-}
-
-.trackingStockHead p {
-  max-width: 520px;
-  font-size: 13px;
-}
-
-.trackingStockBadges > span:not(.signalDirectionBadge) {
-  min-height: 26px;
-  padding: 0 9px;
-  font-size: 12px;
-}
-
-.trackingStockMetrics {
-  margin-top: 12px;
-}
-
-.trackingStockMetrics div {
-  min-height: 58px;
-  padding: 9px 12px;
-}
-
-.trackingStockMetrics span {
-  margin-bottom: 5px;
-  font-size: 12px;
-}
-
-.trackingStockMetrics strong {
-  margin-top: 4px;
-  font-size: 15px;
-  font-weight: 620;
-}
-
-.trackingStockActions {
-  margin-top: 10px;
-}
-
-.trackingStockActions button {
-  height: 32px;
-  min-height: 32px;
-}
-
-.trackingStockGrid {
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
-  gap: 12px;
-}
-
-.trackingStockPanel h2 {
-  min-height: 38px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.trackingStockPanel th,
-.trackingStockPanel td {
-  padding: 9px 14px;
-  font-size: 12.5px;
-}
-
-.trackingStockPanel td:nth-child(2) {
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 8px;
-}
-
-.trackingPeerList button {
-  grid-template-columns: 66px minmax(0, 1fr) 76px;
-  min-height: 46px;
-  padding: 0 14px;
-}
-
-.trackingPeerList strong {
-  font-size: 13px;
-}
-
-.trackingPeerList small {
-  font-size: 12px;
-}
-
-.trackingPeerList span {
-  font-size: 12.5px;
-}
-
 /* Market page final pass: compact, readable, no extra copy. */
 
 /* UI QA sweep: tighten columns that were overflowing in the white layout. */
@@ -12647,75 +12049,153 @@ body,
   color: #a56b08;
 }
 
-.trackingKeyLevelsPanel {
+.trackingDetailPage {
+  display: grid;
+  gap: 12px;
+  padding: 20px 28px 44px;
+  background: #f4f7fb;
+}
+
+.trackingDetailBack {
+  width: max-content;
+  border: 0;
+  background: transparent;
+  color: #1677d2;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.trackingDetailQuote {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) repeat(6, minmax(76px, .65fr)) auto;
+  align-items: stretch;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid #dfe7f2;
+  border-radius: 10px;
   background: #fff;
   box-shadow: 0 8px 18px rgba(15, 23, 42, .045);
 }
 
-.trackingLevelPanelHead {
-  display: flex;
-  min-height: 48px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid var(--line);
-  padding: 0 16px;
+.trackingDetailQuote > div {
+  min-width: 0;
+  min-height: 72px;
+  border-right: 1px solid #edf2f7;
+  padding: 13px 14px;
 }
 
-.trackingLevelPanelHead > div {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+.trackingDetailQuote span {
+  display: block;
+  color: #8290a3;
+  font-size: 11px;
 }
 
-.trackingLevelPanelHead h2 {
-  display: flex;
-  align-items: center;
+.trackingDetailQuote strong {
+  display: block;
+  margin-top: 6px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.trackingDetailIdentity h1 {
   margin: 0;
   color: #172033;
-  font-size: 15px;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.trackingDetailIdentity p {
+  overflow: hidden;
+  margin: 5px 0 0;
+  color: #718096;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trackingDetailPrice strong {
+  font-size: 18px;
+}
+
+.trackingDetailQuote .stockPreviewWatchlist {
+  position: relative;
+  display: grid;
+  min-width: 98px;
+  place-items: center;
+  padding: 10px;
+}
+
+.trackingDetailQuote .stockPreviewWatchlist button {
+  min-height: 32px;
+  border: 1px solid #cfe0f5;
+  border-radius: 7px;
+  background: #fff;
+  color: #1677d2;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.trackingDetailQuote .stockPreviewWatchlist button:disabled {
+  color: #718096;
+  cursor: default;
+}
+
+.trackingDetailQuote .stockPreviewWatchlist em {
+  position: absolute;
+  right: 8px;
+  bottom: 3px;
+  color: #cf3348;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.trackingDetailMain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 236px;
+  overflow: hidden;
+  border: 1px solid #dfe7f2;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .045);
+}
+
+.trackingDetailChartPanel {
+  min-width: 0;
+  border-right: 1px solid #edf2f7;
+}
+
+.trackingDetailChartPanel > header,
+.trackingDetailPanel > header {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid #edf2f7;
+  padding: 0 14px;
+}
+
+.trackingDetailChartPanel > header strong,
+.trackingDetailPanel > header strong {
+  color: #172033;
+  font-size: 13px;
   font-weight: 620;
 }
 
-.trackingLevelPanelHead span {
+.trackingDetailChartPanel > header time,
+.trackingDetailPanel > header span {
   color: #8290a3;
-  font-size: 11.5px;
-}
-
-.trackingPositionTag {
-  color: #526176;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.trackingPositionTag.at_support,
-.trackingPositionTag.near_support,
-.trackingPositionTag.above_resistance {
-  color: #07865f;
-}
-
-.trackingPositionTag.at_resistance,
-.trackingPositionTag.near_resistance,
-.trackingPositionTag.below_support {
-  color: #cf3348;
-}
-
-.trackingLevelWorkspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(310px, .55fr);
-}
-
-.trackingChartColumn {
-  min-width: 0;
-  border-right: 1px solid var(--line);
+  font-size: 11px;
 }
 
 .trackingPriceChart {
   width: 100%;
-  padding: 14px 14px 4px;
+  padding: 12px 14px 2px;
 }
 
 .trackingPriceChart svg {
@@ -12727,6 +12207,12 @@ body,
 .chartGridLine {
   stroke: #edf2f7;
   stroke-width: 1;
+}
+
+.chartPriceLabel {
+  fill: #8794a6;
+  font-size: 10px;
+  font-weight: 400;
 }
 
 .resistanceZone rect {
@@ -12782,110 +12268,197 @@ body,
   font-weight: 400;
 }
 
-.trackingObservation {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-  min-height: 54px;
-  border-top: 1px solid var(--line);
-  background: #fbfdff;
-  padding: 11px 16px;
-}
-
-.trackingObservation span {
+.trackingDetailLegend {
+  display: flex;
+  gap: 16px;
+  min-height: 38px;
+  align-items: center;
+  border-top: 1px solid #edf2f7;
+  padding: 0 14px;
   color: #718096;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
 }
 
-.trackingObservation strong {
-  color: #334155;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.55;
+.trackingDetailLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.trackingLevelFacts {
+.trackingDetailLegend i {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.trackingDetailLegend .price {
+  background: #1677d2;
+}
+
+.trackingDetailLegend .support {
+  background: #18a276;
+}
+
+.trackingDetailLegend .resistance {
+  background: #d84656;
+}
+
+.trackingDetailDecision {
   min-width: 0;
 }
 
-.trackingLevelFacts > section + section {
-  border-top: 1px solid var(--line);
+.trackingDetailPosition {
+  border-bottom: 1px solid #edf2f7;
+  padding: 18px 16px;
 }
 
-.trackingLevelFacts h3 {
-  min-height: 38px;
+.trackingDetailPosition span,
+.trackingDetailLevel span,
+.trackingDetailNext span,
+.trackingDetailFacts span {
+  color: #8290a3;
+  font-size: 11px;
+}
+
+.trackingDetailPosition h2 {
+  margin: 7px 0 4px;
+  color: #526176;
+  font-size: 21px;
+  font-weight: 650;
+}
+
+.trackingDetailDecision.at_support .trackingDetailPosition h2,
+.trackingDetailDecision.near_support .trackingDetailPosition h2,
+.trackingDetailDecision.above_resistance .trackingDetailPosition h2 {
+  color: #07865f;
+}
+
+.trackingDetailDecision.at_resistance .trackingDetailPosition h2,
+.trackingDetailDecision.near_resistance .trackingDetailPosition h2,
+.trackingDetailDecision.below_support .trackingDetailPosition h2 {
+  color: #cf3348;
+}
+
+.trackingDetailPosition p {
   margin: 0;
-  border-bottom: 1px solid var(--line-soft);
-  padding: 11px 14px 0;
   color: #526176;
   font-size: 12px;
-  font-weight: 600;
 }
 
-.trackingLevelFact {
+.trackingDetailLevel {
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr) auto;
-  gap: 4px 8px;
-  align-items: center;
-  border-bottom: 1px solid var(--line-soft);
-  padding: 9px 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 8px;
+  border-bottom: 1px solid #edf2f7;
+  padding: 12px 16px;
 }
 
-.trackingLevelFact:last-child {
+.trackingDetailLevel strong {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.trackingDetailLevel em {
+  align-self: center;
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
+.trackingDetailNext {
+  background: #f8fafc;
+  padding: 13px 16px;
+}
+
+.trackingDetailNext strong {
+  display: block;
+  margin-top: 5px;
+  color: #172033;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.trackingDetailBottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.trackingDetailPanel {
+  overflow: hidden;
+  border: 1px solid #dfe7f2;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .045);
+}
+
+.trackingDetailFacts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.trackingDetailFacts > div {
+  min-width: 0;
+  border-right: 1px solid #edf2f7;
+  padding: 13px 14px;
+}
+
+.trackingDetailFacts > div:last-child {
+  border-right: 0;
+}
+
+.trackingDetailFacts strong {
+  display: block;
+  margin-top: 5px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.trackingDetailPeers button {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 72px 56px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 39px;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  background: #fff;
+  color: #172033;
+  padding: 0 14px;
+  text-align: left;
+}
+
+.trackingDetailPeers button:last-child {
   border-bottom: 0;
 }
 
-.trackingLevelFact > span {
-  color: #718096;
-  font-size: 11.5px;
+.trackingDetailPeers button:hover {
+  background: #f7fbff;
 }
 
-.trackingLevelFact > strong {
-  color: #263244;
+.trackingDetailPeers strong,
+.trackingDetailPeers b {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 620;
 }
 
-.trackingLevelFact > small {
-  grid-column: 2 / -1;
+.trackingDetailPeers small,
+.trackingDetailPeers span {
   overflow: hidden;
-  color: #8794a6;
-  font-size: 10.5px;
+  color: #718096;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.trackingLevelFacts dl {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin: 0;
+.trackingDetailPeers b,
+.trackingDetailPeers span {
+  text-align: right;
 }
 
-.trackingLevelFacts dl > div {
-  border-right: 1px solid var(--line-soft);
-  border-bottom: 1px solid var(--line-soft);
-  padding: 9px 14px;
-}
-
-.trackingLevelFacts dl > div:nth-child(even) {
-  border-right: 0;
-}
-
-.trackingLevelFacts dt {
-  color: #8794a6;
-  font-size: 10.5px;
-}
-
-.trackingLevelFacts dd {
-  margin: 4px 0 0;
-  color: #263244;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.trackingLevelEmpty {
+.trackingDetailEmpty {
   display: grid;
   min-height: 190px;
   align-content: center;
@@ -12894,63 +12467,113 @@ body,
   color: #718096;
 }
 
-.trackingLevelEmpty strong {
+.trackingDetailEmpty strong {
   color: #526176;
   font-size: 14px;
   font-weight: 600;
 }
 
-.trackingLevelEmpty span {
-  font-size: 12px;
-}
-
-.trackingLevelEmpty.compact {
+.trackingDetailEmpty.compact {
   min-height: 250px;
   font-size: 12px;
 }
 
-@media (max-width: 1100px) {
-  .trackingLevelWorkspace {
-    grid-template-columns: 1fr;
+@media (max-width: 1180px) {
+  .trackingDetailQuote {
+    grid-template-columns: minmax(160px, 1.2fr) repeat(4, minmax(76px, .65fr)) auto;
   }
 
-  .trackingChartColumn {
-    border-right: 0;
-  }
-
-  .trackingLevelFacts {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-top: 1px solid var(--line);
-  }
-
-  .trackingLevelFacts > section + section {
-    border-top: 0;
-    border-left: 1px solid var(--line);
+  .trackingDetailQuote > div:nth-child(6),
+  .trackingDetailQuote > div:nth-child(7) {
+    display: none;
   }
 }
 
-@media (max-width: 720px) {
-  .trackingLevelPanelHead {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 5px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  .trackingLevelFacts {
+@media (max-width: 980px) {
+  .trackingDetailMain {
     grid-template-columns: 1fr;
   }
 
-  .trackingLevelFacts > section + section {
-    border-top: 1px solid var(--line);
-    border-left: 0;
+  .trackingDetailChartPanel {
+    border-right: 0;
   }
 
-  .trackingObservation {
-    grid-template-columns: 1fr;
-    gap: 4px;
+  .trackingDetailDecision {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr 1fr;
+  }
+
+  .trackingDetailPosition {
+    grid-row: 1 / 3;
+    border-right: 1px solid #edf2f7;
+    border-bottom: 0;
+  }
+
+  .trackingDetailNext {
+    grid-column: 2 / 4;
+  }
+}
+
+@media (max-width: 760px) {
+  .trackingDetailPage {
+    padding: 14px 12px 34px;
+  }
+
+  .trackingDetailQuote {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .trackingDetailQuote > div {
+    min-height: 62px;
+  }
+
+  .trackingDetailIdentity {
+    grid-column: 1 / 3;
+  }
+
+  .trackingDetailQuote > div:nth-child(6),
+  .trackingDetailQuote > div:nth-child(7) {
+    display: none;
+  }
+
+  .trackingDetailQuote .stockPreviewWatchlist {
+    grid-column: 1 / 3;
+    min-height: 52px;
+    border-top: 1px solid #edf2f7;
+  }
+
+  .trackingDetailDecision,
+  .trackingDetailBottom {
+    display: block;
+  }
+
+  .trackingDetailPosition {
+    border-right: 0;
+    border-bottom: 1px solid #edf2f7;
+  }
+
+  .trackingDetailFacts {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .trackingDetailFacts > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .trackingDetailFacts > div:nth-child(-n + 2) {
+    border-bottom: 1px solid #edf2f7;
+  }
+
+  .trackingDetailPanel + .trackingDetailPanel {
+    margin-top: 12px;
+  }
+
+  .trackingDetailPeers button {
+    grid-template-columns: 56px minmax(0, 1fr) 64px;
+  }
+
+  .trackingDetailPeers span {
+    display: none;
   }
 }
 

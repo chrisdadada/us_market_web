@@ -91,6 +91,22 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertNotIn("历史数据不足", MAIN_APP)
         self.assertNotIn("个交易日后自动计算", MAIN_APP)
 
+    def test_tracking_detail_has_one_compact_style_source(self) -> None:
+        self.assertIn('className="trackingDetailQuote"', MAIN_APP)
+        self.assertIn("trackingDetailDecision ${keyLevels.position", MAIN_APP)
+        self.assertIn('className="trackingDetailBottom"', MAIN_APP)
+        self.assertEqual(len(re.findall(r"^\.trackingDetailPage \{", MAIN_STYLES, re.MULTILINE)), 1)
+        for legacy_selector in (
+            ".trackingStockDetailPage",
+            ".trackingStockHero",
+            ".trackingStockHead",
+            ".trackingStockMetrics",
+            ".trackingStockPanel",
+            ".trackingKeyLevelsPanel",
+        ):
+            self.assertNotIn(legacy_selector, MAIN_STYLES)
+        self.assertNotIn("趋势策略方向为", MAIN_APP)
+
 
 if __name__ == "__main__":
     unittest.main()
