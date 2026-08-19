@@ -92,7 +92,10 @@ const primaryNavItems: NavItem[] = [
   { key: "risk", label: pageLabels.risk },
   { key: "strength", label: pageLabels.strength },
   { key: "valuation", label: pageLabels.valuation },
-  { key: "courses", label: pageLabels.courses }
+  { key: "courses", label: pageLabels.courses },
+  { key: "watchlist", label: pageLabels.watchlist },
+  { key: "dca1", label: pageLabels.dca1 },
+  { key: "dca2", label: pageLabels.dca2 }
 ];
 
 const secondaryNavItems: NavItem[] = [
@@ -109,9 +112,6 @@ const legacyMigrationNavItems: Array<{ href: string; label: string }> = [
 ];
 
 const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
-  { key: "watchlist", label: pageLabels.watchlist },
-  { key: "dca1", label: pageLabels.dca1 },
-  { key: "dca2", label: pageLabels.dca2 },
   { key: "position", label: pageLabels.position }
 ];
 
