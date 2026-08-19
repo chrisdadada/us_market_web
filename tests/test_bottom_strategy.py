@@ -51,7 +51,7 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         self.assertEqual(preview["markets"]["QQQ"]["opportunityDates"], [record["signalDate"] for record in full["markets"]["QQQ"]["records"]])
         self.assertEqual(preview["markets"]["QQQ"]["summary"], {"totalSignals": 8})
 
-    def test_fixed_low_valuation_cycles_keep_history_and_current_cycle_separate(self) -> None:
+    def test_fixed_low_valuation_cycles_fix_signal_at_first_entry(self) -> None:
         history = [
             {"date": "2020-01-03", "value": 25.0},
             {"date": "2020-01-10", "value": 23.4},
@@ -64,7 +64,7 @@ class BottomStrategySnapshotTests(unittest.TestCase):
             {"date": "2021-01-08", "value": 22.0},
         ]
         result = auth_api._fixed_low_valuation_cycles(history)
-        self.assertEqual(result["historicalDates"], ["2020-01-17"])
+        self.assertEqual(result["historicalDates"], ["2020-01-10", "2021-01-01"])
         self.assertEqual(result["activeStartDate"], "2021-01-01")
         self.assertEqual(
             result["windows"],
@@ -74,6 +74,16 @@ class BottomStrategySnapshotTests(unittest.TestCase):
                 {"startDate": "2021-01-01", "endDate": "2021-01-08"},
             ],
         )
+
+        extended = auth_api._fixed_low_valuation_cycles(
+            history
+            + [
+                {"date": "2021-01-15", "value": 18.0},
+                {"date": "2021-01-22", "value": 24.0},
+            ]
+        )
+        self.assertEqual(extended["historicalDates"], result["historicalDates"])
+        self.assertEqual(extended["activeStartDate"], None)
 
 
 if __name__ == "__main__":

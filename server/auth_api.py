@@ -1806,20 +1806,11 @@ def _fixed_low_valuation_cycles(
     latest_date = points[-1][0].isoformat() if points else None
     latest_value = points[-1][1] if points else None
     active_cycle = cycles[-1] if cycles and latest_value is not None and latest_value <= threshold else None
-    completed_cycles = cycles[:-1] if active_cycle else cycles
-    historical_dates: list[str] = []
-    for cycle in completed_cycles:
-        low_points = [
-            (item_date, value)
-            for item_date, value in points
-            if any(window["startDate"] <= item_date.isoformat() <= window["endDate"] for window in cycle)
-        ]
-        if low_points:
-            historical_dates.append(min(low_points, key=lambda point: point[1])[0].isoformat())
+    signal_dates = [cycle[0]["startDate"] for cycle in cycles]
 
     return {
         "windows": windows,
-        "historicalDates": historical_dates,
+        "historicalDates": signal_dates,
         "activeStartDate": active_cycle[0]["startDate"] if active_cycle else None,
         "latestDate": latest_date,
         "latestValue": latest_value,
