@@ -16,6 +16,7 @@ import mimetypes
 import urllib.request
 import urllib.error
 import xml.etree.ElementTree as ET
+from bisect import bisect_right
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from http import HTTPStatus
@@ -85,6 +86,7 @@ REGISTERED_DATASETS = {"market-temperature", "macro-series"}
 PAID_DATASETS = {"strength-scanner", "strength-review", "crypto-etf-flows"}
 DCA1_LOW_THRESHOLD = 23.5
 DCA1_NEAR_THRESHOLD = 24.5
+DCA1_DRAWDOWN_THRESHOLD = 0.08
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
@@ -1754,7 +1756,9 @@ def _index_valuation_qqq(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _fixed_low_valuation_cycles(
     history: list[dict[str, Any]],
+    price_series: list[dict[str, Any]],
     threshold: float = DCA1_LOW_THRESHOLD,
+    drawdown_threshold: float = DCA1_DRAWDOWN_THRESHOLD,
     window_gap_days: int = 21,
     cycle_gap_days: int = 180,
 ) -> dict[str, Any]:
@@ -1767,12 +1771,36 @@ def _fixed_low_valuation_cycles(
         except ValueError:
             continue
     points.sort(key=lambda point: point[0])
+    prices: list[tuple[date, float]] = []
+    for item in price_series:
+        if not item.get("date") or not isinstance(item.get("value"), (int, float)):
+            continue
+        try:
+            prices.append((datetime.fromisoformat(str(item["date"])[:10]).date(), float(item["value"])))
+        except ValueError:
+            continue
+    prices.sort(key=lambda point: point[0])
+    price_dates = [item_date for item_date, _ in prices]
+    drawdowns: list[float] = []
+    window_start = 0
+    for index, (item_date, value) in enumerate(prices):
+        cutoff = item_date - timedelta(days=365)
+        while window_start < index and prices[window_start][0] < cutoff:
+            window_start += 1
+        trailing_high = max(price for _, price in prices[window_start:index + 1])
+        drawdowns.append(value / trailing_high - 1 if trailing_high else 0.0)
+
+    def drawdown_on(item_date: date) -> float | None:
+        index = bisect_right(price_dates, item_date) - 1
+        return drawdowns[index] if index >= 0 else None
+
     raw_windows: list[dict[str, str]] = []
     current_window: dict[str, str] | None = None
     for item_date, value in points:
         if item_date < date(2020, 1, 1):
             continue
-        if value <= threshold:
+        drawdown = drawdown_on(item_date)
+        if value <= threshold and drawdown is not None and drawdown <= -drawdown_threshold:
             if current_window is None:
                 current_window = {"startDate": item_date.isoformat(), "endDate": item_date.isoformat()}
             else:
@@ -1805,7 +1833,16 @@ def _fixed_low_valuation_cycles(
 
     latest_date = points[-1][0].isoformat() if points else None
     latest_value = points[-1][1] if points else None
-    active_cycle = cycles[-1] if cycles and latest_value is not None and latest_value <= threshold else None
+    latest_drawdown = drawdown_on(points[-1][0]) if points else None
+    active_cycle = (
+        cycles[-1]
+        if cycles
+        and latest_value is not None
+        and latest_value <= threshold
+        and latest_drawdown is not None
+        and latest_drawdown <= -drawdown_threshold
+        else None
+    )
     signal_dates = [cycle[0]["startDate"] for cycle in cycles]
 
     return {
@@ -1814,6 +1851,7 @@ def _fixed_low_valuation_cycles(
         "activeStartDate": active_cycle[0]["startDate"] if active_cycle else None,
         "latestDate": latest_date,
         "latestValue": latest_value,
+        "latestDrawdown": latest_drawdown,
     }
 
 
@@ -1852,10 +1890,6 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     latest_value = forward.get("forwardPe")
     if latest_date and isinstance(latest_value, (int, float)) and (not history or latest_date > str(history[-1].get("date") or "")[:10]):
         history.append({"date": latest_date, "value": float(latest_value)})
-    valuation_cycles = _fixed_low_valuation_cycles(history)
-    opportunity_windows_1 = valuation_cycles["windows"]
-    opportunity_dates_1 = valuation_cycles["historicalDates"]
-    current_cycle_start_1 = valuation_cycles["activeStartDate"]
     visible_history = [item for item in history if str(item.get("date") or "")[:10] >= "2020-01-01"]
     ranges = forward.get("ranges") or {}
     five_year = ranges.get("5y") or {}
@@ -1874,6 +1908,10 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
         for item in qqq_market.get("priceSeries") or []
         if str(item.get("date") or "")[:10] >= "2020-01-01"
     ]
+    valuation_cycles = _fixed_low_valuation_cycles(history, price_series)
+    opportunity_windows_1 = valuation_cycles["windows"]
+    opportunity_dates_1 = valuation_cycles["historicalDates"]
+    current_cycle_start_1 = valuation_cycles["activeStartDate"]
     opportunity_dates_2 = [
         str(record.get("signalDate"))[:10]
         for record in qqq_market.get("records") or []
@@ -1882,7 +1920,13 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     opportunity_dates_2.sort()
     opportunity_windows_2 = [{"startDate": item, "endDate": item} for item in opportunity_dates_2]
     current_forward_pe = valuation_cycles["latestValue"]
-    if isinstance(current_forward_pe, (int, float)) and current_forward_pe <= DCA1_LOW_THRESHOLD:
+    current_drawdown = valuation_cycles["latestDrawdown"]
+    if (
+        isinstance(current_forward_pe, (int, float))
+        and current_forward_pe <= DCA1_LOW_THRESHOLD
+        and isinstance(current_drawdown, (int, float))
+        and current_drawdown <= -DCA1_DRAWDOWN_THRESHOLD
+    ):
         value_status = {"key": "action", "position": 2, "headline": "已触发", "action": "分批执行"}
     elif isinstance(current_forward_pe, (int, float)) and current_forward_pe <= DCA1_NEAR_THRESHOLD:
         value_status = {"key": "near", "position": 1, "headline": "接近触发", "action": "继续观察"}

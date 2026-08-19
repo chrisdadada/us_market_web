@@ -63,27 +63,58 @@ class BottomStrategySnapshotTests(unittest.TestCase):
             {"date": "2021-01-01", "value": 23.0},
             {"date": "2021-01-08", "value": 22.0},
         ]
-        result = auth_api._fixed_low_valuation_cycles(history)
-        self.assertEqual(result["historicalDates"], ["2020-01-10", "2021-01-01"])
+        prices = [
+            {"date": "2020-01-03", "value": 100.0},
+            {"date": "2020-01-10", "value": 99.0},
+            {"date": "2020-01-17", "value": 89.0},
+            {"date": "2020-01-24", "value": 88.0},
+            {"date": "2020-04-01", "value": 87.0},
+            {"date": "2020-04-08", "value": 86.0},
+            {"date": "2020-04-15", "value": 95.0},
+            {"date": "2021-01-01", "value": 84.0},
+            {"date": "2021-01-08", "value": 83.0},
+        ]
+        result = auth_api._fixed_low_valuation_cycles(history, prices)
+        self.assertEqual(result["historicalDates"], ["2020-01-17", "2021-01-01"])
         self.assertEqual(result["activeStartDate"], "2021-01-01")
         self.assertEqual(
             result["windows"],
             [
-                {"startDate": "2020-01-10", "endDate": "2020-01-17"},
+                {"startDate": "2020-01-17", "endDate": "2020-01-17"},
                 {"startDate": "2020-04-01", "endDate": "2020-04-08"},
                 {"startDate": "2021-01-01", "endDate": "2021-01-08"},
             ],
         )
 
         extended = auth_api._fixed_low_valuation_cycles(
-            history
-            + [
+            history + [
                 {"date": "2021-01-15", "value": 18.0},
                 {"date": "2021-01-22", "value": 24.0},
-            ]
+            ],
+            prices + [
+                {"date": "2021-01-15", "value": 80.0},
+                {"date": "2021-01-22", "value": 81.0},
+            ],
         )
         self.assertEqual(extended["historicalDates"], result["historicalDates"])
         self.assertEqual(extended["activeStartDate"], None)
+
+    def test_fixed_low_valuation_cycles_require_a_real_price_drawdown(self) -> None:
+        history = [
+            {"date": "2020-01-03", "value": 23.0},
+            {"date": "2020-02-07", "value": 22.5},
+            {"date": "2020-02-28", "value": 21.0},
+            {"date": "2020-03-20", "value": 18.0},
+        ]
+        prices = [
+            {"date": "2020-01-03", "value": 100.0},
+            {"date": "2020-02-07", "value": 101.0},
+            {"date": "2020-02-28", "value": 89.0},
+            {"date": "2020-03-20", "value": 72.0},
+        ]
+        result = auth_api._fixed_low_valuation_cycles(history, prices)
+        self.assertEqual(result["historicalDates"], ["2020-02-28"])
+        self.assertEqual(result["activeStartDate"], "2020-02-28")
 
 
 if __name__ == "__main__":
