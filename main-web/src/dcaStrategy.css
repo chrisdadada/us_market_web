@@ -7,7 +7,7 @@
 
 .dcaHeader,
 .dcaDecision,
-.dcaContentGrid,
+.dcaChartPanel,
 .dcaHistory {
   max-width: 1240px;
   margin-right: auto;
@@ -28,7 +28,6 @@
 .dcaHeader span { color: var(--muted); font-size: 10px; }
 .dcaHeader button,
 .dcaGate button,
-.dcaAdvice button,
 .dcaPageState button {
   border: 1px solid #b9d5fb;
   border-radius: 6px;
@@ -59,8 +58,7 @@
 .dcaDecision.dca2 { border-top-color: var(--blue); }
 .dcaDecisionMain { position: relative; overflow: hidden; padding: 23px 26px; border-right: 1px solid var(--line-soft); }
 .dcaDecisionContent small,
-.dcaStage > small,
-.dcaAdvice small { color: #8290a5; font-size: 10px; font-weight: 650; }
+.dcaStage > small { color: #8290a5; font-size: 10px; font-weight: 650; }
 .dcaDecisionContent strong { display: block; margin-top: 8px; font-size: 23px; line-height: 1.2; }
 .dcaDecisionContent p { margin: 6px 0 0; color: #536278; font-size: 12px; }
 .dcaDecisionMain.locked .dcaDecisionContent { opacity: .32; filter: blur(4px); }
@@ -108,8 +106,7 @@
 .dcaStageMeta span { display: block; color: #8290a5; font-size: 9px; }
 .dcaStageMeta strong { display: block; margin-top: 5px; font-size: 12px; font-weight: 680; }
 
-.dcaContentGrid { display: grid; grid-template-columns: minmax(0, 1fr) 286px; gap: 14px; margin-top: 14px; }
-.dcaChartPanel { padding: 0 20px 12px; }
+.dcaChartPanel { margin-top: 14px; padding: 0 20px 12px; }
 .dcaPanelHead { display: flex; height: 48px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); }
 .dcaPanelHead strong { font-size: 13px; font-weight: 680; }
 .dcaPanelHead span { color: #8290a5; font-size: 9px; }
@@ -127,14 +124,6 @@
 .dcaCurrentDot { fill: var(--blue); stroke: #fff; stroke-width: 2; }
 .dcaCurrentLabel { fill: var(--blue); font-size: 9px; font-weight: 700; text-anchor: end; }
 .dcaChartEmpty { display: grid; min-height: 300px; place-items: center; color: var(--muted); font-size: 12px; }
-
-.dcaAdvice { position: relative; display: flex; flex-direction: column; }
-.dcaAdvice > div { padding: 22px; }
-.dcaAdvice > div + div { border-top: 1px solid var(--line-soft); }
-.dcaAdvice strong { display: block; margin-top: 7px; font-size: 15px; line-height: 1.45; }
-.dcaAdvice p { margin: 7px 0 0; color: #617086; font-size: 11px; line-height: 1.55; }
-.dcaAdvice.locked > div { opacity: .3; filter: blur(3px); }
-.dcaAdvice > button { position: absolute; bottom: 22px; left: 22px; border: 0; background: var(--blue); color: #fff; }
 
 .dcaHistory { margin-top: 14px; padding: 0 20px 16px; }
 .dcaTimeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 9px; padding-top: 14px; }
@@ -165,8 +154,6 @@
   .dcaPage { padding: 14px 10px 22px; }
   .dcaDecision { grid-template-columns: 1fr; }
   .dcaDecisionMain { border-right: 0; border-bottom: 1px solid var(--line-soft); }
-  .dcaContentGrid { grid-template-columns: 1fr; }
-  .dcaAdvice { min-height: 220px; }
 }
 
 @media (max-width: 520px) {

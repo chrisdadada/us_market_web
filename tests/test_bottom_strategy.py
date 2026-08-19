@@ -51,18 +51,23 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         self.assertEqual(preview["markets"]["QQQ"]["opportunityDates"], [record["signalDate"] for record in full["markets"]["QQQ"]["records"]])
         self.assertEqual(preview["markets"]["QQQ"]["summary"], {"totalSignals": 8})
 
-    def test_low_windows_merge_repeated_entries_in_the_same_cycle(self) -> None:
+    def test_point_in_time_low_window_does_not_move_to_a_later_low(self) -> None:
         history = [
-            {"date": "2018-12-21", "value": 16},
-            {"date": "2022-03-11", "value": 19},
-            {"date": "2022-03-18", "value": 24},
-            {"date": "2022-06-17", "value": 18},
-            {"date": "2022-06-24", "value": 24},
-            {"date": "2022-10-14", "value": 17},
-            {"date": "2022-10-21", "value": 24},
-            {"date": "2023-10-27", "value": 20},
+            {"date": "2020-01-03", "value": 30.0},
+            {"date": "2020-01-10", "value": 29.0},
+            {"date": "2020-01-17", "value": 20.0},
         ]
-        self.assertEqual(auth_api._low_window_dates(history, 20), ["2022-10-14", "2023-10-27"])
+        initial = auth_api._point_in_time_low_windows(history, minimum_points=3)
+        extended = auth_api._point_in_time_low_windows(
+            history
+            + [
+                {"date": "2020-01-24", "value": 18.0},
+                {"date": "2020-01-31", "value": 32.0},
+            ],
+            minimum_points=3,
+        )
+        self.assertEqual(initial, [{"startDate": "2020-01-17", "endDate": "2020-01-17"}])
+        self.assertEqual(extended, [{"startDate": "2020-01-17", "endDate": "2020-01-24"}])
 
 
 if __name__ == "__main__":

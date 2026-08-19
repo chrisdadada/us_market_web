@@ -56,8 +56,8 @@ async function apiPayload(url) {
     return {
       preview: false,
       products: {
-        dca1: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "继续等待，不加快投入", action: "保持原有节奏，等待低位窗口" }, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), locationSeries: locations, lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
-        dca2: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "继续等待，不提前投入", action: "保持观察，等待市场确认" }, opportunityDates: qqq.records.map((item) => item.signalDate), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+        dca1: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: locations, lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
+        dca2: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
       },
     };
   }
@@ -259,7 +259,8 @@ try {
   }));
   await page.goto(`${server.rootUrl}?page=dca1`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca1-strategy-page']").isVisible(), "Paid DCA 1 page should be visible");
-  assert((await page.locator(".dcaDecisionContent strong").innerText()).includes("继续等待"), "DCA 1 should show the current action");
+  assert((await page.locator(".dcaDecisionContent strong").innerText()).includes("暂未触发"), "DCA 1 should show the current action");
+  assert((await page.locator(".dcaAdvice").count()) === 0, "DCA pages should not repeat the action in a side panel");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 1 history chart should be visible");
   assert(await page.locator(".dcaOpportunityDot").count() === 5, "DCA 1 should place each fixture opportunity on the QQQ chart");
   assert((await page.locator("body").innerText()).includes("收益") === false, "DCA pages should not market historical returns");

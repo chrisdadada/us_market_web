@@ -196,8 +196,8 @@ async function apiPayload(url, authProfile) {
     return {
       preview: !unlocked,
       products: {
-        dca1: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "继续等待，不加快投入", action: "保持原有节奏，等待低位窗口" } : null, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), locationSeries: qqq.priceSeries.map((point, index, rows) => ({ date: point.date, position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15) })), lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
-        dca2: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "继续等待，不提前投入", action: "保持观察，等待市场确认" } : null, opportunityDates: qqq.records.map((item) => item.signalDate), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+        dca1: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: qqq.priceSeries.map((point, index, rows) => ({ date: point.date, position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15) })), lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
+        dca2: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
       },
     };
   }
@@ -388,8 +388,8 @@ const scenarios = [
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "free", page: "position", present: [gates.open] },
-  { profile: "free", page: "dca1", presentSelector: ".dcaGate", present: ["今日状态已更新"] },
-  { profile: "free", page: "dca2", presentSelector: ".dcaGate", present: ["今日状态已更新"] },
+  { profile: "free", page: "dca1", presentSelector: ".dcaGate", present: ["策略状态已更新"] },
+  { profile: "free", page: "dca2", presentSelector: ".dcaGate", present: ["策略状态已更新"] },
   { profile: "free", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },

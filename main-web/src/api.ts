@@ -662,6 +662,7 @@ export type DcaStrategyProduct = {
     action: string;
   } | null;
   opportunityDates: string[];
+  opportunityWindows?: Array<{ startDate: string; endDate: string }>;
   locationSeries: Array<{ date: string; position: number }>;
   lowBoundaryPosition?: number | null;
   priceSeries: Array<{ date: string; value: number }>;

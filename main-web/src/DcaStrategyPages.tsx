@@ -9,32 +9,32 @@ type StatusKey = NonNullable<DcaStrategyProduct["status"]>["key"];
 const productCopy = {
   dca1: {
     title: "纳指定投 1 号",
-    subtitle: "适合希望分批把握低位机会的人",
-    phases: ["等待机会", "接近低位", "开始分批"],
-    lockedTitle: "开通查看今日建议",
-    chartTitle: "QQQ 走势与历史机会",
-    opportunityText: "进入机会区"
+    subtitle: "低位分批参考",
+    phases: ["观察中", "临近", "已触发"],
+    lockedTitle: "开通查看本期建议",
+    chartTitle: "QQQ 走势与历史信号",
+    opportunityText: "策略触发"
   },
   dca2: {
     title: "纳指定投 2 号",
-    subtitle: "适合希望等市场企稳后再分批投入的人",
-    phases: ["继续等待", "接近机会", "开始分批"],
-    lockedTitle: "开通查看今日建议",
-    chartTitle: "QQQ 走势与确认机会",
-    opportunityText: "机会确认"
+    subtitle: "确认后分批参考",
+    phases: ["观察中", "临近", "已触发"],
+    lockedTitle: "开通查看本期建议",
+    chartTitle: "QQQ 走势与历史信号",
+    opportunityText: "策略触发"
   }
 } as const;
 
-const statusCopy: Record<ProductKey, Record<StatusKey, { title: string; detail: string; today: string; next: string; planNote: string; watchNote: string }>> = {
+const statusCopy: Record<ProductKey, Record<StatusKey, { title: string; detail: string; action: string }>> = {
   dca1: {
-    waiting: { title: "继续等待", detail: "当前尚未进入分批区间", today: "保持原有节奏", next: "等待进入机会区", planNote: "现在不用一次买入，也不需要提前猜底。", watchNote: "进入合适阶段后，再开始分批投入。" },
-    near: { title: "接近低位", detail: "可以继续观察市场变化", today: "保持关注", next: "等待进入分批区", planNote: "接近低位阶段，暂时不用加快投入。", watchNote: "进入机会区后，再按计划分批投入。" },
-    action: { title: "可以开始分批", detail: "当前已进入分批区间", today: "按计划分批投入", next: "控制每次投入节奏", planNote: "分批执行，不必一次买完。", watchNote: "关注后续阶段变化，避免追高。" }
+    waiting: { title: "暂未触发", detail: "本期暂不执行", action: "暂不执行" },
+    near: { title: "接近触发", detail: "本期继续观察", action: "继续观察" },
+    action: { title: "已触发", detail: "本期可分批执行", action: "分批执行" }
   },
   dca2: {
-    waiting: { title: "继续观察", detail: "市场尚未出现新的确认机会", today: "暂不加快投入", next: "等待市场确认", planNote: "市场还在等待确认，不需要提前行动。", watchNote: "确认出现后，再按计划分批投入。" },
-    near: { title: "接近机会", detail: "市场正在接近确认阶段", today: "保持关注", next: "等待机会确认", planNote: "继续观察，不必提前增加投入。", watchNote: "确认出现后，再开始分批投入。" },
-    action: { title: "可以开始分批", detail: "市场已经出现确认机会", today: "按计划分批投入", next: "控制每次投入节奏", planNote: "确认后分批执行，不必一次买完。", watchNote: "关注后续阶段变化，避免追高。" }
+    waiting: { title: "暂未触发", detail: "本期暂不执行", action: "暂不执行" },
+    near: { title: "接近触发", detail: "本期继续观察", action: "继续观察" },
+    action: { title: "已触发", detail: "本期可分批执行", action: "分批执行" }
   }
 };
 
@@ -82,7 +82,11 @@ function OpportunityChart({ product, kind }: { product: DcaStrategyProduct; kind
       .sort()
       .map((date) => ({ date, price: nearest(prices, date) }))
       .filter((item): item is { date: string; price: Point } => Boolean(item.price));
-    return { width, height, left, right, top, bottom, start, end, x, prices, priceMin, priceMax, priceY, pricePath, opportunityPoints };
+    const opportunityWindows = (product.opportunityWindows?.length
+      ? product.opportunityWindows
+      : product.opportunityDates.map((date) => ({ startDate: date, endDate: date })))
+      .filter((window) => Date.parse(window.startDate) <= end && Date.parse(window.endDate) >= start);
+    return { width, height, left, right, top, bottom, start, end, x, prices, priceMin, priceMax, priceY, pricePath, opportunityPoints, opportunityWindows };
   }, [product]);
 
   if (!chart) return <div className="dcaChartEmpty">暂时无法显示行情</div>;
@@ -92,9 +96,11 @@ function OpportunityChart({ product, kind }: { product: DcaStrategyProduct; kind
   return (
     <div className="dcaChartScroll">
       <svg className="dcaChart" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={productCopy[kind].chartTitle}>
-        {chart.opportunityPoints.map((item) => (
-          <rect key={`band-${item.date}`} className={`dcaOpportunityBand ${kind}`} x={Math.max(chart.left, chart.x(item.date) - 8)} y={chart.top} width="16" height={chart.bottom - chart.top} rx="3" />
-        ))}
+        {chart.opportunityWindows.map((window) => {
+          const startX = Math.max(chart.left, chart.x(window.startDate));
+          const endX = Math.min(chart.width - chart.right, chart.x(window.endDate));
+          return <rect key={`band-${window.startDate}`} className={`dcaOpportunityBand ${kind}`} x={Math.max(chart.left, startX - 4)} y={chart.top} width={Math.max(12, endX - startX + 8)} height={chart.bottom - chart.top} rx="3"><title>{window.startDate === window.endDate ? window.startDate : `${window.startDate} 至 ${window.endDate}`}</title></rect>;
+        })}
         {[0, 1 / 3, 2 / 3, 1].map((ratio) => {
           const value = chart.priceMax - (chart.priceMax - chart.priceMin) * ratio;
           const yPos = chart.priceY(value);
@@ -153,35 +159,28 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
 
       <section className={`dcaDecision ${kind}`}>
         <div className={`dcaDecisionMain ${!unlocked ? "locked" : ""}`}>
-          <div className="dcaDecisionContent"><small>今日建议</small><strong>{presentation.title}</strong><p>{presentation.detail}</p></div>
-          {!unlocked ? <div className="dcaGate"><small>今日状态已更新</small><strong>{copy.lockedTitle}</strong><button type="button" onClick={onUnlock}>开通会员查看</button></div> : null}
+          <div className="dcaDecisionContent"><small>策略状态</small><strong>{presentation.title}</strong><p>{presentation.detail}</p></div>
+          {!unlocked ? <div className="dcaGate"><small>策略状态已更新</small><strong>{copy.lockedTitle}</strong><button type="button" onClick={onUnlock}>开通会员查看</button></div> : null}
         </div>
         <div className="dcaStage">
-          <small>当前阶段</small>
+          <small>执行进度</small>
           <div className="dcaProgress">{copy.phases.map((phase, index) => <div key={phase} className={currentStep === index ? "current" : ""}>{phase}</div>)}</div>
           <div className="dcaStageMeta">
-            <div><span>上次机会</span><strong>{lastOpportunity || "--"}</strong></div>
-            <div><span>今天怎么做</span><strong>{unlocked ? presentation.today : "开通查看"}</strong></div>
-            <div><span>下一步</span><strong>{unlocked ? presentation.next : "开通查看"}</strong></div>
+            <div><span>最近触发</span><strong>{lastOpportunity || "--"}</strong></div>
+            <div><span>本期建议</span><strong>{unlocked ? presentation.action : "开通查看"}</strong></div>
+            <div><span>下次更新</span><strong>{unlocked ? "下一交易日收盘后" : "开通查看"}</strong></div>
           </div>
         </div>
       </section>
 
-      <div className="dcaContentGrid">
-        <section className="dcaPanel dcaChartPanel">
-          <div className="dcaPanelHead"><strong>{copy.chartTitle}</strong><span>当前 · {product.asOf || "--"}</span></div>
-          <OpportunityChart product={product} kind={kind} />
-        </section>
-        <section className={`dcaPanel dcaAdvice ${!unlocked ? "locked" : ""}`}>
-          <div><small>今日计划</small><strong>{unlocked ? product.status?.action || presentation.today : "今日计划已更新"}</strong><p>{presentation.planNote}</p></div>
-          <div><small>接下来关注</small><strong>{presentation.next}</strong><p>{presentation.watchNote}</p></div>
-          {!unlocked ? <button type="button" onClick={onUnlock}>开通查看完整建议</button> : null}
-        </section>
-      </div>
+      <section className="dcaPanel dcaChartPanel">
+        <div className="dcaPanelHead"><strong>{copy.chartTitle}</strong><span>更新 {product.asOf || "--"}</span></div>
+        <OpportunityChart product={product} kind={kind} />
+      </section>
 
       {opportunityDates.length ? (
         <section className={`dcaPanel dcaHistory ${kind}`}>
-          <div className="dcaPanelHead"><strong>过去的机会</strong></div>
+          <div className="dcaPanelHead"><strong>历史信号</strong></div>
           <div className="dcaTimeline">{opportunityDates.map((date) => <div key={date}><time>{date}</time><span>{copy.opportunityText}</span></div>)}</div>
         </section>
       ) : null}
