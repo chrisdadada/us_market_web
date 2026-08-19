@@ -10,6 +10,8 @@ DATA_SCRIPT = (ROOT / "scripts" / "deploy_prod_data.sh").read_text(encoding="utf
 AUTOMATED_REFRESH = (ROOT / "scripts" / "automated_refresh.sh").read_text(encoding="utf-8")
 OPTIONS_REFRESH = (ROOT / "scripts" / "options_refresh.sh").read_text(encoding="utf-8")
 REFRESH_GUARD = (ROOT / "scripts" / "refresh_workspace_guard.sh").read_text(encoding="utf-8")
+OPTIONS_INSTALLER = (ROOT / "scripts" / "install_options_automation.sh").read_text(encoding="utf-8")
+AUTOMATION_DOC = (ROOT / "docs" / "automation.md").read_text(encoding="utf-8")
 
 
 class ProdCodeDeployScriptTests(unittest.TestCase):
@@ -105,6 +107,15 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
         self.assertIn("--untracked-files=no", REFRESH_GUARD)
         self.assertIn("Product DB baseline is incomplete", REFRESH_GUARD)
         self.assertIn("product schema version 2", REFRESH_GUARD)
+
+    def test_options_job_targets_the_dedicated_refresh_worktree(self) -> None:
+        expected_root = "/Users/linlifu/Documents/New project-automation-refresh"
+        self.assertIn(expected_root, OPTIONS_INSTALLER)
+        self.assertIn('ROOT="${AUTOMATION_ROOT:-', OPTIONS_INSTALLER)
+        self.assertIn("require_refresh_workspace", OPTIONS_INSTALLER)
+        self.assertIn("codex/automation-refresh", OPTIONS_INSTALLER)
+        self.assertIn(expected_root, AUTOMATION_DOC)
+        self.assertNotIn('/Users/linlifu/Documents/New project/scripts/automated_refresh.sh', AUTOMATION_DOC)
 
 
 if __name__ == "__main__":

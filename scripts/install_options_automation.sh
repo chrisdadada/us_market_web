@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT="/Users/linlifu/Documents/New project"
+ROOT="${AUTOMATION_ROOT:-/Users/linlifu/Documents/New project-automation-refresh}"
+REQUIRED_BRANCH="${REQUIRED_REFRESH_BRANCH:-codex/automation-refresh}"
 PLIST="${HOME}/Library/LaunchAgents/com.meigustrategy.marketdata.options-refresh.plist"
 LOG_DIR="${ROOT}/logs/automation"
+
+# Install the scheduled job only against the dedicated, clean data-refresh worktree.
+# This keeps old feature branches and the production-code release path out of automation.
+source "${ROOT}/scripts/refresh_workspace_guard.sh"
+require_refresh_workspace "${ROOT}" "${REQUIRED_BRANCH}"
 
 mkdir -p "${LOG_DIR}" "$(dirname "${PLIST}")"
 

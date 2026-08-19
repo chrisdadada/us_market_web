@@ -20,6 +20,15 @@ Dev and production frontend files are separated:
 - Deploy production code from `master` only after the user explicitly asks for that prod deploy.
 - Tag important production releases as `prod-YYYY-MM-DD-short-name`.
 
+Use each long-lived branch only from its dedicated worktree:
+
+- Feature work: a temporary `codex/...` worktree created from `codex/dev-integration`.
+- Dev release: `/tmp/dongbimao-dev-restore-20260818` on `codex/dev-integration`.
+- Data refresh: `/Users/linlifu/Documents/New project-automation-refresh` on `codex/automation-refresh`.
+
+The original project directory may contain unfinished feature work. It is not a
+release or automation workspace and must not be used as one.
+
 ## Deploy To Test
 
 Use the single dev release entry point. It runs project checks and the complete
@@ -49,9 +58,11 @@ Check `https://dev.dongbimao.org` first.
 ## Automated Refresh Deploy
 
 The market data refresh now deploys automatically after product DB validation
-and release gate tests pass:
+and release gate tests pass. Run it only from the dedicated refresh worktree:
 
 ```bash
+cd "/Users/linlifu/Documents/New project-automation-refresh"
+test "$(git branch --show-current)" = "codex/automation-refresh"
 ./scripts/automated_refresh.sh
 ```
 
