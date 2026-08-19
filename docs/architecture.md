@@ -19,7 +19,7 @@
 
 - `main-web/` 和 `admin-web/` 是唯一允许继续开发、修复和发布的前端源码。
 - `index.html`、`app.js`、`styles.css`、`admin.html` 仅为待删除的 legacy 迁移壳，不再修样式、不加功能。
-- legacy 当前只保留 5 个待迁移能力：期权流向、趋势信号历史、股票事件榜单、财报质量筛选、自选。
+- legacy 当前只保留 4 个待迁移能力：期权流向、趋势信号历史、股票事件榜单、财报质量筛选。
 - `tests/test_frontend_architecture.py` 限定上述迁移白名单；禁止新增 `/legacy` 依赖。
 - 待迁移清单清零后，必须同批删除 legacy 文件、`/legacy` 部署步骤和旧版路由测试。
 
