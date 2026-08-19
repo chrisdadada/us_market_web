@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import math
@@ -61,6 +62,27 @@ def load_existing_dataset_payload(name: str) -> tuple[dict[str, Any], Path]:
     return parse_json_text(row[0], {}), Path(f"db:{path.name}:{name}")
 
 
+def merge_bottom_strategy_history(
+    baseline: dict[str, Any], fallback: dict[str, Any]
+) -> dict[str, Any]:
+    """Keep verified early chart history when a newer DB starts later."""
+    merged = copy.deepcopy(baseline or fallback)
+    for symbol, fallback_market in (fallback.get("markets") or {}).items():
+        market = (merged.get("markets") or {}).get(symbol)
+        if not isinstance(market, dict):
+            continue
+        points: dict[str, dict[str, Any]] = {}
+        for item in [
+            *(fallback_market.get("priceSeries") or []),
+            *(market.get("priceSeries") or []),
+        ]:
+            trade_date = str(item.get("date") or "")
+            if trade_date:
+                points[trade_date] = item
+        market["priceSeries"] = [points[key] for key in sorted(points)]
+    return merged
+
+
 def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
     global PRODUCT_DATA_PAYLOADS
     if PRODUCT_DATA_PAYLOADS is None:
@@ -98,10 +120,12 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
     if name == "crypto-etf-flows":
         return load_crypto_etf_flows_payload()
     if name == "bottom-strategy":
+        fallback_path = ROOT / "server" / "bottom_strategy.json"
+        fallback = parse_json_text(fallback_path.read_text(encoding="utf-8"), {})
         baseline, baseline_path = load_existing_dataset_payload(name)
         if not baseline:
-            baseline_path = ROOT / "server" / "bottom_strategy.json"
-            baseline = parse_json_text(baseline_path.read_text(encoding="utf-8"), {})
+            baseline_path = fallback_path
+        baseline = merge_bottom_strategy_history(baseline, fallback)
         data_root = Path(os.environ.get("MARKET_DATA_ROOT", "/Volumes/Extreme SSD/market-data-lab/data"))
         if not data_root.exists():
             return baseline, baseline_path

@@ -34,6 +34,11 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         self.assertEqual(len(negative), 2)
         self.assertEqual(len(observing), 1)
 
+    def test_price_history_includes_the_2020_market_cycle(self) -> None:
+        for symbol in ("QQQ", "SPY"):
+            first_date = self.payload["markets"][symbol]["priceSeries"][0]["date"]
+            self.assertLessEqual(first_date, "2020-01-02")
+
     def test_stage_summary_uses_recent_complete_records(self) -> None:
         qqq = self.payload["markets"]["QQQ"]
         self.assertEqual(qqq["summary"]["end180MedianPct"], 30.64)

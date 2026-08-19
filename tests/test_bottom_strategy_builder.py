@@ -2,9 +2,44 @@ import copy
 import unittest
 
 from scripts.build_bottom_strategy import median_path, rsi, stale_payload, update_machine
+from scripts.build_product_db import merge_bottom_strategy_history
 
 
 class BottomStrategyBuilderTests(unittest.TestCase):
+    def test_verified_early_prices_survive_a_shorter_database_baseline(self) -> None:
+        fallback = {
+            "markets": {
+                "QQQ": {
+                    "priceSeries": [
+                        {"date": "2020-01-02", "value": 210.0},
+                        {"date": "2021-01-04", "value": 300.0},
+                    ]
+                }
+            }
+        }
+        baseline = {
+            "markets": {
+                "QQQ": {
+                    "priceSeries": [
+                        {"date": "2021-01-04", "value": 301.0},
+                        {"date": "2026-08-18", "value": 746.0},
+                    ]
+                }
+            }
+        }
+
+        merged = merge_bottom_strategy_history(baseline, fallback)
+
+        self.assertEqual(
+            merged["markets"]["QQQ"]["priceSeries"],
+            [
+                {"date": "2020-01-02", "value": 210.0},
+                {"date": "2021-01-04", "value": 301.0},
+                {"date": "2026-08-18", "value": 746.0},
+            ],
+        )
+        self.assertEqual(baseline["markets"]["QQQ"]["priceSeries"][0]["value"], 301.0)
+
     def test_rsi_uses_wilder_smoothing(self) -> None:
         values = [10, 11, 12, 13, 14, 15, 16, 15, 16]
         result = rsi(values, period=6)
