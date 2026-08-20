@@ -25,6 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterator
 from urllib.parse import parse_qs, quote, urlencode, unquote, urlparse
+from zoneinfo import ZoneInfo
 
 import funding_scanner
 import open_portfolio
@@ -90,6 +91,7 @@ DCA1_NEAR_THRESHOLD = 24.5
 DCA1_DRAWDOWN_THRESHOLD = 0.08
 DCA1_MAX_SOURCE_LAG_SESSIONS = 10
 DCA1_MAX_PRICE_ANCHOR_LAG_DAYS = 4
+DCA_MAX_MARKET_LAG_SESSIONS = 1
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
@@ -1759,6 +1761,45 @@ def _index_valuation_qqq(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _latest_completed_us_market_weekday(now: datetime | None = None) -> date:
+    market_tz = ZoneInfo("America/New_York")
+    current = datetime.now(market_tz) if now is None else (
+        now.replace(tzinfo=market_tz) if now.tzinfo is None else now.astimezone(market_tz)
+    )
+    candidate = current.date() if (current.hour, current.minute) >= (17, 30) else current.date() - timedelta(days=1)
+    while candidate.weekday() >= 5:
+        candidate -= timedelta(days=1)
+    return candidate
+
+
+def _bottom_strategy_current(
+    payload: dict[str, Any],
+    market: dict[str, Any],
+    now: datetime | None = None,
+) -> bool:
+    freshness = payload.get("freshness") or {}
+    as_of = str(market.get("asOf") or "")[:10]
+    if (
+        freshness.get("status") != "current"
+        or str(payload.get("asOf") or "")[:10] != as_of
+        or str(freshness.get("asOf") or "")[:10] != as_of
+    ):
+        return False
+    try:
+        actual = datetime.fromisoformat(as_of).date()
+    except ValueError:
+        return False
+    expected = _latest_completed_us_market_weekday(now)
+    if actual > expected:
+        return False
+    lag = sum(
+        1
+        for offset in range(1, (expected - actual).days + 1)
+        if (actual + timedelta(days=offset)).weekday() < 5
+    )
+    return lag <= DCA_MAX_MARKET_LAG_SESSIONS
+
+
 def _fixed_low_valuation_cycles(
     history: list[dict[str, Any]],
     price_series: list[dict[str, Any]],
@@ -1976,12 +2017,13 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     if latest_date and isinstance(latest_value, (int, float)) and (not history or latest_date > str(history[-1].get("date") or "")[:10]):
         history.append({"date": latest_date, "value": float(latest_value)})
     qqq_market = (bottom_payload.get("markets") or {}).get("QQQ") or {}
+    market_data_current = _bottom_strategy_current(bottom_payload, qqq_market)
     price_series = [
         item
         for item in qqq_market.get("priceSeries") or []
         if str(item.get("date") or "")[:10] >= "2020-01-01"
     ]
-    dca1_available = _dca1_valuation_usable(forward, history, price_series)
+    dca1_available = market_data_current and _dca1_valuation_usable(forward, history, price_series)
     effective_history = _estimate_daily_forward_pe_history(forward, history, price_series) if dca1_available else None
     dca1_available = effective_history is not None
     visible_history = [
@@ -2037,6 +2079,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
         "near": {"key": "near", "position": 1, "headline": "接近触发", "action": "继续观察"},
         "action": {"key": "action", "position": 2, "headline": "已触发", "action": "分批执行"},
     }
+    dca2_available = market_data_current and reversal_status in reversal_status_map
     return {
         "generatedAt": bottom_payload.get("generatedAt") or index_payload.get("generatedAt"),
         "preview": not include_details,
@@ -2044,7 +2087,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
             "dca1": {
                 "available": dca1_available,
                 "asOf": valuation_cycles["latestDate"] or forward.get("asOf") or qqq_index.get("asOf"),
-                "status": value_status if include_details else None,
+                "status": value_status if include_details and dca1_available else None,
                 "opportunityDates": opportunity_dates_1,
                 "opportunityWindows": opportunity_windows_1,
                 "currentCycleStart": current_cycle_start_1,
@@ -2053,9 +2096,9 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
                 "priceSeries": price_series,
             },
             "dca2": {
-                "available": True,
+                "available": dca2_available,
                 "asOf": qqq_market.get("asOf"),
-                "status": reversal_status_map.get(reversal_status) if include_details else None,
+                "status": reversal_status_map.get(reversal_status) if include_details and dca2_available else None,
                 "opportunityDates": opportunity_dates_2,
                 "opportunityWindows": opportunity_windows_2,
                 "currentCycleStart": opportunity_dates_2[-1] if opportunity_dates_2 else None,

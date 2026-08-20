@@ -3,6 +3,7 @@ import sys
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -121,6 +122,40 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         result = auth_api._fixed_low_valuation_cycles(history, prices)
         self.assertEqual(result["historicalDates"], ["2020-02-28"])
         self.assertEqual(result["activeStartDate"], "2020-02-28")
+
+    def test_bottom_strategy_freshness_fails_closed_after_one_market_session(self) -> None:
+        payload = {
+            "asOf": "2026-08-19",
+            "freshness": {"status": "current", "asOf": "2026-08-19"},
+        }
+        market = {"asOf": "2026-08-19"}
+        thursday_after_close = datetime(2026, 8, 20, 18, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        self.assertTrue(auth_api._bottom_strategy_current(payload, market, thursday_after_close))
+        stale = {
+            "asOf": "2026-08-18",
+            "freshness": {"status": "current", "asOf": "2026-08-18"},
+        }
+        self.assertFalse(auth_api._bottom_strategy_current(stale, {"asOf": "2026-08-18"}, thursday_after_close))
+
+        friday = {"asOf": "2026-08-21", "freshness": {"status": "current", "asOf": "2026-08-21"}}
+        monday_before_close = datetime(2026, 8, 24, 10, 0, tzinfo=ZoneInfo("America/New_York"))
+        self.assertTrue(auth_api._bottom_strategy_current(friday, {"asOf": "2026-08-21"}, monday_before_close))
+
+    def test_bottom_strategy_freshness_rejects_stale_or_mismatched_metadata(self) -> None:
+        now = datetime(2026, 8, 20, 18, 0, tzinfo=ZoneInfo("America/New_York"))
+        market = {"asOf": "2026-08-20"}
+
+        self.assertFalse(auth_api._bottom_strategy_current(
+            {"asOf": "2026-08-20", "freshness": {"status": "stale", "asOf": "2026-08-20"}},
+            market,
+            now,
+        ))
+        self.assertFalse(auth_api._bottom_strategy_current(
+            {"asOf": "2026-08-19", "freshness": {"status": "current", "asOf": "2026-08-19"}},
+            market,
+            now,
+        ))
 
     def test_dca1_rejects_mixed_or_stale_valuation_snapshots(self) -> None:
         history = [
