@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import re
 import urllib.request
@@ -608,6 +609,14 @@ def fetch_qqq_forward_valuation_history(url: str = DEFAULT_NDX_FORWARD_PE_URL) -
     if not isinstance(payload, dict):
         raise ValueError("Nasdaq 100 forward P/E response is not an object")
     return build_qqq_forward_valuation_history(payload)
+
+
+def previous_complete_forward_valuation(previous_index: dict[str, Any] | None) -> dict[str, Any] | None:
+    forward = (previous_index or {}).get("forwardValuation") or {}
+    history = forward.get("history") or []
+    if len(history) < 2 or "5y" not in (forward.get("ranges") or {}) or not forward.get("asOf"):
+        return None
+    return copy.deepcopy(forward)
 
 
 def read_xlsx_first_sheet(path: Path) -> list[list[str]]:
@@ -1718,7 +1727,10 @@ def build_payload(
         qqq_payload["forwardValuation"] = fetch_qqq_forward_valuation_history()
     except Exception as history_exc:
         qqq_payload["audit"]["forwardValuationHistoryError"] = f"{type(history_exc).__name__}: {history_exc}"
-        if qqq_characteristics:
+        previous_forward = previous_complete_forward_valuation(previous_indices.get("QQQ"))
+        if previous_forward:
+            qqq_payload["forwardValuation"] = previous_forward
+        elif qqq_characteristics:
             qqq_payload["forwardValuation"] = build_qqq_forward_valuation(qqq_characteristics)
     qqq_payload["marketIndicators"] = build_market_indicators(market_data_root, "QQQ", qqq_payload.get("priceAsOf"))
     try:

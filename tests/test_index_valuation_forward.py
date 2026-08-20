@@ -15,6 +15,7 @@ from build_index_valuation import (  # noqa: E402
     market_valuation_level,
     official_metric_or_waiting,
     parse_market_valuation_snapshot,
+    previous_complete_forward_valuation,
     qqq_official_snapshot,
     wilder_rsi,
 )
@@ -108,6 +109,36 @@ class ForwardValuationTest(unittest.TestCase):
         self.assertIn("5y", result["ranges"])
         self.assertEqual(frontend["forwardValuation"]["history"], result["history"])
         self.assertEqual(frontend["forwardValuation"]["ranges"], result["ranges"])
+
+    def test_preserves_last_complete_forward_history_when_refresh_fails(self):
+        previous = {
+            "forwardValuation": {
+                "asOf": "2026-08-18",
+                "forwardPe": 22.02,
+                "history": [
+                    {"date": "2021-08-18", "value": 25.0},
+                    {"date": "2026-08-05", "value": 22.37},
+                ],
+                "ranges": {"5y": {"p30": 22.4, "median": 25.1, "p70": 28.0}},
+            }
+        }
+
+        result = previous_complete_forward_valuation(previous)
+
+        self.assertEqual(result, previous["forwardValuation"])
+        self.assertIsNot(result, previous["forwardValuation"])
+
+    def test_rejects_incomplete_previous_forward_history(self):
+        previous = {
+            "forwardValuation": {
+                "asOf": "2026-07-31",
+                "forwardPe": 26.7,
+                "history": [],
+                "ranges": {},
+            }
+        }
+
+        self.assertIsNone(previous_complete_forward_valuation(previous))
 
     def test_rejects_missing_or_non_positive_pe(self):
         with self.assertRaises(ValueError):

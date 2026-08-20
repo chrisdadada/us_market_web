@@ -21,6 +21,16 @@ def query_rows(conn: sqlite3.Connection, sql: str) -> list[dict[str, Any]]:
     return [dict(row) for row in conn.execute(sql).fetchall()]
 
 
+def dataset_payload(conn: sqlite3.Connection, name: str) -> dict[str, Any]:
+    row = conn.execute("SELECT payload_json FROM datasets WHERE name = ?", (name,)).fetchone()
+    if not row:
+        return {}
+    try:
+        return json.loads(row[0])
+    except (TypeError, json.JSONDecodeError):
+        return {}
+
+
 def build_report(db_path: Path) -> dict[str, Any]:
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
@@ -78,6 +88,16 @@ def build_report(db_path: Path) -> dict[str, Any]:
             ORDER BY name
             """,
         )
+        valuation_payload = dataset_payload(conn, "index-valuation")
+        qqq = next(
+            (
+                item
+                for item in valuation_payload.get("indices") or []
+                if (item.get("index") or {}).get("symbol") == "QQQ"
+            ),
+            valuation_payload,
+        )
+        forward = qqq.get("forwardValuation") or {}
     total = max(1, symbols["total"])
     return {
         "db": str(db_path),
@@ -90,6 +110,11 @@ def build_report(db_path: Path) -> dict[str, Any]:
         "calendar": calendar,
         "options": options,
         "datasets": datasets,
+        "indexValuation": {
+            "forwardAsOf": forward.get("asOf"),
+            "forwardHistoryRows": len(forward.get("history") or []),
+            "hasFiveYearRange": "5y" in (forward.get("ranges") or {}),
+        },
     }
 
 
@@ -121,6 +146,14 @@ def validate(report: dict[str, Any], args: argparse.Namespace) -> tuple[list[str
         failures.append(f"options flow rows {option_rows} < {args.min_options_rows}")
     elif option_rows == 0:
         warnings.append("options flow is skipped for the current non-options data phase")
+    valuation = report["indexValuation"]
+    if valuation["forwardHistoryRows"] < args.min_forward_valuation_history:
+        failures.append(
+            "QQQ forward valuation history "
+            f"{valuation['forwardHistoryRows']} < {args.min_forward_valuation_history}"
+        )
+    if not valuation["hasFiveYearRange"]:
+        failures.append("QQQ forward valuation 5y range is missing")
     return failures, warnings
 
 
@@ -154,6 +187,13 @@ def print_text_report(report: dict[str, Any], failures: list[str], warnings: lis
             print(f"    {row['board']}: {row['rows']}")
     else:
         print("    none")
+    valuation = report["indexValuation"]
+    print(
+        "  QQQ forward valuation: "
+        f"{valuation['forwardHistoryRows']} history rows, "
+        f"as of {valuation['forwardAsOf'] or '--'}, "
+        f"5y range {'ready' if valuation['hasFiveYearRange'] else 'missing'}"
+    )
     for warning in warnings:
         print(f"  WARN: {warning}")
     for failure in failures:
@@ -170,6 +210,7 @@ def main() -> None:
     parser.add_argument("--min-macro-events", type=int, default=1)
     parser.add_argument("--min-earnings-events", type=int, default=0)
     parser.add_argument("--min-options-rows", type=int, default=0)
+    parser.add_argument("--min-forward-valuation-history", type=int, default=100)
     parser.add_argument("--max-unknown-sector-pct", type=float, default=20.0)
     parser.add_argument("--max-market-cap-missing-pct", type=float, default=5.0)
     args = parser.parse_args()
