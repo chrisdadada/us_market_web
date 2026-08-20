@@ -260,7 +260,8 @@ try {
   }));
   await page.goto(`${server.rootUrl}?page=dca1`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca1-strategy-page']").isVisible(), "Paid DCA 1 page should be visible");
-  assert((await page.locator(".dcaDecisionContent strong").innerText()).includes("暂未触发"), "DCA 1 should show the current action");
+  const dca1Action = await page.locator(".dcaDecisionContent strong").innerText();
+  assert(dca1Action.includes("尚未进入分批区"), `DCA 1 should show the current action; received: ${dca1Action}`);
   assert((await page.locator(".dcaAdvice").count()) === 0, "DCA pages should not repeat the action in a side panel");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 1 history chart should be visible");
   assert(await page.locator(".dcaOpportunityDot").count() === 5, "DCA 1 should place each fixture opportunity on the QQQ chart");
