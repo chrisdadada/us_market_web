@@ -96,9 +96,10 @@ def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
             )
 
             events = build_event_opportunities()
+            previous_calendar, _ = load_existing_dataset_payload("events-calendar")
             PRODUCT_DATA_PAYLOADS = {
                 "market-temperature": build_market_temperature(),
-                "events-calendar": build_events_calendar(),
+                "events-calendar": build_events_calendar(previous_calendar),
                 "event-opportunities": events,
                 "validation-center": build_validation_center(events),
             }

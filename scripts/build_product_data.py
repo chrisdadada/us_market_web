@@ -366,9 +366,14 @@ def build_bls_macro_events(start: date, end: date) -> list[dict[str, Any]]:
 
 
 def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
-    try:
-        text = fetch_text("https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm")
-    except Exception:
+    text = ""
+    for _ in range(3):
+        try:
+            text = fetch_text("https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm")
+            break
+        except Exception:
+            pass
+    if not text:
         return []
     current_year = ""
     current_month = ""
@@ -398,6 +403,8 @@ def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
         if not current_year or not current_month or not match.group(3):
             continue
         raw_day = match.group(3).strip()
+        if "notation vote" in raw_day.lower():
+            continue
         days = [int(part) for part in re.findall(r"\d+", raw_day)]
         if not days or current_month not in month_numbers:
             continue
@@ -422,10 +429,32 @@ def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
     return events
 
 
-def build_macro_calendar_events(start: date, end: date, limit: int = 200) -> list[dict[str, Any]]:
+def previous_fomc_events(previous: dict[str, Any] | None, start: date, end: date) -> list[dict[str, Any]]:
+    rows = []
+    for event in (previous or {}).get("events") or []:
+        if "fomc" not in str(event.get("title") or "").lower():
+            continue
+        try:
+            event_date = date.fromisoformat(str(event.get("date") or ""))
+        except ValueError:
+            continue
+        if start <= event_date <= end:
+            rows.append(event)
+    return rows
+
+
+def build_macro_calendar_events(
+    start: date,
+    end: date,
+    limit: int = 200,
+    previous: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     seen: set[tuple[str, str, str]] = set()
     events: list[dict[str, Any]] = []
-    for event in [*build_bls_macro_events(start, end), *build_fomc_macro_events(start, end)]:
+    fomc_events = build_fomc_macro_events(start, end) or previous_fomc_events(previous, start, end)
+    if not fomc_events:
+        raise RuntimeError("FOMC calendar refresh failed and no previous FOMC events are available")
+    for event in [*build_bls_macro_events(start, end), *fomc_events]:
         key = (str(event.get("date") or ""), str(event.get("time") or ""), str(event.get("title") or ""))
         if key not in seen:
             seen.add(key)
@@ -433,7 +462,7 @@ def build_macro_calendar_events(start: date, end: date, limit: int = 200) -> lis
     return sorted(events, key=lambda row: (row["date"], row.get("time") or "", row.get("title") or ""))[:limit]
 
 
-def build_events_calendar() -> dict[str, Any]:
+def build_events_calendar(previous: dict[str, Any] | None = None) -> dict[str, Any]:
     existing: dict[str, Any] = {}
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     horizon_end = today + timedelta(days=90)
@@ -443,7 +472,7 @@ def build_events_calendar() -> dict[str, Any]:
         for event in existing.get("events", [])
         if str(event.get("type") or "").lower() != "earnings"
     ]
-    macro_events = build_macro_calendar_events(macro_start, horizon_end)
+    macro_events = build_macro_calendar_events(macro_start, horizon_end, previous=previous)
     local_earnings_events = build_earnings_calendar_events(today, horizon_end)
     manual_earnings_events = build_manual_earnings_calendar_events(today, horizon_end)
     earnings_by_key: dict[tuple[str, str], dict[str, Any]] = {}

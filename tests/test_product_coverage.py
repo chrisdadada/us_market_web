@@ -10,6 +10,7 @@ def args() -> argparse.Namespace:
         min_liquid_symbols=200,
         min_board_rows=800,
         min_macro_events=1,
+        min_fomc_events=1,
         min_earnings_events=0,
         min_options_rows=0,
         min_forward_valuation_history=100,
@@ -26,6 +27,7 @@ def report(history_rows: int, has_five_year_range: bool, payloads_match: bool = 
         "ratios": {"unknownSectorPct": 0.0, "marketCapMissingPct": 0.0},
         "marketBoards": [{"board": "day", "rows": 1000}],
         "calendar": [{"type": "macro", "rows": 1}],
+        "fomcEvents": 1,
         "options": [],
         "indexValuation": {
             "forwardAsOf": "2026-08-18",
@@ -57,6 +59,14 @@ class ProductCoverageTest(unittest.TestCase):
     def test_rejects_mixed_current_and_historical_valuation_snapshots(self):
         failures, _ = validate(report(521, True, snapshots_match=False), args())
         self.assertIn("QQQ forward valuation current value and history use different snapshots", failures)
+
+    def test_rejects_calendar_without_fomc(self):
+        current = report(521, True)
+        current["fomcEvents"] = 0
+
+        failures, _ = validate(current, args())
+
+        self.assertIn("FOMC calendar events 0 < 1", failures)
 
 
 if __name__ == "__main__":

@@ -73,6 +73,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
             ORDER BY type
             """,
         )
+        fomc_events = query_one(conn, "SELECT COUNT(*) FROM calendar_events WHERE lower(title) LIKE '%fomc%'")
         options = query_rows(
             conn,
             """
@@ -111,6 +112,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
         },
         "marketBoards": market_boards,
         "calendar": calendar,
+        "fomcEvents": fomc_events,
         "options": options,
         "datasets": datasets,
         "indexValuation": {
@@ -145,6 +147,8 @@ def validate(report: dict[str, Any], args: argparse.Namespace) -> tuple[list[str
     calendar_counts = {row["type"]: int(row["rows"] or 0) for row in report["calendar"]}
     if calendar_counts.get("macro", 0) < args.min_macro_events:
         failures.append(f"macro calendar events {calendar_counts.get('macro', 0)} < {args.min_macro_events}")
+    if report["fomcEvents"] < args.min_fomc_events:
+        failures.append(f"FOMC calendar events {report['fomcEvents']} < {args.min_fomc_events}")
     if calendar_counts.get("earnings", 0) < args.min_earnings_events:
         failures.append(f"earnings calendar events {calendar_counts.get('earnings', 0)} < {args.min_earnings_events}")
     elif calendar_counts.get("earnings", 0) == 0:
@@ -199,6 +203,7 @@ def print_text_report(report: dict[str, Any], failures: list[str], warnings: lis
             print(f"    {row['type']}: {row['rows']}")
     else:
         print("    none")
+    print(f"    FOMC: {report['fomcEvents']}")
     print("  options:")
     if report["options"]:
         for row in report["options"]:
@@ -227,6 +232,7 @@ def main() -> None:
     parser.add_argument("--min-liquid-symbols", type=int, default=200)
     parser.add_argument("--min-board-rows", type=int, default=800)
     parser.add_argument("--min-macro-events", type=int, default=1)
+    parser.add_argument("--min-fomc-events", type=int, default=1)
     parser.add_argument("--min-earnings-events", type=int, default=0)
     parser.add_argument("--min-options-rows", type=int, default=0)
     parser.add_argument("--min-forward-valuation-history", type=int, default=100)

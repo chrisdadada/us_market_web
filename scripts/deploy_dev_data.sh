@@ -25,6 +25,7 @@ with sqlite3.connect(sys.argv[1]) as conn:
     if result != "ok":
         raise SystemExit(f"Incoming product DB integrity check failed: {result}")
 PY
+"${PY}" scripts/check_product_coverage.py --db "${BUILD_DB}" >/dev/null
 
 rsync --partial "${BUILD_DB}" "${SERVER}:${REMOTE_DB}"
 
