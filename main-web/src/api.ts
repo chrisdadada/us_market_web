@@ -654,6 +654,7 @@ export type BottomStrategyPayload = {
 };
 
 export type DcaStrategyProduct = {
+  available?: boolean;
   asOf?: string | null;
   status?: {
     key: "waiting" | "near" | "action";

@@ -551,21 +551,18 @@ def build_qqq_forward_valuation_history(payload: dict[str, Any]) -> dict[str, An
         for item in payload.get("forward") or []
         if parse_date(item.get("date")) and (value := safe_float(item.get("value"))) is not None and value > 0
     ]
-    own_history = [
-        {"date": str(item.get("date"))[:10], "value": round(value, 4)}
-        for item in payload.get("forwardOwn") or []
-        if parse_date(item.get("date")) and (value := safe_float(item.get("value"))) is not None and value > 0
-    ]
     history.sort(key=lambda item: item["date"])
-    own_history.sort(key=lambda item: item["date"])
     if len(history) < 2:
         raise ValueError("Nasdaq 100 forward P/E history requires at least two points")
 
-    latest = own_history[-1] if own_history else history[-1]
+    latest = history[-1]
     latest_date = parse_date(latest["date"])
     if latest_date is None:
         raise ValueError("Nasdaq 100 forward P/E latest date is invalid")
     current_value = float(latest["value"])
+    terminal_value = safe_float((payload.get("current") or {}).get("forward"))
+    if terminal_value is not None and abs(terminal_value / current_value - 1) > 0.03:
+        raise ValueError("Nasdaq 100 forward P/E current value does not match its history")
     ten_year_cutoff = years_before(latest_date, 10)
     history = [item for item in history if parse_date(item["date"]) >= ten_year_cutoff]
 
@@ -615,6 +612,15 @@ def previous_complete_forward_valuation(previous_index: dict[str, Any] | None) -
     forward = (previous_index or {}).get("forwardValuation") or {}
     history = forward.get("history") or []
     if len(history) < 2 or "5y" not in (forward.get("ranges") or {}) or not forward.get("asOf"):
+        return None
+    latest = history[-1]
+    if (
+        str(forward.get("asOf") or "")[:10] != str(forward.get("historicalAsOf") or "")[:10]
+        or str(forward.get("asOf") or "")[:10] != str(latest.get("date") or "")[:10]
+        or not isinstance(forward.get("forwardPe"), (int, float))
+        or not isinstance(latest.get("value"), (int, float))
+        or abs(float(forward["forwardPe"]) - float(latest["value"])) > 0.01
+    ):
         return None
     return copy.deepcopy(forward)
 

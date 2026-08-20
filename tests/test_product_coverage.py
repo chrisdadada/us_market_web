@@ -18,7 +18,9 @@ def args() -> argparse.Namespace:
     )
 
 
-def report(history_rows: int, has_five_year_range: bool, payloads_match: bool = True) -> dict:
+def report(history_rows: int, has_five_year_range: bool, payloads_match: bool = True, snapshots_match: bool = True) -> dict:
+    latest_date = "2026-08-18" if snapshots_match else "2026-08-05"
+    latest_value = 22.02 if snapshots_match else 22.37
     return {
         "symbols": {"total": 1000, "liquid": 500},
         "ratios": {"unknownSectorPct": 0.0, "marketCapMissingPct": 0.0},
@@ -27,6 +29,10 @@ def report(history_rows: int, has_five_year_range: bool, payloads_match: bool = 
         "options": [],
         "indexValuation": {
             "forwardAsOf": "2026-08-18",
+            "forwardHistoricalAsOf": latest_date,
+            "forwardPe": 22.02,
+            "forwardHistoryLatestDate": latest_date,
+            "forwardHistoryLatestValue": latest_value,
             "forwardHistoryRows": history_rows,
             "hasFiveYearRange": has_five_year_range,
             "payloadsMatch": payloads_match,
@@ -47,6 +53,10 @@ class ProductCoverageTest(unittest.TestCase):
     def test_rejects_api_payload_that_differs_from_dataset_payload(self):
         failures, _ = validate(report(521, True, payloads_match=False), args())
         self.assertIn("index-valuation datasets and raw_payloads are out of sync", failures)
+
+    def test_rejects_mixed_current_and_historical_valuation_snapshots(self):
+        failures, _ = validate(report(521, True, snapshots_match=False), args())
+        self.assertIn("QQQ forward valuation current value and history use different snapshots", failures)
 
 
 if __name__ == "__main__":

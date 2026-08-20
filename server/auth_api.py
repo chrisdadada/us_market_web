@@ -87,6 +87,7 @@ PAID_DATASETS = {"strength-scanner", "strength-review", "crypto-etf-flows"}
 DCA1_LOW_THRESHOLD = 23.5
 DCA1_NEAR_THRESHOLD = 24.5
 DCA1_DRAWDOWN_THRESHOLD = 0.08
+DCA1_MAX_SOURCE_LAG_DAYS = 10
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
@@ -1872,6 +1873,30 @@ def _normalized_location_series(history: list[dict[str, Any]]) -> list[dict[str,
     ]
 
 
+def _dca1_valuation_usable(
+    forward: dict[str, Any],
+    history: list[dict[str, Any]],
+    price_series: list[dict[str, Any]],
+) -> bool:
+    if len(history) < 100 or "5y" not in (forward.get("ranges") or {}) or not price_series:
+        return False
+    latest = history[-1]
+    if not isinstance(latest.get("value"), (int, float)) or not isinstance(forward.get("forwardPe"), (int, float)):
+        return False
+    as_of = str(forward.get("asOf") or "")[:10]
+    if as_of != str(forward.get("historicalAsOf") or "")[:10] or as_of != str(latest.get("date") or "")[:10]:
+        return False
+    if abs(float(forward["forwardPe"]) - float(latest["value"])) > 0.01:
+        return False
+    try:
+        source_date = datetime.fromisoformat(as_of).date()
+        price_date = datetime.fromisoformat(str(price_series[-1].get("date") or "")[:10]).date()
+    except ValueError:
+        return False
+    lag = (price_date - source_date).days
+    return 0 <= lag <= DCA1_MAX_SOURCE_LAG_DAYS
+
+
 def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     with product_db() as conn:
         index_payload = product_raw_payload(conn, "index-valuation") or {}
@@ -1908,7 +1933,15 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
         for item in qqq_market.get("priceSeries") or []
         if str(item.get("date") or "")[:10] >= "2020-01-01"
     ]
-    valuation_cycles = _fixed_low_valuation_cycles(history, price_series)
+    dca1_available = _dca1_valuation_usable(forward, history, price_series)
+    valuation_cycles = _fixed_low_valuation_cycles(history, price_series) if dca1_available else {
+        "windows": [],
+        "historicalDates": [],
+        "activeStartDate": None,
+        "latestDate": None,
+        "latestValue": None,
+        "latestDrawdown": None,
+    }
     opportunity_windows_1 = valuation_cycles["windows"]
     opportunity_dates_1 = valuation_cycles["historicalDates"]
     current_cycle_start_1 = valuation_cycles["activeStartDate"]
@@ -1943,6 +1976,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
         "preview": not include_details,
         "products": {
             "dca1": {
+                "available": dca1_available,
                 "asOf": forward.get("asOf") or qqq_index.get("asOf"),
                 "status": value_status if include_details else None,
                 "opportunityDates": opportunity_dates_1,
@@ -1953,6 +1987,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
                 "priceSeries": price_series,
             },
             "dca2": {
+                "available": True,
                 "asOf": qqq_market.get("asOf"),
                 "status": reversal_status_map.get(reversal_status) if include_details else None,
                 "opportunityDates": opportunity_dates_2,
