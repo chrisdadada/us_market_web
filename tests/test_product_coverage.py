@@ -18,7 +18,7 @@ def args() -> argparse.Namespace:
     )
 
 
-def report(history_rows: int, has_five_year_range: bool) -> dict:
+def report(history_rows: int, has_five_year_range: bool, payloads_match: bool = True) -> dict:
     return {
         "symbols": {"total": 1000, "liquid": 500},
         "ratios": {"unknownSectorPct": 0.0, "marketCapMissingPct": 0.0},
@@ -29,6 +29,7 @@ def report(history_rows: int, has_five_year_range: bool) -> dict:
             "forwardAsOf": "2026-08-18",
             "forwardHistoryRows": history_rows,
             "hasFiveYearRange": has_five_year_range,
+            "payloadsMatch": payloads_match,
         },
     }
 
@@ -42,6 +43,10 @@ class ProductCoverageTest(unittest.TestCase):
         failures, _ = validate(report(0, False), args())
         self.assertIn("QQQ forward valuation history 0 < 100", failures)
         self.assertIn("QQQ forward valuation 5y range is missing", failures)
+
+    def test_rejects_api_payload_that_differs_from_dataset_payload(self):
+        failures, _ = validate(report(521, True, payloads_match=False), args())
+        self.assertIn("index-valuation datasets and raw_payloads are out of sync", failures)
 
 
 if __name__ == "__main__":

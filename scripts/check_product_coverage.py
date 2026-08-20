@@ -21,8 +21,10 @@ def query_rows(conn: sqlite3.Connection, sql: str) -> list[dict[str, Any]]:
     return [dict(row) for row in conn.execute(sql).fetchall()]
 
 
-def dataset_payload(conn: sqlite3.Connection, name: str) -> dict[str, Any]:
-    row = conn.execute("SELECT payload_json FROM datasets WHERE name = ?", (name,)).fetchone()
+def dataset_payload(conn: sqlite3.Connection, table: str, name: str) -> dict[str, Any]:
+    if table not in {"datasets", "raw_payloads"}:
+        raise ValueError(f"unsupported payload table: {table}")
+    row = conn.execute(f"SELECT payload_json FROM {table} WHERE name = ?", (name,)).fetchone()
     if not row:
         return {}
     try:
@@ -88,7 +90,8 @@ def build_report(db_path: Path) -> dict[str, Any]:
             ORDER BY name
             """,
         )
-        valuation_payload = dataset_payload(conn, "index-valuation")
+        dataset_valuation_payload = dataset_payload(conn, "datasets", "index-valuation")
+        valuation_payload = dataset_payload(conn, "raw_payloads", "index-valuation")
         qqq = next(
             (
                 item
@@ -114,6 +117,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
             "forwardAsOf": forward.get("asOf"),
             "forwardHistoryRows": len(forward.get("history") or []),
             "hasFiveYearRange": "5y" in (forward.get("ranges") or {}),
+            "payloadsMatch": valuation_payload == dataset_valuation_payload,
         },
     }
 
@@ -154,6 +158,8 @@ def validate(report: dict[str, Any], args: argparse.Namespace) -> tuple[list[str
         )
     if not valuation["hasFiveYearRange"]:
         failures.append("QQQ forward valuation 5y range is missing")
+    if not valuation["payloadsMatch"]:
+        failures.append("index-valuation datasets and raw_payloads are out of sync")
     return failures, warnings
 
 
@@ -192,7 +198,8 @@ def print_text_report(report: dict[str, Any], failures: list[str], warnings: lis
         "  QQQ forward valuation: "
         f"{valuation['forwardHistoryRows']} history rows, "
         f"as of {valuation['forwardAsOf'] or '--'}, "
-        f"5y range {'ready' if valuation['hasFiveYearRange'] else 'missing'}"
+        f"5y range {'ready' if valuation['hasFiveYearRange'] else 'missing'}, "
+        f"API payload {'synced' if valuation['payloadsMatch'] else 'out of sync'}"
     )
     for warning in warnings:
         print(f"  WARN: {warning}")
