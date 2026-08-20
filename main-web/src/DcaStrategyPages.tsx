@@ -145,6 +145,7 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
   if (!authenticated) return <div className="dcaPage"><div className="dcaPageState"><strong>登录后查看定投产品</strong><button type="button" onClick={onAuth}>登录 / 注册</button></div></div>;
   if (loading) return <div className="dcaPage"><div className="dcaPageState">正在加载</div></div>;
   if (error || !product) return <div className="dcaPage"><div className="dcaPageState"><span>{error || "页面暂时无法打开"}</span><button type="button" onClick={load}>重新加载</button></div></div>;
+  if (product.available === false) return <div className="dcaPage"><div className="dcaPageState"><strong>数据更新中</strong><span>请稍后再看</span></div></div>;
 
   const statusKey = product.status?.key || "waiting";
   const presentation = statusCopy[kind][statusKey];

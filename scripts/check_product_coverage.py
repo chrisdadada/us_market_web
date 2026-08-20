@@ -115,6 +115,10 @@ def build_report(db_path: Path) -> dict[str, Any]:
         "datasets": datasets,
         "indexValuation": {
             "forwardAsOf": forward.get("asOf"),
+            "forwardHistoricalAsOf": forward.get("historicalAsOf"),
+            "forwardPe": forward.get("forwardPe"),
+            "forwardHistoryLatestDate": (forward.get("history") or [{}])[-1].get("date"),
+            "forwardHistoryLatestValue": (forward.get("history") or [{}])[-1].get("value"),
             "forwardHistoryRows": len(forward.get("history") or []),
             "hasFiveYearRange": "5y" in (forward.get("ranges") or {}),
             "payloadsMatch": valuation_payload == dataset_valuation_payload,
@@ -158,6 +162,14 @@ def validate(report: dict[str, Any], args: argparse.Namespace) -> tuple[list[str
         )
     if not valuation["hasFiveYearRange"]:
         failures.append("QQQ forward valuation 5y range is missing")
+    if (
+        valuation["forwardAsOf"] != valuation["forwardHistoricalAsOf"]
+        or valuation["forwardAsOf"] != valuation["forwardHistoryLatestDate"]
+        or not isinstance(valuation["forwardPe"], (int, float))
+        or not isinstance(valuation["forwardHistoryLatestValue"], (int, float))
+        or abs(float(valuation["forwardPe"]) - float(valuation["forwardHistoryLatestValue"])) > 0.01
+    ):
+        failures.append("QQQ forward valuation current value and history use different snapshots")
     if not valuation["payloadsMatch"]:
         failures.append("index-valuation datasets and raw_payloads are out of sync")
     return failures, warnings

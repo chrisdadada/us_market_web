@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -120,6 +121,27 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         result = auth_api._fixed_low_valuation_cycles(history, prices)
         self.assertEqual(result["historicalDates"], ["2020-02-28"])
         self.assertEqual(result["activeStartDate"], "2020-02-28")
+
+    def test_dca1_rejects_mixed_or_stale_valuation_snapshots(self) -> None:
+        history = [
+            {"date": f"{2024 + index // 52}-{index % 12 + 1:02d}-{index % 27 + 1:02d}", "value": 22.0}
+            for index in range(104)
+        ]
+        history.sort(key=lambda item: item["date"])
+        latest = history[-1]
+        forward = {
+            "asOf": latest["date"],
+            "historicalAsOf": latest["date"],
+            "forwardPe": latest["value"],
+            "ranges": {"5y": {}},
+        }
+        source_date = datetime.fromisoformat(latest["date"]).date()
+        fresh_prices = [{"date": (source_date + timedelta(days=7)).isoformat(), "value": 100.0}]
+
+        self.assertTrue(auth_api._dca1_valuation_usable(forward, history, fresh_prices))
+        self.assertFalse(auth_api._dca1_valuation_usable({**forward, "asOf": "2026-08-18"}, history, fresh_prices))
+        stale_prices = [{"date": (source_date + timedelta(days=11)).isoformat(), "value": 100.0}]
+        self.assertFalse(auth_api._dca1_valuation_usable(forward, history, stale_prices))
 
 
 if __name__ == "__main__":

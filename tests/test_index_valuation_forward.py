@@ -104,7 +104,9 @@ class ForwardValuationTest(unittest.TestCase):
             "forwardValuation": result,
         })
 
-        self.assertEqual(result["asOf"], "2026-08-18")
+        self.assertEqual(result["asOf"], "2026-08-05")
+        self.assertEqual(result["historicalAsOf"], "2026-08-05")
+        self.assertEqual(result["forwardPe"], 22.4)
         self.assertEqual(len(result["history"]), 7)
         self.assertIn("5y", result["ranges"])
         self.assertEqual(frontend["forwardValuation"]["history"], result["history"])
@@ -115,9 +117,10 @@ class ForwardValuationTest(unittest.TestCase):
             "forwardValuation": {
                 "asOf": "2026-08-18",
                 "forwardPe": 22.02,
+                "historicalAsOf": "2026-08-18",
                 "history": [
                     {"date": "2021-08-18", "value": 25.0},
-                    {"date": "2026-08-05", "value": 22.37},
+                    {"date": "2026-08-18", "value": 22.02},
                 ],
                 "ranges": {"5y": {"p30": 22.4, "median": 25.1, "p70": 28.0}},
             }
@@ -127,6 +130,22 @@ class ForwardValuationTest(unittest.TestCase):
 
         self.assertEqual(result, previous["forwardValuation"])
         self.assertIsNot(result, previous["forwardValuation"])
+
+    def test_rejects_previous_history_with_a_mixed_latest_snapshot(self):
+        previous = {
+            "forwardValuation": {
+                "asOf": "2026-08-18",
+                "historicalAsOf": "2026-08-05",
+                "forwardPe": 22.02,
+                "history": [
+                    {"date": "2021-08-18", "value": 25.0},
+                    {"date": "2026-08-05", "value": 22.37},
+                ],
+                "ranges": {"5y": {"p30": 22.4}},
+            }
+        }
+
+        self.assertIsNone(previous_complete_forward_valuation(previous))
 
     def test_rejects_incomplete_previous_forward_history(self):
         previous = {
