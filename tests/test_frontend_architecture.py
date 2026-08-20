@@ -91,7 +91,12 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertNotIn("历史数据不足", MAIN_APP)
         self.assertNotIn("个交易日后自动计算", MAIN_APP)
 
-    def test_tracking_detail_has_one_compact_style_source(self) -> None:
+    def test_stock_detail_has_one_shared_compact_source(self) -> None:
+        self.assertIn("function StockDetailPage(", MAIN_APP)
+        self.assertNotIn("function TrackingStockDetailPage(", MAIN_APP)
+        self.assertNotIn("function StockPreviewPanel(", MAIN_APP)
+        self.assertIn("stockSource: StockSource", MAIN_APP)
+        self.assertIn('onOpenStock(item.symbol, "watchlist")', MAIN_APP)
         self.assertIn('className="trackingDetailQuote"', MAIN_APP)
         self.assertIn("trackingDetailDecision ${keyLevels.position", MAIN_APP)
         self.assertIn('className="trackingDetailBottom"', MAIN_APP)
@@ -103,6 +108,13 @@ class FrontendArchitectureTest(unittest.TestCase):
             ".trackingStockMetrics",
             ".trackingStockPanel",
             ".trackingKeyLevelsPanel",
+        ):
+            self.assertNotIn(legacy_selector, MAIN_STYLES)
+        for legacy_selector in (
+            ".stocksTerminalLayout",
+            ".stocksPreviewPanel",
+            ".stockPreviewOverlay",
+            ".stockPreviewDrawer",
         ):
             self.assertNotIn(legacy_selector, MAIN_STYLES)
         self.assertNotIn("趋势策略方向为", MAIN_APP)

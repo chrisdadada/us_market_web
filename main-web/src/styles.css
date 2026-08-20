@@ -1635,7 +1635,6 @@
   font-weight: 560;
 }
 
-
 /* Market funds final pass: compact terminal layout. */
 
 /* Final readable heatmap pass. */
@@ -1807,53 +1806,6 @@
   background: #fff2cf;
   color: #9a5b00 !important;
   font-weight: 560;
-}
-
-.stockPreviewCard h3 {
-  font-weight: 620;
-}
-
-.stocksPreviewPanel {
-  gap: 10px;
-}
-
-.stockPreviewCard {
-  padding: 14px;
-}
-
-.stockPreviewTop {
-  gap: 12px;
-}
-
-.stockPreviewTop h2 {
-  font-size: 24px;
-  font-weight: 560;
-}
-
-.stockPreviewTop p,
-.previewFact strong,
-.previewPeerTable td {
-  font-weight: 520;
-}
-
-.stockPreviewMetrics {
-  gap: 1px;
-}
-
-.stockPreviewMetrics div {
-  min-height: 48px;
-  padding: 9px 10px;
-}
-
-.stockPreviewCard h3 {
-  margin-bottom: 8px;
-  color: #526176;
-  font-size: 13px;
-}
-
-.previewBarRow {
-  min-height: 34px;
-  gap: 8px;
 }
 
 body {
@@ -2110,305 +2062,16 @@ body {
 }
 
 /* Product pass: stock library white terminal + compact calendar. */
-.stocksPage {
-  padding: 22px 26px 34px;
-}
-
-.stocksTerminalLayout {
-  display: grid;
-  grid-template-columns: minmax(760px, 1fr) 368px;
-  gap: 14px;
-  align-items: start;
-}
-
-.stocksTerminalLayout .stocksScreenerCard,
-.stocksPreviewPanel > section {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 12px 30px rgba(29, 43, 64, 0.07);
-}
-
-.stocksSignalStrip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-bottom: 1px solid var(--line);
-  background: #fbfdff;
-}
-
-.stocksSignalStrip button {
-  min-height: 70px;
-  border: 0;
-  border-right: 1px solid var(--line);
-  background: transparent;
-  padding: 12px 15px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.stocksSignalStrip button:last-child {
-  border-right: 0;
-}
-
-.stocksSignalStrip button:disabled {
-  cursor: default;
-  opacity: 0.7;
-}
-
-.stocksSignalStrip span {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.stocksSignalStrip strong {
-  display: block;
-  margin-top: 7px;
-  color: var(--text);
-  font-size: 18px;
-  line-height: 1.2;
-  font-weight: 620;
-}
-
-.stocksTerminalLayout .screenerTabs {
-  border-bottom: 1px solid var(--line);
-  background: #fff;
-}
-
-.stocksTerminalLayout .screenerTabs button {
-  height: 38px;
-  border-radius: 0;
-  border-right: 1px solid var(--line);
-}
-
-.stocksTerminalLayout .stocksToolbar {
-  grid-template-columns: minmax(260px, 1fr) 140px 126px 140px;
-  gap: 10px;
-  padding: 12px;
-  background: #fbfdff;
-}
-
-.stocksTerminalLayout .stocksToolbar input,
-.stocksTerminalLayout .stocksToolbar select {
-  height: 34px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.stocksTerminalLayout .stocksTablePanel .panelHead {
-  display: none;
-}
-
-.stocksPreviewPanel {
-  position: sticky;
-  top: 16px;
-  display: grid;
-  gap: 12px;
-}
-
-.stockPreviewCard {
-  padding: 14px 16px;
-}
-
-.stockPreviewTop {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 13px;
-}
-
-.stockPreviewTop span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.stockPreviewTop h2 {
-  margin: 4px 0 2px;
-  color: var(--text);
-  font-size: 34px;
-  line-height: 1;
-  font-weight: 620;
-}
-
-.stockPreviewTop p {
-  margin: 0;
-  color: #6d7b90;
-  font-size: 13px;
-  font-weight: 520;
-}
-
-.stockPreviewTop > div:last-child {
-  text-align: right;
-}
-
-.stockPreviewTop strong {
-  display: block;
-  color: var(--text);
-  font-size: 22px;
-}
-
-.stockPreviewTop em {
-  display: block;
-  margin-top: 8px;
-  font-size: 13px;
-  font-style: normal;
-}
-
-.stockPreviewMetrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin: 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.stockPreviewMetrics div {
-  border-right: 1px solid var(--line);
-  padding: 12px 0;
-}
-
-.stockPreviewMetrics div:nth-child(even) {
-  border-right: 0;
-  padding-left: 13px;
-}
-
-.stockPreviewMetrics div:nth-child(odd) {
-  padding-right: 13px;
-}
-
-.stockPreviewMetrics dt {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.stockPreviewMetrics dd {
-  margin: 5px 0 0;
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 620;
-}
-
-.stockPreviewMetrics dd.long,
-.stockPreviewMetrics dd.bullish,
-.stockPreviewMetrics dd.pos {
-  color: var(--green);
-}
-
-.stockPreviewMetrics dd.short,
-.stockPreviewMetrics dd.bearish,
-.stockPreviewMetrics dd.neg {
-  color: var(--red);
-}
-
-.stockPreviewCard h3 {
-  margin: 0 0 10px;
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 620;
-}
-
-.previewBarRow {
-  display: grid;
-  grid-template-columns: 58px 1fr 70px;
-  gap: 10px;
-  align-items: center;
-  border-top: 1px solid var(--line);
-  padding: 8px 0;
-}
-
-.previewBarRow:first-of-type {
-  border-top: 0;
-}
-
-.previewBarRow span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.previewBarRow div {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e8eef5;
-}
-
-.previewBarRow b {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #2787e8, #14bd8b);
-}
-
-.previewBarRow strong {
-  text-align: right;
-  font-size: 13px;
-}
-
-.previewFact {
-  display: grid;
-  grid-template-columns: 94px 1fr;
-  gap: 10px;
-  border-top: 1px solid var(--line);
-  padding: 9px 0;
-}
-
-.previewFact:first-of-type {
-  border-top: 0;
-}
-
-.previewFact span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.previewFact strong {
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 560;
-}
-
-.previewPeerTable th,
-.previewPeerTable td {
-  padding: 8px 0;
-}
-
-.previewPeerTable th {
-  background: transparent;
-  color: var(--muted);
-}
-
-.previewPeerTable th:nth-child(2),
-.previewPeerTable td:nth-child(2),
-.previewPeerTable th:nth-child(3),
-.previewPeerTable td:nth-child(3) {
-  text-align: right;
-}
 
 @media (max-width: 1180px) {
-  .stocksTerminalLayout {
-    grid-template-columns: 1fr;
-  }
 
-  .stocksPreviewPanel {
-    position: static;
-  }
 }
-
-
 
 .opinionEmpty {
   padding: 22px;
   color: var(--muted);
   font-weight: 600;
 }
-
-
 
 .loading {
   color: var(--muted);
@@ -3196,7 +2859,6 @@ select:focus-visible {
   font-size: 13px;
 }
 
-
 td.positive,
 .positive {
   color: var(--green) !important;
@@ -3207,7 +2869,6 @@ td.negative,
 .negative {
   color: var(--red) !important;
 }
-
 
 .panel {
   min-height: 320px;
@@ -3240,9 +2901,6 @@ td.negative,
   padding: 0 10px;
   font-weight: 560;
 }
-
-
-
 
 .opinionLoading {
   padding: 18px 20px;
@@ -3696,91 +3354,12 @@ td.negative,
   gap: 22px;
 }
 
-.stocksPage {
-  padding: 30px 40px 64px;
-  display: grid;
-  gap: 18px;
-}
-
-.stocksToolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px 160px 160px;
-  gap: 12px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  padding: 14px;
-}
-
-.stocksToolbar input,
-.stocksToolbar select {
-  min-height: 44px;
-  border: 1px solid var(--line-strong);
-  background: #fff;
-  color: var(--text);
-  padding: 0 14px;
-  outline: none;
-}
-
-.stocksToolbar input:focus,
-.stocksToolbar select:focus {
-  border-color: var(--blue);
-}
-
-.stocksTablePanel {
-  overflow: auto;
-  max-height: calc(100vh - 230px);
-}
-
-.stocksTablePanel table {
-  min-width: 980px;
-  table-layout: fixed;
-}
-
-.stocksTablePanel th:nth-child(1),
-.stocksTablePanel td:nth-child(1) {
-  width: 210px;
-}
-
-.stocksTablePanel th:nth-child(2),
-.stocksTablePanel td:nth-child(2) {
-  width: 120px;
-}
-
-.stocksTablePanel th:nth-child(3),
-.stocksTablePanel td:nth-child(3),
-.stocksTablePanel th:nth-child(4),
-.stocksTablePanel td:nth-child(4),
-.stocksTablePanel th:nth-child(5),
-.stocksTablePanel td:nth-child(5),
-.stocksTablePanel th:nth-child(6),
-.stocksTablePanel td:nth-child(6),
-.stocksTablePanel th:nth-child(7),
-.stocksTablePanel td:nth-child(7),
-.stocksTablePanel th:nth-child(8),
-.stocksTablePanel td:nth-child(8) {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.stocksTablePanel th:nth-child(9),
-.stocksTablePanel td:nth-child(9) {
-  width: 82px;
-}
-
 .stocksWorkbench {
   display: grid;
   grid-template-columns: minmax(0, 1.42fr) minmax(360px, 0.58fr);
   gap: 18px;
   align-items: start;
   min-width: 0;
-}
-
-.stocksTablePanel tbody tr {
-  cursor: pointer;
-}
-
-.stocksTablePanel tbody tr.selectedRow {
-  background: #f3f9ff;
 }
 
 .tableError {
@@ -3939,19 +3518,13 @@ td:nth-child(7) {
   }
 
   .topbar,
-.trackingPage,
-.stocksPage {
+.trackingPage{
     padding-left: 18px;
     padding-right: 18px;
   }
 
   .trackingDetailPanel {
     position: static;
-  }
-
-
-  .stocksToolbar {
-    grid-template-columns: 1fr;
   }
 
 }
@@ -4859,304 +4432,10 @@ body,
   }
 }
 
-
 /* Stocks library: final compact white override. */
-.stocksPage {
-  padding: 24px 28px 42px;
-}
-
-.stocksTerminalLayout {
-  display: grid;
-  grid-template-columns: minmax(760px, 1fr) 340px;
-  gap: 16px;
-  align-items: start;
-}
-
-.stocksTerminalLayout .stocksScreenerCard,
-.stocksPreviewPanel > section {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(29, 43, 64, 0.05);
-}
-
-.stocksSignalStrip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-bottom: 1px solid var(--line);
-  background: #fbfdff;
-}
-
-.stocksSignalStrip button {
-  min-height: 58px;
-  border: 0;
-  border-right: 1px solid var(--line);
-  background: transparent;
-  padding: 10px 14px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.stocksSignalStrip button:last-child {
-  border-right: 0;
-}
-
-.stocksSignalStrip span {
-  display: block;
-  color: #708096;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stocksSignalStrip strong {
-  display: block;
-  overflow: hidden;
-  margin-top: 6px;
-  color: #172033;
-  font-size: 15px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stocksTerminalLayout .screenerTabs {
-  display: flex;
-  border-bottom: 1px solid var(--line);
-  background: #fff;
-}
-
-.stocksTerminalLayout .screenerTabs button {
-  height: 38px;
-  border: 0;
-  border-right: 1px solid var(--line);
-  background: transparent;
-  color: #708096;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.stocksTerminalLayout .screenerTabs button.active {
-  background: #edf7ff;
-  color: #1677d2;
-}
-
-.stocksTerminalLayout .stocksToolbar {
-  display: grid;
-  grid-template-columns: minmax(240px, 1fr) 140px 126px 140px;
-  gap: 10px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: #fbfdff;
-  padding: 12px;
-}
-
-.stocksTerminalLayout .stocksToolbar input,
-.stocksTerminalLayout .stocksToolbar select {
-  min-height: 34px;
-  height: 34px;
-  border: 1px solid #d7e1ee;
-  border-radius: 9px;
-  background: #fff;
-  color: #172033;
-  padding: 0 11px;
-  font-size: 13px;
-  font-weight: 500;
-  outline: none;
-}
-
-.stocksTerminalLayout .stocksToolbar input::placeholder {
-  color: #8a98aa;
-}
-
-.stocksTablePanel {
-  max-height: none;
-  overflow: hidden;
-}
-
-.stocksTerminalLayout .screenerTableWrap {
-  max-height: 640px;
-  overflow: auto;
-}
-
-.stocksTerminalLayout .stocksListTable tbody tr {
-  cursor: pointer;
-}
-
-.stocksTerminalLayout .stocksListTable tbody tr:hover td,
-.stocksTerminalLayout .stocksListTable tr.selectedRow td {
-  background: #f7fbff;
-}
-
-.stocksPreviewPanel {
-  position: sticky;
-  top: 16px;
-  display: grid;
-  gap: 12px;
-}
-
-.stockPreviewCard {
-  padding: 14px;
-}
-
-.stockPreviewTop {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-}
-
-.stockPreviewTop span,
-.stockPreviewMetrics dt,
-.previewFact span {
-  color: #708096;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stockPreviewTop h2 {
-  margin: 5px 0 4px;
-  color: #172033;
-  font-size: 24px;
-  font-weight: 640;
-}
-
-.stockPreviewTop p {
-  overflow: hidden;
-  margin: 0;
-  color: #708096;
-  font-size: 13px;
-  font-weight: 400;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stockPreviewTop > div:last-child {
-  text-align: right;
-}
-
-.stockPreviewTop strong {
-  display: block;
-  color: #172033;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.stockPreviewTop em {
-  font-size: 13px;
-  font-style: normal;
-  font-weight: 600;
-}
-
-.stockPreviewMetrics {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  margin: 14px 0 0;
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
-}
-
-.stockPreviewMetrics div {
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: 10px;
-}
-
-.stockPreviewMetrics dd {
-  margin: 5px 0 0;
-  color: #172033;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.stockPreviewCard h3 {
-  margin: 0 0 10px;
-  color: #172033;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.previewBarRow {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 68px;
-  gap: 10px;
-  align-items: center;
-  min-height: 30px;
-}
-
-.previewBarRow span {
-  color: #708096;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.previewBarRow div {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e8edf4;
-}
-
-.previewBarRow b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: #1677d2;
-}
-
-.previewBarRow strong {
-  text-align: right;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.previewFact {
-  display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 10px;
-  border-top: 1px solid var(--line);
-  padding: 10px 0;
-}
-
-.previewFact strong {
-  color: #172033;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.previewPeerTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.previewPeerTable th,
-.previewPeerTable td {
-  border-top: 1px solid var(--line);
-  padding: 9px 0;
-  color: #526176;
-  font-size: 12px;
-  text-align: left;
-}
-
-.previewPeerTable th {
-  color: #708096;
-  font-weight: 560;
-}
-
-.previewPeerTable th:nth-child(n + 2),
-.previewPeerTable td:nth-child(n + 2) {
-  text-align: right;
-}
 
 @media (max-width: 1100px) {
-  .stocksTerminalLayout {
-    grid-template-columns: 1fr;
-  }
 
-  .stocksPreviewPanel {
-    position: static;
-  }
 }
 
 /* Open holdings reference: legacy data, white UI. */
@@ -5658,7 +4937,6 @@ body,
   }
 }
 
-
 /* Market final cleanup: topbar already owns the title. */
 .marketTop {
   justify-content: flex-end;
@@ -5989,87 +5267,6 @@ body,
 }
 
 /* Stocks final cleanup: compact list and preview, keep existing data. */
-.stocksPage {
-  padding: 22px 30px 44px;
-}
-
-.stocksTerminalLayout {
-  grid-template-columns: minmax(720px, 1fr) 320px;
-  gap: 14px;
-}
-
-.stocksTerminalLayout .stocksScreenerCard,
-.stocksPreviewPanel > section {
-  border-radius: 14px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, .05);
-}
-
-.stocksSignalStrip button {
-  min-height: 50px;
-  padding: 8px 12px;
-}
-
-.stocksSignalStrip strong {
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.stocksTerminalLayout .screenerTabs button {
-  height: 34px;
-  padding: 0 13px;
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.stocksTerminalLayout .stocksToolbar {
-  grid-template-columns: minmax(220px, 1fr) 132px 118px 132px;
-  gap: 8px;
-  padding: 10px;
-}
-
-.stocksTerminalLayout .stocksToolbar input,
-.stocksTerminalLayout .stocksToolbar select {
-  height: 32px;
-  min-height: 32px;
-  border-radius: 8px;
-  font-size: 12px;
-}
-
-.stocksTerminalLayout .screenerTableWrap {
-  max-height: 610px;
-}
-
-.stockPreviewCard {
-  padding: 12px;
-}
-
-.stockPreviewTop h2 {
-  font-size: 22px;
-  font-weight: 620;
-}
-
-.stockPreviewTop strong {
-  font-size: 16px;
-  font-weight: 620;
-}
-
-.stockPreviewMetrics {
-  margin-top: 12px;
-}
-
-.stockPreviewMetrics div {
-  padding: 9px;
-}
-
-.stockPreviewMetrics dd {
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.previewBarRow {
-  min-height: 28px;
-}
 
 /* Front polish pass: white terminal density, fewer heavy headings. */
 .workspace {
@@ -6107,8 +5304,7 @@ body,
 .trackingPage,
 .trackingDetailPage,
 .calendarPage,
-.stocksPage,
-.openPortfolioPage {
+.openPortfolioPage{
   color: #172033;
 }
 
@@ -6511,180 +5707,6 @@ body,
 }
 
 /* Stock library + Open reference polish pass. */
-.stocksPage {
-  background: #f4f7fb;
-  padding: 24px 28px 48px;
-}
-
-.stocksTerminalLayout {
-  grid-template-columns: minmax(760px, 1fr) 330px;
-  gap: 14px;
-  align-items: start;
-}
-
-.stocksTerminalLayout .stocksScreenerCard,
-.stockPreviewCard {
-  border: 1px solid #dfe7f2;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
-}
-
-.stocksSignalStrip {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  border-bottom: 1px solid #e5ecf5;
-  background: #fff;
-}
-
-.stocksSignalStrip button {
-  min-height: 58px;
-  padding: 10px 14px;
-  border: 0;
-  border-right: 1px solid #e5ecf5;
-  background: #fff;
-}
-
-.stocksSignalStrip span {
-  font-size: 12px;
-  font-weight: 520;
-  color: #718096;
-}
-
-.stocksSignalStrip strong {
-  margin-top: 4px;
-  font-size: 13px;
-  line-height: 1.35;
-  font-weight: 520;
-  color: #172033;
-}
-
-.stocksTerminalLayout .screenerTabs {
-  padding: 10px 12px 0;
-  border-bottom: 0;
-  gap: 6px;
-}
-
-.stocksTerminalLayout .screenerTabs button {
-  height: 32px;
-  border-radius: 9px;
-  padding: 0 12px;
-  border-color: #d8e2ef;
-  background: #fff;
-  color: #60708a;
-  font-size: 12px;
-  font-weight: 560;
-}
-
-.stocksTerminalLayout .screenerTabs button.active {
-  background: #eef6ff;
-  border-color: #a9d3ff;
-  color: #1677ff;
-}
-
-.stocksTerminalLayout .stocksToolbar {
-  grid-template-columns: minmax(240px, 1fr) 130px 116px 130px;
-  gap: 8px;
-  padding: 10px 12px 12px;
-  border: 0;
-  background: #fff;
-}
-
-.stocksTerminalLayout .stocksToolbar input,
-.stocksTerminalLayout .stocksToolbar select {
-  height: 34px;
-  min-height: 34px;
-  border-radius: 9px;
-  border-color: #d8e2ef;
-  background: #fff;
-  color: #172033;
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.stocksTerminalLayout .screenerTableWrap {
-  max-height: 640px;
-  border-top: 1px solid #e5ecf5;
-}
-
-.stockPreviewCard {
-  padding: 14px;
-}
-
-.stockPreviewTop {
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e5ecf5;
-}
-
-.stockPreviewTop span,
-.stockPreviewMetrics dt,
-.stockPreviewCard h3 {
-  font-size: 12px;
-  font-weight: 560;
-  color: #718096;
-}
-
-.stockPreviewTop h2 {
-  margin-top: 5px;
-  font-size: 26px;
-  line-height: 1.1;
-  font-weight: 560;
-  color: #111827;
-}
-
-.stockPreviewTop p {
-  margin-top: 4px;
-  color: #60708a;
-  font-size: 12px;
-  font-weight: 420;
-}
-
-.stockPreviewTop > div:last-child {
-  text-align: right;
-}
-
-.stockPreviewTop strong {
-  font-size: 18px;
-  font-weight: 520;
-  color: #172033;
-}
-
-.stockPreviewTop em {
-  margin-top: 5px;
-  font-size: 12px;
-  font-weight: 520;
-}
-
-.stockPreviewMetrics {
-  margin-top: 12px;
-  border: 1px solid #e5ecf5;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.stockPreviewMetrics div {
-  padding: 9px 10px;
-  border-color: #edf2f7;
-  background: #fbfdff;
-}
-
-.stockPreviewMetrics dd {
-  margin-top: 5px;
-  font-size: 13px;
-  font-weight: 520;
-}
-
-.previewBarRow,
-.previewFact,
-.previewPeerTable th,
-.previewPeerTable td {
-  font-size: 12px;
-}
-
-.previewBarRow {
-  min-height: 30px;
-}
 
 .openPortfolioPage {
   background: #f4f7fb;
@@ -7401,10 +6423,6 @@ body,
 
 .trackingPage .pager {
   background: #fff;
-}
-
-.stocksPage {
-  background: #f4f7fb;
 }
 
 .stocksPage .pager {
@@ -9101,137 +8119,6 @@ body,
 }
 
 /* Stock detail final polish: readable density without changing data. */
-.stocksPage .stocksTerminalLayout {
-  grid-template-columns: minmax(820px, 1fr) 300px;
-  gap: 12px;
-}
-
-.stocksPage .stocksSignalStrip button {
-  min-height: 50px;
-  padding: 8px 12px;
-}
-
-.stocksPage .stocksSignalStrip strong {
-  margin-top: 3px;
-  font-size: 12.5px;
-}
-
-.stocksPage .stocksTerminalLayout .screenerTabs {
-  padding: 8px 10px 0;
-  gap: 5px;
-}
-
-.stocksPage .stocksTerminalLayout .screenerTabs button {
-  height: 30px;
-  padding: 0 10px;
-}
-
-.stocksPage .stocksTerminalLayout .stocksToolbar {
-  grid-template-columns: minmax(220px, 1fr) 116px 104px 116px;
-  gap: 6px;
-  padding: 8px 10px 10px;
-}
-
-.stocksPage .stocksTerminalLayout .stocksToolbar input,
-.stocksPage .stocksTerminalLayout .stocksToolbar select {
-  height: 32px;
-  min-height: 32px;
-}
-
-.stocksPage .stocksPreviewPanel {
-  gap: 8px;
-}
-
-.stocksPage .stockPreviewCard {
-  padding: 10px;
-  border-radius: 12px;
-}
-
-.stocksPage .stockPreviewTop {
-  align-items: start;
-  padding-bottom: 10px;
-}
-
-.stocksPage .stockPreviewTop > div:first-child {
-  min-width: 0;
-}
-
-.stocksPage .stockPreviewTop h2 {
-  margin: 3px 0 2px;
-  font-size: 20px;
-  font-weight: 620;
-  letter-spacing: 0;
-}
-
-.stocksPage .stockPreviewTop strong {
-  font-size: 15px;
-  font-weight: 620;
-}
-
-.stocksPage .stockPreviewTop p {
-  max-width: 170px;
-}
-
-.stocksPage .stockPreviewMetrics {
-  margin-top: 10px;
-}
-
-.stocksPage .stockPreviewMetrics div {
-  padding: 7px 9px;
-}
-
-.stocksPage .stockPreviewMetrics dd {
-  min-height: 22px;
-  display: flex;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 580;
-}
-
-.stocksPage .stockPreviewCard h3 {
-  margin-bottom: 8px;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.stocksPage .previewFact {
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 8px;
-  padding: 7px 0;
-}
-
-.stocksPage .previewFact strong {
-  overflow: hidden;
-  color: #2d3a4e;
-  font-size: 12px;
-  font-weight: 520;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stocksPage .previewPeerTable th,
-.stocksPage .previewPeerTable td {
-  padding: 7px 0;
-  font-size: 12px;
-}
-
-.stocksPage .previewPeerTable th:nth-child(1),
-.stocksPage .previewPeerTable td:nth-child(1) {
-  width: 56px;
-}
-
-.stocksPage .previewPeerTable th:nth-child(2),
-.stocksPage .previewPeerTable td:nth-child(2),
-.stocksPage .previewPeerTable th:nth-child(3),
-.stocksPage .previewPeerTable td:nth-child(3) {
-  width: 86px;
-}
-
-.stocksPage .previewPeerTable td:first-child {
-  color: #172033;
-  font-weight: 620;
-}
 
 /* Global shell: page title lives in the page content, not in every topbar. */
 .topbar {
@@ -9518,7 +8405,6 @@ body,
   }
 }
 
-
 .marketEmpty {
   display: grid;
   min-height: 120px;
@@ -9592,7 +8478,6 @@ body,
   background: #f4f7fb;
   color: #718096;
 }
-
 
 /* Open portfolio: public view keeps only readable position and trade rhythm. */
 .openPositionPanel {
@@ -10197,59 +9082,40 @@ body,
   font-size: 11px;
 }
 
-.trackingPage .screenerTable,
-.stocksTerminalLayout .stocksListTable {
+.trackingPage .screenerTable{
   min-width: 1360px;
 }
 
 .trackingPage .screenerTable th:nth-child(1),
-.trackingPage .screenerTable td:nth-child(1),
-.stocksTerminalLayout .stocksListTable th:nth-child(1),
-.stocksTerminalLayout .stocksListTable td:nth-child(1) {
+.trackingPage .screenerTable td:nth-child(1){
   width: 44px;
   text-align: center;
 }
 
 .trackingPage .screenerTable th:nth-child(2),
-.trackingPage .screenerTable td:nth-child(2),
-.stocksTerminalLayout .stocksListTable th:nth-child(2),
-.stocksTerminalLayout .stocksListTable td:nth-child(2) {
+.trackingPage .screenerTable td:nth-child(2){
   width: 220px;
   text-align: left;
 }
 
 .trackingPage .screenerTable th:nth-child(3),
 .trackingPage .screenerTable td:nth-child(3),
-.stocksTerminalLayout .stocksListTable th:nth-child(3),
-.stocksTerminalLayout .stocksListTable td:nth-child(3),
 .trackingPage .screenerTable th:nth-child(4),
 .trackingPage .screenerTable td:nth-child(4),
-.stocksTerminalLayout .stocksListTable th:nth-child(4),
-.stocksTerminalLayout .stocksListTable td:nth-child(4),
 .trackingPage .screenerTable th:nth-child(5),
 .trackingPage .screenerTable td:nth-child(5),
-.stocksTerminalLayout .stocksListTable th:nth-child(5),
-.stocksTerminalLayout .stocksListTable td:nth-child(5),
 .trackingPage .screenerTable th:nth-child(6),
 .trackingPage .screenerTable td:nth-child(6),
-.stocksTerminalLayout .stocksListTable th:nth-child(6),
-.stocksTerminalLayout .stocksListTable td:nth-child(6),
 .trackingPage .screenerTable th:nth-child(7),
 .trackingPage .screenerTable td:nth-child(7),
-.stocksTerminalLayout .stocksListTable th:nth-child(7),
-.stocksTerminalLayout .stocksListTable td:nth-child(7),
 .trackingPage .screenerTable th:nth-child(8),
-.trackingPage .screenerTable td:nth-child(8),
-.stocksTerminalLayout .stocksListTable th:nth-child(8),
-.stocksTerminalLayout .stocksListTable td:nth-child(8) {
+.trackingPage .screenerTable td:nth-child(8){
   width: 108px;
   text-align: right;
 }
 
 .trackingPage .screenerTable th:nth-child(9),
-.trackingPage .screenerTable td:nth-child(9),
-.stocksTerminalLayout .stocksListTable th:nth-child(9),
-.stocksTerminalLayout .stocksListTable td:nth-child(9) {
+.trackingPage .screenerTable td:nth-child(9){
   width: 132px;
   text-align: center;
 }
@@ -10266,8 +9132,7 @@ body,
   text-align: center;
 }
 
-.trackingPage .screenerTable th:nth-child(n+3):nth-child(-n+8) .tableSortButton,
-.stocksTerminalLayout .stocksListTable th:nth-child(n+4):nth-child(-n+8) .tableSortButton {
+.trackingPage .screenerTable th:nth-child(n+3):nth-child(-n+8) .tableSortButton{
   justify-content: flex-end;
 }
 
@@ -10277,7 +9142,6 @@ body,
 }
 
 /* Effective market board overrides: current tab data only, readable heatmap. */
-
 
 .trackingPage .screenerTable th:nth-child(10),
 .trackingPage .screenerTable td:nth-child(10) {
@@ -10322,7 +9186,6 @@ body,
   white-space: nowrap;
 }
 
-
 @media (max-width: 960px) {
   .fundingScannerPage {
     padding: 16px;
@@ -10349,25 +9212,6 @@ body,
 }
 
 /* Final market heatmap contract: white tiles, color only signals direction. */
-
-.stocksTerminalLayout .stocksListTable th:nth-child(4),
-.stocksTerminalLayout .stocksListTable td:nth-child(4),
-.stocksTerminalLayout .stocksListTable th:nth-child(5),
-.stocksTerminalLayout .stocksListTable td:nth-child(5),
-.stocksTerminalLayout .stocksListTable th:nth-child(6),
-.stocksTerminalLayout .stocksListTable td:nth-child(6),
-.stocksTerminalLayout .stocksListTable th:nth-child(7),
-.stocksTerminalLayout .stocksListTable td:nth-child(7),
-.stocksTerminalLayout .stocksListTable th:nth-child(8),
-.stocksTerminalLayout .stocksListTable td:nth-child(8) {
-  width: 132px;
-}
-
-.stocksTerminalLayout .stocksListTable th:nth-child(9),
-.stocksTerminalLayout .stocksListTable td:nth-child(9) {
-  width: 220px;
-}
-
 
 /* Final product QA override: keep this at EOF so legacy sweeps cannot win. */
 .signalDirectionBadge {
@@ -10402,25 +9246,20 @@ body,
 }
 
 /* Front data table standard: page CSS keeps layout/columns only. */
-.trackingPage .screenerCard,
-.stocksPage .screenerCard,
-.stocksPage .stocksPreviewPanel > section {
+.trackingPage .screenerCard{
   border: 1px solid var(--front-card-border);
   border-radius: var(--front-card-radius);
   background: var(--panel);
   box-shadow: var(--front-card-shadow);
 }
 
-.trackingPage .screenerTable,
-.stocksTerminalLayout .stocksListTable {
+.trackingPage .screenerTable{
   border-collapse: collapse;
   table-layout: fixed;
 }
 
 .trackingPage .screenerTable th,
-.trackingPage .screenerTable td,
-.stocksTerminalLayout .stocksListTable th,
-.stocksTerminalLayout .stocksListTable td {
+.trackingPage .screenerTable td{
   border-bottom: 1px solid var(--line-soft);
   color: var(--text);
   font-size: var(--front-table-body-size);
@@ -10429,8 +9268,7 @@ body,
   white-space: nowrap;
 }
 
-.trackingPage .screenerTable th,
-.stocksTerminalLayout .stocksListTable th {
+.trackingPage .screenerTable th{
   height: 36px;
   background: var(--panel-soft);
   color: #6d7b91;
@@ -10439,20 +9277,17 @@ body,
   padding: 8px 12px;
 }
 
-.trackingPage .screenerTable td,
-.stocksTerminalLayout .stocksListTable td {
+.trackingPage .screenerTable td{
   height: 46px;
   padding: 8px 12px;
 }
 
-.trackingPage .screenerTable td strong,
-.stocksTerminalLayout .stocksListTable td strong {
+.trackingPage .screenerTable td strong{
   font-size: var(--front-table-body-size);
   font-weight: var(--front-table-body-weight);
 }
 
-.trackingPage .screenerTable td span:not(.signalDirectionBadge):not(.lockedStockName),
-.stocksTerminalLayout .stocksListTable td span:not(.signalDirectionBadge) {
+.trackingPage .screenerTable td span:not(.signalDirectionBadge):not(.lockedStockName){
   display: block;
   overflow: hidden;
   max-width: 100%;
@@ -10464,24 +9299,19 @@ body,
   white-space: nowrap;
 }
 
-.trackingPage .screenerTable td:nth-child(n+3):nth-child(-n+8),
-.stocksTerminalLayout .stocksListTable td:nth-child(n+3):nth-child(-n+8) {
+.trackingPage .screenerTable td:nth-child(n+3):nth-child(-n+8){
   font-weight: var(--front-table-value-weight);
 }
 
 .trackingPage .screenerTable .positive,
-.stocksTerminalLayout .stocksListTable .positive,
-.frontHomeTable .positive {
+.frontHomeTable .positive{
   color: var(--green) !important;
 }
 
 .trackingPage .screenerTable .negative,
-.stocksTerminalLayout .stocksListTable .negative,
-.frontHomeTable .negative {
+.frontHomeTable .negative{
   color: var(--red) !important;
 }
-
-
 
 /* Calendar V3: macro events stay visible above the paged earnings calendar. */
 .topbar.calendarTopbar {
@@ -12821,79 +11651,10 @@ body,
   border-top: 0;
 }
 
-.stockPreviewOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  display: flex;
-  justify-content: flex-end;
-  background: rgba(15, 23, 42, .28);
-}
-
-body.stockPreviewOpen {
-  overflow: hidden;
-}
-
-.stockPreviewDrawer {
-  width: min(460px, 100vw);
-  height: 100%;
-  overflow-y: auto;
-  border-left: 1px solid #dbe4ef;
-  background: #f5f8fc;
-  box-shadow: -14px 0 38px rgba(15, 23, 42, .14);
-}
-
-.stockPreviewDrawer > header {
-  position: sticky;
-  z-index: 2;
-  top: 0;
-  display: flex;
-  height: 56px;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  padding: 0 16px;
-  background: rgba(255, 255, 255, .97);
-}
-
-.stockPreviewDrawer > header strong {
-  font-size: 15px;
-  font-weight: 650;
-}
-
-.stockPreviewDrawer > header button {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 1px solid #d6e0ec;
-  border-radius: 6px;
-  background: #fff;
-  color: #526176;
-  font-size: 22px;
-  line-height: 1;
-}
-
-.stockPreviewDrawer > header > div,
-.stockPreviewWatchlist {
+.stockPreviewWatchlist{
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.stockPreviewDrawer > header .stockPreviewWatchlist button {
-  display: inline-flex;
-  width: auto;
-  min-width: 76px;
-  padding: 0 10px;
-  color: var(--blue);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.stockPreviewDrawer > header .stockPreviewWatchlist button:disabled {
-  color: #718198;
-  cursor: default;
 }
 
 .stockPreviewWatchlist {
@@ -12915,58 +11676,7 @@ body.stockPreviewOpen {
   font-style: normal;
 }
 
-.stockPreviewDrawer .stocksPreviewPanel {
-  display: grid;
-  width: auto;
-  gap: 10px;
-  padding: 12px;
-}
-
-.stockPreviewDrawer .stockPreviewCard {
-  border: 1px solid var(--front-card-border);
-  border-radius: var(--front-card-radius);
-  padding: 12px;
-  background: #fff;
-  box-shadow: none;
-}
-
-.stockPreviewError {
-  display: grid;
-  min-height: 280px;
-  align-content: center;
-  justify-items: center;
-  gap: 12px;
-  padding: 24px;
-  color: #526176;
-}
-
-.stockPreviewError strong {
-  font-size: 13px;
-  font-weight: 560;
-}
-
-.stockPreviewError button {
-  height: 34px;
-  border: 1px solid #bcd7ff;
-  border-radius: 6px;
-  padding: 0 13px;
-  background: #fff;
-  color: #1677ff;
-  font-size: 12px;
-}
-
-.stockPreviewEmpty {
-  height: auto !important;
-  padding: 12px 0 !important;
-  color: var(--muted) !important;
-  font-size: 12px !important;
-  text-align: center !important;
-}
-
 @media (max-width: 760px) {
-  .stocksPage {
-    padding: 24px 15px 36px;
-  }
 
   .stockLibraryPresetRow {
     display: block;
@@ -13137,10 +11847,6 @@ body.stockPreviewOpen {
     justify-content: center;
   }
 
-  .stockPreviewDrawer {
-    width: 100%;
-    border-left: 0;
-  }
 }
 /* Crypto ETF flows inside Market & Funds. */
 .marketViewTabs {

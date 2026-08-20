@@ -69,6 +69,7 @@ import {
 } from "./shared";
 
 type AuthMode = "login" | "register" | "forgot" | "reset";
+type StockSource = "stocks" | "tracking" | "watchlist" | "search";
 
 const CryptoEtfChart = lazy(() => import("./CryptoEtfChart"));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -87,6 +88,7 @@ type RouteState = {
   page: PageKey;
   opinionId: string;
   symbol: string;
+  stockSource: StockSource;
   courseId: string;
   resetToken: string;
 };
@@ -107,10 +109,12 @@ function VolumeRatioLabel() {
 function readRouteState(): RouteState {
   const params = new URLSearchParams(window.location.search);
   const pageParam = params.get("page") as PageKey | null;
+  const sourceParam = params.get("source");
   return {
     page: params.get("page") === "bottom" ? "dca2" : pageParam && validPageKeys.has(pageParam) ? pageParam : "home",
     opinionId: params.get("opinion") || "",
     symbol: (params.get("symbol") || "").trim().toUpperCase(),
+    stockSource: sourceParam === "tracking" || sourceParam === "watchlist" || sourceParam === "search" ? sourceParam : "stocks",
     courseId: params.get("course") || "",
     resetToken: params.get("resetToken") || ""
   };
@@ -121,7 +125,10 @@ function pushRouteState(route: Partial<RouteState> & { page: PageKey }) {
   url.search = "";
   if (route.page !== "home") url.searchParams.set("page", route.page);
   if (route.page === "opinions" && route.opinionId) url.searchParams.set("opinion", route.opinionId);
-  if (route.page === "stocks" && route.symbol) url.searchParams.set("symbol", route.symbol);
+  if (route.page === "stocks" && route.symbol) {
+    url.searchParams.set("symbol", route.symbol);
+    if (route.stockSource && route.stockSource !== "stocks") url.searchParams.set("source", route.stockSource);
+  }
   if (route.page === "courses" && route.courseId) url.searchParams.set("course", route.courseId);
   window.history.pushState(null, "", url);
 }
@@ -561,10 +568,6 @@ function latestSignalStates(states: SignalState[]) {
   return latest ? states.filter((item) => signalBatchDate(item) === latest) : [];
 }
 
-function signalForSymbol(states: SignalState[], symbol?: string | null) {
-  return latestSignalStates(states).find((item) => item.symbol === symbol) || null;
-}
-
 type TrackingSortKey = "symbol" | "currentPrice" | "oneMonth" | "oneDay" | "oneWeek" | "volume" | "marketCap" | "signal" | "signalFirstSeen";
 type StockSortKey = "symbol" | "dayChange" | "weekChange" | "monthChange" | "dollarVolume" | "marketCap";
 type SortDir = "asc" | "desc";
@@ -639,12 +642,6 @@ function numericPercent(value?: number | string | null) {
   if (isBlankValue(value)) return NaN;
   if (typeof value === "number") return value;
   return Number(String(value).replace("%", "").replace("+", ""));
-}
-
-function barWidth(value?: number | string | null, max = 100) {
-  const n = Math.abs(numericPercent(value));
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(6, Math.min(100, (n / max) * 100));
 }
 
 function stockCompany(row?: SymbolRow | null) {
@@ -777,7 +774,7 @@ function App() {
   const [selectedOpinion, setSelectedOpinion] = useState<string>(initialRoute.opinionId);
   const [selectedSymbol, setSelectedSymbol] = useState<string>(initialRoute.symbol);
   const [selectedCourse, setSelectedCourse] = useState<string>(initialRoute.courseId);
-  const [selectedSymbolSource, setSelectedSymbolSource] = useState<"stocks" | "tracking" | "search">("stocks");
+  const [selectedSymbolSource, setSelectedSymbolSource] = useState<StockSource>(initialRoute.stockSource);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [unlockModalOpen, setUnlockModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(initialRoute.resetToken ? "reset" : "login");
@@ -906,7 +903,7 @@ function App() {
       setSelectedOpinion(route.opinionId);
       setSelectedSymbol(route.symbol);
       setSelectedCourse(route.courseId);
-      setSelectedSymbolSource("stocks");
+      setSelectedSymbolSource(route.stockSource);
       setMobileNavOpen(false);
       setMobileSearchOpen(false);
     };
@@ -967,13 +964,13 @@ function App() {
     selectOpinion(item.id);
   }, [requireLogin, selectOpinion]);
 
-  const selectSymbol = useCallback((symbol: string, source: "stocks" | "tracking" | "search" = "stocks") => {
+  const selectSymbol = useCallback((symbol: string, source: StockSource = "stocks") => {
     if (!requireLogin()) return;
     const nextSymbol = symbol.trim().toUpperCase();
     setSelectedSymbol(nextSymbol);
     setSelectedSymbolSource(source);
     setPage("stocks");
-    pushRouteState({ page: "stocks", symbol: nextSymbol });
+    pushRouteState({ page: "stocks", symbol: nextSymbol, stockSource: source });
   }, [requireLogin]);
 
   const selectCourse = useCallback((courseId: string) => {
@@ -999,7 +996,7 @@ function App() {
     setPage("stocks");
     setMobileNavOpen(false);
     setMobileSearchOpen(false);
-    pushRouteState({ page: "stocks", symbol: nextSymbol });
+    pushRouteState({ page: "stocks", symbol: nextSymbol, stockSource: "search" });
   };
 
   const trackingRows = useMemo(() => mergedTrackingRows(bootstrap, signalStates), [bootstrap, signalStates]);
@@ -1015,7 +1012,9 @@ function App() {
   const opinionsLocked = page === "opinions" && !pageUnlocked;
   const homeOpinionsLocked = !hasPageAccess(auth, "opinions");
   const homeTrackingLocked = !hasPageAccess(auth, "tracking");
-  const activeNavPage = page === "stocks" && selectedSymbolSource === "tracking" ? "tracking" : page;
+  const activeNavPage = page === "stocks" && selectedSymbol
+    ? selectedSymbolSource === "tracking" ? "tracking" : selectedSymbolSource === "watchlist" ? "watchlist" : "stocks"
+    : page;
   const gateGuestClick = useCallback((event: MouseEvent<HTMLElement>) => {
     if (auth?.authenticated) return;
     const target = event.target as HTMLElement | null;
@@ -1157,8 +1156,16 @@ function App() {
             {page === "risk" ? <MarketTemperaturePage enabled={pageUnlocked} /> : null}
             {page === "strength" ? <MarketStrengthPage enabled={pageUnlocked} onOpenStock={selectSymbol} /> : null}
             {page === "valuation" ? <IndexValuationPage enabled={pageUnlocked} /> : null}
-            {page === "stocks" && selectedSymbolSource === "tracking" ? <TrackingStockDetailPage symbol={selectedSymbol} rows={trackingRows} onBack={() => navigatePage("tracking")} onOpenStock={selectSymbol} /> : null}
-            {page === "stocks" && selectedSymbolSource !== "tracking" ? <StocksPage selectedSymbol={selectedSymbol} signalStates={signalStates} bootstrap={bootstrap} onSelectSymbol={selectSymbol} /> : null}
+            {page === "stocks" && selectedSymbol ? (
+              <StockDetailPage
+                symbol={selectedSymbol}
+                rows={trackingRows}
+                backLabel={selectedSymbolSource === "tracking" ? pageLabels.tracking : selectedSymbolSource === "watchlist" ? pageLabels.watchlist : pageLabels.stocks}
+                onBack={() => navigatePage(selectedSymbolSource === "tracking" ? "tracking" : selectedSymbolSource === "watchlist" ? "watchlist" : "stocks")}
+                onOpenStock={(nextSymbol) => selectSymbol(nextSymbol, selectedSymbolSource)}
+              />
+            ) : null}
+            {page === "stocks" && !selectedSymbol ? <StocksPage signalStates={signalStates} onSelectSymbol={(nextSymbol) => selectSymbol(nextSymbol, "stocks")} /> : null}
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
             {page === "open" ? <OpenPortfolioPage /> : null}
             {page === "watchlist" ? <WatchlistPage onOpenStock={selectSymbol} /> : null}
@@ -2059,7 +2066,7 @@ function TrackingPage({
   authenticated: boolean;
   onAuth: (mode: AuthMode) => void;
   onUnlock: () => void;
-  onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void;
+  onOpenStock: (symbol: string, source?: StockSource) => void;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [sortKey, setSortKey] = useState<TrackingSortKey>("oneMonth");
@@ -2202,33 +2209,53 @@ function TrackingPage({
   );
 }
 
-function TrackingStockDetailPage({
+function StockDetailPage({
   symbol,
   rows,
+  backLabel,
   onBack,
   onOpenStock
 }: {
   symbol: string;
   rows: ReturnType<typeof mergedTrackingRows>;
+  backLabel: string;
   onBack: () => void;
-  onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void;
+  onOpenStock: (symbol: string) => void;
 }) {
   const [detail, setDetail] = useState<SymbolDetailPayload | null>(null);
   const [loading, setLoading] = useState(false);
-  const activeSymbol = symbol || rows[0]?.symbol || "";
-  const row = rows.find((item) => item.symbol === activeSymbol) || rows[0] || null;
+  const activeSymbol = symbol.trim().toUpperCase();
+  const row = rows.find((item) => item.symbol === activeSymbol) || null;
   const profile = detail?.profile;
-  const displayName = profile?.company || profile?.chineseName || row?.name || row?.symbol || "--";
-  const detailDay = detail?.marketRows.find((item) => item.board === "day");
-  const keyLevels = detailDay?.keyLevels || row?.keyLevels;
-  const priceHistory = detailDay?.priceHistory || row?.priceHistory || [];
-  const sameList = rows
-    .filter((item) => item.symbol !== activeSymbol)
-    .slice(0, 3);
-  const currentPrice = row?.currentPrice ?? keyLevels?.currentPrice ?? detailDay?.price ?? profile?.price;
-  const dollarVolume = row?.liquidity || compactMoney(detailDay?.dollarVolume ?? profile?.dollarVolume);
-  const volumeRatio = row?.volume || ratioDisplay(detailDay?.volumeRatio ?? profile?.volumeRatio);
-  const yearChange = detailDay?.changeYtd ?? profile?.ytdChange;
+  const dayRow = detail?.marketRows.find((item) => item.board === "day");
+  const weekRow = detail?.marketRows.find((item) => item.board === "week");
+  const monthRow = detail?.marketRows.find((item) => item.board === "month");
+  const ytdRow = detail?.marketRows.find((item) => item.board === "ytd");
+  const keyLevels = dayRow?.keyLevels || row?.keyLevels;
+  const priceHistory = dayRow?.priceHistory || row?.priceHistory || [];
+  const displayName = profile?.company || profile?.chineseName || row?.name || activeSymbol || "--";
+  const currentPrice = row?.currentPrice ?? keyLevels?.currentPrice ?? dayRow?.price ?? profile?.price;
+  const oneDay = row?.oneDay ?? dayRow?.changePct ?? dayRow?.change ?? profile?.dayChange;
+  const oneWeek = row?.oneWeek ?? weekRow?.changePct ?? weekRow?.change ?? profile?.weekChange;
+  const oneMonth = row?.oneMonth ?? monthRow?.changePct ?? monthRow?.change ?? profile?.monthChange;
+  const yearChange = ytdRow?.changePct ?? ytdRow?.change ?? dayRow?.changeYtd ?? profile?.ytdChange;
+  const detailDollarVolume = compactMoney(dayRow?.dollarVolume ?? profile?.dollarVolume);
+  const dollarVolume = detailDollarVolume !== "--" ? detailDollarVolume : row?.liquidity || "--";
+  const detailVolumeRatio = ratioDisplay(dayRow?.volumeRatio ?? profile?.volumeRatio);
+  const volumeRatio = detailVolumeRatio !== "--" ? detailVolumeRatio : row?.volume || "--";
+  const peers = detail?.peers?.length
+    ? detail.peers.slice(0, 3).map((item) => ({
+        symbol: item.symbol,
+        name: stockCompany(item),
+        oneMonth: item.monthChange,
+        direction: item.strengthLabel || "--"
+      }))
+    : rows.filter((item) => item.symbol !== activeSymbol).slice(0, 3).map((item) => ({
+        symbol: item.symbol,
+        name: item.name && item.name !== item.symbol ? item.name : trackingSymbolNames[item.symbol] || item.symbol,
+        oneMonth: item.oneMonth,
+        direction: trackingDirection(item)
+      }));
 
   useEffect(() => {
     if (!activeSymbol) return;
@@ -2250,22 +2277,22 @@ function TrackingStockDetailPage({
     };
   }, [activeSymbol]);
 
-  if (!row && loading) return <div className="trackingDetailPage"><div className="loading" /></div>;
-  if (!row) return <div className="trackingDetailPage"><div className="loading">--</div></div>;
+  if (!profile && !row && loading) return <div className="trackingDetailPage"><div className="loading" /></div>;
+  if (!profile && !row) return <div className="trackingDetailPage"><button type="button" className="trackingDetailBack" onClick={onBack}>返回{backLabel}</button><div className="trackingDetailEmpty"><strong>股票详情加载失败</strong></div></div>;
 
   return (
     <div className="trackingDetailPage">
-      <button type="button" className="trackingDetailBack" onClick={onBack}>返回{pageLabels.tracking}</button>
+      <button type="button" className="trackingDetailBack" onClick={onBack}>返回{backLabel}</button>
 
       <section className="trackingDetailQuote">
         <div className="trackingDetailIdentity">
-          <h1>{row.symbol}</h1>
+          <h1>{activeSymbol}</h1>
           <p>{displayName}</p>
         </div>
         <div className="trackingDetailPrice"><span>现价</span><strong>{priceDisplay(currentPrice)}</strong></div>
-        <div><span>近1天</span><strong className={signedClass(row.oneDay)}>{signed(row.oneDay)}</strong></div>
-        <div><span>近1周</span><strong className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</strong></div>
-        <div><span>近1月</span><strong className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</strong></div>
+        <div><span>近1天</span><strong className={signedClass(oneDay)}>{signed(oneDay)}</strong></div>
+        <div><span>近1周</span><strong className={signedClass(oneWeek)}>{signed(oneWeek)}</strong></div>
+        <div><span>近1月</span><strong className={signedClass(oneMonth)}>{signed(oneMonth)}</strong></div>
         <div><span>成交额</span><strong>{dollarVolume || "--"}</strong></div>
         <div><span>成交倍数</span><strong>{volumeRatio || "--"}</strong></div>
         <AddToWatchlistButton symbol={activeSymbol} />
@@ -2308,12 +2335,12 @@ function TrackingStockDetailPage({
         <article className="trackingDetailPanel">
           <header><strong>同榜对比</strong><span>近1月</span></header>
           <div className="trackingDetailPeers">
-            {sameList.map((item) => (
-              <button type="button" key={item.symbol} onClick={() => onOpenStock(item.symbol, "tracking")}>
+            {peers.map((item) => (
+              <button type="button" key={item.symbol} onClick={() => onOpenStock(item.symbol)}>
                 <strong>{item.symbol}</strong>
-                <small>{item.name && item.name !== item.symbol ? item.name : trackingSymbolNames[item.symbol] || item.symbol}</small>
+                <small>{item.name}</small>
                 <b className={signedClass(item.oneMonth)}>{signed(item.oneMonth)}</b>
-                <span>{trackingDirection(item)}</span>
+                <span>{item.direction}</span>
               </button>
             ))}
           </div>
@@ -2763,7 +2790,7 @@ function StrengthFilterFields({
   );
 }
 
-function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void }) {
+function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: StockSource) => void }) {
   const [payload, setPayload] = useState<StrengthScannerPayload | null>(null);
   const [view, setView] = useState<StrengthView>("watch");
   const [query, setQuery] = useState("");
@@ -3375,7 +3402,7 @@ function AddToWatchlistButton({ symbol }: { symbol: string }) {
     setBusy(true);
     setError("");
     try {
-      await api.addWatchlist(symbol, "股票概览");
+      await api.addWatchlist(symbol, "股票详情");
       setActive(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "添加失败");
@@ -3393,14 +3420,10 @@ function AddToWatchlistButton({ symbol }: { symbol: string }) {
 }
 
 function StocksPage({
-  selectedSymbol,
   signalStates,
-  bootstrap,
   onSelectSymbol
 }: {
-  selectedSymbol: string;
   signalStates: SignalState[];
-  bootstrap: BootstrapPayload | null;
   onSelectSymbol: (symbol: string) => void;
 }) {
   const pageSize = 20;
@@ -3416,13 +3439,7 @@ function StocksPage({
   const [loadingRows, setLoadingRows] = useState(false);
   const [error, setError] = useState("");
   const [sectorOptions, setSectorOptions] = useState<Array<{ sector: string; count: number }>>([]);
-  const [detail, setDetail] = useState<SymbolDetailPayload | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState("");
-  const [detailAttempt, setDetailAttempt] = useState(0);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const selectedRow = rows.find((row) => row.symbol === selectedSymbol) || null;
-  const activeSymbol = selectedSymbol.trim().toUpperCase();
   const latestSignals = useMemo(() => latestSignalStates(signalStates), [signalStates]);
   const signalMap = useMemo(() => new Map(latestSignals.map((item) => [item.symbol, item])), [latestSignals]);
   const stockSortHeader = (key: StockSortKey, label: string) => (
@@ -3488,47 +3505,6 @@ function StocksPage({
   useEffect(() => {
     setPageIndex(0);
   }, [cap, preset, query, sector, sort, sortDir]);
-
-  useEffect(() => {
-    if (!activeSymbol) {
-      setDetail(null);
-      setDetailError("");
-      setDetailLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setDetail(null);
-    setDetailLoading(true);
-    setDetailError("");
-    api.symbolDetail(activeSymbol)
-      .then((payload) => {
-        if (!cancelled) setDetail(payload);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setDetail(null);
-        setDetailError("股票概览加载失败，请稍后重试");
-      })
-      .finally(() => {
-        if (!cancelled) setDetailLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSymbol, detailAttempt]);
-
-  useEffect(() => {
-    if (!activeSymbol) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onSelectSymbol("");
-    };
-    document.body.classList.add("stockPreviewOpen");
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.classList.remove("stockPreviewOpen");
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [activeSymbol, onSelectSymbol]);
 
   return (
     <div className="stocksPage">
@@ -3602,7 +3578,7 @@ function StocksPage({
                   const direction = trackingDirection({ signalDirection: signal?.direction, signalDirectionText: signal?.directionText });
                   const volumeRatio = ratioDisplay(row.volumeRatio);
                   return (
-                    <tr key={row.symbol} className={row.symbol === activeSymbol ? "selectedRow" : ""} onClick={() => onSelectSymbol(row.symbol)}>
+                    <tr key={row.symbol} onClick={() => onSelectSymbol(row.symbol)}>
                       <td>{pageIndex * pageSize + index + 1}</td>
                       <td><strong>{row.symbol}</strong><span>{stockCompany(row)}</span></td>
                       <td>{row.sector || "--"}</td>
@@ -3639,7 +3615,7 @@ function StocksPage({
                   </div>
                   <div className="stockLibraryMobileFoot">
                     <span>成交额 {compactMoney(row.dollarVolume)} · 市值 {marketCapDisplay(row)}</span>
-                    <button type="button" onClick={() => onSelectSymbol(row.symbol)}>查看概览</button>
+                    <button type="button" onClick={() => onSelectSymbol(row.symbol)}>查看详情</button>
                   </div>
                 </article>
               );
@@ -3654,119 +3630,7 @@ function StocksPage({
           </div>
         </article>
       </section>
-      {activeSymbol ? (
-        <div className="stockPreviewOverlay" role="dialog" aria-modal="true" aria-label={`${activeSymbol} 股票概览`} onMouseDown={() => onSelectSymbol("")}>
-          <section className="stockPreviewDrawer" onMouseDown={(event) => event.stopPropagation()}>
-            <header>
-              <strong>股票概览</strong>
-              <div><AddToWatchlistButton symbol={activeSymbol} /><button type="button" aria-label="关闭股票概览" autoFocus onClick={() => onSelectSymbol("")}>×</button></div>
-            </header>
-            {detailError ? (
-              <div className="stockPreviewError">
-                <strong>{detailError}</strong>
-                <button type="button" onClick={() => setDetailAttempt((value) => value + 1)}>重新加载</button>
-              </div>
-            ) : (
-              <StockPreviewPanel row={selectedRow} detail={detail} loading={detailLoading || !detail} signal={signalForSymbol(signalStates, activeSymbol)} />
-            )}
-          </section>
-        </div>
-      ) : null}
     </div>
-  );
-}
-
-function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | null; detail: SymbolDetailPayload | null; loading: boolean; signal: SignalState | null }) {
-  const profile = detail?.profile || row;
-  const marketRows = detail?.marketRows || [];
-  const peers = detail?.peers || [];
-  const events = detail?.events || [];
-  const dayRow = marketRows.find((item) => item.board === "day");
-  const weekRow = marketRows.find((item) => item.board === "week");
-  const monthRow = marketRows.find((item) => item.board === "month");
-  const ytdRow = marketRows.find((item) => item.board === "ytd");
-  const dayChange = dayRow?.changePct ?? dayRow?.change ?? row?.dayChange;
-  const weekChange = weekRow?.changePct ?? weekRow?.change ?? row?.weekChange;
-  const monthChange = monthRow?.changePct ?? monthRow?.change ?? row?.monthChange;
-  const ytdChange = ytdRow?.changePct ?? ytdRow?.change ?? row?.ytdChange;
-  const dollarVolume = profile?.dollarVolume ?? marketRows.find((item) => item.dollarVolume)?.dollarVolume;
-  const volumeRatio = profile?.volumeRatio ?? marketRows.find((item) => item.volumeRatio)?.volumeRatio;
-  const signalLabel = trackingDirection({ signalDirection: signal?.direction, signalDirectionText: signal?.directionText });
-
-  if (loading && !profile) {
-    return <aside className="stocksPreviewPanel"><section className="stockPreviewCard"><div className="loading" /></section></aside>;
-  }
-
-  if (!profile) {
-    return <aside className="stocksPreviewPanel"><section className="stockPreviewCard"><div className="loading">--</div></section></aside>;
-  }
-
-  return (
-    <aside className="stocksPreviewPanel">
-      <section className="stockPreviewCard profile">
-        <div className="stockPreviewTop">
-          <div>
-            <span>{profile.sector || "--"}</span>
-            <h2>{profile.symbol}</h2>
-            <p>{stockCompany(profile)}</p>
-          </div>
-          <div>
-            <strong>{Number.isFinite(Number(profile.price)) ? `$${Number(profile.price).toFixed(2)}` : "--"}</strong>
-            <em className={signedClass(dayChange)}>{signed(dayChange)}</em>
-          </div>
-        </div>
-        <dl className="stockPreviewMetrics">
-          <div><dt>市值</dt><dd>{marketCapDisplay(profile)}</dd></div>
-          <div><dt>成交额</dt><dd>{compactMoney(dollarVolume)}</dd></div>
-          <div><dt><VolumeRatioLabel /></dt><dd>{ratioDisplay(volumeRatio)}</dd></div>
-          <div><dt>趋势信号</dt><dd><SignalDirectionBadge label={signalLabel} /></dd></div>
-        </dl>
-      </section>
-
-      <section className="stockPreviewCard">
-        <h3>区间表现</h3>
-        {[
-          ["1天", dayChange],
-          ["1周", weekChange],
-          ["1月", monthChange],
-          ["今年", ytdChange]
-        ].map(([label, value]) => (
-          <div className="previewBarRow" key={label}>
-            <span>{label}</span>
-            <div><b style={{ width: `${barWidth(value as number | string | null, 120)}%` }} /></div>
-            <strong className={signedClass(value as number | string | null)}>{signed(value as number | string | null)}</strong>
-          </div>
-        ))}
-      </section>
-
-      <section className="stockPreviewCard">
-        <h3>近期事件</h3>
-        {events.slice(0, 2).map((event) => (
-          <div className="previewFact" key={`${event.eventDate}-${event.eventLabel}`}>
-            <span>{formatStoredDateTime(event.eventDate)}</span>
-            <strong>{event.eventLabel || event.eventType || "--"}</strong>
-          </div>
-        ))}
-        {!events.length ? <div className="stockPreviewEmpty">暂无近期事件</div> : null}
-      </section>
-
-      <section className="stockPreviewCard">
-        <h3>同板块</h3>
-        <table className="previewPeerTable">
-          <thead><tr><th>股票</th><th>市值</th><th>成交额</th></tr></thead>
-          <tbody>
-            {peers.slice(0, 4).map((peer) => (
-              <tr key={peer.symbol}>
-                <td>{peer.symbol}</td>
-                <td>{marketCapDisplay(peer)}</td>
-                <td>{compactMoney(peer.dollarVolume)}</td>
-              </tr>
-            ))}
-            {!peers.length ? <tr><td className="stockPreviewEmpty" colSpan={3}>暂无同板块数据</td></tr> : null}
-          </tbody>
-        </table>
-      </section>
-    </aside>
   );
 }
 
@@ -4205,7 +4069,7 @@ function watchlistTrend(row?: SymbolRow) {
   return { label: "无明确信号", className: "neutral" };
 }
 
-function WatchlistPage({ onOpenStock }: { onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void }) {
+function WatchlistPage({ onOpenStock }: { onOpenStock: (symbol: string, source?: StockSource) => void }) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [profiles, setProfiles] = useState<Record<string, SymbolRow>>({});
   const [query, setQuery] = useState("");
@@ -4387,7 +4251,7 @@ function WatchlistPage({ onOpenStock }: { onOpenStock: (symbol: string, source?:
                   return (
                     <tr key={item.symbol}>
                       <td>{String(index + 1).padStart(2, "0")}</td>
-                      <td><button type="button" className="stockLink" onClick={() => onOpenStock(item.symbol, "stocks")}><strong>{item.symbol}</strong><span>{profile?.chineseName || profile?.company || "--"}</span></button></td>
+                      <td><button type="button" className="stockLink" onClick={() => onOpenStock(item.symbol, "watchlist")}><strong>{item.symbol}</strong><span>{profile?.chineseName || profile?.company || "--"}</span></button></td>
                       <td><span className={`watchlistStatus ${due ? "due" : item.reviewAction || "unset"}`}>{status}</span></td>
                       <td><span className={trend.className}>{trend.label}</span></td>
                       <td>{clue || "--"}</td>
