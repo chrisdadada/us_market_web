@@ -1,0 +1,252 @@
+.rollingToolPage {
+  display: grid;
+  gap: 16px;
+}
+
+.rollingToolGrid {
+  grid-template-columns: minmax(480px, 1.08fr) minmax(390px, .92fr);
+}
+
+.rollingToolFieldset {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+}
+
+.rollingToolFieldset:disabled {
+  opacity: .72;
+}
+
+.rollingNeutralSegment {
+  height: 42px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #f8fafc;
+  padding: 3px;
+}
+
+.rollingNeutralSegment button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #526176;
+  cursor: pointer;
+}
+
+.rollingNeutralSegment button.active {
+  background: #fff;
+  color: #1264c8;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+  font-weight: 600;
+}
+
+.rollingTriggerInput {
+  height: 42px;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.rollingTriggerInput:focus-within {
+  border-color: #5aa0ff;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, .09);
+}
+
+.rollingTriggerInput select,
+.rollingTriggerInput input {
+  min-width: 0;
+  border: 0;
+  background: #fff;
+  color: #172033;
+  padding: 0 11px;
+  outline: 0;
+  font-size: 13px;
+}
+
+.rollingTriggerInput select {
+  border-right: 1px solid #edf1f5;
+  background: #f8fafc;
+  color: #65758c;
+}
+
+.rollingLastFieldRow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.rollingFormActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 8px;
+  border-top: 1px solid #edf1f5;
+  padding-top: 18px;
+}
+
+.rollingFormActions button,
+.rollingPriceControl > button,
+.rollingQuickActions button {
+  height: 42px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #526176;
+  cursor: pointer;
+}
+
+.rollingPrimaryButton {
+  border-color: #1677ff !important;
+  background: #1677ff !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.rollingResultPanel {
+  min-width: 0;
+}
+
+.rollingStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rollingStatus::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9aa5b5;
+  content: "";
+}
+
+.rollingStatus.running::before {
+  background: #1677ff;
+}
+
+.rollingStatus.holding_protection::before {
+  background: #0b9968;
+}
+
+.rollingStatus.ended::before {
+  background: #d84a5d;
+}
+
+.rollingPriceControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 98px;
+  gap: 8px;
+  padding: 18px 20px 10px;
+}
+
+.rollingPriceControl label {
+  grid-column: 1 / -1;
+  color: #65758c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rollingPriceControl button:disabled,
+.rollingQuickActions button:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
+
+.rollingQuickActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 20px 12px;
+}
+
+.rollingQuickActions button {
+  height: 34px;
+  background: #f8fafc;
+  font-size: 12px;
+}
+
+.rollingError {
+  margin: 0 20px 12px;
+}
+
+.rollingMetricList {
+  margin-top: 4px;
+}
+
+.rollingProjection {
+  min-height: 0;
+}
+
+.rollingResultActions {
+  grid-template-columns: minmax(0, 1fr) 72px;
+}
+
+.rollingEventsPanel {
+  min-width: 0;
+}
+
+.rollingEventList {
+  display: grid;
+}
+
+.rollingEventList > div {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid #edf1f5;
+  padding: 0 20px;
+}
+
+.rollingEventList strong {
+  color: #263247;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rollingEventList span {
+  min-width: 0;
+  color: #718096;
+  font-size: 12px;
+}
+
+.rollingEmptyState {
+  height: 96px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #98a5b7;
+  font-size: 12px;
+}
+
+@media (max-width: 980px) {
+  .rollingToolGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .rollingToolPage {
+    gap: 12px;
+  }
+
+  .rollingPriceControl,
+  .rollingQuickActions {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .rollingMetricList {
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+
+  .rollingEventList > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    padding: 11px 14px;
+  }
+}

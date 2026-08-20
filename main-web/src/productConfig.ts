@@ -1,4 +1,4 @@
-export type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "valuation" | "stocks" | "calendar" | "open" | "position" | "watchlist" | "dca1" | "dca2" | "funding" | "forum" | "courses";
+export type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "valuation" | "stocks" | "calendar" | "open" | "position" | "rolling" | "watchlist" | "dca1" | "dca2" | "funding" | "forum" | "courses";
 export type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 export type NavItem = { key: PageKey; label: string; status?: string; disabled?: boolean };
 
@@ -16,6 +16,7 @@ export const pageLabels: Record<PageKey, string> = {
   open: "Open 持仓参考",
   forum: "论坛讨论区",
   position: "以损定仓",
+  rolling: "滚仓工具",
   watchlist: "自选",
   dca1: "纳指定投 1 号",
   dca2: "纳指定投 2 号",
@@ -52,7 +53,8 @@ export const legacyMigrationNavItems: Array<{ href: string; label: string }> = [
 ];
 
 export const memberToolNavItems: NavItem[] = [
-  { key: "position", label: pageLabels.position }
+  { key: "position", label: pageLabels.position },
+  { key: "rolling", label: pageLabels.rolling }
 ];
 
 export const toolDataPageNavItems: NavItem[] = [
@@ -92,6 +94,11 @@ export const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; titl
     level: "monthly",
     title: "会员可用以损定仓",
     text: "开通后按买入价、止损价和单笔最大亏损计算建议仓位。"
+  },
+  rolling: {
+    level: "yearly",
+    title: "年度会员可用滚仓工具",
+    text: "开通年度会员后，可配置滚仓方案、网页模拟并导出标准方案。"
   },
   risk: {
     level: "registered",

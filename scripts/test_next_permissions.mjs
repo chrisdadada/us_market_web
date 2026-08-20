@@ -10,6 +10,8 @@ import { strengthPageFixture } from "./strength_page_fixture.mjs";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
 const dcaOnly = process.env.DCA_ONLY === "1";
+const rollingOnly = process.env.ROLLING_ONLY === "1";
+const fullQa = !dcaOnly && !rollingOnly;
 
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -38,7 +40,7 @@ const profiles = {
   },
   yearly: {
     authenticated: true,
-    user: { id: 3, email: "yearly@example.test", role: "user", plan: "yearly", subscriptionExpiresAt: "2027-06-22 12:00:00" },
+    user: { id: 3, email: "yearly@example.test", role: "user", plan: "yearly", subscriptionExpiresAt: "2027-06-22 12:00:00", onboardingSeenAt: "2026-07-01 12:00:00" },
     entitlements: { paid: true, pro: true, proPlus: true, admin: false, yearly: true },
   },
   admin: {
@@ -380,6 +382,7 @@ const scenarios = [
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
   { profile: "anonymous", page: "risk", present: ["注册后查看"] },
   { profile: "anonymous", page: "position", present: [gates.open] },
+  { profile: "anonymous", page: "rolling", present: [gates.open] },
   { profile: "anonymous", page: "dca1", present: ["登录后查看定投产品"] },
   { profile: "anonymous", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
@@ -389,6 +392,7 @@ const scenarios = [
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "free", page: "position", present: [gates.open] },
+  { profile: "free", page: "rolling", present: [gates.open] },
   { profile: "free", page: "dca1", presentSelector: ".dcaGate", present: ["策略状态已更新"] },
   { profile: "free", page: "dca2", presentSelector: ".dcaGate", present: ["策略状态已更新"] },
   { profile: "free", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
@@ -400,6 +404,7 @@ const scenarios = [
   { profile: "monthly", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "monthly", page: "strength", presentSelector: "[data-testid='market-strength-page']", absent: Object.values(gates) },
   { profile: "monthly", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
+  { profile: "monthly", page: "rolling", present: [gates.open], absentSelector: "[data-testid='rolling-tool-page']" },
   { profile: "monthly", page: "dca1", presentSelector: "[data-testid='dca1-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
   { profile: "monthly", page: "dca2", presentSelector: "[data-testid='dca2-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
   { profile: "yearly", page: "opinions", absent: Object.values(gates) },
@@ -407,15 +412,19 @@ const scenarios = [
   { profile: "yearly", page: "open", absent: [gates.open] },
   { profile: "yearly", page: "market", absent: Object.values(gates) },
   { profile: "yearly", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
+  { profile: "yearly", page: "rolling", presentSelector: "[data-testid='rolling-tool-page']", absent: Object.values(gates) },
   { profile: "admin", page: "opinions", absent: Object.values(gates) },
   { profile: "admin", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "admin", page: "open", absent: [gates.open] },
   { profile: "admin", page: "market", absent: Object.values(gates) },
   { profile: "admin", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
+  { profile: "admin", page: "rolling", presentSelector: "[data-testid='rolling-tool-page']", absent: Object.values(gates) },
 ];
 const selectedScenarios = dcaOnly
   ? scenarios.filter((item) => ["dca1", "dca2"].includes(item.page) && ["anonymous", "free", "monthly"].includes(item.profile))
-  : scenarios;
+  : rollingOnly
+    ? scenarios.filter((item) => item.page === "rolling")
+    : scenarios;
 
 const browser = await launchBrowser();
 try {
@@ -495,13 +504,38 @@ try {
         }
       }
       const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
-      if (!dcaOnly && (profileName === "anonymous" || profileName === "free")) {
+      if (fullQa && (profileName === "anonymous" || profileName === "free")) {
         assert(strengthRequestCount === 0, `${profileName} should not request the paid strength dataset`);
       }
-      if (!dcaOnly && profileName === "monthly") {
+      if (fullQa && profileName === "monthly") {
         assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
       }
-      if (!dcaOnly && profileName === "monthly") {
+      if (!dcaOnly && profileName === "yearly") {
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=rolling`, { waitUntil: "networkidle" });
+        const onboardingAccept = page.getByRole("button", { name: "同意并继续" });
+        if (await onboardingAccept.count()) await onboardingAccept.click();
+        await page.getByTestId("rolling-entry-price").fill("100");
+        await page.getByTestId("rolling-start").click();
+        assert((await page.getByTestId("rolling-add-progress").innerText()) === "0 / 4", "rolling simulation should begin with no adds");
+        await page.getByRole("button", { name: "到下一触发价" }).click();
+        assert((await page.getByTestId("rolling-add-progress").innerText()) === "1 / 4", "rolling simulation should apply one add per price update");
+        const [download] = await Promise.all([
+          page.waitForEvent("download"),
+          page.locator(".rollingResultActions .positionPrimaryButton").click(),
+        ]);
+        const exportedPath = await download.path();
+        const exportedPlan = JSON.parse(await readFile(exportedPath, "utf8"));
+        assert(exportedPlan.symbol === "BTCUSDT" && exportedPlan.schemaVersion === 1, "rolling export should use the normalized plan schema");
+        assert(exportedPlan.latestPrice == null && exportedPlan.api_key == null && exportedPlan.marketPrices == null, "rolling export must exclude runtime and private fields");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop rolling tool should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-rolling-desktop.png`, fullPage: true });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(200);
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile rolling tool should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-rolling-mobile.png`, fullPage: true });
+      }
+      if (fullQa && profileName === "monthly") {
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=home`, { waitUntil: "networkidle" });
         assert(await page.locator(".frontHomeDesktopTable").isVisible(), "desktop home should show the stock table");
@@ -810,7 +844,7 @@ try {
         const primaryLabels = await page.locator(".sideRail > nav button span").allTextContents();
         assert(primaryLabels.join("|") === "首页|猫言猫语|重点财经前瞻|机会跟踪榜单|美股行情|市场资金走向|市场活跃指数|行业板块强弱|指数估值|实战课程|自选|纳指定投 1 号|纳指定投 2 号", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
         const memberToolLabels = await page.locator(".navToolGroup", { hasText: "会员工具" }).locator("button span").allTextContents();
-        assert(memberToolLabels.join("|") === "以损定仓", `mobile member-tool navigation is incorrect: ${memberToolLabels.join("|")}`);
+        assert(memberToolLabels.join("|") === "以损定仓|滚仓工具", `mobile member-tool navigation is incorrect: ${memberToolLabels.join("|")}`);
         assert(await page.locator(".sideRail", { hasText: "工具数据" }).count() === 0, "mobile navigation should not separate market pages into a tool-data group");
         assert(await page.locator(".sideRail", { hasText: "实战课程" }).count() === 1, "courses should appear in mobile navigation");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-navigation.png` });

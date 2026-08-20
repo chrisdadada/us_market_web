@@ -32,6 +32,7 @@ import {
 import { calculatePositionSizing, type PositionDirection, type PositionSizingResult } from "./positionSizing";
 import type { CryptoEtfAssetKey, CryptoEtfInterval } from "./CryptoEtfChart";
 import { ReversalDcaPage, ValueDcaPage } from "./DcaStrategyPages";
+import RollingToolPage from "./RollingToolPage";
 import {
   legacyMigrationNavItems,
   memberToolNavItems,
@@ -1172,6 +1173,7 @@ function App() {
             {page === "dca1" ? <ValueDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
             {page === "dca2" ? <ReversalDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
             {page === "position" ? <PositionSizingPage /> : null}
+            {page === "rolling" && pageUnlocked ? <RollingToolPage /> : null}
             {page === "funding" ? <FundingArbitragePage isAdmin={Boolean(auth?.entitlements?.admin)} /> : null}
             {page === "forum" ? <ComingSoonPage title="论坛讨论区" /> : null}
             {page === "courses" ? <CoursesPage viewerKey={auth?.user?.id || 0} courseId={selectedCourse} onCourse={selectCourse} onBack={clearCourse} onUnlock={requestUnlock} /> : null}
