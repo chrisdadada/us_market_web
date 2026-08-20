@@ -1,9 +1,10 @@
 .rollingToolPage {
   display: grid;
+  align-content: start;
   gap: 14px;
 }
 
-.rollingPageHead {
+.positionSizingHead.rollingPageHead {
   margin-bottom: 0;
 }
 
