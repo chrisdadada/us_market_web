@@ -51,10 +51,6 @@ function signedMoney(value: string | null | undefined) {
   return `${number > 0 ? "+" : ""}${numberText(value, 2)} U`;
 }
 
-function marketTime(epoch: number | null | undefined) {
-  return epoch ? formatStoredDateTime(new Date(epoch * 1000).toISOString()) : "--";
-}
-
 function planCode(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
@@ -115,7 +111,7 @@ export default function RollingToolPage() {
   const [addPercent, setAddPercent] = useState("50");
   const [maxAdds, setMaxAdds] = useState("4");
   const [protectionDistance, setProtectionDistance] = useState("6");
-  const [draftQuote, setDraftQuote] = useState<{ price: string; asOf: number } | null>(null);
+  const [draftQuote, setDraftQuote] = useState<string | null>(null);
 
   async function refresh(preferredId?: string) {
     const payload = await api.rollingPlans();
@@ -149,7 +145,7 @@ export default function RollingToolPage() {
     const timer = window.setTimeout(() => {
       api.rollingQuote(symbol)
         .then((quote) => {
-          setDraftQuote({ price: quote.price, asOf: quote.asOf });
+          setDraftQuote(quote.price);
           setMarketError("");
         })
         .catch((reason) => {
@@ -165,8 +161,7 @@ export default function RollingToolPage() {
   const fixedAdd = Number(String(initialNotional).replaceAll(",", "")) * Number(addPercent) / 100;
   const maxInput = Number(String(initialNotional).replaceAll(",", "")) + fixedAdd * Number(maxAdds);
   const currentSymbol = selected?.symbol || symbol;
-  const currentPrice = selected?.currentPrice || draftQuote?.price || null;
-  const currentAsOf = selected?.marketAsOf || draftQuote?.asOf || null;
+  const currentPrice = selected?.currentPrice || draftQuote;
   const connected = selected ? selected.marketConnected : Boolean(draftQuote);
 
   async function startPlan(event: FormEvent) {
@@ -230,32 +225,30 @@ export default function RollingToolPage() {
 
   return (
     <div className="positionSizingPage rollingToolPage" data-testid="rolling-tool-page">
-      <header className="positionSizingHead rollingPageHead">
-        <div><h1>滚仓工具</h1><p>实时行情驱动，网页模拟与实盘客户端使用同一套滚仓规则。</p></div>
-        <span className={`rollingConnection ${connected ? "connected" : ""}`}><i />Binance U 本位 · {connected ? "行情已连接" : "连接中"}</span>
-      </header>
-
-      <nav className="rollingPlanTabs" aria-label="我的滚仓计划">
-        {plans.map((plan) => (
-          <button key={plan.id} type="button" className={selectedId === plan.id ? "active" : ""} onClick={() => setSelectedId(plan.id)}>
-            <span><strong>{plan.symbol} · {plan.config.side === "long" ? "做多" : "做空"}</strong><small>计划 {planCode(plan.id)}</small></span>
-            <b className={plan.status}>{statusLabels[plan.status]}</b>
-          </button>
-        ))}
-        <button type="button" className={`rollingNewPlan ${selectedId === "new" ? "active" : ""}`} onClick={() => setSelectedId("new")}>＋ 新建计划</button>
-      </nav>
-
-      <section className="rollingMarketBar">
-        <div><span>{currentSymbol} · Binance U 本位最新成交价</span><strong>{numberText(currentPrice)}</strong></div>
-        <dl><div><dt>行情时间</dt><dd>{marketTime(currentAsOf)}</dd></div><div><dt>连接状态</dt><dd className={connected ? "positive" : "negative"}>{connected ? "实时行情正常" : "行情连接中"}</dd></div></dl>
-      </section>
+      {plans.length ? (
+        <nav className="rollingPlanTabs" aria-label="我的滚仓计划">
+          {plans.map((plan) => (
+            <button key={plan.id} type="button" className={selectedId === plan.id ? "active" : ""} onClick={() => setSelectedId(plan.id)}>
+              <span><strong>{plan.symbol} · {plan.config.side === "long" ? "做多" : "做空"}</strong><small>计划 {planCode(plan.id)}</small></span>
+              <b className={plan.status}>{statusLabels[plan.status]}</b>
+            </button>
+          ))}
+          <button type="button" className={`rollingNewPlan ${selectedId === "new" ? "active" : ""}`} onClick={() => setSelectedId("new")}>＋ 新建计划</button>
+        </nav>
+      ) : null}
 
       {marketError ? <p className="positionError rollingTopError">{marketError}，行情恢复前不会触发新的模拟成交。</p> : null}
       {error ? <p className="positionError rollingTopError">{error}</p> : null}
 
       <section className="positionSizingGrid rollingToolGrid">
         <form className="positionSizingPanel positionSizingForm rollingConfigPanel" onSubmit={startPlan}>
-          <div className="panelHead"><strong>方案参数</strong><span>{selected ? `${statusLabels[selected.status]} · 已锁定` : "填写后启动"}</span></div>
+          <div className="panelHead">
+            <strong>方案参数</strong>
+            <div className="rollingPanelMeta">
+              <span className={`rollingInlineQuote ${connected ? "connected" : ""}`}><i /><b>{currentSymbol}</b><strong>{numberText(currentPrice)}</strong><em>{connected ? "实时" : "连接中"}</em></span>
+              {selected ? <span>{statusLabels[selected.status]} · 已锁定</span> : null}
+            </div>
+          </div>
           <fieldset className="positionFormBody rollingToolFieldset" disabled={Boolean(selected) || saving}>
             <div className="positionFieldGrid">
               <label><span>交易标的</span><input value={selected?.config.symbol || symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 BTCUSDT" /></label>

@@ -4,18 +4,6 @@
   gap: 14px;
 }
 
-.positionSizingHead.rollingPageHead {
-  margin-bottom: 0;
-}
-
-.rollingConnection {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.rollingConnection i,
 .rollingStatus i {
   width: 7px;
   height: 7px;
@@ -24,11 +12,6 @@
   background: #b36a00;
 }
 
-.rollingConnection.connected {
-  color: #078257;
-}
-
-.rollingConnection.connected i,
 .rollingStatus.running i,
 .rollingStatus.holding_protection i {
   background: #13a676;
@@ -117,53 +100,59 @@
   font-weight: 600;
 }
 
-.rollingMarketBar {
-  min-height: 66px;
+.rollingPanelMeta,
+.rollingInlineQuote {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  border: 1px solid #dfe7f2;
-  border-radius: 8px;
-  background: #fff;
-  padding: 10px 16px;
 }
 
-.rollingMarketBar > div span,
-.rollingMarketBar dt {
-  display: block;
-  color: #8290a4;
-  font-size: 10px;
+.rollingPanelMeta {
+  gap: 12px;
 }
 
-.rollingMarketBar > div strong {
-  display: block;
-  margin-top: 3px;
+.rollingInlineQuote {
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.rollingInlineQuote i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #b36a00;
+}
+
+.rollingInlineQuote.connected i {
+  background: #13a676;
+}
+
+.positionSizingPanel .panelHead .rollingInlineQuote b {
+  color: #526176;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.positionSizingPanel .panelHead .rollingInlineQuote strong {
   color: #172033;
-  font-size: 22px;
+  font-size: 13px;
   font-weight: 650;
 }
 
-.rollingMarketBar dl {
-  display: flex;
-  gap: 28px;
-  margin: 0;
+.rollingInlineQuote em {
+  color: #a96200;
+  font-size: 10px;
+  font-style: normal;
 }
 
-.rollingMarketBar dd {
-  margin: 4px 0 0;
-  color: #263247;
-  font-size: 11px;
-  font-weight: 600;
-  text-align: right;
+.rollingInlineQuote.connected em {
+  color: #078257;
 }
 
-.rollingMarketBar dd.positive,
 .rollingMetrics strong.positive {
   color: #078257;
 }
 
-.rollingMarketBar dd.negative,
 .rollingMetrics strong.negative {
   color: #d84a5d;
 }
@@ -587,28 +576,12 @@
     gap: 12px;
   }
 
-  .rollingPageHead {
-    align-items: flex-start;
-  }
-
   .rollingPlanTabs button {
     min-width: 158px;
   }
 
-  .rollingMarketBar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .rollingMarketBar dl {
-    width: 100%;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .rollingMarketBar dd {
-    text-align: left;
+  .rollingPanelMeta > span:not(.rollingInlineQuote) {
+    display: none;
   }
 
   .rollingStatusBody {

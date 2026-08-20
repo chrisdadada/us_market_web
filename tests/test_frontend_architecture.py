@@ -92,6 +92,9 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn("normalizePlan({", ROLLING_TOOL)
         self.assertIn("api.rollingPlans()", ROLLING_TOOL)
         self.assertIn("api.createRollingPlan(input)", ROLLING_TOOL)
+        self.assertIn('className={`rollingInlineQuote', ROLLING_TOOL)
+        self.assertNotIn('<h1>滚仓工具</h1>', ROLLING_TOOL)
+        self.assertNotIn('className="rollingMarketBar"', ROLLING_TOOL)
         self.assertNotIn("导出", ROLLING_TOOL)
         for forbidden in ("api_key", "api_secret", "exchange_credentials", "raw_order_payloads"):
             self.assertNotIn(forbidden, ROLLING_TOOL)

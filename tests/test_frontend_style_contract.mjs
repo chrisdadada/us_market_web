@@ -16,6 +16,6 @@ assert.match(css, /\.sideRail nav button:focus-visible,[^{]*\{[^}]*outline:\s*0[
 assert.match(css, /\.topbar\.calendarTopbar\s*\{[^}]*height:\s*64px\s*!important[^}]*padding:\s*12px 28px\s*!important/s);
 assert.match(css, /\.topbar\.calendarTopbar \.accountMenu,\s*\.topbar\.calendarTopbar > \.accountButton\s*\{[^}]*position:\s*relative[^}]*top:\s*auto[^}]*right:\s*auto/s);
 assert.match(rollingCss, /\.rollingToolPage\s*\{[^}]*align-content:\s*start/s);
-assert.match(rollingCss, /\.positionSizingHead\.rollingPageHead\s*\{[^}]*margin-bottom:\s*0/s);
+assert.match(rollingCss, /\.rollingInlineQuote\s*\{[^}]*white-space:\s*nowrap/s);
 
 console.log("frontend style contract: ok");
