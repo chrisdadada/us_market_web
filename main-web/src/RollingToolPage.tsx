@@ -159,7 +159,7 @@ export default function RollingToolPage() {
   const selected = plans.find((plan) => plan.id === selectedId) || null;
   const projection = useMemo(() => selected ? projectionFor(selected) : null, [selected]);
   const fixedAdd = Number(String(initialNotional).replaceAll(",", "")) * Number(addPercent) / 100;
-  const maxInput = Number(String(initialNotional).replaceAll(",", "")) + fixedAdd * Number(maxAdds);
+  const maxPositionValue = Number(String(initialNotional).replaceAll(",", "")) + fixedAdd * Number(maxAdds);
   const currentSymbol = selected?.symbol || symbol;
   const currentPrice = selected?.currentPrice || draftQuote;
   const connected = selected ? selected.marketConnected : Boolean(draftQuote);
@@ -273,7 +273,7 @@ export default function RollingToolPage() {
             {(selected?.config.entryMode || entryMode) === "conditional" ? (
               <div className="positionFieldGrid rollingEntryRow"><label><span>首仓条件</span><span className="rollingTriggerInput"><select value={selected?.config.entryDirection || entryDirection} onChange={(event) => setEntryDirection(event.target.value as RollingDirection)}><option value="rise">上涨至</option><option value="fall">下跌至</option></select><input value={selected?.config.entryTriggerPrice || entryTriggerPrice} onChange={(event) => setEntryTriggerPrice(event.target.value)} inputMode="decimal" placeholder="触发价格" /></span></label></div>
             ) : null}
-            <div className="rollingAutoCalc"><div><span>每次固定加仓</span><strong>{selected ? moneyText(selected.state.fixedAddNotional) : moneyText(String(fixedAdd))}</strong></div><div><span>最大投入</span><strong>{selected ? moneyText(String(Number(selected.config.initialNotional) + Number(selected.state.fixedAddNotional || 0) * selected.config.maxAdds)) : moneyText(String(maxInput))}</strong></div></div>
+            <div className="rollingAutoCalc"><div><span>每次固定加仓</span><strong>{selected ? moneyText(selected.state.fixedAddNotional) : moneyText(String(fixedAdd))}</strong></div><div><span>加满后仓位价值</span><strong>{selected ? moneyText(String(Number(selected.config.initialNotional) + Number(selected.state.fixedAddNotional || 0) * selected.config.maxAdds)) : moneyText(String(maxPositionValue))}</strong></div></div>
             {!selected ? <button className="rollingPrimaryButton" data-testid="rolling-start" type="submit" disabled={saving || !connected}>{saving ? "正在启动..." : "启动模拟计划"}</button> : <small className="rollingLockedNote">结束当前计划后，才能修改参数并重新启动。</small>}
           </fieldset>
         </form>

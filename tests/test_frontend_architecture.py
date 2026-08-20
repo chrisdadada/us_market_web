@@ -93,6 +93,8 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn("api.rollingPlans()", ROLLING_TOOL)
         self.assertIn("api.createRollingPlan(input)", ROLLING_TOOL)
         self.assertIn('className={`rollingInlineQuote', ROLLING_TOOL)
+        self.assertIn("加满后仓位价值", ROLLING_TOOL)
+        self.assertNotIn("最大投入", ROLLING_TOOL)
         self.assertNotIn('<h1>滚仓工具</h1>', ROLLING_TOOL)
         self.assertNotIn('className="rollingMarketBar"', ROLLING_TOOL)
         self.assertNotIn("导出", ROLLING_TOOL)
