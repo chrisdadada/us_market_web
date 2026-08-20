@@ -143,6 +143,43 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         stale_prices = [{"date": (source_date + timedelta(days=11)).isoformat(), "value": 100.0}]
         self.assertFalse(auth_api._dca1_valuation_usable(forward, history, stale_prices))
 
+    def test_dca1_estimates_daily_forward_pe_from_the_same_source_anchor(self) -> None:
+        forward = {"asOf": "2026-08-05", "forwardPe": 22.4}
+        history = [
+            {"date": "2026-07-29", "value": 23.0},
+            {"date": "2026-08-05", "value": 22.4},
+        ]
+        prices = [
+            {"date": "2026-08-05", "value": 700.0},
+            {"date": "2026-08-06", "value": 686.0},
+            {"date": "2026-08-07", "value": 714.0},
+        ]
+
+        result = auth_api._estimate_daily_forward_pe_history(forward, history, prices)
+
+        self.assertEqual(
+            result,
+            [
+                {"date": "2026-07-29", "value": 23.0},
+                {"date": "2026-08-05", "value": 22.4},
+                {"date": "2026-08-06", "value": 21.952},
+                {"date": "2026-08-07", "value": 22.848},
+            ],
+        )
+
+    def test_dca1_daily_estimate_fails_closed_without_a_nearby_anchor(self) -> None:
+        forward = {"asOf": "2026-08-05", "forwardPe": 22.4}
+        history = [{"date": "2026-08-05", "value": 22.4}]
+
+        old_anchor = [{"date": "2026-07-30", "value": 700.0}]
+        self.assertIsNone(auth_api._estimate_daily_forward_pe_history(forward, history, old_anchor))
+
+        stale_prices = [
+            {"date": "2026-08-05", "value": 700.0},
+            {"date": "2026-08-16", "value": 680.0},
+        ]
+        self.assertIsNone(auth_api._estimate_daily_forward_pe_history(forward, history, stale_prices))
+
 
 if __name__ == "__main__":
     unittest.main()

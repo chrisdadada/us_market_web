@@ -88,6 +88,7 @@ DCA1_LOW_THRESHOLD = 23.5
 DCA1_NEAR_THRESHOLD = 24.5
 DCA1_DRAWDOWN_THRESHOLD = 0.08
 DCA1_MAX_SOURCE_LAG_DAYS = 10
+DCA1_MAX_PRICE_ANCHOR_LAG_DAYS = 4
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
@@ -1873,6 +1874,54 @@ def _normalized_location_series(history: list[dict[str, Any]]) -> list[dict[str,
     ]
 
 
+def _estimate_daily_forward_pe_history(
+    forward: dict[str, Any],
+    history: list[dict[str, Any]],
+    price_series: list[dict[str, Any]],
+) -> list[dict[str, Any]] | None:
+    source_value = forward.get("forwardPe")
+    try:
+        source_date = datetime.fromisoformat(str(forward.get("asOf") or "")[:10]).date()
+        source_value = float(source_value)
+    except (TypeError, ValueError):
+        return None
+    if source_value <= 0:
+        return None
+
+    prices: list[tuple[date, float]] = []
+    for item in price_series:
+        try:
+            item_date = datetime.fromisoformat(str(item.get("date") or "")[:10]).date()
+            value = float(item.get("value"))
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            prices.append((item_date, value))
+    prices.sort(key=lambda item: item[0])
+    anchors = [item for item in prices if item[0] <= source_date]
+    if not anchors:
+        return None
+    anchor_date, anchor_price = anchors[-1]
+    if (source_date - anchor_date).days > DCA1_MAX_PRICE_ANCHOR_LAG_DAYS:
+        return None
+
+    estimated = {
+        str(item.get("date"))[:10]: {"date": str(item.get("date"))[:10], "value": round(float(item["value"]), 4)}
+        for item in history
+        if item.get("date") and isinstance(item.get("value"), (int, float)) and float(item["value"]) > 0
+    }
+    for item_date, price in prices:
+        if item_date <= source_date:
+            continue
+        if (item_date - source_date).days > DCA1_MAX_SOURCE_LAG_DAYS:
+            return None
+        estimated[item_date.isoformat()] = {
+            "date": item_date.isoformat(),
+            "value": round(source_value * price / anchor_price, 4),
+        }
+    return [estimated[item_date] for item_date in sorted(estimated)]
+
+
 def _dca1_valuation_usable(
     forward: dict[str, Any],
     history: list[dict[str, Any]],
@@ -1915,7 +1964,20 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     latest_value = forward.get("forwardPe")
     if latest_date and isinstance(latest_value, (int, float)) and (not history or latest_date > str(history[-1].get("date") or "")[:10]):
         history.append({"date": latest_date, "value": float(latest_value)})
-    visible_history = [item for item in history if str(item.get("date") or "")[:10] >= "2020-01-01"]
+    qqq_market = (bottom_payload.get("markets") or {}).get("QQQ") or {}
+    price_series = [
+        item
+        for item in qqq_market.get("priceSeries") or []
+        if str(item.get("date") or "")[:10] >= "2020-01-01"
+    ]
+    dca1_available = _dca1_valuation_usable(forward, history, price_series)
+    effective_history = _estimate_daily_forward_pe_history(forward, history, price_series) if dca1_available else None
+    dca1_available = effective_history is not None
+    visible_history = [
+        item
+        for item in effective_history or []
+        if str(item.get("date") or "")[:10] >= "2020-01-01"
+    ]
     ranges = forward.get("ranges") or {}
     five_year = ranges.get("5y") or {}
     threshold = five_year.get("p30")
@@ -1927,14 +1989,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     else:
         boundary_position = None
 
-    qqq_market = (bottom_payload.get("markets") or {}).get("QQQ") or {}
-    price_series = [
-        item
-        for item in qqq_market.get("priceSeries") or []
-        if str(item.get("date") or "")[:10] >= "2020-01-01"
-    ]
-    dca1_available = _dca1_valuation_usable(forward, history, price_series)
-    valuation_cycles = _fixed_low_valuation_cycles(history, price_series) if dca1_available else {
+    valuation_cycles = _fixed_low_valuation_cycles(effective_history or [], price_series) if dca1_available else {
         "windows": [],
         "historicalDates": [],
         "activeStartDate": None,
@@ -1977,7 +2032,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
         "products": {
             "dca1": {
                 "available": dca1_available,
-                "asOf": forward.get("asOf") or qqq_index.get("asOf"),
+                "asOf": valuation_cycles["latestDate"] or forward.get("asOf") or qqq_index.get("asOf"),
                 "status": value_status if include_details else None,
                 "opportunityDates": opportunity_dates_1,
                 "opportunityWindows": opportunity_windows_1,
