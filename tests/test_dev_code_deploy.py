@@ -113,6 +113,5 @@ class DevCodeDeployTest(unittest.TestCase):
         self.assertIn('cp -a "${dev_root}/.local" "${next_root}/.local"', DEPLOY)
         self.assertGreaterEqual(DEPLOY.count('product_sha'), 2)
 
-
 if __name__ == "__main__":
     unittest.main()
