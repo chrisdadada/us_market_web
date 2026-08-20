@@ -87,7 +87,7 @@ PAID_DATASETS = {"strength-scanner", "strength-review", "crypto-etf-flows"}
 DCA1_LOW_THRESHOLD = 23.5
 DCA1_NEAR_THRESHOLD = 24.5
 DCA1_DRAWDOWN_THRESHOLD = 0.08
-DCA1_MAX_SOURCE_LAG_DAYS = 10
+DCA1_MAX_SOURCE_LAG_SESSIONS = 10
 DCA1_MAX_PRICE_ANCHOR_LAG_DAYS = 4
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
@@ -1898,11 +1898,11 @@ def _estimate_daily_forward_pe_history(
         if value > 0:
             prices.append((item_date, value))
     prices.sort(key=lambda item: item[0])
-    anchors = [item for item in prices if item[0] <= source_date]
-    if not anchors:
-        return None
-    anchor_date, anchor_price = anchors[-1]
-    if (source_date - anchor_date).days > DCA1_MAX_PRICE_ANCHOR_LAG_DAYS:
+    anchor_date, anchor_price = min(
+        prices,
+        key=lambda item: (abs((item[0] - source_date).days), item[0] > source_date),
+    )
+    if abs((source_date - anchor_date).days) > DCA1_MAX_PRICE_ANCHOR_LAG_DAYS:
         return None
 
     estimated = {
@@ -1910,10 +1910,12 @@ def _estimate_daily_forward_pe_history(
         for item in history
         if item.get("date") and isinstance(item.get("value"), (int, float)) and float(item["value"]) > 0
     }
+    estimated_sessions = 0
     for item_date, price in prices:
         if item_date <= source_date:
             continue
-        if (item_date - source_date).days > DCA1_MAX_SOURCE_LAG_DAYS:
+        estimated_sessions += 1
+        if estimated_sessions > DCA1_MAX_SOURCE_LAG_SESSIONS:
             return None
         estimated[item_date.isoformat()] = {
             "date": item_date.isoformat(),
@@ -1942,8 +1944,14 @@ def _dca1_valuation_usable(
         price_date = datetime.fromisoformat(str(price_series[-1].get("date") or "")[:10]).date()
     except ValueError:
         return False
-    lag = (price_date - source_date).days
-    return 0 <= lag <= DCA1_MAX_SOURCE_LAG_DAYS
+    if price_date < source_date:
+        return False
+    estimated_sessions = sum(
+        1
+        for item in price_series
+        if str(item.get("date") or "")[:10] > as_of
+    )
+    return estimated_sessions <= DCA1_MAX_SOURCE_LAG_SESSIONS
 
 
 def dca_strategies_payload(include_details: bool) -> dict[str, Any]:

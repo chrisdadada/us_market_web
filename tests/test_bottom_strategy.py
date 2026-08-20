@@ -140,8 +140,36 @@ class BottomStrategySnapshotTests(unittest.TestCase):
 
         self.assertTrue(auth_api._dca1_valuation_usable(forward, history, fresh_prices))
         self.assertFalse(auth_api._dca1_valuation_usable({**forward, "asOf": "2026-08-18"}, history, fresh_prices))
-        stale_prices = [{"date": (source_date + timedelta(days=11)).isoformat(), "value": 100.0}]
+        stale_prices = [
+            {"date": (source_date + timedelta(days=index)).isoformat(), "value": 100.0}
+            for index in range(1, 12)
+        ]
         self.assertFalse(auth_api._dca1_valuation_usable(forward, history, stale_prices))
+
+    def test_dca1_accepts_ten_market_sessions_across_two_calendar_weeks(self) -> None:
+        history = [
+            {"date": f"2025-{month:02d}-05", "value": 22.0 + month / 100}
+            for month in range(1, 13)
+        ] * 9
+        history.append({"date": "2026-08-05", "value": 22.4})
+        history.sort(key=lambda item: item["date"])
+        forward = {
+            "asOf": "2026-08-05",
+            "historicalAsOf": "2026-08-05",
+            "forwardPe": 22.4,
+            "ranges": {"5y": {}},
+        }
+        prices = [
+            {"date": item, "value": 700.0}
+            for item in (
+                "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10",
+                "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14",
+                "2026-08-17", "2026-08-18", "2026-08-19",
+            )
+        ]
+
+        self.assertTrue(auth_api._dca1_valuation_usable(forward, history, prices))
+        self.assertIsNotNone(auth_api._estimate_daily_forward_pe_history(forward, history, prices))
 
     def test_dca1_estimates_daily_forward_pe_from_the_same_source_anchor(self) -> None:
         forward = {"asOf": "2026-08-05", "forwardPe": 22.4}
@@ -174,11 +202,32 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         old_anchor = [{"date": "2026-07-30", "value": 700.0}]
         self.assertIsNone(auth_api._estimate_daily_forward_pe_history(forward, history, old_anchor))
 
+        source_date = datetime.fromisoformat("2026-08-05").date()
         stale_prices = [
-            {"date": "2026-08-05", "value": 700.0},
-            {"date": "2026-08-16", "value": 680.0},
+            {"date": (source_date + timedelta(days=index)).isoformat(), "value": 700.0}
+            for index in range(12)
         ]
         self.assertIsNone(auth_api._estimate_daily_forward_pe_history(forward, history, stale_prices))
+
+    def test_dca1_uses_the_nearest_price_when_the_source_date_is_missing(self) -> None:
+        forward = {"asOf": "2026-08-05", "forwardPe": 22.4}
+        history = [{"date": "2026-08-05", "value": 22.4}]
+        prices = [
+            {"date": "2026-07-31", "value": 680.0},
+            {"date": "2026-08-06", "value": 700.0},
+            {"date": "2026-08-07", "value": 714.0},
+        ]
+
+        result = auth_api._estimate_daily_forward_pe_history(forward, history, prices)
+
+        self.assertEqual(
+            result,
+            [
+                {"date": "2026-08-05", "value": 22.4},
+                {"date": "2026-08-06", "value": 22.4},
+                {"date": "2026-08-07", "value": 22.848},
+            ],
+        )
 
 
 if __name__ == "__main__":
