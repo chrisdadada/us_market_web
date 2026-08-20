@@ -662,13 +662,13 @@ try {
         assert((await aaplRow.innerText()).includes("$100.00"), "paid tracking row should show support");
         assert((await aaplRow.innerText()).includes("$110.00"), "paid tracking row should show resistance");
         await aaplRow.locator(".screenerLink").click();
-        await page.waitForSelector(".trackingKeyLevelsPanel");
+        await page.waitForSelector(".trackingDetailMain");
         assert(await page.locator(".trackingPriceChart svg").count() === 1, "tracking detail should show the price chart");
-        assert((await page.locator(".trackingKeyLevelsPanel").innerText()).includes("主要支撑"), "tracking detail should show level evidence");
+        assert((await page.locator(".trackingDetailMain").innerText()).includes("支撑区"), "tracking detail should show level evidence");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail.png`, fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(300);
-        assert(await page.locator(".trackingKeyLevelsPanel").isVisible(), "mobile tracking detail should keep key levels visible");
+        assert(await page.locator(".trackingDetailMain").isVisible(), "mobile tracking detail should keep key levels visible");
         assert(!(await page.locator(".sideRail").evaluate((element) => element.classList.contains("mobileOpen"))), "mobile tracking detail should keep navigation closed");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile tracking detail should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail-mobile.png`, fullPage: true });
@@ -685,31 +685,28 @@ try {
 
         const firstStockView = page.locator(".stockLibraryTable tbody .stockLibraryView").first();
         await firstStockView.click();
-        await page.waitForSelector(".stockPreviewDrawer");
-        assert((await page.locator(".stockPreviewDrawer").innerText()).includes("股票概览"), "stock overview should open on demand");
-        assert(await page.locator("body.stockPreviewOpen").count() === 1, "stock overview should lock background scrolling");
+        await page.waitForSelector(".trackingDetailPage");
+        assert(await page.locator(".trackingDetailQuote").count() === 1, "stock detail should open on demand");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-overview-desktop.png`, fullPage: true });
-        await page.getByRole("button", { name: "关闭股票概览" }).click();
-        assert(await page.locator(".stockPreviewDrawer").count() === 0, "stock overview should close back to the list");
+        await page.locator(".trackingDetailBack").click();
+        assert(await page.locator(".trackingDetailPage").count() === 0, "stock detail should return to the list");
 
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(200);
         assert(!(await page.locator(".stockLibraryDesktopTable").isVisible()), "mobile stock library should hide the desktop table");
         assert(await page.locator(".stockLibraryMobileList").isVisible(), "mobile stock library should show compact rows");
         const firstMobileStockText = await page.locator(".stockLibraryMobileRow").first().innerText();
-        for (const label of ["近1天", "近1周", "近1月", "成交额", "市值", "查看概览"]) {
+        for (const label of ["近1天", "近1周", "近1月", "成交额", "市值", "查看详情"]) {
           assert(firstMobileStockText.includes(label), `mobile stock library should keep ${label}`);
         }
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock library should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-mobile.png`, fullPage: true });
         await page.locator(".stockLibraryMobileRow .stockLibraryMobileFoot button").first().click();
-        await page.waitForSelector(".stockPreviewDrawer");
-        assert(await page.locator(".stockPreviewDrawer").evaluate((element) => Math.abs(element.getBoundingClientRect().width - window.innerWidth) <= 1), "mobile stock overview should use the full viewport width");
-        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock overview should not overflow horizontally");
+        await page.waitForSelector(".trackingDetailPage");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock detail should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-overview-mobile.png`, fullPage: true });
-        await page.keyboard.press("Escape");
-        assert(await page.locator(".stockPreviewDrawer").count() === 0, "Escape should close the stock overview");
-        assert(await page.locator("body.stockPreviewOpen").count() === 0, "closing stock overview should unlock background scrolling");
+        await page.locator(".trackingDetailBack").click();
+        assert(await page.locator(".trackingDetailPage").count() === 0, "mobile stock detail should return to the list");
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=calendar`, { waitUntil: "networkidle" });
