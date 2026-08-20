@@ -554,7 +554,7 @@ try {
         await page.goto(`${server.rootUrl}?page=rolling`, { waitUntil: "networkidle" });
         const onboardingAccept = page.getByRole("button", { name: "同意并继续" });
         if (await onboardingAccept.count()) await onboardingAccept.click();
-        await page.waitForFunction(() => document.body.innerText.includes("实时行情正常"));
+        await page.waitForSelector(".rollingInlineQuote.connected");
         await page.getByTestId("rolling-start").click();
         await page.waitForSelector("[data-testid='rolling-add-progress']");
         assert((await page.getByTestId("rolling-add-progress").innerText()) === "已完成 0 · 剩余 4", "rolling server plan should begin with no adds");
