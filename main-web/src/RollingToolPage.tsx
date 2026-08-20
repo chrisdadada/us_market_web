@@ -158,8 +158,19 @@ export default function RollingToolPage() {
 
   const selected = plans.find((plan) => plan.id === selectedId) || null;
   const projection = useMemo(() => selected ? projectionFor(selected) : null, [selected]);
-  const fixedAdd = Number(String(initialNotional).replaceAll(",", "")) * Number(addPercent) / 100;
-  const maxPositionValue = Number(String(initialNotional).replaceAll(",", "")) + fixedAdd * Number(maxAdds);
+  const initialValue = Number(initialNotional.replaceAll(",", ""));
+  const leverageValue = Number(leverage);
+  const maxAddsValue = Number(maxAdds);
+  const fixedAdd = initialValue * Number(addPercent) / 100;
+  const maxPositionValue = initialValue + fixedAdd * maxAddsValue;
+  const estimatedInitialMargin = leverageValue > 0 ? maxPositionValue / leverageValue : Number.NaN;
+  const intervalNumber = Number(intervalValue);
+  const intervalSummary = Number.isFinite(intervalNumber)
+    ? intervalNumber.toLocaleString("en-US", { maximumFractionDigits: 8 })
+    : "--";
+  const leverageSummary = Number.isFinite(leverageValue) && leverageValue > 0
+    ? leverageValue.toLocaleString("en-US", { maximumFractionDigits: 8 })
+    : "--";
   const currentSymbol = selected?.symbol || symbol;
   const currentPrice = selected?.currentPrice || draftQuote;
   const connected = selected ? selected.marketConnected : Boolean(draftQuote);
@@ -240,8 +251,8 @@ export default function RollingToolPage() {
       {marketError ? <p className="positionError rollingTopError">{marketError}，行情恢复前不会触发新的模拟成交。</p> : null}
       {error ? <p className="positionError rollingTopError">{error}</p> : null}
 
-      <section className="positionSizingGrid rollingToolGrid">
-        <form className="positionSizingPanel positionSizingForm rollingConfigPanel" onSubmit={startPlan}>
+      <section className={`positionSizingGrid rollingToolGrid ${selected ? "hasPlan" : "isDraft"}`}>
+        <form id="rolling-plan-form" className="positionSizingPanel positionSizingForm rollingConfigPanel" onSubmit={startPlan}>
           <div className="panelHead">
             <strong>方案参数</strong>
             <div className="rollingPanelMeta">
@@ -273,13 +284,12 @@ export default function RollingToolPage() {
             {(selected?.config.entryMode || entryMode) === "conditional" ? (
               <div className="positionFieldGrid rollingEntryRow"><label><span>首仓条件</span><span className="rollingTriggerInput"><select value={selected?.config.entryDirection || entryDirection} onChange={(event) => setEntryDirection(event.target.value as RollingDirection)}><option value="rise">上涨至</option><option value="fall">下跌至</option></select><input value={selected?.config.entryTriggerPrice || entryTriggerPrice} onChange={(event) => setEntryTriggerPrice(event.target.value)} inputMode="decimal" placeholder="触发价格" /></span></label></div>
             ) : null}
-            <div className="rollingAutoCalc"><div><span>每次固定加仓</span><strong>{selected ? moneyText(selected.state.fixedAddNotional) : moneyText(String(fixedAdd))}</strong></div><div><span>加满后仓位价值</span><strong>{selected ? moneyText(String(Number(selected.config.initialNotional) + Number(selected.state.fixedAddNotional || 0) * selected.config.maxAdds)) : moneyText(String(maxPositionValue))}</strong></div></div>
-            {!selected ? <button className="rollingPrimaryButton" data-testid="rolling-start" type="submit" disabled={saving || !connected}>{saving ? "正在启动..." : "启动模拟计划"}</button> : <small className="rollingLockedNote">结束当前计划后，才能修改参数并重新启动。</small>}
+            {selected ? <small className="rollingLockedNote">结束当前计划后，才能修改参数并重新启动。</small> : null}
           </fieldset>
         </form>
 
         <aside className="positionSizingPanel rollingStatusPanel">
-          <div className="panelHead"><strong>计划状态</strong><span className={`rollingStatus ${selected?.status || "draft"}`}><i />{selected ? statusLabels[selected.status] : "待启动"}</span></div>
+          <div className="panelHead"><strong>{selected ? "计划状态" : "计划摘要"}</strong><span className={`rollingStatus ${selected?.status || "draft"}`}><i />{selected ? statusLabels[selected.status] : "实时计算"}</span></div>
           {selected ? (
             <div className="rollingStatusBody">
               <div className="rollingControlBar"><span>{selected.marketConnected ? "行情自动监听，满足条件时按最新成交价模拟成交。" : "行情连接中，恢复前不会触发模拟成交。"}</span><div>{selected.status === "running" ? <button type="button" onClick={() => runAction("pause")} disabled={saving}>暂停加仓</button> : selected.status === "paused" ? <button type="button" onClick={() => runAction("resume")} disabled={saving}>恢复运行</button> : null}{!(["ending", "ended"] as string[]).includes(selected.status) ? <button type="button" className="danger" onClick={() => setEndOpen(true)} disabled={saving}>结束计划</button> : null}</div></div>
@@ -296,7 +306,18 @@ export default function RollingToolPage() {
               <section className="rollingEvents"><header><strong>执行记录</strong><span>网页模拟</span></header>{selected.events.length ? selected.events.slice(0, 6).map((item) => <div key={item.id}><time>{formatStoredDateTime(item.createdAt)}</time><b>{item.type === "add" ? `第 ${String(item.detail.addNumber || "")} 次加仓模拟成交` : eventLabels[item.type] || "计划状态更新"}</b><strong>{numberText(item.price)}</strong></div>) : <p>暂无执行记录</p>}</section>
               <p className="rollingRuntimeNote">计划由服务器持续运行，关闭页面不受影响；行情断线期间不触发，恢复后只检查当前条件，不补历史。</p>
             </div>
-          ) : <div className="rollingEmpty"><strong>创建你的第一个滚仓计划</strong><span>填写左侧参数，确认实时价格后启动模拟。</span></div>}
+          ) : (
+            <div className="rollingPlanSummary">
+              <dl>
+                <div><dt>首仓</dt><dd>{Number.isFinite(initialValue) ? moneyText(String(initialValue)) : "--"}</dd></div>
+                <div className="rollingSummaryRule"><dt>加仓规则</dt><dd>价格每{triggerDirection === "rise" ? "上涨" : "下跌"} {intervalSummary}{intervalType === "percent" ? "%" : ""}，固定加仓 {Number.isFinite(fixedAdd) ? moneyText(String(fixedAdd)) : "--"}</dd></div>
+                <div><dt>最多加仓</dt><dd>{Number.isInteger(maxAddsValue) && maxAddsValue >= 0 ? `${maxAddsValue} 次` : "--"}</dd></div>
+                <div className="rollingSummaryTotal"><dt>全部触发后</dt><dd>总仓位 {Number.isFinite(maxPositionValue) ? moneyText(String(maxPositionValue)) : "--"}</dd></div>
+                <div><dt>预计占用保证金</dt><dd>{Number.isFinite(estimatedInitialMargin) ? moneyText(String(estimatedInitialMargin)) : "--"}<small>按 {leverageSummary}× 杠杆</small></dd></div>
+              </dl>
+              <button className="rollingPrimaryButton" data-testid="rolling-start" form="rolling-plan-form" type="submit" disabled={saving || !connected}>{saving ? "正在启动..." : "启动模拟计划"}</button>
+            </div>
+          )}
         </aside>
       </section>
 
