@@ -27,7 +27,7 @@ with sqlite3.connect(sys.argv[1]) as conn:
 PY
 "${PY}" scripts/check_product_coverage.py --db "${BUILD_DB}" >/dev/null
 
-rsync --partial "${BUILD_DB}" "${SERVER}:${REMOTE_DB}"
+rsync --partial --compress "${BUILD_DB}" "${SERVER}:${REMOTE_DB}"
 
 ssh "${SERVER}" 'set -e
 dev="/opt/dongbimao-dev/data/product.db"
