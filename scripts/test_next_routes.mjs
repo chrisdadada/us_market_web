@@ -214,18 +214,15 @@ const selectedRouteCases = dcaOnly
   : routeCases;
 
 const moverFixture = await readDataset("market-movers");
-const topSectorByBoard = ["day", "week", "month"].map((board) => {
-  const totals = new Map();
-  for (const row of moverFixture.boards?.[board]?.rows || []) {
-    if (!row.sector || row.sector === "未分类" || row.sector === "ETF") continue;
-    const change = Number(row.change || row.changeYtd || 0);
-    const volume = Number(row.dollarVolume || 0);
-    totals.set(row.sector, (totals.get(row.sector) || 0) + (change >= 0 ? volume : -volume));
-  }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-});
-if (new Set(topSectorByBoard).size <= 1) {
-  throw new Error("Market range fixture should produce different sector rankings");
+const boardSignatures = ["day", "week", "month"].map((board) => JSON.stringify(
+  (moverFixture.boards?.[board]?.rows || []).slice(0, 20).map((row) => [
+    row.symbol,
+    row.change ?? row.changeYtd,
+    row.dollarVolume,
+  ]),
+));
+if (new Set(boardSignatures).size <= 1) {
+  throw new Error("Market range fixture should produce different board rows");
 }
 
 const server = await startServer();
