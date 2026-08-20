@@ -13,6 +13,7 @@ const productCopy = {
     phases: ["观察中", "接近区间", "分批投入"],
     lockedTitle: "开通查看操作参考",
     chartTitle: "QQQ 走势与历史分批区",
+    legend: { band: "分批区", point: "开始日" },
     historyTitle: "历史分批区",
     opportunityText: "分批区",
     lastOpportunityLabel: "上次进入"
@@ -23,6 +24,7 @@ const productCopy = {
     phases: ["观察中", "临近信号", "分批投入"],
     lockedTitle: "开通查看操作参考",
     chartTitle: "QQQ 走势与历史确认点",
+    legend: { band: null, point: "确认日" },
     historyTitle: "历史确认点",
     opportunityText: "确认位置",
     lastOpportunityLabel: "上次出现"
@@ -179,7 +181,16 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
       </section>
 
       <section className="dcaPanel dcaChartPanel">
-        <div className="dcaPanelHead"><strong>{copy.chartTitle}</strong><span>更新 {product.asOf || "--"}</span></div>
+        <div className="dcaPanelHead">
+          <div className="dcaPanelTitle">
+            <strong>{copy.chartTitle}</strong>
+            <div className="dcaChartLegend" data-testid="dca-chart-legend">
+              {copy.legend.band ? <span><i className={`dcaLegendBand ${kind}`} />{copy.legend.band}</span> : null}
+              <span><i className={`dcaLegendDot ${kind}`} />{copy.legend.point}</span>
+            </div>
+          </div>
+          <span>更新 {product.asOf || "--"}</span>
+        </div>
         <OpportunityChart product={product} kind={kind} />
       </section>
 

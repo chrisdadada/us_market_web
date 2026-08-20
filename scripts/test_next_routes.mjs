@@ -264,6 +264,7 @@ try {
   assert(dca1Action.includes("尚未进入分批区"), `DCA 1 should show the current action; received: ${dca1Action}`);
   assert((await page.locator(".dcaAdvice").count()) === 0, "DCA pages should not repeat the action in a side panel");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 1 history chart should be visible");
+  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).includes("分批区\n开始日"), "DCA 1 should explain the opportunity band and entry date");
   assert(await page.locator(".dcaOpportunityDot").count() === 5, "DCA 1 should place each fixture opportunity on the QQQ chart");
   assert((await page.locator("body").innerText()).includes("收益") === false, "DCA pages should not market historical returns");
   for (const internalCopy of ["回测", "算法", "阈值", "数据来源", "交易日更新"]) {
@@ -273,6 +274,7 @@ try {
   await page.goto(`${server.rootUrl}?page=bottom`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca2-strategy-page']").isVisible(), "Legacy bottom route should open DCA 2");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 2 history chart should be visible");
+  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).trim() === "确认日", "DCA 2 should identify confirmation dates without implying a shared opportunity band");
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Desktop DCA page should not overflow horizontally");
   if (process.env.DCA_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.DCA_STRATEGY_SCREENSHOT_PREFIX}-dca2-desktop.png`, fullPage: true });
 

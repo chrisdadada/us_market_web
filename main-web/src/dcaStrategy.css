@@ -110,6 +110,16 @@
 .dcaPanelHead { display: flex; height: 48px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); }
 .dcaPanelHead strong { font-size: 13px; font-weight: 680; }
 .dcaPanelHead span { color: #8290a5; font-size: 9px; }
+.dcaPanelTitle,
+.dcaChartLegend,
+.dcaChartLegend span { display: flex; align-items: center; }
+.dcaPanelTitle { gap: 18px; }
+.dcaChartLegend { gap: 12px; }
+.dcaChartLegend span { gap: 5px; white-space: nowrap; }
+.dcaLegendBand { width: 14px; height: 8px; border-radius: 2px; background: rgba(10, 155, 109, .12); }
+.dcaLegendDot { width: 7px; height: 7px; border-radius: 50%; background: #0a9b6d; }
+.dcaLegendBand.dca2,
+.dcaLegendDot.dca2 { background: #ef7b20; }
 .dcaChartScroll { overflow-x: auto; padding-top: 10px; }
 .dcaChart { display: block; width: 100%; min-width: 680px; height: auto; }
 .dcaGrid { stroke: #e5edf5; stroke-width: 1; }
@@ -169,5 +179,6 @@
   .dcaStageMeta > div + div { border-left: 0; padding: 0; }
   .dcaChartPanel { padding-right: 12px; padding-left: 12px; }
   .dcaPanelHead { align-items: flex-start; justify-content: center; flex-direction: column; gap: 4px; }
+  .dcaPanelTitle { width: 100%; justify-content: space-between; gap: 10px; }
   .dcaTimeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
