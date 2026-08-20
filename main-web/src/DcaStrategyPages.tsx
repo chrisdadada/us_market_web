@@ -9,34 +9,36 @@ type StatusKey = NonNullable<DcaStrategyProduct["status"]>["key"];
 const productCopy = {
   dca1: {
     title: "纳指定投 1 号",
-    subtitle: "低位分批参考",
-    phases: ["观察中", "临近", "已触发"],
-    lockedTitle: "开通查看本期建议",
-    chartTitle: "QQQ 走势与历史低位",
-    historyTitle: "历史低位",
-    opportunityText: "低位区间"
+    subtitle: "偏低位时分批买",
+    phases: ["观察中", "接近区间", "分批投入"],
+    lockedTitle: "开通查看操作参考",
+    chartTitle: "QQQ 走势与历史分批区",
+    historyTitle: "历史分批区",
+    opportunityText: "分批区",
+    lastOpportunityLabel: "上次进入"
   },
   dca2: {
     title: "纳指定投 2 号",
-    subtitle: "确认后分批参考",
-    phases: ["观察中", "临近", "已触发"],
-    lockedTitle: "开通查看本期建议",
-    chartTitle: "QQQ 走势与历史信号",
-    historyTitle: "历史信号",
-    opportunityText: "策略触发"
+    subtitle: "等行情稳下来再分批买",
+    phases: ["观察中", "临近信号", "分批投入"],
+    lockedTitle: "开通查看操作参考",
+    chartTitle: "QQQ 走势与历史确认点",
+    historyTitle: "历史确认点",
+    opportunityText: "确认位置",
+    lastOpportunityLabel: "上次出现"
   }
 } as const;
 
 const statusCopy: Record<ProductKey, Record<StatusKey, { title: string; detail: string; action: string }>> = {
   dca1: {
-    waiting: { title: "暂未触发", detail: "本期暂不执行", action: "暂不执行" },
-    near: { title: "接近触发", detail: "本期继续观察", action: "继续观察" },
-    action: { title: "已触发", detail: "本期可分批执行", action: "分批执行" }
+    waiting: { title: "尚未进入分批区", detail: "本期暂不投入", action: "暂不投入" },
+    near: { title: "接近分批区", detail: "本期暂不投入", action: "暂不投入" },
+    action: { title: "进入分批区", detail: "可按计划分批投入", action: "分批投入" }
   },
   dca2: {
-    waiting: { title: "暂未触发", detail: "本期暂不执行", action: "暂不执行" },
-    near: { title: "接近触发", detail: "本期继续观察", action: "继续观察" },
-    action: { title: "已触发", detail: "本期可分批执行", action: "分批执行" }
+    waiting: { title: "尚未出现信号", detail: "本期暂不投入", action: "暂不投入" },
+    near: { title: "接近确认", detail: "本期暂不投入", action: "暂不投入" },
+    action: { title: "信号已确认", detail: "可按计划分批投入", action: "分批投入" }
   }
 };
 
@@ -162,15 +164,15 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
 
       <section className={`dcaDecision ${kind}`}>
         <div className={`dcaDecisionMain ${!unlocked ? "locked" : ""}`}>
-          <div className="dcaDecisionContent"><small>策略状态</small><strong>{presentation.title}</strong><p>{presentation.detail}</p></div>
-          {!unlocked ? <div className="dcaGate"><small>策略状态已更新</small><strong>{copy.lockedTitle}</strong><button type="button" onClick={onUnlock}>开通会员查看</button></div> : null}
+          <div className="dcaDecisionContent"><small>当前状态</small><strong>{presentation.title}</strong><p>{presentation.detail}</p></div>
+          {!unlocked ? <div className="dcaGate"><small>最新状态</small><strong>{copy.lockedTitle}</strong><button type="button" onClick={onUnlock}>开通会员查看</button></div> : null}
         </div>
         <div className="dcaStage">
-          <small>执行进度</small>
+          <small>当前阶段</small>
           <div className="dcaProgress">{copy.phases.map((phase, index) => <div key={phase} className={currentStep === index ? "current" : ""}>{phase}</div>)}</div>
           <div className="dcaStageMeta">
-            <div><span>最近触发</span><strong>{lastOpportunity || "--"}</strong></div>
-            <div><span>本期建议</span><strong>{unlocked ? presentation.action : "开通查看"}</strong></div>
+            <div><span>{copy.lastOpportunityLabel}</span><strong>{lastOpportunity || "--"}</strong></div>
+            <div><span>操作参考</span><strong>{unlocked ? presentation.action : "开通查看"}</strong></div>
             <div><span>下次更新</span><strong>{unlocked ? "下一交易日收盘后" : "开通查看"}</strong></div>
           </div>
         </div>
