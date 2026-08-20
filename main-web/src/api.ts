@@ -679,6 +679,86 @@ export type DcaStrategiesPayload = {
   };
 };
 
+export type RollingPlanStatus = "waiting_entry" | "running" | "paused" | "holding_protection" | "ending" | "ended";
+
+export type RollingPlanConfig = {
+  schemaVersion: 1;
+  symbol: string;
+  side: "long" | "short";
+  triggerDirection: "rise" | "fall";
+  initialNotional: string;
+  leverage: string;
+  entryMode: "immediate" | "conditional";
+  entryDirection: "rise" | "fall";
+  entryTriggerPrice: string | null;
+  intervalType: "percent" | "absolute";
+  intervalValue: string;
+  addPercent: string;
+  maxAdds: number;
+  protectionDistance: string;
+};
+
+export type RollingPlanState = {
+  quantity: string;
+  averagePrice: string | null;
+  totalNotional: string;
+  fixedAddNotional: string | null;
+  addsCompleted: number;
+  nextTriggerPrice: string | null;
+  protectionPrice: string | null;
+  entryPrice: string | null;
+  exitPrice: string | null;
+  estimatedPnl: string | null;
+  lastFillPrice: string | null;
+};
+
+export type RollingPlanEvent = {
+  id: number;
+  type: string;
+  price: string | null;
+  detail: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type RollingPlan = {
+  id: string;
+  symbol: string;
+  status: RollingPlanStatus;
+  config: RollingPlanConfig;
+  state: RollingPlanState;
+  currentPrice: string | null;
+  currentNotional: string | null;
+  estimatedPnl: string | null;
+  estimatedMargin: string | null;
+  marketConnected: boolean;
+  marketAsOf: number | null;
+  createdAt: string;
+  updatedAt: string;
+  endedAt: string | null;
+  events: RollingPlanEvent[];
+};
+
+export type RollingPlansPayload = {
+  plans: RollingPlan[];
+  marketError?: string;
+};
+
+export type RollingPlanInput = {
+  symbol: string;
+  side: "long" | "short";
+  triggerDirection: "rise" | "fall";
+  initialNotional: string;
+  leverage: string;
+  entryMode: "immediate" | "conditional";
+  entryDirection: "rise" | "fall";
+  entryTriggerPrice?: string;
+  intervalType: "percent" | "absolute";
+  intervalValue: string;
+  addPercent: string;
+  maxAdds: string;
+  protectionDistance: string;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -806,6 +886,18 @@ export const api = {
     Object.entries(options).forEach(([key, value]) => params.set(key, String(value)));
     return request<FundingScannerPayload>(`/api/tools/funding-arbitrage?${params.toString()}`);
   },
+  rollingPlans: () => request<RollingPlansPayload>("/api/rolling/plans"),
+  rollingQuote: (symbol: string) => request<{ symbol: string; price: string; asOf: number; connected: boolean }>(
+    `/api/rolling/quote?symbol=${encodeURIComponent(symbol)}`
+  ),
+  createRollingPlan: (plan: RollingPlanInput) => request<{ ok: boolean; id: string }>("/api/rolling/plans", {
+    method: "POST",
+    body: JSON.stringify(plan)
+  }),
+  rollingAction: (id: string, action: "pause" | "resume" | "end") => request<{ ok: boolean }>(
+    `/api/rolling/plans/${encodeURIComponent(id)}/${action}`,
+    { method: "POST", body: "{}" }
+  ),
   courses: () => request<{ series: CourseSeries[] }>("/api/courses"),
   coursePlayUrl: (lessonId: number, signal?: AbortSignal) => request<{ url: string; expiresIn: number; type: "file" | "hls" }>(
     `/api/courses/lessons/${encodeURIComponent(lessonId)}/play`,

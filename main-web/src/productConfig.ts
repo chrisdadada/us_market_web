@@ -98,7 +98,7 @@ export const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; titl
   rolling: {
     level: "yearly",
     title: "年度会员可用滚仓工具",
-    text: "开通年度会员后，可配置滚仓方案、网页模拟并导出标准方案。"
+    text: "开通年度会员后，可使用实时行情创建并运行滚仓模拟计划。"
   },
   risk: {
     level: "registered",

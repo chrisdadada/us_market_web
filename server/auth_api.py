@@ -28,6 +28,7 @@ from urllib.parse import parse_qs, quote, urlencode, unquote, urlparse
 
 import funding_scanner
 import open_portfolio
+import rolling_tool
 
 
 DB_PATH = Path(os.environ.get("APP_DB", "/var/lib/ytd-gainers/app.db"))
@@ -129,6 +130,7 @@ PASSWORD_RESET_LOCK = threading.Lock()
 COURSE_PLAY_GRANTS: dict[tuple[int, int, str, str, str], dict[str, Any]] = {}
 COURSE_PLAY_EVENTS: list[dict[str, Any]] = []
 COURSE_PLAY_LOCK = threading.Lock()
+ROLLING_RUNTIME: rolling_tool.RollingRuntime | None = None
 
 
 def now_iso() -> str:
@@ -1604,6 +1606,7 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_course_grants_series ON course_grants(series_id, user_id);
             """
         )
+        rolling_tool.init_schema(conn)
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
         if "created_by_user_id" not in columns:
             conn.execute("ALTER TABLE users ADD COLUMN created_by_user_id INTEGER")
@@ -4718,6 +4721,38 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         parsed = urlparse(self.path)
+        if parsed.path == "/api/rolling/plans":
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            self.send_json(ROLLING_RUNTIME.snapshot(int(user["id"])))
+            return
+
+        if parsed.path == "/api/rolling/quote":
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            symbol = parse_qs(parsed.query).get("symbol", [""])[0]
+            try:
+                self.send_json(ROLLING_RUNTIME.quote(symbol))
+            except rolling_tool.RollingError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except rolling_tool.MarketUnavailable as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
         if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/hls"):
             user = self.require_user()
             if not user:
@@ -4982,6 +5017,43 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/rolling/plans":
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            try:
+                plan_id = ROLLING_RUNTIME.create(int(user["id"]), self.read_json())
+                self.send_json({"ok": True, "id": plan_id}, HTTPStatus.CREATED)
+            except rolling_tool.RollingError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except rolling_tool.MarketUnavailable as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        rolling_action = re.fullmatch(r"/api/rolling/plans/([a-f0-9]{32})/(pause|resume|end)", parsed.path)
+        if rolling_action:
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            try:
+                ROLLING_RUNTIME.action(int(user["id"]), rolling_action.group(1), rolling_action.group(2))
+                self.send_json({"ok": True})
+            except rolling_tool.RollingError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+
         if parsed.path in {"/api/watchlist", "/api/watchlist/import"}:
             user = self.require_user()
             if not user:
@@ -5652,11 +5724,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    global ROLLING_RUNTIME
     validate_course_cdn_config()
     init_db()
+    ROLLING_RUNTIME = rolling_tool.RollingRuntime(DB_PATH)
+    ROLLING_RUNTIME.start()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"auth api listening on http://{HOST}:{PORT}, db={DB_PATH}")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    finally:
+        ROLLING_RUNTIME.stop()
 
 
 if __name__ == "__main__":

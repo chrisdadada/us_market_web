@@ -1,10 +1,179 @@
 .rollingToolPage {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+}
+
+.rollingPageHead {
+  margin-bottom: 0;
+}
+
+.rollingConnection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.rollingConnection i,
+.rollingStatus i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #b36a00;
+}
+
+.rollingConnection.connected {
+  color: #078257;
+}
+
+.rollingConnection.connected i,
+.rollingStatus.running i,
+.rollingStatus.holding_protection i {
+  background: #13a676;
+}
+
+.rollingPlanTabs {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.rollingPlanTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.rollingPlanTabs button {
+  min-width: 170px;
+  height: 46px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #526176;
+  padding: 0 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rollingPlanTabs button.active {
+  border-color: #73adf7;
+  background: #eef6ff;
+  color: #1264c8;
+  box-shadow: inset 3px 0 0 #1677ff;
+}
+
+.rollingPlanTabs button span {
+  min-width: 0;
+}
+
+.rollingPlanTabs button strong,
+.rollingPlanTabs button small {
+  display: block;
+}
+
+.rollingPlanTabs button strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.rollingPlanTabs button small {
+  margin-top: 2px;
+  color: #8290a4;
+  font-size: 10px;
+}
+
+.rollingPlanTabs button b {
+  color: #078257;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rollingPlanTabs button b.waiting_entry,
+.rollingPlanTabs button b.paused,
+.rollingPlanTabs button b.ending {
+  color: #a96200;
+}
+
+.rollingPlanTabs button b.ended {
+  color: #8290a4;
+}
+
+.rollingPlanTabs .rollingNewPlan {
+  min-width: 112px;
+  justify-content: center;
+  border-style: dashed;
+  color: #1677ff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rollingMarketBar {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid #dfe7f2;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 16px;
+}
+
+.rollingMarketBar > div span,
+.rollingMarketBar dt {
+  display: block;
+  color: #8290a4;
+  font-size: 10px;
+}
+
+.rollingMarketBar > div strong {
+  display: block;
+  margin-top: 3px;
+  color: #172033;
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.rollingMarketBar dl {
+  display: flex;
+  gap: 28px;
+  margin: 0;
+}
+
+.rollingMarketBar dd {
+  margin: 4px 0 0;
+  color: #263247;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.rollingMarketBar dd.positive,
+.rollingMetrics strong.positive {
+  color: #078257;
+}
+
+.rollingMarketBar dd.negative,
+.rollingMetrics strong.negative {
+  color: #d84a5d;
+}
+
+.rollingTopError {
+  margin: 0;
 }
 
 .rollingToolGrid {
-  grid-template-columns: minmax(480px, 1.08fr) minmax(390px, .92fr);
+  grid-template-columns: minmax(440px, 1.04fr) minmax(420px, .96fr);
+  gap: 14px;
 }
 
 .rollingToolFieldset {
@@ -14,47 +183,33 @@
 }
 
 .rollingToolFieldset:disabled {
-  opacity: .72;
+  opacity: .76;
 }
 
-.rollingNeutralSegment {
+.rollingSelect {
+  width: 100%;
   height: 42px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
   border: 1px solid #d8e2ef;
   border-radius: 7px;
-  background: #f8fafc;
-  padding: 3px;
-}
-
-.rollingNeutralSegment button {
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: #526176;
-  cursor: pointer;
-}
-
-.rollingNeutralSegment button.active {
   background: #fff;
-  color: #1264c8;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
-  font-weight: 600;
+  color: #172033;
+  padding: 0 11px;
+  outline: 0;
+}
+
+.rollingSelect:focus,
+.rollingTriggerInput:focus-within {
+  border-color: #5aa0ff;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, .09);
 }
 
 .rollingTriggerInput {
   height: 42px;
   display: grid;
   grid-template-columns: 104px minmax(0, 1fr);
+  overflow: hidden;
   border: 1px solid #d8e2ef;
   border-radius: 7px;
-  overflow: hidden;
-}
-
-.rollingTriggerInput:focus-within {
-  border-color: #5aa0ff;
-  box-shadow: 0 0 0 3px rgba(22, 119, 255, .09);
 }
 
 .rollingTriggerInput select,
@@ -74,38 +229,64 @@
   color: #65758c;
 }
 
-.rollingLastFieldRow {
+.rollingEntryRow {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-.rollingFormActions {
+.rollingAutoCalc {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px;
-  gap: 8px;
-  border-top: 1px solid #edf1f5;
-  padding-top: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid #dfe7f2;
+  border-radius: 7px;
+  background: #f7f9fc;
+  margin-bottom: 16px;
 }
 
-.rollingFormActions button,
-.rollingPriceControl > button,
-.rollingQuickActions button {
-  height: 42px;
-  border: 1px solid #d8e2ef;
-  border-radius: 7px;
-  background: #fff;
-  color: #526176;
-  cursor: pointer;
+.rollingAutoCalc div {
+  padding: 11px 12px;
+}
+
+.rollingAutoCalc div + div {
+  border-left: 1px solid #dfe7f2;
+}
+
+.rollingAutoCalc span,
+.rollingAutoCalc strong {
+  display: block;
+}
+
+.rollingAutoCalc span {
+  color: #8290a4;
+  font-size: 10px;
+}
+
+.rollingAutoCalc strong {
+  margin-top: 4px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .rollingPrimaryButton {
-  border-color: #1677ff !important;
-  background: #1677ff !important;
-  color: #fff !important;
+  width: 100%;
+  height: 42px;
+  border: 1px solid #1677ff;
+  border-radius: 7px;
+  background: #1677ff;
+  color: #fff;
+  cursor: pointer;
   font-weight: 600;
 }
 
-.rollingResultPanel {
-  min-width: 0;
+.rollingPrimaryButton:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.rollingLockedNote {
+  display: block;
+  color: #8290a4;
+  font-size: 11px;
 }
 
 .rollingStatus {
@@ -114,117 +295,289 @@
   gap: 6px;
 }
 
-.rollingStatus::before {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+.rollingStatus.paused i,
+.rollingStatus.ending i,
+.rollingStatus.waiting_entry i {
+  background: #d39029;
+}
+
+.rollingStatus.ended i,
+.rollingStatus.draft i {
   background: #9aa5b5;
-  content: "";
 }
 
-.rollingStatus.running::before {
-  background: #1677ff;
+.rollingStatusBody {
+  padding: 16px 18px 14px;
 }
 
-.rollingStatus.holding_protection::before {
-  background: #0b9968;
+.rollingControlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #e9eef4;
+  padding-bottom: 13px;
 }
 
-.rollingStatus.ended::before {
-  background: #d84a5d;
-}
-
-.rollingPriceControl {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 98px;
-  gap: 8px;
-  padding: 18px 20px 10px;
-}
-
-.rollingPriceControl label {
-  grid-column: 1 / -1;
+.rollingControlBar > span {
   color: #65758c;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
-.rollingPriceControl button:disabled,
-.rollingQuickActions button:disabled {
-  cursor: not-allowed;
-  opacity: .48;
+.rollingControlBar > div {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 7px;
 }
 
-.rollingQuickActions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 0 20px 12px;
-}
-
-.rollingQuickActions button {
+.rollingControlBar button,
+.rollingModal button {
+  min-width: 76px;
   height: 34px;
-  background: #f8fafc;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #526176;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.rollingControlBar button.danger,
+.rollingModal button.danger {
+  border-color: #efb3ba;
+  color: #c93648;
+}
+
+.rollingControlBar button:disabled,
+.rollingModal button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.rollingMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #e2e9f2;
+  border-left: 1px solid #e2e9f2;
+  margin-top: 14px;
+}
+
+.rollingMetrics div {
+  min-width: 0;
+  min-height: 64px;
+  border-right: 1px solid #e2e9f2;
+  border-bottom: 1px solid #e2e9f2;
+  padding: 10px;
+}
+
+.rollingMetrics span,
+.rollingMetrics strong {
+  display: block;
+}
+
+.rollingMetrics span {
+  color: #8290a4;
+  font-size: 10px;
+}
+
+.rollingMetrics strong {
+  overflow-wrap: anywhere;
+  margin-top: 6px;
+  color: #172033;
   font-size: 12px;
+  font-weight: 650;
 }
 
-.rollingError {
-  margin: 0 20px 12px;
+.rollingPrivateEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #e1e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #718096;
+  margin-top: 12px;
+  padding: 9px 10px;
+  font-size: 9px;
+  line-height: 1.5;
 }
 
-.rollingMetricList {
-  margin-top: 4px;
+.rollingPrivateEmpty b {
+  color: #9aa5b5;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .rollingProjection {
-  min-height: 0;
+  border-top: 1px solid #e9eef4;
+  margin-top: 12px;
+  padding-top: 12px;
 }
 
-.rollingResultActions {
-  grid-template-columns: minmax(0, 1fr) 72px;
-}
-
-.rollingEventsPanel {
-  min-width: 0;
-}
-
-.rollingEventList {
-  display: grid;
-}
-
-.rollingEventList > div {
-  min-height: 54px;
-  display: grid;
-  grid-template-columns: 130px minmax(0, 1fr);
-  align-items: center;
-  gap: 18px;
-  border-top: 1px solid #edf1f5;
-  padding: 0 20px;
-}
-
-.rollingEventList strong {
+.rollingProjection h3 {
+  margin: 0;
   color: #263247;
   font-size: 12px;
+  font-weight: 650;
+}
+
+.rollingProjection > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rollingProjection small,
+.rollingProjection strong {
+  display: block;
+}
+
+.rollingProjection small {
+  color: #8a97a8;
+  font-size: 9px;
+}
+
+.rollingProjection strong {
+  margin-top: 4px;
+  color: #172033;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.rollingProjection p,
+.rollingEvents > p {
+  margin: 10px 0 0;
+  color: #98a5b7;
+  font-size: 11px;
+}
+
+.rollingEvents {
+  border-top: 1px solid #e9eef4;
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.rollingEvents header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.rollingEvents header strong {
+  font-size: 12px;
+}
+
+.rollingEvents header span {
+  color: #8a97a8;
+  font-size: 10px;
+}
+
+.rollingEvents > div {
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f0f3f7;
+  font-size: 10px;
+}
+
+.rollingEvents time {
+  color: #8290a4;
+}
+
+.rollingEvents b,
+.rollingEvents > div strong {
+  color: #263247;
+  font-size: 10px;
   font-weight: 600;
 }
 
-.rollingEventList span {
-  min-width: 0;
+.rollingRuntimeNote {
+  margin: 12px 0 0;
+  color: #8290a4;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.rollingEmpty {
+  min-height: 240px;
+  display: grid;
+  place-content: center;
+  gap: 5px;
   color: #718096;
+  padding: 24px;
+  text-align: center;
+}
+
+.rollingEmpty strong {
+  color: #263247;
+  font-size: 14px;
+}
+
+.rollingEmpty span,
+.rollingLoading {
+  color: #8290a4;
   font-size: 12px;
 }
 
-.rollingEmptyState {
-  height: 96px;
+.rollingLoading {
+  padding: 28px;
+}
+
+.rollingModal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
   display: grid;
   place-items: center;
+  background: rgba(15, 23, 42, .38);
+  padding: 18px;
+}
+
+.rollingModal section {
+  width: min(430px, 100%);
+  border: 1px solid #dfe7f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
+  padding: 22px;
+}
+
+.rollingModal h2 {
   margin: 0;
-  color: #98a5b7;
+  color: #172033;
+  font-size: 17px;
+}
+
+.rollingModal p {
+  margin: 10px 0 20px;
+  color: #65758c;
   font-size: 12px;
+  line-height: 1.6;
+}
+
+.rollingModal section > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 980px) {
   .rollingToolGrid {
     grid-template-columns: 1fr;
+  }
+
+  .rollingStatusPanel {
+    grid-row: 1;
+  }
+
+  .rollingConfigPanel {
+    grid-row: 2;
   }
 }
 
@@ -233,20 +586,60 @@
     gap: 12px;
   }
 
-  .rollingPriceControl,
-  .rollingQuickActions {
-    padding-right: 14px;
-    padding-left: 14px;
+  .rollingPageHead {
+    align-items: flex-start;
   }
 
-  .rollingMetricList {
-    margin-right: 14px;
-    margin-left: 14px;
+  .rollingPlanTabs button {
+    min-width: 158px;
   }
 
-  .rollingEventList > div {
-    grid-template-columns: 1fr;
-    gap: 3px;
-    padding: 11px 14px;
+  .rollingMarketBar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .rollingMarketBar dl {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .rollingMarketBar dd {
+    text-align: left;
+  }
+
+  .rollingStatusBody {
+    padding: 14px;
+  }
+
+  .rollingControlBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rollingMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rollingPrivateEmpty {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rollingProjection > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 12px;
+  }
+
+  .rollingEvents > div {
+    grid-template-columns: 1fr auto;
+    gap: 3px 8px;
+    padding: 8px 0;
+  }
+
+  .rollingEvents time {
+    grid-column: 1 / -1;
   }
 }

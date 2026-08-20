@@ -83,14 +83,17 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertNotIn("搜索股票、观点、财报、页面", MAIN_APP)
         self.assertGreaterEqual(MAIN_APP.count('placeholder="搜索股票代码"'), 2)
 
-    def test_rolling_tool_stays_browser_only_and_yearly_gated(self) -> None:
+    def test_rolling_tool_uses_server_plans_and_stays_yearly_gated(self) -> None:
         self.assertIn('rolling: "滚仓工具"', PRODUCT_CONFIG)
         self.assertRegex(PRODUCT_CONFIG, r'rolling:\s*\{\s*level: "yearly"')
         self.assertIn('{ key: "rolling", label: pageLabels.rolling }', PRODUCT_CONFIG)
         self.assertIn('page === "rolling" && pageUnlocked ? <RollingToolPage />', MAIN_APP)
         self.assertIn('from "./vendor/rolling-pro/rolling-simulator.mjs"', ROLLING_TOOL)
-        self.assertIn("normalizePlan(rawPlan)", ROLLING_TOOL)
-        for forbidden in ("api_key", "api_secret", "exchange_credentials", "raw_order_payloads", "fetch(", "api."):
+        self.assertIn("normalizePlan({", ROLLING_TOOL)
+        self.assertIn("api.rollingPlans()", ROLLING_TOOL)
+        self.assertIn("api.createRollingPlan(input)", ROLLING_TOOL)
+        self.assertNotIn("导出", ROLLING_TOOL)
+        for forbidden in ("api_key", "api_secret", "exchange_credentials", "raw_order_payloads"):
             self.assertNotIn(forbidden, ROLLING_TOOL)
 
     def test_tracking_page_does_not_publish_hardcoded_new_symbols(self) -> None:

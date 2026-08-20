@@ -59,6 +59,12 @@ function sendJson(response, payload, status = 200) {
   response.end(JSON.stringify(payload));
 }
 
+async function readJsonBody(request) {
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
+}
+
 function moneyValue(label) {
   const text = String(label || "").replace(/[$,]/g, "");
   const value = Number.parseFloat(text);
@@ -315,11 +321,44 @@ async function apiPayload(url, authProfile) {
 
 function startServer(authProfile) {
   const apiRequests = [];
+  let rollingPlans = [];
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://127.0.0.1");
       if (url.pathname.startsWith("/api/")) {
         apiRequests.push(url.pathname);
+        if (url.pathname === "/api/rolling/quote") {
+          sendJson(response, { symbol: url.searchParams.get("symbol") || "BTCUSDT", price: "72000", asOf: Date.now() / 1000, connected: true });
+          return;
+        }
+        if (url.pathname === "/api/rolling/plans" && request.method === "GET") {
+          sendJson(response, { plans: rollingPlans, marketError: "" });
+          return;
+        }
+        if (url.pathname === "/api/rolling/plans" && request.method === "POST") {
+          const input = await readJsonBody(request);
+          const fixedAdd = Number(input.initialNotional) * Number(input.addPercent) / 100;
+          const plan = {
+            id: "0123456789abcdef0123456789abcdef",
+            symbol: input.symbol,
+            status: "running",
+            config: { ...input, schemaVersion: 1, maxAdds: Number(input.maxAdds), entryTriggerPrice: input.entryTriggerPrice || null },
+            state: { quantity: String(Number(input.initialNotional) / 72000), averagePrice: "72000", totalNotional: input.initialNotional, fixedAddNotional: String(fixedAdd), addsCompleted: 0, nextTriggerPrice: "73440", protectionPrice: "67680", entryPrice: "72000", exitPrice: null, estimatedPnl: null, lastFillPrice: "72000" },
+            currentPrice: "72000",
+            currentNotional: input.initialNotional,
+            estimatedPnl: "0",
+            estimatedMargin: String(Number(input.initialNotional) / Number(input.leverage)),
+            marketConnected: true,
+            marketAsOf: Date.now() / 1000,
+            createdAt: "2026-08-20T12:00:00Z",
+            updatedAt: "2026-08-20T12:00:00Z",
+            endedAt: null,
+            events: [{ id: 1, type: "entry", price: "72000", detail: {}, createdAt: "2026-08-20T12:00:00Z" }],
+          };
+          rollingPlans = [plan];
+          sendJson(response, { ok: true, id: plan.id }, 201);
+          return;
+        }
         sendJson(response, await apiPayload(url, authProfile));
         return;
       }
@@ -515,19 +554,11 @@ try {
         await page.goto(`${server.rootUrl}?page=rolling`, { waitUntil: "networkidle" });
         const onboardingAccept = page.getByRole("button", { name: "同意并继续" });
         if (await onboardingAccept.count()) await onboardingAccept.click();
-        await page.getByTestId("rolling-entry-price").fill("100");
+        await page.waitForFunction(() => document.body.innerText.includes("实时行情正常"));
         await page.getByTestId("rolling-start").click();
-        assert((await page.getByTestId("rolling-add-progress").innerText()) === "0 / 4", "rolling simulation should begin with no adds");
-        await page.getByRole("button", { name: "到下一触发价" }).click();
-        assert((await page.getByTestId("rolling-add-progress").innerText()) === "1 / 4", "rolling simulation should apply one add per price update");
-        const [download] = await Promise.all([
-          page.waitForEvent("download"),
-          page.locator(".rollingResultActions .positionPrimaryButton").click(),
-        ]);
-        const exportedPath = await download.path();
-        const exportedPlan = JSON.parse(await readFile(exportedPath, "utf8"));
-        assert(exportedPlan.symbol === "BTCUSDT" && exportedPlan.schemaVersion === 1, "rolling export should use the normalized plan schema");
-        assert(exportedPlan.latestPrice == null && exportedPlan.api_key == null && exportedPlan.marketPrices == null, "rolling export must exclude runtime and private fields");
+        await page.waitForSelector("[data-testid='rolling-add-progress']");
+        assert((await page.getByTestId("rolling-add-progress").innerText()) === "已完成 0 · 剩余 4", "rolling server plan should begin with no adds");
+        assert(!(await page.locator("body").innerText()).includes("导出方案"), "rolling tool should hide plan export");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop rolling tool should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-rolling-desktop.png`, fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
