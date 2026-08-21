@@ -197,9 +197,9 @@ const sectionLabels: Record<string, string> = {
   weekly: "周度前瞻",
   crypto: "加密相关",
   premarket: "盘前前瞻",
-  daily: "每日个股行情观点",
+  daily: "个股观点",
   research: "研报解析",
-  postmarket: "盘后复盘延展",
+  postmarket: "盘后复盘",
   journal: "交易日记"
 };
 
@@ -418,12 +418,6 @@ function formatOpinionTime(value?: string | null) {
   if (!text) return "--";
   if (/\b00:00(?::00)?$/.test(text)) return formatDate(text);
   return /\d{2}:\d{2}/.test(text) ? formatDateTime(text) : formatDate(text);
-}
-
-function formatOpinionClock(value?: string | null) {
-  const date = formatDate(value);
-  const dateTime = formatOpinionTime(value);
-  return dateTime.startsWith(`${date} `) ? dateTime.slice(date.length + 1) : "";
 }
 
 function normalizeImageUrl(url: string) {
@@ -1144,7 +1138,6 @@ function App() {
                 selectedId={selectedOpinion}
                 onSelect={selectOpinionItem}
                 onBack={clearOpinion}
-                onPage={navigatePage}
                 locked={opinionsLocked}
                 authenticated={Boolean(auth?.authenticated)}
                 onAuth={openAuth}
@@ -1710,7 +1703,6 @@ function OpinionsPage({
   selectedId,
   onSelect,
   onBack,
-  onPage,
   locked,
   authenticated,
   onAuth,
@@ -1721,7 +1713,6 @@ function OpinionsPage({
   selectedId: string;
   onSelect: (item: Opinion) => void;
   onBack: () => void;
-  onPage: (page: PageKey) => void;
   locked: boolean;
   authenticated: boolean;
   onAuth: (mode: AuthMode) => void;
@@ -1786,15 +1777,15 @@ function OpinionsPage({
 
         <section className="opinionProductLayout single">
           <article className="opinionProductFeed">
-            {!loading && !displayRows.length ? <div className="opinionLoading">--</div> : null}
-            {!loading ? groupedRows.map((group, groupIndex) => (
+            {loading ? <div className="opinionLoading">正在加载</div> : null}
+            {!loading && !displayRows.length ? <div className="opinionEmpty">该栏目暂时没有内容</div> : null}
+            {!loading ? groupedRows.map((group) => (
               <Fragment key={group.date}>
                 <div className="opinionProductDay">{group.date}</div>
-                {group.rows.map((item, itemIndex) => (
+                {group.rows.map((item) => (
                   <button
                     type="button"
                     key={item.id}
-                    className={pageIndex === 0 && groupIndex === 0 && itemIndex === 0 ? "featured" : ""}
                     onClick={() => onSelect(item)}
                   >
                     <div className="opinionProductItem">
@@ -1802,24 +1793,25 @@ function OpinionsPage({
                         <b>{opinionSectionLabel(item)}</b>
                         <strong>{opinionDisplayTitle(item)}</strong>
                       </div>
-                      <div className={locked ? "opinionLockedExcerpt opinionListPreview" : "opinionListPreview"}>
+                      <div className="opinionListPreview">
                         <p>{compactText(item.summary || item.body, 96)}</p>
                       </div>
                       <div className="opinionProductTags compact">
                         {[...(item.symbols || []), ...(item.topics || [])].slice(0, 5).map((tag) => <b key={tag}>{tag}</b>)}
                       </div>
                     </div>
-                    <time>{formatOpinionClock(item.tradeDate)}</time>
-                    {locked ? <span className="opinionMemberLabel">会员可见</span> : null}
+                    <span className="opinionRowChevron" aria-hidden="true">›</span>
                   </button>
                 ))}
               </Fragment>
             )) : null}
-            <div className="opinionPager">
-              <button type="button" disabled={pageIndex <= 0 || loading} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>
-              <span>{pageIndex + 1} / {pageCount}</span>
-              <button type="button" disabled={pageIndex >= pageCount - 1 || loading} onClick={() => setPageIndex((value) => Math.min(pageCount - 1, value + 1))}>下一页</button>
-            </div>
+            {pageCount > 1 ? (
+              <div className="opinionPager">
+                <button type="button" disabled={pageIndex <= 0 || loading} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>
+                <span>{pageIndex + 1} / {pageCount}</span>
+                <button type="button" disabled={pageIndex >= pageCount - 1 || loading} onClick={() => setPageIndex((value) => Math.min(pageCount - 1, value + 1))}>下一页</button>
+              </div>
+            ) : null}
           </article>
 
         </section>
@@ -1831,8 +1823,7 @@ function OpinionsPage({
     <div className="opinionReaderPage">
       <article className="readerPanel articleReaderPanel">
         <div className="readerTop">
-          <button type="button" onClick={onBack}>返回{pageLabels.opinions}</button>
-          <button type="button" onClick={() => onPage("home")}>返回首页</button>
+          <button type="button" onClick={onBack}>返回列表</button>
         </div>
         <div className="readerShell opinionReaderSingle">
           <main className="readerMain">
@@ -1860,8 +1851,8 @@ function OpinionsPage({
               )}
               {locked ? (
                 <div className="readerMemberPreview">
-                  <span>完整观点会员可见</span>
-                  <button type="button" onClick={() => authenticated ? onUnlock() : onAuth("register")}>查看完整观点</button>
+                  <span>查看完整观点</span>
+                  <button type="button" onClick={() => authenticated ? onUnlock() : onAuth("register")}>开通会员</button>
                 </div>
               ) : null}
             </div>

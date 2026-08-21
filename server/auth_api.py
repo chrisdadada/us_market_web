@@ -69,9 +69,9 @@ MARKET_OPINION_SECTIONS = {
     "weekly": "周度前瞻",
     "crypto": "加密相关",
     "premarket": "盘前前瞻",
-    "daily": "每日个股行情观点",
+    "daily": "个股观点",
     "research": "研报解析",
-    "postmarket": "盘后复盘延展",
+    "postmarket": "盘后复盘",
     "journal": "交易日记",
 }
 ALLOWED_UPLOAD_MIMES = {
@@ -628,7 +628,13 @@ def query_market_opinions(
         ).fetchall()
     items = [product_market_opinion_payload(row) for row in rows]
     if not include_drafts:
-        items = [item for item in items if item.get("status") == "published"]
+        items = [
+            item
+            for item in items
+            if item.get("status") == "published"
+            and str(item.get("title") or "").strip()
+            and (str(item.get("summary") or "").strip() or str(item.get("body") or "").strip())
+        ]
     if status in MARKET_OPINION_STATUSES:
         items = [item for item in items if item.get("status") == status]
     needle = query.strip().lower()

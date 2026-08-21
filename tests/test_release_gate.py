@@ -1493,6 +1493,54 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(payload["total"], 2)
         self.assertTrue(all(item["section"] == "journal" for item in payload["rows"]))
 
+    def test_public_market_opinions_hide_legacy_empty_content(self) -> None:
+        product_db = self.use_empty_product_db()
+        legacy_payload = {
+            "id": "daily-legacy-empty",
+            "section": "daily",
+            "sectionLabel": "个股观点",
+            "title": "tests",
+            "tradeDate": "2026-08-03 17:54:06",
+            "status": "published",
+            "summary": "",
+            "symbols": [],
+            "topics": [],
+            "highlights": [],
+            "body": "",
+        }
+        with sqlite3.connect(product_db) as conn:
+            conn.execute(
+                """
+                INSERT INTO market_opinion_items
+                (item_id, section, section_label, title, trade_date, summary,
+                 symbols_json, topics_json, highlights_json, body, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    legacy_payload["id"],
+                    legacy_payload["section"],
+                    legacy_payload["sectionLabel"],
+                    legacy_payload["title"],
+                    legacy_payload["tradeDate"],
+                    "",
+                    "[]",
+                    "[]",
+                    "[]",
+                    "",
+                    json.dumps(legacy_payload),
+                ),
+            )
+
+        status, payload = self.client().get("/api/product/opinions")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"], [])
+        self.assertEqual(payload["total"], 0)
+
+        admin = self.login("admin@example.test", "admin-password")
+        status, payload = admin.get("/api/admin/opinions")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"][0]["id"], legacy_payload["id"])
+
     def test_admin_market_opinion_image_upload_can_be_published(self) -> None:
         self.use_empty_product_db()
         admin = self.login("admin@example.test", "admin-password")
