@@ -6,7 +6,6 @@ import {
   CalendarEvent,
   CryptoEtfFlowPayload,
   CourseSeries,
-  DcaStrategiesPayload,
   FundingScannerRow,
   KeyLevel,
   IndexValuationIndex,
@@ -1455,16 +1454,16 @@ function HomePage({
   onPage: (page: PageKey) => void;
 }) {
   const [temperature, setTemperature] = useState<MarketTemperaturePayload | null>(null);
-  const [dcaStrategies, setDcaStrategies] = useState<DcaStrategiesPayload | null>(null);
 
   useEffect(() => {
-    if (!authenticated) return;
+    if (!authenticated) {
+      setTemperature(null);
+      return;
+    }
     let active = true;
-    Promise.allSettled([api.marketTemperature(), api.dcaStrategies()]).then(([temperatureResult, dcaResult]) => {
-      if (!active) return;
-      if (temperatureResult.status === "fulfilled") setTemperature(temperatureResult.value);
-      if (dcaResult.status === "fulfilled") setDcaStrategies(dcaResult.value);
-    });
+    api.marketTemperature()
+      .then((payload) => { if (active) setTemperature(payload); })
+      .catch(() => { if (active) setTemperature(null); });
     return () => { active = false; };
   }, [authenticated]);
 
@@ -1484,7 +1483,8 @@ function HomePage({
     .filter((row) => row.symbol)
     .sort((a, b) => Number(b.change ?? b.changeYtd ?? -Infinity) - Number(a.change ?? a.changeYtd ?? -Infinity))
     .slice(0, 4);
-  const eventRows = [...calendar]
+  const eventRows = calendar
+    .filter((item) => isFutureOrToday(item.date))
     .sort((a, b) => {
       const aHigh = a.impact === "high" ? 0 : 1;
       const bHigh = b.impact === "high" ? 0 : 1;
@@ -1494,38 +1494,45 @@ function HomePage({
   const macroEvent = eventRows.find((item) => item.type === "macro");
   const earningsRows = eventRows.filter((item) => item.type === "earnings").slice(0, 2);
   const pressureIndicator = temperature?.indicators?.find((item) => item.status === "watch") || null;
-  const temperatureScore = temperature?.overall?.score;
-  const temperatureValue = typeof temperatureScore === "number" && Number.isFinite(temperatureScore)
-    ? `${temperatureScore} · ${temperature?.overall?.label || "--"}`
-    : temperature?.overall?.label || "--";
-  const dcaStatus = dcaStrategies?.products?.dca1?.status;
+  const hasMacroSignal = Boolean(macroEvent && !isBlankValue(macroEvent.title) && !isBlankValue(macroEvent.date));
+  const hasPressureSignal = Boolean(pressureIndicator && !isBlankValue(pressureIndicator.name) && !isBlankValue(pressureIndicator.value));
+  const leadSector = sectorRows.find((row) => !isBlankValue(row.sector) && Number.isFinite(Number(row.netFlowProxy)) && Number(row.netFlowProxy) !== 0);
+  const hasSectorSignal = Boolean(leadSector);
+  const marketSignalCount = Number(hasMacroSignal) + Number(hasPressureSignal) + Number(hasSectorSignal);
   const trackingUpdatedAt = bootstrap?.strength?.asOf || bootstrap?.meta?.generatedAt;
   const sectorUpdatedAt = bootstrap?.sectorFlow?.asOf;
   const stocksUpdatedAt = bootstrap?.movers?.updatedAt;
   return (
     <div className="frontHomePage">
-      <section className="frontHomeMarketStrip" aria-label="今日市场">
-        <button type="button" onClick={() => onPage("risk")}>
-          <span>市场活跃</span>
-          <strong>{temperatureValue}</strong>
-          <small>{temperature?.overall?.action || "查看市场状态"}</small>
-        </button>
-        <button type="button" onClick={() => onPage("risk")}>
-          <span>主要压力</span>
-          <strong>{pressureIndicator?.value || "--"}</strong>
-          <small>{pressureIndicator?.name || "查看市场指标"}</small>
-        </button>
-        <button type="button" onClick={() => onPage("market")}>
-          <span>资金领先</span>
-          <strong>{sectorRows[0]?.sector || "--"}</strong>
-          <small>{sectorRows[0] ? money(sectorRows[0].netFlowProxy) : "查看资金流向"}</small>
-        </button>
-        <button type="button" onClick={() => onPage("dca1")}>
-          <span>纳指定投 1 号</span>
-          <strong>{dcaStatus?.headline || "--"}</strong>
-          <small>{dcaStatus?.action || "查看本期状态"}</small>
-        </button>
-      </section>
+      {marketSignalCount ? (
+        <section
+          className="frontHomeMarketStrip"
+          aria-label="今日市场"
+          style={{ "--front-home-market-count": marketSignalCount } as CSSProperties}
+        >
+          {hasMacroSignal && macroEvent ? (
+            <button type="button" onClick={() => onPage("calendar")}>
+              <span>下个重点</span>
+              <strong>{calendarTitle(macroEvent.title)}</strong>
+              <small>{dayDistanceLabel(macroEvent.date)} · {calendarTime24(macroEvent.time)}</small>
+            </button>
+          ) : null}
+          {hasPressureSignal && pressureIndicator ? (
+            <button type="button" onClick={() => onPage("risk")}>
+              <span>主要压力</span>
+              <strong>{pressureIndicator.name}</strong>
+              <small>{pressureIndicator.value}</small>
+            </button>
+          ) : null}
+          {hasSectorSignal && leadSector ? (
+            <button type="button" onClick={() => onPage("market")}>
+              <span>资金领先</span>
+              <strong>{leadSector.sector}</strong>
+              <small className={signedClass(leadSector.netFlowProxy)}>{money(leadSector.netFlowProxy)}</small>
+            </button>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="frontHomeBoard">
         <article className="frontLeadPanel">

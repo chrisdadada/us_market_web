@@ -6019,7 +6019,7 @@ body,
 .frontHomeMarketStrip {
   display: grid;
   overflow: hidden;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--front-home-market-count, 3), minmax(0, 1fr));
   border: 1px solid #dfe7f2;
   border-radius: 8px;
   background: #fff;
@@ -6380,17 +6380,6 @@ body,
     grid-template-columns: 1fr;
   }
 
-  .frontHomeMarketStrip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .frontHomeMarketStrip button:nth-child(2) {
-    border-right: 0;
-  }
-
-  .frontHomeMarketStrip button:nth-child(-n + 2) {
-    border-bottom: 1px solid #e5ecf5;
-  }
 }
 
 /* Final white UI guardrails: keep old dark terminal table rules from leaking back. */
@@ -8789,12 +8778,18 @@ body,
   }
 
   .frontHomeMarketStrip {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .frontHomeMarketStrip button {
     min-height: 78px;
+    border-right: 0;
+    border-bottom: 1px solid #e5ecf5;
     padding: 12px 14px;
+  }
+
+  .frontHomeMarketStrip button:last-child {
+    border-bottom: 0;
   }
 
   .frontHomeMarketStrip strong {

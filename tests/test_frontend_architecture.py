@@ -78,6 +78,9 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn('type: "earnings"', MAIN_APP)
         self.assertIn('const macroEvent = eventRows.find((item) => item.type === "macro")', MAIN_APP)
         self.assertIn('const earningsRows = eventRows.filter((item) => item.type === "earnings")', MAIN_APP)
+        self.assertIn('.filter((item) => isFutureOrToday(item.date))', MAIN_APP)
+        self.assertIn('const marketSignalCount = Number(hasMacroSignal)', MAIN_APP)
+        self.assertNotIn('api.dcaStrategies()', MAIN_APP)
 
     def test_global_search_only_promises_supported_stock_code_search(self) -> None:
         self.assertNotIn("搜索股票、观点、财报、页面", MAIN_APP)
