@@ -31,8 +31,19 @@ release or automation workspace and must not be used as one.
 
 ## Deploy To Test
 
-Use the single dev release entry point. It runs project checks and the complete
-release gate once, then reuses that exact result during deployment:
+For frontend-only dev changes, use the fast entry point. It runs the project
+check plus the relevant browser regression, then deploys without rebuilding or
+replacing product data:
+
+```bash
+git switch codex/dev-integration
+./scripts/release_dev_fast.sh
+```
+
+The fast path accepts only React view, CSS, HTML, and static asset changes.
+Backend, API contracts, business logic, admin, data, dependency, configuration,
+test, or release-script changes fail closed and must use the complete entry
+point:
 
 ```bash
 git switch codex/dev-integration

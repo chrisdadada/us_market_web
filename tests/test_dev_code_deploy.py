@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEPLOY = (ROOT / "scripts" / "deploy_dev.sh").read_text(encoding="utf-8")
 DATA_DEPLOY = (ROOT / "scripts" / "deploy_dev_data.sh").read_text(encoding="utf-8")
 RELEASE = (ROOT / "scripts" / "release_dev.sh").read_text(encoding="utf-8")
+FAST_RELEASE = (ROOT / "scripts" / "release_dev_fast.sh").read_text(encoding="utf-8")
 VERIFY = (ROOT / "scripts" / "verify_dev.sh").read_text(encoding="utf-8")
 
 
@@ -46,6 +47,21 @@ class DevCodeDeployTest(unittest.TestCase):
         self.assertEqual(RELEASE.count("npm run check"), 1)
         self.assertEqual(RELEASE.count("bash scripts/run_release_gate.sh"), 1)
         self.assertIn('DEV_VERIFIED_MARKER="${marker}" bash scripts/deploy_dev.sh', RELEASE)
+
+    def test_fast_release_is_frontend_only_and_fail_closed(self) -> None:
+        self.assertIn('main-web/src/*.tsx|main-web/src/*.css|main-web/index.html|assets/*', FAST_RELEASE)
+        self.assertIn('unsafe_files+=("${file}")', FAST_RELEASE)
+        self.assertIn('use ./scripts/release_dev.sh', FAST_RELEASE)
+        self.assertNotIn('INCLUDE_PRODUCT_DATA', FAST_RELEASE)
+        self.assertNotIn('build_product_db.py', FAST_RELEASE)
+
+    def test_fast_release_keeps_checks_and_scoped_browser_regression(self) -> None:
+        self.assertEqual(FAST_RELEASE.count("npm run check"), 1)
+        self.assertIn('npm run test:rolling:permissions', FAST_RELEASE)
+        self.assertIn('npm run test:dca', FAST_RELEASE)
+        self.assertIn('npm run test:next', FAST_RELEASE)
+        self.assertIn('npm run test:next:permissions', FAST_RELEASE)
+        self.assertIn('DEV_VERIFIED_MARKER="${marker}" bash scripts/deploy_dev.sh', FAST_RELEASE)
 
     def test_one_shot_data_release_builds_and_enriches_before_gate(self) -> None:
         build = RELEASE.index('scripts/build_product_db.py')

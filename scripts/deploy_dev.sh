@@ -69,6 +69,7 @@ printf '%s\n' "${release_commit}" > main-web/dist/.release-commit
 printf '{"commit":"%s","deployedAt":"%s"}\n' "${release_commit}" "${release_time}" > main-web/dist/release.json
 
 COPYFILE_DISABLE=1 tar \
+  --no-xattrs \
   --exclude='.git' \
   --exclude='.local' \
   --exclude='screenshots' \
