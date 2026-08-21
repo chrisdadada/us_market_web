@@ -8,6 +8,7 @@ MAIN_APP = (ROOT / "main-web/src/App.tsx").read_text(encoding="utf-8")
 MAIN_ENTRY = (ROOT / "main-web/src/main.tsx").read_text(encoding="utf-8")
 MAIN_HTML = (ROOT / "main-web/index.html").read_text(encoding="utf-8")
 MAIN_STYLES = (ROOT / "main-web/src/styles.css").read_text(encoding="utf-8")
+CALENDAR_STYLES = (ROOT / "main-web/src/calendar.css").read_text(encoding="utf-8")
 TRACKING_STYLES = (ROOT / "main-web/src/tracking.css").read_text(encoding="utf-8")
 PRODUCT_CONFIG = (ROOT / "main-web/src/productConfig.ts").read_text(encoding="utf-8")
 ROLLING_TOOL = (ROOT / "main-web/src/RollingToolPage.tsx").read_text(encoding="utf-8")
@@ -25,6 +26,7 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 class FrontendArchitectureTest(unittest.TestCase):
     def test_white_frontend_has_one_source_of_truth(self) -> None:
         self.assertIn('import "./styles.css"', MAIN_ENTRY)
+        self.assertIn('import "./calendar.css"', MAIN_ENTRY)
         self.assertIn('import "./tracking.css"', MAIN_ENTRY)
         self.assertIn('import "./article.css"', MAIN_ENTRY)
         self.assertNotIn("/legacy/", MAIN_ENTRY)
@@ -72,7 +74,9 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertNotIn('className="calendarCoreTitle"', MAIN_APP)
         self.assertIn('className="calendarCoreToolbar"', MAIN_APP)
         self.assertIn('"近期高影响财报"', MAIN_APP)
-        self.assertIn(".calendarV3 .calendarCoreToolbar", MAIN_STYLES)
+        self.assertIn(".calendarV3 .calendarCoreToolbar", CALENDAR_STYLES)
+        self.assertNotRegex(MAIN_STYLES, r"\.calendar[A-Za-z0-9_-]*")
+        self.assertIn("@keyframes calendarLoading", CALENDAR_STYLES)
 
     def test_homepage_keeps_macro_events_separate_from_earnings(self) -> None:
         self.assertIn('className="frontHomeMarketStrip"', MAIN_APP)

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import postcss from "../main-web/node_modules/postcss/lib/postcss.mjs";
 
 const css = readFileSync(new URL("../main-web/src/styles.css", import.meta.url), "utf8");
+const calendarCss = readFileSync(new URL("../main-web/src/calendar.css", import.meta.url), "utf8");
 const trackingCss = readFileSync(new URL("../main-web/src/tracking.css", import.meta.url), "utf8");
 const opinionsCss = readFileSync(new URL("../main-web/src/opinions.css", import.meta.url), "utf8");
 const rollingCss = readFileSync(new URL("../main-web/src/rollingTool.css", import.meta.url), "utf8");
@@ -26,11 +27,12 @@ assert.match(trackingCss, /\.trackingPage \.screenerTable td\s*\{[^}]*height:\s*
 assert.match(css, /\.stockLibraryTable th,\s*\.stockLibraryTable td\s*\{[^}]*height:\s*46px;/s);
 assert.match(css, /\.sideRail nav button\s*\{[^}]*min-height:\s*var\(--front-nav-row-height\)[^}]*font-size:\s*var\(--front-nav-size\)[^}]*font-weight:\s*var\(--front-nav-weight\)/s);
 assert.match(css, /\.sideRail nav button:focus-visible,[^{]*\{[^}]*outline:\s*0[^}]*box-shadow:\s*inset/s);
-assert.match(css, /\.topbar\.calendarTopbar\s*\{[^}]*height:\s*64px\s*!important[^}]*padding:\s*12px 28px\s*!important/s);
-assert.match(css, /\.topbar\.calendarTopbar \.accountMenu,\s*\.topbar\.calendarTopbar > \.accountButton\s*\{[^}]*position:\s*relative[^}]*top:\s*auto[^}]*right:\s*auto/s);
+assert.match(calendarCss, /\.topbar\.calendarTopbar\s*\{[^}]*height:\s*64px\s*!important[^}]*padding:\s*12px 28px\s*!important/s);
+assert.match(calendarCss, /\.topbar\.calendarTopbar \.accountMenu,\s*\.topbar\.calendarTopbar > \.accountButton\s*\{[^}]*position:\s*relative[^}]*top:\s*auto[^}]*right:\s*auto/s);
 assert.match(rollingCss, /\.rollingToolPage\s*\{[^}]*align-content:\s*start/s);
 assert.match(rollingCss, /\.rollingInlineQuote\s*\{[^}]*white-space:\s*nowrap/s);
-assert.doesNotMatch(css, /\.(?:tracking[A-Za-z0-9_-]*|opinion[A-Za-z0-9_-]*)/);
+assert.doesNotMatch(css, /\.(?:calendar[A-Za-z0-9_-]*|tracking[A-Za-z0-9_-]*|opinion[A-Za-z0-9_-]*)/);
+assert.deepEqual(duplicateSelectors(calendarCss, "calendar.css"), []);
 assert.deepEqual(duplicateSelectors(trackingCss, "tracking.css"), []);
 assert.deepEqual(duplicateSelectors(opinionsCss, "opinions.css"), []);
 
