@@ -559,7 +559,7 @@ try {
         await page.waitForSelector("[data-testid='rolling-add-progress']");
         const rollingBodyText = await page.locator("body").innerText();
         assert((await page.getByTestId("rolling-add-progress").innerText()) === "已完成 0 · 剩余 4", "rolling server plan should begin with no adds");
-        assert(rollingBodyText.includes("暂未连接交易所下单 API，不会自动提交真实订单"), "rolling tool should disclose that exchange order submission is not connected");
+        assert(!rollingBodyText.includes("交易所下单 API"), "rolling tool should not expose exchange API implementation copy");
         assert(!/(模拟|仿真|纸面)/.test(rollingBodyText), "rolling tool should not expose simulation wording");
         assert(!rollingBodyText.includes("导出方案"), "rolling tool should hide plan export");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop rolling tool should not overflow horizontally");

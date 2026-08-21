@@ -402,27 +402,6 @@
   font-weight: 650;
 }
 
-.rollingPrivateEmpty {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border: 1px solid #e1e8f0;
-  border-radius: 7px;
-  background: #f8fafc;
-  color: #718096;
-  margin-top: 12px;
-  padding: 9px 10px;
-  font-size: 9px;
-  line-height: 1.5;
-}
-
-.rollingPrivateEmpty b {
-  color: #9aa5b5;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
 .rollingProjection {
   border-top: 1px solid #e9eef4;
   margin-top: 12px;
@@ -635,11 +614,6 @@
 
   .rollingMetrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .rollingPrivateEmpty {
-    align-items: flex-start;
-    flex-direction: column;
   }
 
   .rollingProjection > div {

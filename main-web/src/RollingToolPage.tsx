@@ -301,10 +301,9 @@ export default function RollingToolPage() {
                 <div><span>加仓进度</span><strong data-testid="rolling-add-progress">已完成 {selected.state.addsCompleted} · 剩余 {Math.max(0, selected.config.maxAdds - selected.state.addsCompleted)}</strong></div>
                 <div><span>预估保证金</span><strong>{moneyText(selected.estimatedMargin)}</strong></div>
               </div>
-              <div className="rollingPrivateEmpty"><span>交易所账户未连接</span><b>不会自动提交真实订单</b></div>
               <section className="rollingProjection"><h3>下一次加仓后估算</h3>{projection ? <div><span><small>下一触发价</small><strong>{numberText(String(projection.fillPrice))}</strong></span><span><small>仓位价值</small><strong>{moneyText(String(projection.totalNotional))}</strong></span><span><small>持仓均价</small><strong>{numberText(String(projection.averagePrice))}</strong></span><span><small>保护价</small><strong>{numberText(String(projection.protectionPrice))}</strong></span></div> : <p>{selected.status === "waiting_entry" ? "首仓成交后显示" : selected.status === "holding_protection" ? "已达到最大加仓次数" : "当前无下一次加仓"}</p>}</section>
               <section className="rollingEvents"><header><strong>执行记录</strong><span>实时行情</span></header>{selected.events.length ? selected.events.slice(0, 6).map((item) => <div key={item.id}><time>{formatStoredDateTime(item.createdAt)}</time><b>{item.type === "add" ? `第 ${String(item.detail.addNumber || "")} 次加仓执行` : eventLabels[item.type] || "计划状态更新"}</b><strong>{numberText(item.price)}</strong></div>) : <p>暂无执行记录</p>}</section>
-              <p className="rollingRuntimeNote">计划按 Binance 实时行情和计划规则运行；暂未连接交易所下单 API，不会自动提交真实订单。关闭页面后计划仍在服务器运行。</p>
+              <p className="rollingRuntimeNote">计划按 Binance 实时行情和计划规则运行，关闭页面后仍在服务器运行。</p>
             </div>
           ) : (
             <div className="rollingPlanSummary">
@@ -315,7 +314,7 @@ export default function RollingToolPage() {
                 <div className="rollingSummaryTotal"><dt>全部触发后</dt><dd>总仓位 {Number.isFinite(maxPositionValue) ? moneyText(String(maxPositionValue)) : "--"}</dd></div>
                 <div><dt>预计占用保证金</dt><dd>{Number.isFinite(estimatedInitialMargin) ? moneyText(String(estimatedInitialMargin)) : "--"}<small>按 {leverageSummary}× 杠杆</small></dd></div>
               </dl>
-              <p className="rollingRuntimeNote">按 Binance 实时行情和计划规则运行；暂未连接交易所下单 API，不会自动提交真实订单。</p>
+              <p className="rollingRuntimeNote">按 Binance 实时行情和计划规则运行。</p>
               <button className="rollingPrimaryButton" data-testid="rolling-start" form="rolling-plan-form" type="submit" disabled={saving || !connected}>{saving ? "正在启动..." : "启动计划"}</button>
             </div>
           )}
