@@ -10,6 +10,7 @@ MAIN_HTML = (ROOT / "main-web/index.html").read_text(encoding="utf-8")
 MAIN_STYLES = (ROOT / "main-web/src/styles.css").read_text(encoding="utf-8")
 CALENDAR_STYLES = (ROOT / "main-web/src/calendar.css").read_text(encoding="utf-8")
 STOCKS_STYLES = (ROOT / "main-web/src/stocks.css").read_text(encoding="utf-8")
+MARKET_FUNDS_STYLES = (ROOT / "main-web/src/marketFunds.css").read_text(encoding="utf-8")
 TRACKING_STYLES = (ROOT / "main-web/src/tracking.css").read_text(encoding="utf-8")
 PRODUCT_CONFIG = (ROOT / "main-web/src/productConfig.ts").read_text(encoding="utf-8")
 ROLLING_TOOL = (ROOT / "main-web/src/RollingToolPage.tsx").read_text(encoding="utf-8")
@@ -29,6 +30,7 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn('import "./styles.css"', MAIN_ENTRY)
         self.assertIn('import "./calendar.css"', MAIN_ENTRY)
         self.assertIn('import "./stocks.css"', MAIN_ENTRY)
+        self.assertIn('import "./marketFunds.css"', MAIN_ENTRY)
         self.assertIn('import "./tracking.css"', MAIN_ENTRY)
         self.assertIn('import "./article.css"', MAIN_ENTRY)
         self.assertNotIn("/legacy/", MAIN_ENTRY)
@@ -126,6 +128,16 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn(".stockLibraryWorkbench", STOCKS_STYLES)
         self.assertNotIn(".stocksWorkbench", MAIN_STYLES)
         self.assertNotIn(".stocksWorkbench", STOCKS_STYLES)
+
+    def test_market_funds_styles_have_one_owner(self) -> None:
+        self.assertNotRegex(
+            MAIN_STYLES,
+            r"\.(?:market[A-Za-z0-9_-]*V3|marketViewTabs|cryptoEtf[A-Za-z0-9_-]*)",
+        )
+        self.assertIn(".marketPageV3", MARKET_FUNDS_STYLES)
+        self.assertIn(".marketHeatmapV3", MARKET_FUNDS_STYLES)
+        self.assertIn(".marketViewTabs", MARKET_FUNDS_STYLES)
+        self.assertIn(".cryptoEtfView", MARKET_FUNDS_STYLES)
 
     def test_tracking_empty_state_hides_internal_data_thresholds(self) -> None:
         self.assertNotIn("历史数据不足", MAIN_APP)

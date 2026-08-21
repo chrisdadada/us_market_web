@@ -5,6 +5,7 @@ import postcss from "../main-web/node_modules/postcss/lib/postcss.mjs";
 const css = readFileSync(new URL("../main-web/src/styles.css", import.meta.url), "utf8");
 const calendarCss = readFileSync(new URL("../main-web/src/calendar.css", import.meta.url), "utf8");
 const stocksCss = readFileSync(new URL("../main-web/src/stocks.css", import.meta.url), "utf8");
+const marketFundsCss = readFileSync(new URL("../main-web/src/marketFunds.css", import.meta.url), "utf8");
 const trackingCss = readFileSync(new URL("../main-web/src/tracking.css", import.meta.url), "utf8");
 const opinionsCss = readFileSync(new URL("../main-web/src/opinions.css", import.meta.url), "utf8");
 const rollingCss = readFileSync(new URL("../main-web/src/rollingTool.css", import.meta.url), "utf8");
@@ -32,9 +33,10 @@ assert.match(calendarCss, /\.topbar\.calendarTopbar\s*\{[^}]*height:\s*64px\s*!i
 assert.match(calendarCss, /\.topbar\.calendarTopbar \.accountMenu,\s*\.topbar\.calendarTopbar > \.accountButton\s*\{[^}]*position:\s*relative[^}]*top:\s*auto[^}]*right:\s*auto/s);
 assert.match(rollingCss, /\.rollingToolPage\s*\{[^}]*align-content:\s*start/s);
 assert.match(rollingCss, /\.rollingInlineQuote\s*\{[^}]*white-space:\s*nowrap/s);
-assert.doesNotMatch(css, /\.(?:calendar[A-Za-z0-9_-]*|stocksPage|stockLibrary[A-Za-z0-9_-]*|tracking[A-Za-z0-9_-]*|opinion[A-Za-z0-9_-]*)/);
+assert.doesNotMatch(css, /\.(?:calendar[A-Za-z0-9_-]*|stocksPage|stockLibrary[A-Za-z0-9_-]*|market[A-Za-z0-9_-]*V3|marketViewTabs|cryptoEtf[A-Za-z0-9_-]*|tracking[A-Za-z0-9_-]*|opinion[A-Za-z0-9_-]*)/);
 assert.deepEqual(duplicateSelectors(calendarCss, "calendar.css"), []);
 assert.deepEqual(duplicateSelectors(stocksCss, "stocks.css"), []);
+assert.deepEqual(duplicateSelectors(marketFundsCss, "marketFunds.css"), []);
 assert.deepEqual(duplicateSelectors(trackingCss, "tracking.css"), []);
 assert.deepEqual(duplicateSelectors(opinionsCss, "opinions.css"), []);
 
