@@ -1,0 +1,440 @@
+/* Stock library page */
+.stocksPage .tableSortButton {
+  justify-content: inherit;
+}
+
+.stocksPage .pager {
+  border-top: 1px solid #e5ecf5;
+  background: #fff;
+}
+
+.stocksPage .pager button {
+  border: 1px solid #d8e2ef;
+  background: #fff;
+  color: #1677ff;
+}
+
+.stocksPage .pager button:disabled {
+  color: #a5b2c3;
+  background: #f8fafc;
+}
+
+.stocksPage .pager span {
+  color: #718096;
+}
+
+.stocksPage {
+  padding: 22px 28px 44px;
+}
+
+.stockLibraryWorkbench {
+  overflow: hidden;
+  border: 1px solid var(--front-card-border);
+  border-radius: var(--front-card-radius);
+  background: var(--panel);
+  box-shadow: var(--front-card-shadow);
+}
+
+.stockLibraryPresetRow {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 0 12px;
+}
+
+.stockLibraryPresetRow > span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stockLibraryTabs {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.stockLibraryTabs button {
+  height: 31px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: transparent;
+  color: #526176;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stockLibraryTabs button.active {
+  border-color: #bcd7ff;
+  background: #eef6ff;
+  color: #1677ff;
+}
+
+.stockLibraryToolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 145px 125px 145px auto;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 12px;
+}
+
+.stockLibraryToolbar input,
+.stockLibraryToolbar select {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid #d6e0ec;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  color: #526176;
+  font-size: 12px;
+  outline: none;
+}
+
+.stockLibraryToolbar input:focus,
+.stockLibraryToolbar select:focus {
+  border-color: #8cbbff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, .09);
+}
+
+.stockLibraryReset {
+  border: 0;
+  padding: 0 4px;
+  background: transparent;
+  color: #1677ff;
+  font-size: 12px;
+}
+
+.stockLibraryTablePanel {
+  min-width: 0;
+}
+
+.stockLibraryDesktopTable {
+  overflow-x: auto;
+}
+
+.stockLibraryTable {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.stockLibraryTable th,
+.stockLibraryTable td {
+  height: 46px;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: var(--front-table-body-size);
+  font-weight: var(--front-table-body-weight);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.stockLibraryTable th {
+  height: 36px;
+  background: var(--panel-soft);
+  color: #6d7b91;
+  font-size: var(--front-table-head-size);
+  font-weight: var(--front-table-head-weight);
+}
+
+.stockLibraryTable tbody tr {
+  cursor: pointer;
+}
+
+.stockLibraryTable tbody tr:hover td,
+.stockLibraryTable tbody tr.selectedRow td {
+  background: #f6faff;
+}
+
+.stockLibraryTable th:nth-child(1),
+.stockLibraryTable td:nth-child(1) {
+  width: 40px;
+  padding-left: 14px;
+  color: var(--muted);
+}
+
+.stockLibraryTable th:nth-child(2),
+.stockLibraryTable td:nth-child(2) {
+  width: 180px;
+}
+
+.stockLibraryTable th:nth-child(3),
+.stockLibraryTable td:nth-child(3) {
+  width: 82px;
+}
+
+.stockLibraryTable th:nth-child(4),
+.stockLibraryTable td:nth-child(4) {
+  width: 86px;
+}
+
+.stockLibraryTable th:nth-child(5),
+.stockLibraryTable td:nth-child(5),
+.stockLibraryTable th:nth-child(6),
+.stockLibraryTable td:nth-child(6),
+.stockLibraryTable th:nth-child(7),
+.stockLibraryTable td:nth-child(7) {
+  width: 72px;
+  text-align: right;
+}
+
+.stockLibraryTable th:nth-child(8),
+.stockLibraryTable td:nth-child(8),
+.stockLibraryTable th:nth-child(9),
+.stockLibraryTable td:nth-child(9) {
+  width: 90px;
+  text-align: right;
+}
+
+.stockLibraryTable th:nth-child(10),
+.stockLibraryTable td:nth-child(10) {
+  width: 86px;
+  text-align: center;
+}
+
+.stockLibraryTable th:nth-child(11),
+.stockLibraryTable td:nth-child(11) {
+  width: 56px;
+  padding-right: 14px;
+  text-align: right;
+}
+
+.stockLibraryTable th:nth-child(n+5):nth-child(-n+9) .tableSortButton {
+  justify-content: flex-end;
+}
+
+.stockLibraryTable td > strong,
+.stockLibraryTable td > span {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+.stockLibraryTable td > strong {
+  color: var(--text);
+  font-size: var(--front-table-body-size);
+  font-weight: var(--front-table-value-weight);
+  line-height: 1.25;
+}
+
+.stockLibraryTable td > span:not(.signalDirectionBadge) {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: var(--front-table-sub-size);
+  font-weight: 400;
+}
+
+.stockLibraryTable .positive,
+.stockLibraryMobileMetrics .positive {
+  color: var(--green);
+}
+
+.stockLibraryTable .negative,
+.stockLibraryMobileMetrics .negative {
+  color: var(--red);
+}
+
+.stockLibraryView {
+  border: 0;
+  padding: 5px 0;
+  background: transparent;
+  color: #1677ff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stockLibraryEmpty {
+  height: 120px !important;
+  color: var(--muted) !important;
+  text-align: center !important;
+}
+
+.stockLibraryMobileList {
+  display: none;
+}
+
+.stockLibraryTablePanel > .pager {
+  border-top: 0;
+}
+
+@media (max-width: 760px) {
+
+  .stockLibraryPresetRow {
+    display: block;
+    min-height: 0;
+    padding: 9px 11px 8px;
+  }
+
+  .stockLibraryTabs {
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .stockLibraryTabs button {
+    flex: 0 0 auto;
+  }
+
+  .stockLibraryPresetRow > span {
+    display: block;
+    margin: 7px 2px 0;
+  }
+
+  .stockLibraryToolbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    padding: 10px 11px 11px;
+  }
+
+  .stockLibraryToolbar input {
+    grid-column: 1 / -1;
+  }
+
+  .stockLibraryToolbar input,
+.stockLibraryToolbar select {
+    height: 36px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+
+  .stockLibraryReset {
+    display: none;
+  }
+
+  .stockLibraryDesktopTable {
+    display: none;
+  }
+
+  .stockLibraryMobileList {
+    display: block;
+  }
+
+  .stockLibraryMobileRow {
+    border-bottom: 1px solid var(--line-soft);
+    padding: 14px 14px 13px;
+  }
+
+  .stockLibraryMobileHead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .stockLibraryMobileHead > div {
+    min-width: 0;
+  }
+
+  .stockLibraryMobileHead strong,
+.stockLibraryMobileHead span {
+    display: block;
+  }
+
+  .stockLibraryMobileHead > div:first-child strong {
+    font-size: 16px;
+    font-weight: 680;
+  }
+
+  .stockLibraryMobileHead > div:first-child span {
+    overflow: hidden;
+    max-width: 205px;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 10.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stockLibraryMobileHead > div:last-child {
+    flex: 0 0 auto;
+    text-align: right;
+  }
+
+  .stockLibraryMobileHead > div:last-child strong {
+    font-size: 15px;
+    font-weight: 680;
+  }
+
+  .stockLibraryMobileHead > div:last-child span {
+    margin-top: 4px;
+    color: #718096;
+    font-size: 10.5px;
+  }
+
+  .stockLibraryMobileMetrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 13px;
+  }
+
+  .stockLibraryMobileMetrics > div {
+    min-width: 0;
+    border-right: 1px solid #e1e8f1;
+  }
+
+  .stockLibraryMobileMetrics > div + div {
+    padding-left: 14px;
+  }
+
+  .stockLibraryMobileMetrics > div:last-child {
+    border-right: 0;
+  }
+
+  .stockLibraryMobileMetrics span,
+.stockLibraryMobileMetrics strong {
+    display: block;
+  }
+
+  .stockLibraryMobileMetrics span {
+    color: #7b899d;
+    font-size: 10.5px;
+  }
+
+  .stockLibraryMobileMetrics strong {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 680;
+  }
+
+  .stockLibraryMobileFoot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    border-top: 1px solid #edf1f6;
+    padding-top: 10px;
+  }
+
+  .stockLibraryMobileFoot > span {
+    overflow: hidden;
+    color: #718096;
+    font-size: 10.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stockLibraryMobileFoot button {
+    flex: 0 0 auto;
+    border: 0;
+    padding: 5px 0;
+    background: transparent;
+    color: #1677ff;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .stockLibraryTablePanel > .pager {
+    justify-content: center;
+  }
+
+}

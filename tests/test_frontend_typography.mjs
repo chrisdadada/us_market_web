@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const app = readFileSync(new URL("../main-web/src/App.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../main-web/src/styles.css", import.meta.url), "utf8");
+const stocksCss = readFileSync(new URL("../main-web/src/stocks.css", import.meta.url), "utf8");
 const opinionsCss = readFileSync(new URL("../main-web/src/opinions.css", import.meta.url), "utf8");
 const main = readFileSync(new URL("../main-web/src/main.tsx", import.meta.url), "utf8");
 const productConfig = readFileSync(new URL("../main-web/src/productConfig.ts", import.meta.url), "utf8");
@@ -23,7 +24,7 @@ assert.match(css, /--front-table-sub-size:\s*11px;/);
 assert.match(css, /--front-nav-size:\s*13px;/);
 assert.match(css, /--front-nav-weight:\s*520;/);
 assert.match(css, /td strong\s*\{[^}]*font-size:\s*inherit;[^}]*font-weight:\s*var\(--front-table-value-weight\)/s);
-assert.match(css, /\.stockLibraryTable td > strong\s*\{[^}]*font-size:\s*var\(--front-table-body-size\)[^}]*font-weight:\s*var\(--front-table-value-weight\)/s);
+assert.match(stocksCss, /\.stockLibraryTable td > strong\s*\{[^}]*font-size:\s*var\(--front-table-body-size\)[^}]*font-weight:\s*var\(--front-table-value-weight\)/s);
 assert.doesNotMatch(css, /\.(?:opinionProductHeading|trackingHeading|marketToolHeading|marketPageHeadV3|stockLibraryHead)\b/);
 assert.doesNotMatch(css, /\.(?:opinionProductPage|opinionReaderPage)\b/, "opinion page styles must have one owner");
 assert.match(main, /import "\.\/opinions\.css";/);
