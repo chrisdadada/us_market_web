@@ -116,7 +116,7 @@ export function startSimulation(rawPlan, entryFillPrice) {
 }
 
 export function applyMarketPrice(state, marketPrice) {
-  const price = positive(marketPrice, '模拟成交价')
+  const price = positive(marketPrice, '执行价')
   if (state.status === 'ended') return { ...state, latestPrice: price }
 
   if (protectionHit(state, price)) {

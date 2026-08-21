@@ -24,13 +24,13 @@ const statusLabels: Record<RollingPlan["status"], string> = {
 
 const eventLabels: Record<string, string> = {
   waiting_entry: "计划已启动，等待首仓条件",
-  entry: "首仓模拟成交",
-  add: "模拟加仓成交",
+  entry: "首仓执行",
+  add: "加仓执行",
   paused: "暂停加仓",
   resumed: "恢复运行",
   ending: "提交结束计划",
-  ended: "计划模拟结束",
-  protection_exit: "保护价触发，模拟结束"
+  ended: "计划已结束",
+  protection_exit: "保护价触发，计划已结束"
 };
 
 function numberText(value: string | null | undefined, digits?: number) {
@@ -248,7 +248,7 @@ export default function RollingToolPage() {
         </nav>
       ) : null}
 
-      {marketError ? <p className="positionError rollingTopError">{marketError}，行情恢复前不会触发新的模拟成交。</p> : null}
+      {marketError ? <p className="positionError rollingTopError">{marketError}，行情恢复前不会执行新的触发。</p> : null}
       {error ? <p className="positionError rollingTopError">{error}</p> : null}
 
       <section className={`positionSizingGrid rollingToolGrid ${selected ? "hasPlan" : "isDraft"}`}>
@@ -279,7 +279,7 @@ export default function RollingToolPage() {
             </div>
             <div className="positionFieldGrid">
               <label><span>保护距离</span><span className="positionInput"><input value={selected?.config.protectionDistance || protectionDistance} onChange={(event) => setProtectionDistance(event.target.value)} inputMode="decimal" /><i>%</i></span></label>
-              <label><span>首仓方式</span><select className="rollingSelect" value={selected?.config.entryMode || entryMode} onChange={(event) => setEntryMode(event.target.value as EntryMode)}><option value="immediate">按实时价立即模拟成交</option><option value="conditional">条件触发</option></select></label>
+              <label><span>首仓方式</span><select className="rollingSelect" value={selected?.config.entryMode || entryMode} onChange={(event) => setEntryMode(event.target.value as EntryMode)}><option value="immediate">按实时价立即执行</option><option value="conditional">条件触发</option></select></label>
             </div>
             {(selected?.config.entryMode || entryMode) === "conditional" ? (
               <div className="positionFieldGrid rollingEntryRow"><label><span>首仓条件</span><span className="rollingTriggerInput"><select value={selected?.config.entryDirection || entryDirection} onChange={(event) => setEntryDirection(event.target.value as RollingDirection)}><option value="rise">上涨至</option><option value="fall">下跌至</option></select><input value={selected?.config.entryTriggerPrice || entryTriggerPrice} onChange={(event) => setEntryTriggerPrice(event.target.value)} inputMode="decimal" placeholder="触发价格" /></span></label></div>
@@ -292,19 +292,19 @@ export default function RollingToolPage() {
           <div className="panelHead"><strong>{selected ? "计划状态" : "计划摘要"}</strong><span className={`rollingStatus ${selected?.status || "draft"}`}><i />{selected ? statusLabels[selected.status] : "实时计算"}</span></div>
           {selected ? (
             <div className="rollingStatusBody">
-              <div className="rollingControlBar"><span>{selected.marketConnected ? "行情自动监听，满足条件时按最新成交价模拟成交。" : "行情连接中，恢复前不会触发模拟成交。"}</span><div>{selected.status === "running" ? <button type="button" onClick={() => runAction("pause")} disabled={saving}>暂停加仓</button> : selected.status === "paused" ? <button type="button" onClick={() => runAction("resume")} disabled={saving}>恢复运行</button> : null}{!(["ending", "ended"] as string[]).includes(selected.status) ? <button type="button" className="danger" onClick={() => setEndOpen(true)} disabled={saving}>结束计划</button> : null}</div></div>
+              <div className="rollingControlBar"><span>{selected.marketConnected ? "行情自动监听，满足条件时按最新价执行。" : "行情连接中，恢复前不会执行新的触发。"}</span><div>{selected.status === "running" ? <button type="button" onClick={() => runAction("pause")} disabled={saving}>暂停加仓</button> : selected.status === "paused" ? <button type="button" onClick={() => runAction("resume")} disabled={saving}>恢复运行</button> : null}{!(["ending", "ended"] as string[]).includes(selected.status) ? <button type="button" className="danger" onClick={() => setEndOpen(true)} disabled={saving}>结束计划</button> : null}</div></div>
               <div className="rollingMetrics">
                 <div><span>累计投入</span><strong>{moneyText(selected.state.totalNotional)}</strong></div>
                 <div><span>当前名义价值</span><strong>{moneyText(selected.currentNotional)}</strong></div>
                 <div><span>持仓均价</span><strong>{numberText(selected.state.averagePrice)}</strong></div>
-                <div><span>当前模拟盈亏</span><strong className={Number(selected.estimatedPnl) >= 0 ? "positive" : "negative"}>{signedMoney(selected.estimatedPnl)}</strong></div>
+                <div><span>浮动盈亏</span><strong className={Number(selected.estimatedPnl) >= 0 ? "positive" : "negative"}>{signedMoney(selected.estimatedPnl)}</strong></div>
                 <div><span>加仓进度</span><strong data-testid="rolling-add-progress">已完成 {selected.state.addsCompleted} · 剩余 {Math.max(0, selected.config.maxAdds - selected.state.addsCompleted)}</strong></div>
                 <div><span>预估保证金</span><strong>{moneyText(selected.estimatedMargin)}</strong></div>
               </div>
-              <div className="rollingPrivateEmpty">可用保证金　--　　爆仓价　--　　交易所保护单　-- <b>私有交易 API 未接入</b></div>
+              <div className="rollingPrivateEmpty"><span>交易所账户未连接</span><b>不会自动提交真实订单</b></div>
               <section className="rollingProjection"><h3>下一次加仓后估算</h3>{projection ? <div><span><small>下一触发价</small><strong>{numberText(String(projection.fillPrice))}</strong></span><span><small>仓位价值</small><strong>{moneyText(String(projection.totalNotional))}</strong></span><span><small>持仓均价</small><strong>{numberText(String(projection.averagePrice))}</strong></span><span><small>保护价</small><strong>{numberText(String(projection.protectionPrice))}</strong></span></div> : <p>{selected.status === "waiting_entry" ? "首仓成交后显示" : selected.status === "holding_protection" ? "已达到最大加仓次数" : "当前无下一次加仓"}</p>}</section>
-              <section className="rollingEvents"><header><strong>执行记录</strong><span>网页模拟</span></header>{selected.events.length ? selected.events.slice(0, 6).map((item) => <div key={item.id}><time>{formatStoredDateTime(item.createdAt)}</time><b>{item.type === "add" ? `第 ${String(item.detail.addNumber || "")} 次加仓模拟成交` : eventLabels[item.type] || "计划状态更新"}</b><strong>{numberText(item.price)}</strong></div>) : <p>暂无执行记录</p>}</section>
-              <p className="rollingRuntimeNote">计划由服务器持续运行，关闭页面不受影响；行情断线期间不触发，恢复后只检查当前条件，不补历史。</p>
+              <section className="rollingEvents"><header><strong>执行记录</strong><span>实时行情</span></header>{selected.events.length ? selected.events.slice(0, 6).map((item) => <div key={item.id}><time>{formatStoredDateTime(item.createdAt)}</time><b>{item.type === "add" ? `第 ${String(item.detail.addNumber || "")} 次加仓执行` : eventLabels[item.type] || "计划状态更新"}</b><strong>{numberText(item.price)}</strong></div>) : <p>暂无执行记录</p>}</section>
+              <p className="rollingRuntimeNote">计划按 Binance 实时行情和计划规则运行；暂未连接交易所下单 API，不会自动提交真实订单。关闭页面后计划仍在服务器运行。</p>
             </div>
           ) : (
             <div className="rollingPlanSummary">
@@ -315,13 +315,14 @@ export default function RollingToolPage() {
                 <div className="rollingSummaryTotal"><dt>全部触发后</dt><dd>总仓位 {Number.isFinite(maxPositionValue) ? moneyText(String(maxPositionValue)) : "--"}</dd></div>
                 <div><dt>预计占用保证金</dt><dd>{Number.isFinite(estimatedInitialMargin) ? moneyText(String(estimatedInitialMargin)) : "--"}<small>按 {leverageSummary}× 杠杆</small></dd></div>
               </dl>
-              <button className="rollingPrimaryButton" data-testid="rolling-start" form="rolling-plan-form" type="submit" disabled={saving || !connected}>{saving ? "正在启动..." : "启动模拟计划"}</button>
+              <p className="rollingRuntimeNote">按 Binance 实时行情和计划规则运行；暂未连接交易所下单 API，不会自动提交真实订单。</p>
+              <button className="rollingPrimaryButton" data-testid="rolling-start" form="rolling-plan-form" type="submit" disabled={saving || !connected}>{saving ? "正在启动..." : "启动计划"}</button>
             </div>
           )}
         </aside>
       </section>
 
-      {endOpen && selected ? <div className="rollingModal" role="dialog" aria-modal="true" aria-label="结束模拟计划"><section><h2>结束模拟计划？</h2><p>确认后将按下一笔 Binance 最新成交价模拟全平，计划完成后不可恢复。</p><div><button type="button" onClick={() => setEndOpen(false)}>取消</button><button type="button" className="danger" onClick={() => runAction("end")} disabled={saving}>确认结束</button></div></section></div> : null}
+      {endOpen && selected ? <div className="rollingModal" role="dialog" aria-modal="true" aria-label="结束计划"><section><h2>结束计划？</h2><p>确认后将按下一笔 Binance 最新成交价结束计划并计算最终盈亏，结束后不可恢复。</p><div><button type="button" onClick={() => setEndOpen(false)}>取消</button><button type="button" className="danger" onClick={() => runAction("end")} disabled={saving}>确认结束</button></div></section></div> : null}
     </div>
   );
 }
