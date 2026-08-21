@@ -8,6 +8,7 @@ MAIN_APP = (ROOT / "main-web/src/App.tsx").read_text(encoding="utf-8")
 MAIN_ENTRY = (ROOT / "main-web/src/main.tsx").read_text(encoding="utf-8")
 MAIN_HTML = (ROOT / "main-web/index.html").read_text(encoding="utf-8")
 MAIN_STYLES = (ROOT / "main-web/src/styles.css").read_text(encoding="utf-8")
+TRACKING_STYLES = (ROOT / "main-web/src/tracking.css").read_text(encoding="utf-8")
 PRODUCT_CONFIG = (ROOT / "main-web/src/productConfig.ts").read_text(encoding="utf-8")
 ROLLING_TOOL = (ROOT / "main-web/src/RollingToolPage.tsx").read_text(encoding="utf-8")
 DEPLOY = (ROOT / "scripts/deploy_dev.sh").read_text(encoding="utf-8")
@@ -24,6 +25,7 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 class FrontendArchitectureTest(unittest.TestCase):
     def test_white_frontend_has_one_source_of_truth(self) -> None:
         self.assertIn('import "./styles.css"', MAIN_ENTRY)
+        self.assertIn('import "./tracking.css"', MAIN_ENTRY)
         self.assertIn('import "./article.css"', MAIN_ENTRY)
         self.assertNotIn("/legacy/", MAIN_ENTRY)
         self.assertNotIn("app.js", MAIN_HTML)
@@ -125,7 +127,8 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn('className="trackingDetailQuote"', MAIN_APP)
         self.assertIn("trackingDetailDecision ${keyLevels.position", MAIN_APP)
         self.assertIn('className="trackingDetailBottom"', MAIN_APP)
-        self.assertEqual(len(re.findall(r"^\.trackingDetailPage \{", MAIN_STYLES, re.MULTILINE)), 1)
+        self.assertNotRegex(MAIN_STYLES, r"\.(?:tracking[A-Za-z0-9_-]*|chartGridLine|chartPriceLabel|resistanceZone|supportZone|currentPriceLine|currentPriceDot|currentPriceLabel|chartDateLabel|levelStrength)")
+        self.assertEqual(len(re.findall(r"^\.trackingDetailPage \{", TRACKING_STYLES, re.MULTILINE)), 1)
         for legacy_selector in (
             ".trackingStockDetailPage",
             ".trackingStockHero",
@@ -134,14 +137,14 @@ class FrontendArchitectureTest(unittest.TestCase):
             ".trackingStockPanel",
             ".trackingKeyLevelsPanel",
         ):
-            self.assertNotIn(legacy_selector, MAIN_STYLES)
+            self.assertNotIn(legacy_selector, TRACKING_STYLES)
         for legacy_selector in (
             ".stocksTerminalLayout",
             ".stocksPreviewPanel",
             ".stockPreviewOverlay",
             ".stockPreviewDrawer",
         ):
-            self.assertNotIn(legacy_selector, MAIN_STYLES)
+            self.assertNotIn(legacy_selector, TRACKING_STYLES)
         self.assertNotIn("趋势策略方向为", MAIN_APP)
 
 
