@@ -27,6 +27,11 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 
 
 class FrontendArchitectureTest(unittest.TestCase):
+    def test_admin_logout_failure_is_visible_and_not_repeated(self) -> None:
+        self.assertIn("disabled={logoutPending}", ADMIN_APP)
+        self.assertIn('{logoutPending ? "退出中" : "退出"}', ADMIN_APP)
+        self.assertIn('setError(err instanceof Error ? err.message : "退出失败，请重试")', ADMIN_APP)
+
     def test_position_quote_failure_is_not_reported_as_missing_data(self) -> None:
         self.assertIn('setPriceStatus("行情暂时不可用")', MAIN_APP)
 

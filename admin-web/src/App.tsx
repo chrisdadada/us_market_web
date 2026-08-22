@@ -3433,6 +3433,7 @@ export function App() {
   const [error, setError] = useState("");
   const [authFailed, setAuthFailed] = useState(false);
   const [authRetry, setAuthRetry] = useState(0);
+  const [logoutPending, setLogoutPending] = useState(false);
 
   async function loadData() {
     setError("");
@@ -3534,12 +3535,21 @@ export function App() {
             <button
               type="button"
               className="ghostButton"
+              disabled={logoutPending}
               onClick={async () => {
-                await api.logout();
-                setAuth({ authenticated: false, user: null });
+                setError("");
+                setLogoutPending(true);
+                try {
+                  await api.logout();
+                  setAuth({ authenticated: false, user: null });
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "退出失败，请重试");
+                } finally {
+                  setLogoutPending(false);
+                }
               }}
             >
-              退出
+              {logoutPending ? "退出中" : "退出"}
             </button>
           </div>
         </header>
