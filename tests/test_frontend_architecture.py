@@ -27,6 +27,12 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 
 
 class FrontendArchitectureTest(unittest.TestCase):
+    def test_course_detail_failure_is_not_reported_as_missing_course(self) -> None:
+        course_detail = re.search(r"if \(courseId\) \{(.*?)if \(!selected\)", MAIN_APP, re.S)
+        self.assertIsNotNone(course_detail)
+        self.assertIn("if (error)", course_detail.group(1))
+        self.assertIn('className="courseError" role="alert"', course_detail.group(1))
+
     def test_stock_library_does_not_keep_stale_rows_after_failure(self) -> None:
         failure = re.search(r"api\.symbols\(params\).*?\.catch\(\(\) => \{(.*?)\}\)", MAIN_APP, re.S)
         self.assertIsNotNone(failure)

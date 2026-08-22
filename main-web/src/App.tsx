@@ -5205,6 +5205,14 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
   if (loading) return <div className="coursesPage"><div className="loading" /></div>;
 
   if (courseId) {
+    if (error) {
+      return (
+        <div className="coursesPage">
+          <button type="button" className="courseBackButton" onClick={onBack}>返回课程</button>
+          <div className="courseError" role="alert"><span>{error}</span><button type="button" onClick={() => setLoadVersion((version) => version + 1)}>重新加载</button></div>
+        </div>
+      );
+    }
     if (!selected) {
       return (
         <div className="coursesPage">
