@@ -8,6 +8,8 @@ DATA_DEPLOY = (ROOT / "scripts" / "deploy_dev_data.sh").read_text(encoding="utf-
 RELEASE = (ROOT / "scripts" / "release_dev.sh").read_text(encoding="utf-8")
 FAST_RELEASE = (ROOT / "scripts" / "release_dev_fast.sh").read_text(encoding="utf-8")
 VERIFY = (ROOT / "scripts" / "verify_dev.sh").read_text(encoding="utf-8")
+MAIN_DEPLOY = (ROOT / "scripts" / "deploy_dev_main.sh").read_text(encoding="utf-8")
+ADMIN_DEPLOY = (ROOT / "scripts" / "deploy_dev_admin.sh").read_text(encoding="utf-8")
 
 
 class DevCodeDeployTest(unittest.TestCase):
@@ -85,6 +87,31 @@ class DevCodeDeployTest(unittest.TestCase):
 
     def test_data_deploy_rejects_incomplete_product_coverage(self) -> None:
         self.assertIn('scripts/check_product_coverage.py --db "${BUILD_DB}"', DATA_DEPLOY)
+
+    def test_partial_code_entrypoints_cannot_bypass_the_release(self) -> None:
+        for script in (MAIN_DEPLOY, ADMIN_DEPLOY):
+            self.assertIn('scripts/release_dev.sh', script)
+            self.assertNotIn('rsync --partial', script)
+            self.assertNotIn('rm -rf /opt/dongbimao-dev', script)
+
+    def test_code_and_data_deployments_share_one_lock(self) -> None:
+        lock = "dongbimao-dev-deploy.lock"
+        self.assertIn(lock, DEPLOY)
+        self.assertIn(lock, DATA_DEPLOY)
+        self.assertIn('dongbimao-dev-product-${db_sha}.db', DATA_DEPLOY)
+
+    def test_code_deploy_detects_races_and_rolls_back(self) -> None:
+        self.assertIn('actual_previous', DEPLOY)
+        self.assertIn('Dev changed after preflight', DEPLOY)
+        self.assertIn('dongbimao-dev-backups', DEPLOY)
+        self.assertIn('root_swapped', DEPLOY)
+        self.assertIn('web_swapped', DEPLOY)
+        self.assertIn('systemctl is-active ytd-gainers-auth-dev', DEPLOY)
+
+    def test_code_deploy_preserves_runtime_data(self) -> None:
+        self.assertIn('cp -a "${dev_root}/data" "${next_root}/data"', DEPLOY)
+        self.assertIn('cp -a "${dev_root}/.local" "${next_root}/.local"', DEPLOY)
+        self.assertGreaterEqual(DEPLOY.count('product_sha'), 2)
 
 
 if __name__ == "__main__":

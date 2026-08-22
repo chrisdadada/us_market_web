@@ -59,8 +59,8 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertEqual(references, {"main-web/src/productConfig.ts": sorted(LEGACY_MIGRATION_ROUTES)})
 
     def test_legacy_is_isolated_from_the_default_dev_site(self) -> None:
-        self.assertIn("cp -a /opt/dongbimao-dev/main-web/dist/. /var/www/dongbimao-dev/", DEPLOY)
-        self.assertIn("/var/www/dongbimao-dev/legacy", DEPLOY)
+        self.assertIn('cp -a "${next_root}/main-web/dist/." "${next_web}/"', DEPLOY)
+        self.assertIn('"${next_web}/legacy"', DEPLOY)
         self.assertNotIn("cp -a /opt/dongbimao-dev/index.html /var/www/dongbimao-dev/", DEPLOY)
 
     def test_legacy_files_must_disappear_when_the_migration_list_is_empty(self) -> None:

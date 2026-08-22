@@ -23,11 +23,13 @@ Dev and production frontend files are separated:
 Use each long-lived branch only from its dedicated worktree:
 
 - Feature work: a temporary `codex/...` worktree created from `codex/dev-integration`.
-- Dev release: `/tmp/dongbimao-dev-restore-20260818` on `codex/dev-integration`.
+- Dev release: the clean worktree currently attached to `codex/dev-integration`; locate it with `git worktree list` before releasing.
 - Data refresh: `/Users/linlifu/Documents/New project-automation-refresh` on `codex/automation-refresh`.
 
 The original project directory may contain unfinished feature work. It is not a
-release or automation workspace and must not be used as one.
+release or automation workspace and must not be used as one. The old partial
+entry points now delegate to the cumulative release and cannot publish only the
+main site or admin site.
 
 ## Deploy To Test
 

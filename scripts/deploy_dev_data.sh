@@ -4,7 +4,6 @@ set -euo pipefail
 SERVER="${SERVER:-root@43.165.133.237}"
 PY="${PYTHON_BIN:-/opt/anaconda3/envs/quant/bin/python}"
 BUILD_DB="${BUILD_DB:-.local/product-dev.db}"
-REMOTE_DB="/tmp/dongbimao-dev-product-new.db"
 
 cd "$(dirname "$0")/.."
 mkdir -p "$(dirname "${BUILD_DB}")"
@@ -27,12 +26,32 @@ with sqlite3.connect(sys.argv[1]) as conn:
 PY
 "${PY}" scripts/check_product_coverage.py --db "${BUILD_DB}" >/dev/null
 
+db_sha="$("${PY}" - "${BUILD_DB}" <<'PY'
+import hashlib
+import sys
+
+digest = hashlib.sha256()
+with open(sys.argv[1], "rb") as source:
+    for chunk in iter(lambda: source.read(1024 * 1024), b""):
+        digest.update(chunk)
+print(digest.hexdigest())
+PY
+)"
+REMOTE_DB="/tmp/dongbimao-dev-product-${db_sha}.db"
 rsync --partial --compress "${BUILD_DB}" "${SERVER}:${REMOTE_DB}"
 
-ssh "${SERVER}" 'set -e
+ssh "${SERVER}" bash -s -- "${REMOTE_DB}" <<'REMOTE'
+set -euo pipefail
+
+next="$1"
+exec 9>/var/lock/dongbimao-dev-deploy.lock
+if ! flock -n 9; then
+  echo "Another dev deployment is running." >&2
+  exit 1
+fi
 dev="/opt/dongbimao-dev/data/product.db"
-next="/tmp/dongbimao-dev-product-new.db"
 backup="/opt/dongbimao-dev/data/product.db.bak.$(date +%Y%m%d%H%M%S)"
+trap 'rm -f "${next}"' EXIT
 test -f "$next"
 mkdir -p /opt/dongbimao-dev/data
 if [ -f "$dev" ]; then
@@ -60,6 +79,6 @@ with sqlite3.connect("/opt/dongbimao-dev/data/product.db") as conn:
         value = row[0] if row else "--"
         print(f"{name}={value}")
 PY
-'
+REMOTE
 
 echo "Dev data deployed with runtime tables preserved."

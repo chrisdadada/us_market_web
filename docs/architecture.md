@@ -155,7 +155,9 @@ React 标准：
 - `scripts/build_product_db.py`：构建产品 DB。
 - `scripts/update_product_data.sh`：更新产品数据。
 - `scripts/automated_refresh.sh`：完整自动刷新入口。
-- `scripts/deploy_dev.sh`：部署 dev 代码和静态构建，默认不重建产品 DB。
+- `scripts/release_dev.sh`：唯一完整 dev 代码发布入口，完成检查后调用受保护的部署脚本。
+- `scripts/release_dev_fast.sh`：仅允许累计的前端改动走快速 dev 发布。
+- `scripts/deploy_dev.sh`：底层 dev 代码切换脚本，不作为日常直接入口。
 - `scripts/prepare_prod_release.sh`：构建、测试并生成 commit 对应的不可变代码发版包。
 - `scripts/promote_prod.sh`：仅校验并切换已验收的 production 代码发版包。
 - `scripts/rollback_prod.sh`：按当次明确授权回滚到服务器保留的历史代码发版包。
@@ -183,7 +185,7 @@ React 标准：
 ```bash
 npm run build
 python3 -m py_compile server/auth_api.py
-./scripts/deploy_dev.sh
+./scripts/release_dev.sh
 ```
 
 发布细节见 `docs/release-flow.md`。
