@@ -3647,7 +3647,10 @@ function StocksPage({
           setTotal(payload.total || 0);
         })
         .catch(() => {
-          if (!cancelled) setError(true);
+          if (cancelled) return;
+          setRows([]);
+          setTotal(0);
+          setError(true);
         })
         .finally(() => {
           if (!cancelled) setLoadingRows(false);

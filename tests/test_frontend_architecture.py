@@ -27,6 +27,12 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 
 
 class FrontendArchitectureTest(unittest.TestCase):
+    def test_stock_library_does_not_keep_stale_rows_after_failure(self) -> None:
+        failure = re.search(r"api\.symbols\(params\).*?\.catch\(\(\) => \{(.*?)\}\)", MAIN_APP, re.S)
+        self.assertIsNotNone(failure)
+        self.assertIn("setRows([])", failure.group(1))
+        self.assertIn("setTotal(0)", failure.group(1))
+
     def test_admin_logout_failure_is_visible_and_not_repeated(self) -> None:
         self.assertIn("disabled={logoutPending}", ADMIN_APP)
         self.assertIn('{logoutPending ? "退出中" : "退出"}', ADMIN_APP)
