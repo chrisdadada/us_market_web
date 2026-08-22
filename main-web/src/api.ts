@@ -771,16 +771,21 @@ export type RollingPlanInput = {
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {})
-    }
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...init,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers || {})
+      }
+    });
+  } catch {
+    throw new Error("网络请求失败，请稍后重试");
+  }
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || "请求失败");
+  if (!response.ok) throw new Error(response.status >= 500 ? "服务暂时不可用，请稍后重试" : payload.error || "操作失败，请重试");
   return payload as T;
 }
 
