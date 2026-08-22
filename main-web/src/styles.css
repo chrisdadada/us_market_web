@@ -680,6 +680,7 @@
 .marketToolLoading.compact,
 .marketToolEmpty.compact { min-height: 100px; border: 0; }
 .marketToolError.compact { min-height: 48px; margin-bottom: 10px; border-radius: 6px; }
+.appDataError { margin: 14px 32px 0; }
 
 .valuationPanel { overflow: hidden; }
 .valuationPanelHead { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #e6edf5; padding: 11px 20px; }

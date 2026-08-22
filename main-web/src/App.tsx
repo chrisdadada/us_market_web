@@ -70,6 +70,7 @@ import {
 
 type AuthMode = "login" | "register" | "forgot" | "reset";
 type StockSource = "stocks" | "tracking" | "watchlist" | "search";
+type SharedDataSource = "bootstrap" | "opinions" | "calendar" | "signals";
 
 const CryptoEtfChart = lazy(() => import("./CryptoEtfChart"));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -765,6 +766,7 @@ function App() {
   const [signalStates, setSignalStates] = useState<SignalState[]>([]);
   const [signalsLoading, setSignalsLoading] = useState(pageNeedsSignals(initialRoute.page));
   const [signalsLoaded, setSignalsLoaded] = useState(false);
+  const [sharedDataFailures, setSharedDataFailures] = useState<Partial<Record<SharedDataSource, boolean>>>({});
   const [selectedOpinion, setSelectedOpinion] = useState<string>(initialRoute.opinionId);
   const [selectedSymbol, setSelectedSymbol] = useState<string>(initialRoute.symbol);
   const [selectedCourse, setSelectedCourse] = useState<string>(initialRoute.courseId);
@@ -784,25 +786,34 @@ function App() {
     return payload;
   });
 
+  const setSharedDataFailure = useCallback((source: SharedDataSource, failed: boolean) => {
+    setSharedDataFailures((current) => current[source] === failed ? current : { ...current, [source]: failed });
+  }, []);
+
   const refreshBootstrap = useCallback(() => {
     setBootstrapLoading(true);
+    setSharedDataFailure("bootstrap", false);
     return api.bootstrap(500, trackingSymbols)
       .then((payload) => setBootstrap(payload))
+      .catch(() => setSharedDataFailure("bootstrap", true))
       .finally(() => setBootstrapLoading(false));
-  }, []);
+  }, [setSharedDataFailure]);
 
   const refreshOpinions = useCallback(() => {
     setOpinionsLoading(true);
+    setSharedDataFailure("opinions", false);
     return api.opinions(12)
       .then((payload) => {
         setOpinions(payload.rows || []);
         setOpinionsLoaded(true);
       })
+      .catch(() => setSharedDataFailure("opinions", true))
       .finally(() => setOpinionsLoading(false));
-  }, []);
+  }, [setSharedDataFailure]);
 
   const refreshCalendar = useCallback(() => {
     setCalendarLoading(true);
+    setSharedDataFailure("calendar", false);
     return Promise.allSettled([
       api.calendar({ limit: 4, windowDays: "45", type: "macro" }),
       api.calendar({ limit: 4, windowDays: "45", type: "earnings" })
@@ -813,18 +824,21 @@ function App() {
         setCalendar(rows);
         setCalendarLoaded(true);
       })
+      .catch(() => setSharedDataFailure("calendar", true))
       .finally(() => setCalendarLoading(false));
-  }, []);
+  }, [setSharedDataFailure]);
 
   const refreshSignals = useCallback(() => {
     setSignalsLoading(true);
+    setSharedDataFailure("signals", false);
     return api.signals()
       .then((payload) => {
         setSignalStates(payload.states || []);
         setSignalsLoaded(true);
       })
+      .catch(() => setSharedDataFailure("signals", true))
       .finally(() => setSignalsLoading(false));
-  }, []);
+  }, [setSharedDataFailure]);
 
   const openAuth = useCallback((mode: AuthMode = "login") => {
     setAuthMode(mode);
@@ -852,7 +866,7 @@ function App() {
 
   useEffect(() => {
     const tasks: Array<Promise<unknown>> = [
-      api.auth().then((authPayload) => setAuth(authPayload))
+      api.auth().then((authPayload) => setAuth(authPayload)).catch(() => undefined)
     ];
     if (pageNeedsBootstrap(initialRoute.page)) tasks.push(refreshBootstrap());
     if (pageNeedsOpinions(initialRoute.page)) {
@@ -871,24 +885,24 @@ function App() {
   }, [initialRoute.opinionId, initialRoute.page, refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals]);
 
   useEffect(() => {
-    if (!pageNeedsBootstrap(page) || bootstrap || bootstrapLoading) return;
+    if (!pageNeedsBootstrap(page) || bootstrap || bootstrapLoading || sharedDataFailures.bootstrap) return;
     void refreshBootstrap();
-  }, [bootstrap, bootstrapLoading, page, refreshBootstrap]);
+  }, [bootstrap, bootstrapLoading, page, refreshBootstrap, sharedDataFailures.bootstrap]);
 
   useEffect(() => {
-    if (!pageNeedsOpinions(page) || opinionsLoaded || opinionsLoading) return;
+    if (!pageNeedsOpinions(page) || opinionsLoaded || opinionsLoading || sharedDataFailures.opinions) return;
     void refreshOpinions();
-  }, [opinionsLoaded, opinionsLoading, page, refreshOpinions]);
+  }, [opinionsLoaded, opinionsLoading, page, refreshOpinions, sharedDataFailures.opinions]);
 
   useEffect(() => {
-    if (!pageNeedsCalendar(page) || calendarLoaded || calendarLoading) return;
+    if (!pageNeedsCalendar(page) || calendarLoaded || calendarLoading || sharedDataFailures.calendar) return;
     void refreshCalendar();
-  }, [calendarLoaded, calendarLoading, page, refreshCalendar]);
+  }, [calendarLoaded, calendarLoading, page, refreshCalendar, sharedDataFailures.calendar]);
 
   useEffect(() => {
-    if (!pageNeedsSignals(page) || signalsLoaded || signalsLoading) return;
+    if (!pageNeedsSignals(page) || signalsLoaded || signalsLoading || sharedDataFailures.signals) return;
     void refreshSignals();
-  }, [page, refreshSignals, signalsLoaded, signalsLoading]);
+  }, [page, refreshSignals, sharedDataFailures.signals, signalsLoaded, signalsLoading]);
 
   useEffect(() => {
     const onPopState = () => {
@@ -1012,7 +1026,7 @@ function App() {
   const gateGuestClick = useCallback((event: MouseEvent<HTMLElement>) => {
     if (auth?.authenticated) return;
     const target = event.target as HTMLElement | null;
-    if (!target || target.closest(".authOverlay, .accountButton, .mobileNavigationControl")) return;
+    if (!target || target.closest(".authOverlay, .accountButton, .mobileNavigationControl, .appDataError, .requestRetry")) return;
     const interactive = target.closest("button, a, input, select, textarea, tr, [role='button']");
     if (!interactive) return;
     event.preventDefault();
@@ -1021,11 +1035,22 @@ function App() {
   }, [auth?.authenticated, openAuth]);
   const pageDataLoading =
     page !== "home" && (
-      (pageNeedsBootstrap(page) && !bootstrap) ||
-      (pageNeedsOpinions(page) && !opinionsLoaded) ||
-      (pageNeedsCalendar(page) && !calendarLoaded) ||
-      (pageNeedsSignals(page) && !signalsLoaded)
+      (pageNeedsBootstrap(page) && !bootstrap && !sharedDataFailures.bootstrap) ||
+      (pageNeedsOpinions(page) && !opinionsLoaded && !sharedDataFailures.opinions) ||
+      (pageNeedsCalendar(page) && !calendarLoaded && !sharedDataFailures.calendar) ||
+      (pageNeedsSignals(page) && !signalsLoaded && !sharedDataFailures.signals)
     );
+  const pageDataFailed =
+    (pageNeedsBootstrap(page) && sharedDataFailures.bootstrap) ||
+    (pageNeedsOpinions(page) && sharedDataFailures.opinions) ||
+    (pageNeedsCalendar(page) && sharedDataFailures.calendar) ||
+    (pageNeedsSignals(page) && sharedDataFailures.signals);
+  const retryPageData = () => {
+    if (pageNeedsBootstrap(page) && sharedDataFailures.bootstrap) void refreshBootstrap();
+    if (pageNeedsOpinions(page) && sharedDataFailures.opinions) void refreshOpinions();
+    if (pageNeedsCalendar(page) && sharedDataFailures.calendar) void refreshCalendar();
+    if (pageNeedsSignals(page) && sharedDataFailures.signals) void refreshSignals();
+  };
   const renderNavItems = (items: NavItem[]) => items.map((item) => (
     <button
       type="button"
@@ -1126,6 +1151,12 @@ function App() {
         </header>
 
         {loading || (!loading && pageDataLoading) ? <div className="loading" /> : null}
+        {!loading && pageDataFailed ? (
+          <div className="marketToolError compact appDataError" role="alert">
+            <span>页面数据加载失败</span>
+            <button type="button" className="requestRetry" onClick={retryPageData}>重新加载</button>
+          </div>
+        ) : null}
         {!loading && !pageDataLoading ? (
           <GatedPage rule={gatedRule} unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={openAuth} onUnlock={requestUnlock}>
             {page === "home" ? (
@@ -3518,7 +3549,8 @@ function StocksPage({
   const [sort, setSort] = useState<StockSortKey>("dollarVolume");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [loadingRows, setLoadingRows] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [sectorOptions, setSectorOptions] = useState<Array<{ sector: string; count: number }>>([]);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const latestSignals = useMemo(() => latestSignalStates(signalStates), [signalStates]);
@@ -3563,9 +3595,10 @@ function StocksPage({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const timer = window.setTimeout(() => {
       setLoadingRows(true);
-      setError("");
+      setError(false);
       const params = new URLSearchParams({
         limit: String(pageSize),
         offset: String(pageIndex * pageSize),
@@ -3578,14 +3611,22 @@ function StocksPage({
       if (cap !== "all") params.set("cap", cap);
       api.symbols(params)
         .then((payload) => {
+          if (cancelled) return;
           setRows(payload.rows || []);
           setTotal(payload.total || 0);
         })
-        .catch((err) => setError(err?.message || `${pageLabels.stocks}加载失败`))
-        .finally(() => setLoadingRows(false));
+        .catch(() => {
+          if (!cancelled) setError(true);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingRows(false);
+        });
     }, query.trim() ? 260 : 0);
-    return () => window.clearTimeout(timer);
-  }, [cap, pageIndex, preset, query, sector, sort, sortDir]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [cap, pageIndex, preset, query, retry, sector, sort, sortDir]);
 
   useEffect(() => {
     setPageIndex(0);
@@ -3641,7 +3682,12 @@ function StocksPage({
         </div>
 
         <article className="stockLibraryTablePanel">
-          {error ? <div className="tableError">{error}</div> : null}
+          {error ? (
+            <div className="marketToolError compact stockLibraryError" role="alert">
+              <span>股票数据加载失败</span>
+              <button type="button" className="requestRetry" onClick={() => setRetry((value) => value + 1)}>重新加载</button>
+            </div>
+          ) : null}
           <div className="stockLibraryDesktopTable">
             <table className="stockLibraryTable">
               <thead>
@@ -3683,7 +3729,7 @@ function StocksPage({
                   );
                 })}
                 {loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={12}>正在加载股票...</td></tr> : null}
-                {!loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={12}>没有符合条件的股票</td></tr> : null}
+                {!loadingRows && !error && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={12}>没有符合条件的股票</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -3710,7 +3756,7 @@ function StocksPage({
               );
             })}
             {loadingRows && !rows.length ? <div className="stockLibraryEmpty">正在加载股票...</div> : null}
-            {!loadingRows && !rows.length ? <div className="stockLibraryEmpty">没有符合条件的股票</div> : null}
+            {!loadingRows && !error && !rows.length ? <div className="stockLibraryEmpty">没有符合条件的股票</div> : null}
           </div>
           <div className="pager">
             <button disabled={pageIndex <= 0 || loadingRows} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>

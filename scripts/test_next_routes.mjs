@@ -257,6 +257,45 @@ try {
       assert(logoLoaded, `Logo failed to load for ${baseUrl}${item.query || ""}`);
     }
   }
+  const sharedFailureCounts = { bootstrap: 0, signals: 0 };
+  const failOnce = (key) => async (route) => {
+    sharedFailureCounts[key] += 1;
+    if (sharedFailureCounts[key] === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fallback();
+  };
+  const failBootstrap = failOnce("bootstrap");
+  const failSignals = failOnce("signals");
+  await page.route("**/api/product/bootstrap?**", failBootstrap);
+  await page.route("**/api/signals", failSignals);
+  await page.goto(server.rootUrl, { waitUntil: "networkidle" });
+  assert(await page.locator(".appDataError").isVisible(), "Shared data failure should show a retry action");
+  await page.waitForTimeout(250);
+  assert(sharedFailureCounts.bootstrap === 1 && sharedFailureCounts.signals === 1, "Failed shared requests should stop instead of retrying in a loop");
+  await page.locator(".appDataError button").click();
+  await page.locator(".appDataError").waitFor({ state: "detached" });
+  assert(sharedFailureCounts.bootstrap === 2 && sharedFailureCounts.signals === 2, "Retry should request only failed shared data again");
+  await page.unroute("**/api/product/bootstrap?**", failBootstrap);
+  await page.unroute("**/api/signals", failSignals);
+  let stockFailureCount = 0;
+  const failStocksOnce = async (route) => {
+    stockFailureCount += 1;
+    if (stockFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fallback();
+  };
+  await page.route("**/api/product/symbols?**", failStocksOnce);
+  await page.goto(`${server.rootUrl}?page=stocks`, { waitUntil: "networkidle" });
+  assert(await page.locator(".stockLibraryError").isVisible(), "Stock list failure should not look like an empty result");
+  assert((await page.locator(".stockLibraryEmpty").count()) === 0, "Stock list failure should hide the empty-result message");
+  await page.locator(".stockLibraryError button").click();
+  await page.locator(".stockLibraryError").waitFor({ state: "detached" });
+  assert(stockFailureCount === 2, "Stock list retry should make one new request");
+  await page.unroute("**/api/product/symbols?**", failStocksOnce);
   await page.route("**/api/auth/status", (route) => route.fulfill({
     contentType: "application/json",
     body: JSON.stringify({
