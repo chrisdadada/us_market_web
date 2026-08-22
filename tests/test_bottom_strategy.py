@@ -1,3 +1,4 @@
+import inspect
 import json
 import sys
 import unittest
@@ -57,6 +58,13 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         self.assertEqual(preview["markets"]["QQQ"]["priceSeries"], full["markets"]["QQQ"]["priceSeries"])
         self.assertEqual(preview["markets"]["QQQ"]["opportunityDates"], [record["signalDate"] for record in full["markets"]["QQQ"]["records"]])
         self.assertEqual(preview["markets"]["QQQ"]["summary"], {"totalSignals": 8})
+
+    def test_dca_endpoint_handles_unreadable_or_malformed_product_data(self) -> None:
+        source = inspect.getsource(auth_api.Handler.do_GET)
+        route = source.split('if parsed.path == "/api/tools/dca-strategies":', 1)[1].split(
+            'if parsed.path == "/api/admin/open-portfolio":', 1
+        )[0]
+        self.assertIn("except (OSError, ValueError, sqlite3.Error):", route)
 
     def test_fixed_low_valuation_cycles_fix_signal_at_first_entry(self) -> None:
         history = [

@@ -4909,7 +4909,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 self.send_json(dca_strategies_payload(entitlements(user)["paid"]))
-            except (FileNotFoundError, sqlite3.Error):
+            except (OSError, ValueError, sqlite3.Error):
                 self.send_json({"error": "定投产品数据暂不可用", "code": "dca_strategy_missing"}, HTTPStatus.SERVICE_UNAVAILABLE)
             return
         if parsed.path == "/api/admin/open-portfolio":
