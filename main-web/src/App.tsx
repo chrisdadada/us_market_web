@@ -1932,6 +1932,43 @@ function keyLevelNextFocus(levels?: TrackingKeyLevels) {
   return "等待接近关键位置";
 }
 
+function sameKeyLevel(left?: KeyLevel | null, right?: KeyLevel | null) {
+  return Number.isFinite(left?.center) && Number.isFinite(right?.center)
+    && Math.abs(Number(left?.center) - Number(right?.center)) < 0.01;
+}
+
+function breakoutDecision(levels?: TrackingKeyLevels) {
+  const confirmation = levels?.breakoutConfirmation;
+  if (!confirmation?.level) return null;
+  const copy = {
+    breakout_watch: {
+      title: "突破观察",
+      summary: "价格刚越过阻力区，先看能否站稳。",
+      focusLabel: "回踩观察区",
+      focusNote: "回到这里时，重点看能否守住。"
+    },
+    awaiting_retest: {
+      title: "等待回踩",
+      summary: "价格已站上阻力区，等回踩确认。",
+      focusLabel: "回踩观察区",
+      focusNote: "回到这里时，重点看能否守住。"
+    },
+    confirmed_support: {
+      title: "支撑已确认",
+      summary: "回踩后守住该区域，现作为支撑观察。",
+      focusLabel: "确认支撑",
+      focusNote: "后续跌回区域下方，需重新评估。"
+    },
+    breakout_failed: {
+      title: "突破失效",
+      summary: "价格重新回到原阻力区下方，暂不按突破处理。",
+      focusLabel: "重新站上",
+      focusNote: "重新站上该区域后再观察。"
+    }
+  }[confirmation.status || ""];
+  return copy ? { ...copy, confirmation } : null;
+}
+
 function TrackingKeyLevelsCell({
   levels,
   locked
@@ -1983,7 +2020,17 @@ function TrackingPriceChart({
   const margin = { top: 18, right: 76, bottom: 34, left: 52 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
-  const levelValues = [levels.support?.lower, levels.support?.upper, levels.resistance?.lower, levels.resistance?.upper]
+  const candidate = levels.breakoutConfirmation?.level;
+  const candidateIsSupport = sameKeyLevel(candidate, levels.support);
+  const candidateIsResistance = sameKeyLevel(candidate, levels.resistance);
+  const levelValues = [
+    levels.support?.lower,
+    levels.support?.upper,
+    levels.resistance?.lower,
+    levels.resistance?.upper,
+    candidate?.lower,
+    candidate?.upper
+  ]
     .filter((value): value is number => Number.isFinite(value));
   const values = [...visible.map((point) => point.close), ...levelValues];
   const rawMin = Math.min(...values);
@@ -2022,7 +2069,10 @@ function TrackingPriceChart({
             </g>
           );
         })}
-        {zone(levels.resistance, "resistanceZone", "阻力区")}
+        {!candidateIsResistance ? zone(levels.resistance, "resistanceZone", "阻力区") : null}
+        {candidate && !candidateIsSupport
+          ? zone(candidate, "candidateZone", levels.breakoutConfirmation?.status === "breakout_failed" ? "原阻力区" : "观察区")
+          : null}
         {zone(levels.support, "supportZone", "支撑区")}
         <path className="trackingPriceLine" d={path} />
         <line className="currentPriceLine" x1={margin.left} x2={width - margin.right} y1={y(last.close)} y2={y(last.close)} />
@@ -2243,6 +2293,12 @@ function StockDetailPage({
   const dollarVolume = detailDollarVolume !== "--" ? detailDollarVolume : row?.liquidity || "--";
   const detailVolumeRatio = ratioDisplay(dayRow?.volumeRatio ?? profile?.volumeRatio);
   const volumeRatio = detailVolumeRatio !== "--" ? detailVolumeRatio : row?.volume || "--";
+  const breakout = breakoutDecision(keyLevels);
+  const candidate = breakout?.confirmation.level;
+  const resistanceIsCandidate = sameKeyLevel(candidate, keyLevels?.resistance);
+  const existingSupport = breakout?.confirmation.status === "confirmed_support"
+    ? keyLevels?.secondarySupport
+    : keyLevels?.support;
   const peers = detail?.peers?.length
     ? detail.peers.slice(0, 3).map((item) => ({
         symbol: item.symbol,
@@ -2298,22 +2354,47 @@ function StockDetailPage({
         <AddToWatchlistButton symbol={activeSymbol} />
       </section>
 
-      {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance) ? (
+      {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance || keyLevels.breakoutConfirmation?.level) ? (
         <section className="trackingDetailMain">
           <article className="trackingDetailChartPanel">
             <header><strong>价格与关键点位</strong><time>{keyLevels.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</time></header>
             <TrackingPriceChart points={priceHistory} levels={keyLevels} />
-            <div className="trackingDetailLegend"><span><i className="price" />价格</span><span><i className="support" />支撑区</span><span><i className="resistance" />阻力区</span></div>
+            <div className="trackingDetailLegend">
+              <span><i className="price" />价格</span>
+              {keyLevels.support ? <span><i className="support" />支撑区</span> : null}
+              {keyLevels.resistance && !resistanceIsCandidate ? <span><i className="resistance" />阻力区</span> : null}
+              {candidate && !sameKeyLevel(candidate, keyLevels.support) ? (
+                <span><i className="candidate" />{breakout?.confirmation.status === "breakout_failed" ? "原阻力区" : "观察区"}</span>
+              ) : null}
+            </div>
           </article>
-          <aside className={`trackingDetailDecision ${keyLevels.position || "middle"}`}>
+          <aside className={`trackingDetailDecision ${keyLevels.position || "middle"} ${breakout?.confirmation.status || ""}`}>
             <div className="trackingDetailPosition">
               <span>当前位置</span>
-              <h2>{keyLevels.positionText || "区间中部"}</h2>
-              <p>{keyLevelPositionSummary(keyLevels)}</p>
+              <h2>{breakout?.title || keyLevels.positionText || "区间中部"}</h2>
+              <p>{breakout?.summary || keyLevelPositionSummary(keyLevels)}</p>
             </div>
-            <div className="trackingDetailLevel"><span>支撑区</span><strong>{keyLevelZone(keyLevels.support)}</strong><em className={keyLevelStrengthClass(keyLevels.support)}>{keyLevels.support?.strengthText || "--"}</em></div>
-            <div className="trackingDetailLevel"><span>阻力区</span><strong>{keyLevelZone(keyLevels.resistance)}</strong><em className={keyLevelStrengthClass(keyLevels.resistance)}>{keyLevels.resistance?.strengthText || "--"}</em></div>
-            <div className="trackingDetailNext"><span>接下来关注</span><strong>{keyLevelNextFocus(keyLevels)}</strong></div>
+            {breakout ? (
+              <>
+                <div className="trackingDetailFocus">
+                  <span>{breakout.focusLabel}</span>
+                  <strong>{keyLevelZone(candidate)}</strong>
+                  <small>{breakout.focusNote}</small>
+                </div>
+                {!resistanceIsCandidate && keyLevels.resistance ? (
+                  <div className="trackingDetailLevel"><span>下一阻力</span><strong>{keyLevelZone(keyLevels.resistance)}</strong><em className={keyLevelStrengthClass(keyLevels.resistance)}>{keyLevels.resistance.strengthText || "--"}</em></div>
+                ) : null}
+                {existingSupport ? (
+                  <div className="trackingDetailLevel"><span>现有支撑</span><strong>{keyLevelZone(existingSupport)}</strong><em className={keyLevelStrengthClass(existingSupport)}>{existingSupport.strengthText || "--"}</em></div>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <div className="trackingDetailLevel"><span>支撑区</span><strong>{keyLevelZone(keyLevels.support)}</strong><em className={keyLevelStrengthClass(keyLevels.support)}>{keyLevels.support?.strengthText || "--"}</em></div>
+                <div className="trackingDetailLevel"><span>阻力区</span><strong>{keyLevelZone(keyLevels.resistance)}</strong><em className={keyLevelStrengthClass(keyLevels.resistance)}>{keyLevels.resistance?.strengthText || "--"}</em></div>
+                <div className="trackingDetailNext"><span>接下来关注</span><strong>{keyLevelNextFocus(keyLevels)}</strong></div>
+              </>
+            )}
           </aside>
         </section>
       ) : (

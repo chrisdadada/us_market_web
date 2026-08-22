@@ -29,6 +29,16 @@ export type KeyLevel = {
   lastConfirmedAt?: string;
 };
 
+export type BreakoutConfirmation = {
+  status?: "breakout_watch" | "awaiting_retest" | "confirmed_support" | "breakout_failed" | string;
+  level?: KeyLevel | null;
+  eventAt?: string | null;
+  breakoutAt?: string | null;
+  confirmedAt?: string | null;
+  retestAt?: string | null;
+  failedAt?: string | null;
+};
+
 export type TrackingKeyLevels = {
   status?: "ready" | "insufficient" | "unavailable" | string;
   asOf?: string;
@@ -38,6 +48,7 @@ export type TrackingKeyLevels = {
   support?: KeyLevel | null;
   secondarySupport?: KeyLevel | null;
   resistance?: KeyLevel | null;
+  breakoutConfirmation?: BreakoutConfirmation | null;
   position?: string;
   positionText?: string;
   supportDistancePct?: number | null;
