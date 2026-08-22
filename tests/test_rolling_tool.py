@@ -97,6 +97,11 @@ class RollingToolTests(unittest.TestCase):
         row, state = self.read_plan(plan_id)
         self.assertEqual(row["status"], "ended")
         self.assertEqual(Decimal(state["exitPrice"]), Decimal("121"))
+        runtime.latest["BTCUSDT"] = (Decimal("999"), float("inf"))
+        history = runtime.snapshot(1)["plans"][0]
+        self.assertEqual(Decimal(history["currentPrice"]), Decimal("121"))
+        self.assertEqual(Decimal(history["estimatedPnl"]), Decimal(state["estimatedPnl"]))
+        self.assertFalse(history["marketConnected"])
 
     def test_protection_is_checked_before_add(self) -> None:
         with self.connect() as conn:

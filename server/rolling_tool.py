@@ -520,14 +520,15 @@ class RollingRuntime:
             config = json.loads(row["config_json"])
             state = json.loads(row["state_json"])
             cached = latest.get(row["symbol"])
-            current_price = cached[0] if cached else None
-            fresh = bool(cached and now - cached[1] <= max(5.0, self.poll_seconds * 4))
+            ended = row["status"] == "ended" and state.get("exitPrice") is not None
+            current_price = Decimal(str(state["exitPrice"])) if ended else cached[0] if cached else None
+            fresh = False if ended else bool(cached and now - cached[1] <= max(5.0, self.poll_seconds * 4))
             current_notional = None
             current_pnl = None
             estimated_margin = None
             if current_price is not None and state.get("averagePrice"):
                 current_notional = Decimal(str(state["quantity"])) * current_price
-                current_pnl = pnl(config, state, current_price)
+                current_pnl = Decimal(str(state["estimatedPnl"])) if ended and state.get("estimatedPnl") is not None else pnl(config, state, current_price)
                 estimated_margin = current_notional / decimal_config(config, "leverage")
             result.append({
                 "id": row["id"],

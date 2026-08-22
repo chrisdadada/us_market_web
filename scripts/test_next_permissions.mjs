@@ -359,6 +359,23 @@ function startServer(authProfile) {
           sendJson(response, { ok: true, id: plan.id }, 201);
           return;
         }
+        if (request.method === "POST" && /^\/api\/rolling\/plans\/[a-f0-9]{32}\/end$/.test(url.pathname) && rollingPlans.length) {
+          const plan = rollingPlans[0];
+          rollingPlans = [{
+            ...plan,
+            status: "ended",
+            state: { ...plan.state, exitPrice: "72720", estimatedPnl: "10" },
+            currentPrice: "72720",
+            currentNotional: "1010",
+            estimatedPnl: "10",
+            estimatedMargin: "336.66666667",
+            marketConnected: false,
+            endedAt: "2026-08-20T13:00:00Z",
+            events: [{ id: 2, type: "ended", price: "72720", detail: {}, createdAt: "2026-08-20T13:00:00Z" }, ...plan.events],
+          }];
+          sendJson(response, { ok: true });
+          return;
+        }
         sendJson(response, await apiPayload(url, authProfile));
         return;
       }
@@ -555,6 +572,12 @@ try {
         assert(!/(模拟|仿真|纸面)/.test(rollingBodyText), "rolling tool should not expose simulation wording");
         assert(!rollingBodyText.includes("导出方案"), "rolling tool should hide plan export");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop rolling tool should not overflow horizontally");
+        await page.getByRole("button", { name: "结束计划", exact: true }).click();
+        await page.getByRole("button", { name: "确认结束", exact: true }).click();
+        await page.waitForSelector("[data-testid='rolling-history-tab'][aria-selected='true']");
+        const rollingHistoryText = await page.locator("body").innerText();
+        assert(rollingHistoryText.includes("历史结果") && rollingHistoryText.includes("最终盈亏"), "ended rolling plans should open as history results");
+        assert(!rollingHistoryText.includes("下一次加仓后估算"), "rolling history should hide future projections");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-rolling-desktop.png`, fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(200);

@@ -17,6 +17,55 @@
   background: #13a676;
 }
 
+.rollingPlanNavigation {
+  display: grid;
+  gap: 8px;
+}
+
+.rollingPlanViews {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid #dfe7f2;
+}
+
+.rollingPlanViews button {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #65758c;
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rollingPlanViews button.active {
+  border-bottom-color: #1677ff;
+  color: #1264c8;
+}
+
+.rollingPlanViews button:disabled {
+  color: #a4afbd;
+  cursor: default;
+}
+
+.rollingPlanViews button b {
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #edf2f8;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 600;
+}
+
 .rollingPlanTabs {
   display: flex;
   min-width: 0;
@@ -127,6 +176,10 @@
   background: #13a676;
 }
 
+.rollingInlineQuote.ended i {
+  background: #9aa5b5;
+}
+
 .positionSizingPanel .panelHead .rollingInlineQuote b {
   color: #526176;
   font-size: 11px;
@@ -147,6 +200,10 @@
 
 .rollingInlineQuote.connected em {
   color: #078257;
+}
+
+.rollingInlineQuote.ended em {
+  color: #65758c;
 }
 
 .rollingMetrics strong.positive {

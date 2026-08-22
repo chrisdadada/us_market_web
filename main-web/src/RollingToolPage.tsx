@@ -157,6 +157,10 @@ export default function RollingToolPage() {
   }, [selectedId, symbol]);
 
   const selected = plans.find((plan) => plan.id === selectedId) || null;
+  const activePlans = plans.filter((plan) => plan.status !== "ended");
+  const historyPlans = plans.filter((plan) => plan.status === "ended");
+  const isHistory = selected?.status === "ended";
+  const visiblePlans = isHistory ? historyPlans : activePlans;
   const projection = useMemo(() => selected ? projectionFor(selected) : null, [selected]);
   const initialValue = Number(initialNotional.replaceAll(",", ""));
   const leverageValue = Number(leverage);
@@ -172,8 +176,9 @@ export default function RollingToolPage() {
     ? leverageValue.toLocaleString("en-US", { maximumFractionDigits: 8 })
     : "--";
   const currentSymbol = selected?.symbol || symbol;
-  const currentPrice = selected?.currentPrice || draftQuote;
-  const connected = selected ? selected.marketConnected : Boolean(draftQuote);
+  const currentPrice = isHistory ? selected?.state.exitPrice : selected?.currentPrice || draftQuote;
+  const connected = isHistory ? false : selected ? selected.marketConnected : Boolean(draftQuote);
+  const visibleEvents = selected ? selected.events.slice(0, isHistory ? 20 : 6) : [];
 
   async function startPlan(event: FormEvent) {
     event.preventDefault();
@@ -237,18 +242,24 @@ export default function RollingToolPage() {
   return (
     <div className="positionSizingPage rollingToolPage" data-testid="rolling-tool-page">
       {plans.length ? (
-        <nav className="rollingPlanTabs" aria-label="我的滚仓计划">
-          {plans.map((plan) => (
-            <button key={plan.id} type="button" className={selectedId === plan.id ? "active" : ""} onClick={() => setSelectedId(plan.id)}>
-              <span><strong>{plan.symbol} · {plan.config.side === "long" ? "做多" : "做空"}</strong><small>计划 {planCode(plan.id)}</small></span>
-              <b className={plan.status}>{statusLabels[plan.status]}</b>
-            </button>
-          ))}
-          <button type="button" className={`rollingNewPlan ${selectedId === "new" ? "active" : ""}`} onClick={() => setSelectedId("new")}>＋ 新建计划</button>
-        </nav>
+        <div className="rollingPlanNavigation">
+          <div className="rollingPlanViews" role="tablist" aria-label="计划分类">
+            <button type="button" role="tab" data-testid="rolling-active-tab" aria-selected={!isHistory} className={!isHistory ? "active" : ""} onClick={() => setSelectedId(activePlans[0]?.id || "new")}>进行中 <b>{activePlans.length}</b></button>
+            <button type="button" role="tab" data-testid="rolling-history-tab" aria-selected={isHistory} className={isHistory ? "active" : ""} disabled={!historyPlans.length} onClick={() => historyPlans[0] && setSelectedId(historyPlans[0].id)}>历史计划 <b>{historyPlans.length}</b></button>
+          </div>
+          <nav className="rollingPlanTabs" aria-label={isHistory ? "历史计划" : "进行中的计划"}>
+            {visiblePlans.map((plan) => (
+              <button key={plan.id} type="button" className={selectedId === plan.id ? "active" : ""} onClick={() => setSelectedId(plan.id)}>
+                <span><strong>{plan.symbol} · {plan.config.side === "long" ? "做多" : "做空"}</strong><small>{plan.status === "ended" ? `结束 ${formatStoredDateTime(plan.endedAt).slice(0, 10)}` : `计划 ${planCode(plan.id)}`}</small></span>
+                <b className={plan.status}>{statusLabels[plan.status]}</b>
+              </button>
+            ))}
+            {!isHistory ? <button type="button" className={`rollingNewPlan ${selectedId === "new" ? "active" : ""}`} onClick={() => setSelectedId("new")}>＋ 新建计划</button> : null}
+          </nav>
+        </div>
       ) : null}
 
-      {marketError ? <p className="positionError rollingTopError">{marketError}，行情恢复前不会执行新的触发。</p> : null}
+      {marketError && !isHistory ? <p className="positionError rollingTopError">{marketError}，行情恢复前不会执行新的触发。</p> : null}
       {error ? <p className="positionError rollingTopError">{error}</p> : null}
 
       <section className={`positionSizingGrid rollingToolGrid ${selected ? "hasPlan" : "isDraft"}`}>
@@ -256,7 +267,7 @@ export default function RollingToolPage() {
           <div className="panelHead">
             <strong>方案参数</strong>
             <div className="rollingPanelMeta">
-              <span className={`rollingInlineQuote ${connected ? "connected" : ""}`}><i /><b>{currentSymbol}</b><strong>{numberText(currentPrice)}</strong><em>{connected ? "实时" : "连接中"}</em></span>
+              <span className={`rollingInlineQuote ${isHistory ? "ended" : connected ? "connected" : ""}`}><i /><b>{currentSymbol}</b><strong>{numberText(currentPrice)}</strong><em>{isHistory ? "结束价" : connected ? "实时" : "连接中"}</em></span>
               {selected ? <span>{statusLabels[selected.status]} · 已锁定</span> : null}
             </div>
           </div>
@@ -284,26 +295,26 @@ export default function RollingToolPage() {
             {(selected?.config.entryMode || entryMode) === "conditional" ? (
               <div className="positionFieldGrid rollingEntryRow"><label><span>首仓条件</span><span className="rollingTriggerInput"><select value={selected?.config.entryDirection || entryDirection} onChange={(event) => setEntryDirection(event.target.value as RollingDirection)}><option value="rise">上涨至</option><option value="fall">下跌至</option></select><input value={selected?.config.entryTriggerPrice || entryTriggerPrice} onChange={(event) => setEntryTriggerPrice(event.target.value)} inputMode="decimal" placeholder="触发价格" /></span></label></div>
             ) : null}
-            {selected ? <small className="rollingLockedNote">结束当前计划后，才能修改参数并重新启动。</small> : null}
+            {selected ? <small className="rollingLockedNote">{isHistory ? "历史计划参数仅供查看。" : "结束当前计划后，才能修改参数并重新启动。"}</small> : null}
           </fieldset>
         </form>
 
         <aside className="positionSizingPanel rollingStatusPanel">
-          <div className="panelHead"><strong>{selected ? "计划状态" : "计划摘要"}</strong><span className={`rollingStatus ${selected?.status || "draft"}`}><i />{selected ? statusLabels[selected.status] : "实时计算"}</span></div>
+          <div className="panelHead"><strong>{isHistory ? "历史结果" : selected ? "计划状态" : "计划摘要"}</strong><span className={`rollingStatus ${selected?.status || "draft"}`}><i />{selected ? statusLabels[selected.status] : "实时计算"}</span></div>
           {selected ? (
             <div className="rollingStatusBody">
-              <div className="rollingControlBar"><span>{selected.marketConnected ? "行情自动监听，满足条件时按最新价执行。" : "行情连接中，恢复前不会执行新的触发。"}</span><div>{selected.status === "running" ? <button type="button" onClick={() => runAction("pause")} disabled={saving}>暂停加仓</button> : selected.status === "paused" ? <button type="button" onClick={() => runAction("resume")} disabled={saving}>恢复运行</button> : null}{!(["ending", "ended"] as string[]).includes(selected.status) ? <button type="button" className="danger" onClick={() => setEndOpen(true)} disabled={saving}>结束计划</button> : null}</div></div>
+              <div className="rollingControlBar"><span>{isHistory ? `结束时间 ${formatStoredDateTime(selected.endedAt)}` : selected.marketConnected ? "行情自动监听，满足条件时按最新价执行。" : "行情连接中，恢复前不会执行新的触发。"}</span><div>{selected.status === "running" ? <button type="button" onClick={() => runAction("pause")} disabled={saving}>暂停加仓</button> : selected.status === "paused" ? <button type="button" onClick={() => runAction("resume")} disabled={saving}>恢复运行</button> : null}{!(["ending", "ended"] as string[]).includes(selected.status) ? <button type="button" className="danger" onClick={() => setEndOpen(true)} disabled={saving}>结束计划</button> : null}</div></div>
               <div className="rollingMetrics">
-                <div><span>累计投入</span><strong>{moneyText(selected.state.totalNotional)}</strong></div>
-                <div><span>当前名义价值</span><strong>{moneyText(selected.currentNotional)}</strong></div>
+                <div><span>{isHistory ? "总投入" : "累计投入"}</span><strong>{moneyText(selected.state.totalNotional)}</strong></div>
+                <div><span>{isHistory ? "结束时仓位价值" : "当前名义价值"}</span><strong>{moneyText(selected.currentNotional)}</strong></div>
                 <div><span>持仓均价</span><strong>{numberText(selected.state.averagePrice)}</strong></div>
-                <div><span>浮动盈亏</span><strong className={Number(selected.estimatedPnl) >= 0 ? "positive" : "negative"}>{signedMoney(selected.estimatedPnl)}</strong></div>
-                <div><span>加仓进度</span><strong data-testid="rolling-add-progress">已完成 {selected.state.addsCompleted} · 剩余 {Math.max(0, selected.config.maxAdds - selected.state.addsCompleted)}</strong></div>
-                <div><span>预估保证金</span><strong>{moneyText(selected.estimatedMargin)}</strong></div>
+                <div><span>{isHistory ? "最终盈亏" : "浮动盈亏"}</span><strong className={Number(selected.estimatedPnl) >= 0 ? "positive" : "negative"}>{signedMoney(selected.estimatedPnl)}</strong></div>
+                <div><span>{isHistory ? "加仓次数" : "加仓进度"}</span><strong data-testid="rolling-add-progress">{isHistory ? `${selected.state.addsCompleted} 次` : `已完成 ${selected.state.addsCompleted} · 剩余 ${Math.max(0, selected.config.maxAdds - selected.state.addsCompleted)}`}</strong></div>
+                <div><span>{isHistory ? "结束价格" : "预估保证金"}</span><strong>{isHistory ? numberText(selected.state.exitPrice) : moneyText(selected.estimatedMargin)}</strong></div>
               </div>
-              <section className="rollingProjection"><h3>下一次加仓后估算</h3>{projection ? <div><span><small>下一触发价</small><strong>{numberText(String(projection.fillPrice))}</strong></span><span><small>仓位价值</small><strong>{moneyText(String(projection.totalNotional))}</strong></span><span><small>持仓均价</small><strong>{numberText(String(projection.averagePrice))}</strong></span><span><small>保护价</small><strong>{numberText(String(projection.protectionPrice))}</strong></span></div> : <p>{selected.status === "waiting_entry" ? "首仓成交后显示" : selected.status === "holding_protection" ? "已达到最大加仓次数" : "当前无下一次加仓"}</p>}</section>
-              <section className="rollingEvents"><header><strong>执行记录</strong><span>实时行情</span></header>{selected.events.length ? selected.events.slice(0, 6).map((item) => <div key={item.id}><time>{formatStoredDateTime(item.createdAt)}</time><b>{item.type === "add" ? `第 ${String(item.detail.addNumber || "")} 次加仓执行` : eventLabels[item.type] || "计划状态更新"}</b><strong>{numberText(item.price)}</strong></div>) : <p>暂无执行记录</p>}</section>
-              <p className="rollingRuntimeNote">计划按 Binance 实时行情和计划规则运行，关闭页面后仍在服务器运行。</p>
+              {!isHistory ? <section className="rollingProjection"><h3>下一次加仓后估算</h3>{projection ? <div><span><small>下一触发价</small><strong>{numberText(String(projection.fillPrice))}</strong></span><span><small>仓位价值</small><strong>{moneyText(String(projection.totalNotional))}</strong></span><span><small>持仓均价</small><strong>{numberText(String(projection.averagePrice))}</strong></span><span><small>保护价</small><strong>{numberText(String(projection.protectionPrice))}</strong></span></div> : <p>{selected.status === "waiting_entry" ? "首仓成交后显示" : selected.status === "holding_protection" ? "已达到最大加仓次数" : "当前无下一次加仓"}</p>}</section> : null}
+              <section className="rollingEvents"><header><strong>执行记录</strong><span>{isHistory ? "已归档" : "实时行情"}</span></header>{visibleEvents.length ? visibleEvents.map((item) => <div key={item.id}><time>{formatStoredDateTime(item.createdAt)}</time><b>{item.type === "add" ? `第 ${String(item.detail.addNumber || "")} 次加仓执行` : eventLabels[item.type] || "计划状态更新"}</b><strong>{numberText(item.price)}</strong></div>) : <p>暂无执行记录</p>}</section>
+              <p className="rollingRuntimeNote">{isHistory ? "结果按结束时成交价固定保存。" : "计划按 Binance 实时行情和计划规则运行，关闭页面后仍在服务器运行。"}</p>
             </div>
           ) : (
             <div className="rollingPlanSummary">
