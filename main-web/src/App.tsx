@@ -4558,7 +4558,7 @@ function PositionSizingPage() {
           }
         })
         .catch(() => {
-          if (!cancelled) setPriceStatus("未找到最新价");
+          if (!cancelled) setPriceStatus("行情暂时不可用");
         });
     }, 320);
     return () => {

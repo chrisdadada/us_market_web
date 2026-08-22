@@ -27,6 +27,9 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 
 
 class FrontendArchitectureTest(unittest.TestCase):
+    def test_position_quote_failure_is_not_reported_as_missing_data(self) -> None:
+        self.assertIn('setPriceStatus("行情暂时不可用")', MAIN_APP)
+
     def test_admin_auth_failure_does_not_look_signed_out(self) -> None:
         self.assertIn('className="loginPage adminAuthStatusError"', ADMIN_APP)
         self.assertIn("后台暂时无法连接", ADMIN_APP)
