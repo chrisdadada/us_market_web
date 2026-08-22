@@ -126,6 +126,8 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertNotRegex(MAIN_STYLES, r"\.(?:stocksPage|stockLibrary[A-Za-z0-9_-]*)")
         self.assertIn(".stocksPage", STOCKS_STYLES)
         self.assertIn(".stockLibraryWorkbench", STOCKS_STYLES)
+        self.assertIn('["mag7", "科技七姐妹"]', MAIN_APP)
+        self.assertIn('stockSortHeader("ytdChange", "年初至今")', MAIN_APP)
         self.assertNotIn(".stocksWorkbench", MAIN_STYLES)
         self.assertNotIn(".stocksWorkbench", STOCKS_STYLES)
 

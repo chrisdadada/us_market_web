@@ -563,7 +563,7 @@ function latestSignalStates(states: SignalState[]) {
 }
 
 type TrackingSortKey = "symbol" | "currentPrice" | "oneMonth" | "oneDay" | "oneWeek" | "volume" | "marketCap" | "signal" | "signalFirstSeen";
-type StockSortKey = "symbol" | "dayChange" | "weekChange" | "monthChange" | "dollarVolume" | "marketCap";
+type StockSortKey = "symbol" | "dayChange" | "weekChange" | "monthChange" | "ytdChange" | "dollarVolume" | "marketCap";
 type SortDir = "asc" | "desc";
 
 function trackingSortValue(row: ReturnType<typeof mergedTrackingRows>[number], key: TrackingSortKey) {
@@ -3462,6 +3462,10 @@ function StocksPage({
     setSort(key);
     setSortDir(key === "symbol" ? "asc" : "desc");
   };
+  const changeStockPreset = (value: string) => {
+    setPreset(value);
+    if (value === "mag7") changeStockSort("monthChange");
+  };
   const resetStockFilters = () => {
     setQuery("");
     setPreset("all");
@@ -3513,6 +3517,7 @@ function StocksPage({
           <div className="stockLibraryTabs">
           {[
             ["all", "全部"],
+            ["mag7", "科技七姐妹"],
             ["liquid", "高成交"],
             ["strength", "强趋势"],
             ["event", "有事件"],
@@ -3522,7 +3527,7 @@ function StocksPage({
               key={value}
               type="button"
               className={preset === value ? "active" : ""}
-              onClick={() => setPreset(value)}
+              onClick={() => changeStockPreset(value)}
             >
               {label}
             </button>
@@ -3548,6 +3553,7 @@ function StocksPage({
             <option value="dayChange">按1天</option>
             <option value="weekChange">按1周</option>
             <option value="monthChange">按1月</option>
+            <option value="ytdChange">按年初至今</option>
             <option value="symbol">按代码</option>
           </select>
           <button type="button" className="stockLibraryReset" onClick={resetStockFilters}>重置</button>
@@ -3566,6 +3572,7 @@ function StocksPage({
                   <th>{stockSortHeader("dayChange", "近1天")}</th>
                   <th>{stockSortHeader("weekChange", "近1周")}</th>
                   <th>{stockSortHeader("monthChange", "近1月")}</th>
+                  <th>{stockSortHeader("ytdChange", "年初至今")}</th>
                   <th>{stockSortHeader("dollarVolume", "成交")}</th>
                   <th>{stockSortHeader("marketCap", "市值")}</th>
                   <th>趋势</th>
@@ -3586,6 +3593,7 @@ function StocksPage({
                       <td className={signedClass(row.dayChange)}>{signed(row.dayChange)}</td>
                       <td className={signedClass(row.weekChange)}>{signed(row.weekChange)}</td>
                       <td className={signedClass(row.monthChange)}>{signed(row.monthChange)}</td>
+                      <td className={signedClass(row.ytdChange)}>{signed(row.ytdChange)}</td>
                       <td>{compactMoney(row.dollarVolume)}{volumeRatio !== "--" ? <span>{volumeRatio}</span> : null}</td>
                       <td>{marketCapDisplay(row)}</td>
                       <td><SignalDirectionBadge label={direction} /></td>
@@ -3593,8 +3601,8 @@ function StocksPage({
                     </tr>
                   );
                 })}
-                {loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={11}>正在加载股票...</td></tr> : null}
-                {!loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={11}>没有符合条件的股票</td></tr> : null}
+                {loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={12}>正在加载股票...</td></tr> : null}
+                {!loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={12}>没有符合条件的股票</td></tr> : null}
               </tbody>
             </table>
           </div>

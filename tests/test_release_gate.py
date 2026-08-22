@@ -706,6 +706,13 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 403, payload)
         self.assertEqual(payload["code"], "membership_required")
 
+        status, payload = client.get("/api/product/symbols?preset=mag7&limit=20&sort=monthChange")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["total"], 7)
+        self.assertEqual({row["symbol"] for row in payload["rows"]}, set(auth_api.TECH_MAG7_SYMBOLS))
+        month_changes = [row["monthChange"] for row in payload["rows"]]
+        self.assertEqual(month_changes, sorted(month_changes, reverse=True))
+
         status, payload = client.get("/api/product/symbols?limit=3000")
         self.assertEqual(status, 200, payload)
         self.assertGreater(len(payload["rows"]), 100)

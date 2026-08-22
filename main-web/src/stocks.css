@@ -181,33 +181,35 @@
 .stockLibraryTable th:nth-child(6),
 .stockLibraryTable td:nth-child(6),
 .stockLibraryTable th:nth-child(7),
-.stockLibraryTable td:nth-child(7) {
+.stockLibraryTable td:nth-child(7),
+.stockLibraryTable th:nth-child(8),
+.stockLibraryTable td:nth-child(8) {
   width: 72px;
   text-align: right;
 }
 
-.stockLibraryTable th:nth-child(8),
-.stockLibraryTable td:nth-child(8),
 .stockLibraryTable th:nth-child(9),
-.stockLibraryTable td:nth-child(9) {
+.stockLibraryTable td:nth-child(9),
+.stockLibraryTable th:nth-child(10),
+.stockLibraryTable td:nth-child(10) {
   width: 90px;
   text-align: right;
 }
 
-.stockLibraryTable th:nth-child(10),
-.stockLibraryTable td:nth-child(10) {
+.stockLibraryTable th:nth-child(11),
+.stockLibraryTable td:nth-child(11) {
   width: 86px;
   text-align: center;
 }
 
-.stockLibraryTable th:nth-child(11),
-.stockLibraryTable td:nth-child(11) {
+.stockLibraryTable th:nth-child(12),
+.stockLibraryTable td:nth-child(12) {
   width: 56px;
   padding-right: 14px;
   text-align: right;
 }
 
-.stockLibraryTable th:nth-child(n+5):nth-child(-n+9) .tableSortButton {
+.stockLibraryTable th:nth-child(n+5):nth-child(-n+10) .tableSortButton {
   justify-content: flex-end;
 }
 

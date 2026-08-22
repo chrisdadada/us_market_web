@@ -86,6 +86,7 @@ ROLES = {"user", "admin", "super_admin"}
 LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus", "monthly", "yearly"}
 REGISTERED_DATASETS = {"market-temperature", "macro-series"}
 PAID_DATASETS = {"strength-scanner", "strength-review", "crypto-etf-flows"}
+TECH_MAG7_SYMBOLS = ("AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA")
 DCA1_LOW_THRESHOLD = 23.5
 DCA1_NEAR_THRESHOLD = 24.5
 DCA1_DRAWDOWN_THRESHOLD = 0.08
@@ -4240,6 +4241,9 @@ class Handler(BaseHTTPRequestHandler):
         elif preset == "etf":
             where.append("UPPER(COALESCE(s.sector, '')) LIKE ?")
             values.append("%ETF%")
+        elif preset == "mag7":
+            where.append(f"s.symbol IN ({','.join('?' for _ in TECH_MAG7_SYMBOLS)})")
+            values.extend(TECH_MAG7_SYMBOLS)
         elif preset == "watchlist":
             symbols = [
                 str(item).strip().upper()
