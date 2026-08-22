@@ -3431,6 +3431,8 @@ export function App() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [authFailed, setAuthFailed] = useState(false);
+  const [authRetry, setAuthRetry] = useState(0);
 
   async function loadData() {
     setError("");
@@ -3457,19 +3459,41 @@ export function App() {
   }
 
   useEffect(() => {
+    let active = true;
+    setAuthFailed(false);
+    setLoading(true);
     api.authStatus()
       .then((status) => {
+        if (!active) return;
         setAuth(status);
         if (status.user?.role === "admin" || status.user?.role === "super_admin") {
           return loadData();
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        if (!active) return;
+        setAuthFailed(true);
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [authRetry]);
 
   if (loading && !auth) {
     return <main className="loadingPage">加载中</main>;
+  }
+
+  if (authFailed && !auth) {
+    return (
+      <main className="loginPage adminAuthStatusError">
+        <section className="loginPanel" role="alert">
+          <div className="brandMark">懂</div>
+          <h1>后台暂时无法连接</h1>
+          <p>请检查网络后重试。</p>
+          <button type="button" onClick={() => setAuthRetry((value) => value + 1)}>重新连接</button>
+        </section>
+      </main>
+    );
   }
 
   if (!auth?.authenticated || (auth.user?.role !== "admin" && auth.user?.role !== "super_admin")) {

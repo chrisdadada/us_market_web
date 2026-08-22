@@ -8,6 +8,7 @@ MAIN_APP = (ROOT / "main-web/src/App.tsx").read_text(encoding="utf-8")
 MAIN_ENTRY = (ROOT / "main-web/src/main.tsx").read_text(encoding="utf-8")
 MAIN_HTML = (ROOT / "main-web/index.html").read_text(encoding="utf-8")
 MAIN_STYLES = (ROOT / "main-web/src/styles.css").read_text(encoding="utf-8")
+ADMIN_APP = (ROOT / "admin-web/src/App.tsx").read_text(encoding="utf-8")
 CALENDAR_STYLES = (ROOT / "main-web/src/calendar.css").read_text(encoding="utf-8")
 STOCKS_STYLES = (ROOT / "main-web/src/stocks.css").read_text(encoding="utf-8")
 MARKET_FUNDS_STYLES = (ROOT / "main-web/src/marketFunds.css").read_text(encoding="utf-8")
@@ -26,6 +27,11 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 
 
 class FrontendArchitectureTest(unittest.TestCase):
+    def test_admin_auth_failure_does_not_look_signed_out(self) -> None:
+        self.assertIn('className="loginPage adminAuthStatusError"', ADMIN_APP)
+        self.assertIn("后台暂时无法连接", ADMIN_APP)
+        self.assertIn("setAuthRetry((value) => value + 1)", ADMIN_APP)
+
     def test_white_frontend_has_one_source_of_truth(self) -> None:
         self.assertIn('import "./styles.css"', MAIN_ENTRY)
         self.assertIn('import "./calendar.css"', MAIN_ENTRY)
