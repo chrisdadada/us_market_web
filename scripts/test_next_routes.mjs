@@ -296,14 +296,69 @@ try {
   await page.locator(".stockLibraryError").waitFor({ state: "detached" });
   assert(stockFailureCount === 2, "Stock list retry should make one new request");
   await page.unroute("**/api/product/symbols?**", failStocksOnce);
+
+  let authFailureCount = 0;
+  const failAuthOnce = async (route) => {
+    authFailureCount += 1;
+    if (authFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fallback();
+  };
+  await page.route("**/api/auth/status", failAuthOnce);
+  await page.goto(server.rootUrl, { waitUntil: "networkidle" });
+  assert(await page.locator(".authStatusError").isVisible(), "Auth status failure should not look like a signed-out session");
+  await page.locator(".authStatusError button").click();
+  await page.locator(".authStatusError").waitFor({ state: "detached" });
+  assert(authFailureCount === 2, "Auth status retry should make one new request");
+  await page.unroute("**/api/auth/status", failAuthOnce);
+
   await page.route("**/api/auth/status", (route) => route.fulfill({
     contentType: "application/json",
     body: JSON.stringify({
       authenticated: true,
-      user: { id: 2, email: "monthly@example.test", role: "user", plan: "monthly", onboardingSeenAt: "2026-08-01 12:00:00" },
-      entitlements: { paid: true, pro: true, proPlus: false, admin: false, yearly: false },
+      user: { id: 2, email: "yearly@example.test", role: "user", plan: "yearly", onboardingSeenAt: "2026-08-01 12:00:00" },
+      entitlements: { paid: true, pro: true, proPlus: true, admin: false, yearly: true },
     }),
   }));
+
+  let watchlistFailureCount = 0;
+  const failWatchlistOnce = async (route) => {
+    watchlistFailureCount += 1;
+    if (watchlistFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fallback();
+  };
+  await page.route("**/api/watchlist", failWatchlistOnce);
+  await page.goto(`${server.rootUrl}?page=watchlist`, { waitUntil: "networkidle" });
+  assert(await page.locator(".watchlistDataError").isVisible(), "Watchlist failure should not look like an empty watchlist");
+  assert((await page.locator(".watchlistEmpty").count()) === 0, "Watchlist failure should hide the empty state");
+  await page.locator(".watchlistDataError button").click();
+  await page.locator(".watchlistDataError").waitFor({ state: "detached" });
+  assert(watchlistFailureCount === 2, "Watchlist retry should make one new request");
+  await page.unroute("**/api/watchlist", failWatchlistOnce);
+
+  let openFailureCount = 0;
+  const failOpenOnce = async (route) => {
+    openFailureCount += 1;
+    if (openFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fallback();
+  };
+  await page.route("**/api/open-portfolio", failOpenOnce);
+  await page.goto(`${server.rootUrl}?page=open`, { waitUntil: "networkidle" });
+  assert(await page.locator(".openPortfolioError").isVisible(), "Open portfolio failure should not look like an empty portfolio");
+  assert((await page.getByText("暂无持仓", { exact: true }).count()) === 0, "Open portfolio failure should hide the empty state");
+  await page.locator(".openPortfolioError button").click();
+  await page.locator(".openPortfolioError").waitFor({ state: "detached" });
+  assert(openFailureCount === 2, "Open portfolio retry should make one new request");
+  await page.unroute("**/api/open-portfolio", failOpenOnce);
+
   await page.goto(`${server.rootUrl}?page=dca1`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca1-strategy-page']").isVisible(), "Paid DCA 1 page should be visible");
   const dca1Action = await page.locator(".dcaDecisionContent strong").innerText();
@@ -334,4 +389,4 @@ try {
   await server.close();
 }
 
-console.log(`Next/root front regression passed (${selectedRouteCases.length * 2 + 3} checks).`);
+console.log(`Next/root front regression passed (${selectedRouteCases.length * 2 + 6} checks).`);

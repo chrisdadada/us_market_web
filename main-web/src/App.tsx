@@ -754,6 +754,7 @@ function App() {
   const initialRoute = useMemo(() => readRouteState(), []);
   const [page, setPage] = useState<PageKey>(initialRoute.page);
   const [auth, setAuth] = useState<AuthStatus | null>(null);
+  const [authFailed, setAuthFailed] = useState(false);
   const [bootstrap, setBootstrap] = useState<BootstrapPayload | null>(null);
   const [opinions, setOpinions] = useState<Opinion[]>([]);
   const [calendar, setCalendar] = useState<CalendarEvent[]>([]);
@@ -781,10 +782,18 @@ function App() {
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileNavCloseRef = useRef<HTMLButtonElement>(null);
 
-  const refreshAuth = () => api.auth().then((payload) => {
-    setAuth(payload);
-    return payload;
-  });
+  const refreshAuth = useCallback(() => {
+    setAuthFailed(false);
+    return api.auth()
+      .then((payload) => {
+        setAuth(payload);
+        return payload;
+      })
+      .catch((error) => {
+        setAuthFailed(true);
+        throw error;
+      });
+  }, []);
 
   const setSharedDataFailure = useCallback((source: SharedDataSource, failed: boolean) => {
     setSharedDataFailures((current) => current[source] === failed ? current : { ...current, [source]: failed });
@@ -866,7 +875,7 @@ function App() {
 
   useEffect(() => {
     const tasks: Array<Promise<unknown>> = [
-      api.auth().then((authPayload) => setAuth(authPayload)).catch(() => undefined)
+      refreshAuth().catch(() => undefined)
     ];
     if (pageNeedsBootstrap(initialRoute.page)) tasks.push(refreshBootstrap());
     if (pageNeedsOpinions(initialRoute.page)) {
@@ -882,7 +891,7 @@ function App() {
         setSignalsLoading(false);
         setLoading(false);
       });
-  }, [initialRoute.opinionId, initialRoute.page, refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals]);
+  }, [initialRoute.opinionId, initialRoute.page, refreshAuth, refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals]);
 
   useEffect(() => {
     if (!pageNeedsBootstrap(page) || bootstrap || bootstrapLoading || sharedDataFailures.bootstrap) return;
@@ -1151,6 +1160,12 @@ function App() {
         </header>
 
         {loading || (!loading && pageDataLoading) ? <div className="loading" /> : null}
+        {!loading && authFailed ? (
+          <div className="marketToolError compact appDataError authStatusError" role="alert">
+            <span>登录状态加载失败</span>
+            <button type="button" className="requestRetry" onClick={() => void refreshAuth().catch(() => undefined)}>重新加载</button>
+          </div>
+        ) : null}
         {!loading && pageDataFailed ? (
           <div className="marketToolError compact appDataError" role="alert">
             <span>页面数据加载失败</span>
@@ -1212,7 +1227,7 @@ function App() {
             setResetToken("");
             window.history.replaceState(null, "", window.location.pathname);
           }}
-          onDone={() => refreshAuth().finally(() => setAuthModalOpen(false))}
+          onDone={() => void refreshAuth().catch(() => undefined).finally(() => setAuthModalOpen(false))}
         />
         <UnlockContactModal open={unlockModalOpen} onClose={() => setUnlockModalOpen(false)} />
         <OnboardingModal
@@ -1418,7 +1433,11 @@ function AuthModal({
       })
       .catch((err) => {
         setSuccess("");
-        setError(err?.message || (isRegister ? "注册失败" : isReset ? "重置失败" : isForgot ? "发送失败" : "登录失败"));
+        const message = err instanceof Error ? err.message.trim() : "";
+        const technicalFailure = !message || /failed to fetch|load failed|networkerror|请求失败/i.test(message);
+        setError(technicalFailure
+          ? isRegister ? "暂时无法注册，请稍后重试" : isReset ? "暂时无法重置，请稍后重试" : isForgot ? "暂时无法发送，请稍后重试" : "暂时无法登录，请稍后重试"
+          : message);
       })
       .finally(() => setSubmitting(false));
   };
@@ -4207,6 +4226,8 @@ function watchlistTrend(row?: SymbolRow) {
 function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: StockSource) => void }) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [profiles, setProfiles] = useState<Record<string, SymbolRow>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [newSymbol, setNewSymbol] = useState("");
@@ -4234,9 +4255,20 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
     setProfiles(Object.fromEntries(symbols.rows.map((row) => [row.symbol, row])));
   }, []);
 
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadFailed(false);
+    return refresh()
+      .catch(() => setLoadFailed(true))
+      .finally(() => setLoading(false));
+  }, [refresh]);
+
   useEffect(() => {
-    if (!enabled) return;
-    void refresh().catch((error) => setMessage({ tone: "error", text: error instanceof Error ? error.message : "自选加载失败" }));
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+    void load();
     if (localStorage.getItem(watchlistImportDismissedKey)) return;
     try {
       const parsed = JSON.parse(localStorage.getItem(legacyWatchlistStorageKey) || "[]");
@@ -4246,7 +4278,7 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
     } catch {
       localStorage.removeItem(legacyWatchlistStorageKey);
     }
-  }, [enabled, refresh]);
+  }, [enabled, load]);
 
   const stats = useMemo(() => ({
     due: items.filter(watchlistIsDue).length,
@@ -4276,8 +4308,8 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
       setAdding(false);
       await refresh();
       setMessage({ tone: "ok", text: `${symbol} 已加入自选` });
-    } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "添加失败" });
+    } catch {
+      setMessage({ tone: "error", text: "添加失败，请重试" });
     } finally {
       setBusy("");
     }
@@ -4290,8 +4322,8 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
       await api.reviewWatchlist(symbol, action);
       await refresh();
       setMessage({ tone: "ok", text: `${symbol} 复盘状态已更新` });
-    } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "更新失败" });
+    } catch {
+      setMessage({ tone: "error", text: "更新失败，请重试" });
     } finally {
       setBusy("");
     }
@@ -4305,8 +4337,8 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
       setRemoveSymbol("");
       await refresh();
       setMessage({ tone: "ok", text: `${symbol} 已移除` });
-    } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "移除失败" });
+    } catch {
+      setMessage({ tone: "error", text: "移除失败，请重试" });
     } finally {
       setBusy("");
     }
@@ -4322,8 +4354,8 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
       setLegacyItems([]);
       await refresh();
       setMessage({ tone: "ok", text: `已导入 ${result.saved} 只旧版自选${result.skipped ? `，${result.skipped} 只代码已失效` : ""}` });
-    } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "导入失败" });
+    } catch {
+      setMessage({ tone: "error", text: "导入失败，请重试" });
     } finally {
       setBusy("");
     }
@@ -4333,6 +4365,20 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
     localStorage.setItem(watchlistImportDismissedKey, "1");
     setLegacyItems([]);
   };
+
+  if (loading) {
+    return <section className="watchlistPage compactProductPage"><div className="marketToolLoading compact">加载中</div></section>;
+  }
+  if (loadFailed) {
+    return (
+      <section className="watchlistPage compactProductPage">
+        <div className="marketToolError compact watchlistDataError" role="alert">
+          <span>自选数据加载失败</span>
+          <button type="button" className="requestRetry" onClick={() => void load()}>重新加载</button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="watchlistPage compactProductPage">
@@ -4765,6 +4811,7 @@ function OpenPortfolioPage({ enabled }: { enabled: boolean }) {
   const [data, setData] = useState<OpenPortfolioPayload | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadVersion, setLoadVersion] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
   const curve = useMemo(() => showOpenPortfolioDetails ? openCurvePath(data?.curve || []) : { line: "", area: "" }, [data?.curve]);
   const holdings = data?.holdings || [];
@@ -4811,15 +4858,26 @@ function OpenPortfolioPage({ enabled }: { enabled: boolean }) {
         setError("");
         setHistoryPage(1);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "读取失败"))
+      .catch(() => setError("Open 持仓加载失败"))
       .finally(() => setLoading(false));
-  }, [enabled]);
+  }, [enabled, loadVersion]);
+
+  if (loading) {
+    return <div className="openPortfolioPage"><div className="marketToolLoading compact">加载中</div></div>;
+  }
+  if (error) {
+    return (
+      <div className="openPortfolioPage">
+        <div className="marketToolError compact openPortfolioError" role="alert">
+          <span>{error}</span>
+          <button type="button" className="requestRetry" onClick={() => setLoadVersion((value) => value + 1)}>重新加载</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="openPortfolioPage">
-      {error ? <p className="openNotice">{error}</p> : null}
-      {loading ? <p className="openNotice">读取中</p> : null}
-
       {showOpenPortfolioDetails ? (
         <>
           <section className="openMetricGrid">
