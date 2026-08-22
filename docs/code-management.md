@@ -18,11 +18,20 @@
 - 市场区间、定投权限和页面文案测试。
 - 已确认导航及旧版页面迁移。
 - dev 发布分支、累计提交和公开版本校验。
+- 股票关键点位的突破、回踩确认，已由 `e8b5de9` 合入统一分支。
+
+以下旧分支已被当前实现替代，不再合并：
+
+- `codex/tracking-breakout-confirmation`：已由新的独立突破确认模型替代。
+- `codex/dev-nav-only-restore`、`codex/market-tools-v3`：旧页面和旧导航基线。
+- `codex/index-valuation-level-rule`、`codex/product-config-source-of-truth`、`codex/product-truthfulness-fixes`：已有等价提交进入统一分支。
+- `codex/tech-mag7-filter`：已有更新后的筛选实现进入统一分支。
+- `codex/fix-password-reset-mail`：分支内提交已自行回滚，不作为发布来源。
 
 以下内容继续隔离，不得混入普通发布：
 
 - 课程媒体盘点、迁移和 COS 操作：继续使用独立媒体任务，prod 操作仍需当次授权。
-- 关键点位的突破、回踩确认：属于新的用户可见业务口径，先出高保真图并确认，再基于集成分支重新实现。
+- `codex/bottom-dca-strategy`：旧抄底策略脚本和 mockup，仅保留审计，不并入当前产品页。
 
 ## 发布前检查
 
