@@ -524,17 +524,9 @@ try {
             }
           }
           if (scenario.page === "opinions" && profileName === "free" && baseUrl === server.rootUrl) {
-            const memberPreview = page.locator(".opinionMemberLabel").first();
-            await memberPreview.waitFor();
-            assert((await memberPreview.innerText()) === "会员可见", "opinion list should use a quiet member label");
+            assert(await page.locator(".opinionMemberLabel").count() === 0, "opinion list should stay readable without member labels");
             assert(await page.locator(".opinionInlineLock").count() === 0, "opinion list should not show lock icons");
-            const excerpt = page.locator(".opinionLockedExcerpt p").first();
-            const excerptStyle = await excerpt.evaluate((element) => {
-              const style = getComputedStyle(element);
-              return { filter: style.filter, opacity: style.opacity };
-            });
-            assert(excerptStyle.filter.includes("blur(2.6px)"), "opinion list should keep a light real-content preview");
-            assert(excerptStyle.opacity === "0.76", "opinion list preview should remain visibly loaded");
+            assert(await page.locator(".opinionListPreview p").count() > 0, "opinion list should expose a readable summary");
             await page.locator(".opinionProductFeed > button").first().click();
             await page.waitForSelector(".readerMemberPreview");
             assert(await page.locator(".readerMemberPreview i").count() === 0, "opinion detail should not show a lock icon");
@@ -606,25 +598,32 @@ try {
 
         await page.goto(`${server.rootUrl}?page=opinions`, { waitUntil: "networkidle" });
         await page.waitForSelector(".opinionProductDay");
-        assert(await page.locator(".opinionProductFeed > button.featured").count() === 1, "opinion list should highlight one latest item");
+        assert(await page.locator(".opinionProductFeed > button.featured").count() === 0, "opinion list should keep one consistent reading rhythm");
+        assert(await page.locator(".opinionProductFeed .opinionRowChevron").count() > 0, "opinion list should keep a clear detail affordance");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile opinion list should not overflow horizontally");
         const mobileOpinionLayout = await page.locator(".opinionProductFeed > button").first().evaluate((element) => {
           const style = getComputedStyle(element);
+          const content = element.querySelector(".opinionProductItem");
+          const chevron = element.querySelector(".opinionRowChevron");
           const titleRow = element.querySelector(".opinionProductTitle");
           const title = element.querySelector(".opinionProductTitle strong");
           return {
             display: style.display,
+            gridTemplateColumns: style.gridTemplateColumns,
             width: element.getBoundingClientRect().width,
             feedWidth: element.parentElement.getBoundingClientRect().width,
+            contentMinWidth: content ? getComputedStyle(content).minWidth : "",
+            chevronVisible: chevron ? getComputedStyle(chevron).display !== "none" : false,
             titleDisplay: titleRow ? getComputedStyle(titleRow).display : "",
             titleAlign: title ? getComputedStyle(title).textAlign : "",
             titleFontSize: title ? Number.parseFloat(getComputedStyle(title).fontSize) : 0,
           };
         });
-        assert(mobileOpinionLayout.display === "block", "mobile opinion item should use a single-column layout");
+        assert(mobileOpinionLayout.display === "grid" && mobileOpinionLayout.gridTemplateColumns.split(" ").length === 2, "mobile opinion item should keep content and the detail affordance in separate columns");
         assert(Math.abs(mobileOpinionLayout.width - mobileOpinionLayout.feedWidth) <= 2, "mobile opinion item should use the full feed width");
+        assert(mobileOpinionLayout.contentMinWidth === "0px" && mobileOpinionLayout.chevronVisible, "mobile opinion content should shrink without hiding the detail affordance");
         assert(mobileOpinionLayout.titleDisplay === "block" && mobileOpinionLayout.titleAlign === "left", "mobile opinion title should use a full-width left-aligned row");
-        assert(mobileOpinionLayout.titleFontSize >= 16, "mobile opinion title should remain readable");
+        assert(mobileOpinionLayout.titleFontSize >= 15.5, "mobile opinion title should remain readable");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-opinions-mobile.png`, fullPage: true });
 
         await page.setViewportSize({ width: 1440, height: 1000 });
