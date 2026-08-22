@@ -90,6 +90,14 @@ class RollingToolTests(unittest.TestCase):
         self.assertEqual(state["addsCompleted"], 1)
         self.assertIsNone(state["nextTriggerPrice"])
 
+        runtime = rolling_tool.RollingRuntime(self.path, poll_seconds=60)
+        runtime.action(1, plan_id, "end")
+        with self.connect() as conn:
+            rolling_tool.process_symbol(conn, "BTCUSDT", Decimal("121"))
+        row, state = self.read_plan(plan_id)
+        self.assertEqual(row["status"], "ended")
+        self.assertEqual(Decimal(state["exitPrice"]), Decimal("121"))
+
     def test_protection_is_checked_before_add(self) -> None:
         with self.connect() as conn:
             plan_id = rolling_tool.create_plan(

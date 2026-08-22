@@ -467,7 +467,7 @@ class RollingRuntime:
         targets = {
             "pause": (("running",), "paused", "paused"),
             "resume": (("paused",), "running", "resumed"),
-            "end": (("waiting_entry", "running", "paused"), "ending", "ending"),
+            "end": (("waiting_entry", "running", "paused", "holding_protection"), "ending", "ending"),
         }
         if action not in targets:
             raise RollingError("操作不存在")
