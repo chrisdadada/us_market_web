@@ -115,6 +115,11 @@ export const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; titl
     title: `注册后查看${pageLabels.valuation}`,
     text: "登录后查看指数估值和走势。"
   },
+  courses: {
+    level: "registered",
+    title: `注册后查看${pageLabels.courses}`,
+    text: "登录后查看课程和学习进度。"
+  },
   dca1: {
     level: "monthly",
     title: "会员可看纳指定投 1 号",

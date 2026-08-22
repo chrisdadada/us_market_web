@@ -1168,7 +1168,7 @@ function App() {
             {page === "rolling" && pageUnlocked ? <RollingToolPage /> : null}
             {page === "funding" ? <FundingArbitragePage isAdmin={Boolean(auth?.entitlements?.admin)} /> : null}
             {page === "forum" ? <ComingSoonPage title="论坛讨论区" /> : null}
-            {page === "courses" ? <CoursesPage viewerKey={auth?.user?.id || 0} courseId={selectedCourse} onCourse={selectCourse} onBack={clearCourse} onUnlock={requestUnlock} /> : null}
+            {page === "courses" ? <CoursesPage enabled={pageUnlocked} viewerKey={auth?.user?.id || 0} courseId={selectedCourse} onCourse={selectCourse} onBack={clearCourse} onUnlock={requestUnlock} /> : null}
           </GatedPage>
         ) : null}
         <AuthModal
@@ -4881,7 +4881,7 @@ function OpenPortfolioPage({ enabled }: { enabled: boolean }) {
   );
 }
 
-function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { viewerKey: number; courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
+function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock }: { enabled: boolean; viewerKey: number; courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
   const [series, setSeries] = useState<CourseSeries[]>([]);
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [courseView, setCourseView] = useState<"mine" | "more">("mine");
@@ -4906,6 +4906,10 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   const visibleSeries = courseView === "mine" ? unlockedSeries : lockedSeries;
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError("");
@@ -4925,7 +4929,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     return () => {
       cancelled = true;
     };
-  }, [loadVersion, viewerKey]);
+  }, [enabled, loadVersion, viewerKey]);
 
   const stopCurrentVideo = useCallback(() => {
     hlsRef.current?.destroy();

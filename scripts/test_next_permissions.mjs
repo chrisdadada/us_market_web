@@ -450,6 +450,7 @@ const scenarios = [
   { profile: "anonymous", page: "risk", present: ["注册后查看"] },
   { profile: "anonymous", page: "valuation", present: ["注册后查看"], absentSelector: ".valuationPanel" },
   { profile: "anonymous", page: "watchlist", present: ["注册后查看"] },
+  { profile: "anonymous", page: "courses", present: ["注册后查看"], absentSelector: ".courseCardGrid" },
   { profile: "anonymous", page: "position", present: [gates.open] },
   { profile: "anonymous", page: "rolling", present: [gates.open] },
   { profile: "anonymous", page: "dca1", present: ["登录后查看定投产品"] },
@@ -462,6 +463,7 @@ const scenarios = [
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "free", page: "valuation", presentSelector: "[data-testid='index-valuation-page']", absent: Object.values(gates) },
   { profile: "free", page: "watchlist", presentSelector: ".watchlistPage", present: ["还没有自选"], absent: Object.values(gates) },
+  { profile: "free", page: "courses", presentSelector: ".coursesPage", present: ["暂无课程"], absent: Object.values(gates) },
   { profile: "free", page: "funding", presentSelector: ".fundingLockedPanel", present: ["当前账号暂未开通该工具"] },
   { profile: "free", page: "position", present: [gates.open] },
   { profile: "free", page: "rolling", present: [gates.open] },
@@ -596,10 +598,12 @@ try {
           assert(requestCount("/api/product/raw/index-valuation") === 0, "anonymous visitor should not request registered valuation data");
           assert(requestCount("/api/watchlist") === 0, "anonymous visitor should not request account watchlist data");
           assert(requestCount("/api/open-portfolio") === 0, "anonymous visitor should not request yearly portfolio data");
+          assert(requestCount("/api/courses") === 0, "anonymous visitor should not request the signed-in course catalog");
         }
         if (profileName === "free") {
           assert(requestCount("/api/product/raw/index-valuation") > 0, "registered user should request valuation data");
           assert(requestCount("/api/watchlist") > 0, "registered user should request watchlist data");
+          assert(requestCount("/api/courses") > 0, "registered user should request the course catalog");
           assert(requestCount("/api/open-portfolio") === 0, "free user should not request yearly portfolio data");
           assert(requestCount("/api/tools/funding-arbitrage") === 0, "non-admin user should not request the admin funding scanner");
         }
