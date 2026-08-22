@@ -44,6 +44,9 @@ async function apiPayload(url) {
     return { authenticated: false, user: null, entitlements: { paid: false, pro: false, proPlus: false, admin: false } };
   }
   if (url.pathname === "/api/open-portfolio") return { curve: [], holdings: [], trades: [] };
+  if (url.pathname === "/api/watchlist") return { rows: [] };
+  if (url.pathname === "/api/courses") return { series: [] };
+  if (url.pathname === "/api/tools/funding-arbitrage") return { rows: [], updated_at: "", stale: false };
   if (url.pathname === "/api/tools/bottom-strategy") {
     return JSON.parse(await readFile(join(root, "server", "bottom_strategy.json"), "utf8"));
   }
@@ -201,12 +204,16 @@ const routeCases = [
   { query: "?page=market", text: "市场资金走向" },
   { query: "?page=risk", text: "注册后查看" },
   { query: "?page=strength", text: "开通查看完整内容" },
+  { query: "?page=valuation", text: "注册后查看" },
   { query: "?page=stocks&symbol=MU", text: "美股行情" },
   { query: "?page=calendar", text: "重点财经前瞻" },
   { query: "?page=open", text: "Open 持仓参考" },
+  { query: "?page=watchlist", text: "注册后查看" },
   { query: "?page=dca1", text: "登录后查看定投产品" },
   { query: "?page=dca2", text: "登录后查看定投产品" },
   { query: "?page=bottom", text: "登录后查看定投产品" },
+  { query: "?page=courses", text: "实战课程" },
+  { query: "?page=funding", text: "资金费套利扫描" },
   { query: "?page=forum", text: "论坛讨论区" },
 ];
 const selectedRouteCases = dcaOnly
