@@ -10,6 +10,7 @@
 - `docs/database.md`：SQLite 数据库边界和迁移方向。
 - `docs/automation.md`：数据刷新任务。
 - `docs/release-flow.md`：dev / prod 发布流程。
+- `docs/code-management.md`：分支基线、遗留分支判定和防覆盖规则。
 - `docs/mockup-workflow.md`：页面出图流程。
 
 改页面先看产品文档，改代码先看架构文档。
