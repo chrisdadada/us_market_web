@@ -5467,7 +5467,7 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
       .then((payload) => {
         applyScannerPayload(payload);
       })
-      .catch((err) => setError(err?.message || "扫描失败"))
+      .catch(() => setError("扫描暂时不可用，请稍后重试"))
       .finally(() => setLoading(false));
   }, [isAdmin, scannerQuery]);
 
@@ -5588,7 +5588,7 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
                 </tr>
               ))}
               {!visibleRows.length ? (
-                <tr><td colSpan={12} className="fundingScannerEmpty">没有符合条件的结果</td></tr>
+                <tr><td colSpan={12} className="fundingScannerEmpty">{loading ? "正在扫描..." : error ? "扫描未完成" : "没有符合条件的结果"}</td></tr>
               ) : null}
             </tbody>
           </table>

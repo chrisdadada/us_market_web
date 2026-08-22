@@ -452,6 +452,35 @@ try {
   assert(openFailureCount === 2, "Open portfolio retry should make one new request");
   await page.unroute("**/api/open-portfolio", failOpenOnce);
 
+  await page.unroute("**/api/auth/status");
+  await page.route("**/api/auth/status", (route) => route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({
+      authenticated: true,
+      user: { id: 1, email: "admin@example.test", role: "admin", plan: "yearly", onboardingSeenAt: "2026-08-01 12:00:00" },
+      entitlements: { paid: true, pro: true, proPlus: true, admin: true, yearly: true },
+    }),
+  }));
+  let fundingFailureCount = 0;
+  const failFundingOnce = async (route) => {
+    fundingFailureCount += 1;
+    if (fundingFailureCount <= 2) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ rows: [], updated_at: "2026-08-22 12:00:00", stale: false }) });
+  };
+  await page.route("**/api/tools/funding-arbitrage?**", failFundingOnce);
+  await page.goto(`${server.rootUrl}?page=funding`, { waitUntil: "networkidle" });
+  assert(await page.locator(".fundingScannerError").isVisible(), "Funding scanner failure should show an error state");
+  assert((await page.locator(".fundingScannerEmpty").innerText()) === "扫描未完成", "Funding scanner failure should not look like an empty result");
+  assert((await page.locator("body").innerText()).includes("temporary failure") === false, "Funding scanner should not expose a technical error");
+  await page.getByRole("button", { name: "刷新", exact: true }).click();
+  await page.getByText("没有符合条件的结果", { exact: true }).waitFor({ state: "visible" });
+  assert((await page.locator(".fundingScannerEmpty").innerText()) === "没有符合条件的结果", "Funding scanner should show the empty state only after a successful scan");
+  assert(fundingFailureCount === 3, "Funding scanner retry should make one new request after its two initial requests");
+  await page.unroute("**/api/tools/funding-arbitrage?**", failFundingOnce);
+
   await page.goto(`${server.rootUrl}?page=dca1`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca1-strategy-page']").isVisible(), "Paid DCA 1 page should be visible");
   const dca1Action = await page.locator(".dcaDecisionContent strong").innerText();
