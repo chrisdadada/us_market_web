@@ -341,6 +341,81 @@ try {
   assert(watchlistFailureCount === 2, "Watchlist retry should make one new request");
   await page.unroute("**/api/watchlist", failWatchlistOnce);
 
+  let detailFailureCount = 0;
+  const failDetailOnce = async (route) => {
+    detailFailureCount += 1;
+    if (detailFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        profile: { symbol: "ZZZZ", company: "Test Company", sector: "科技", price: 100 },
+        marketRows: [],
+        peers: [],
+        events: [],
+        earnings: [],
+        strength: null,
+      }),
+    });
+  };
+  await page.route("**/api/product/symbols/ZZZZ", failDetailOnce);
+  await page.goto(`${server.rootUrl}?page=stocks&symbol=ZZZZ`, { waitUntil: "networkidle" });
+  assert(await page.locator(".trackingDetailEmpty").isVisible(), "Stock detail failure should show a retry action");
+  assert((await page.locator("body").innerText()).includes("temporary failure") === false, "Stock detail should not expose a technical error");
+  await page.locator(".trackingDetailEmpty .requestRetry").click();
+  await page.locator(".trackingDetailQuote").waitFor({ state: "visible" });
+  assert(detailFailureCount === 2, "Stock detail retry should make one new request");
+  await page.unroute("**/api/product/symbols/ZZZZ", failDetailOnce);
+
+  let watchlistStatusFailureCount = 0;
+  const failWatchlistStatusOnce = async (route) => {
+    watchlistStatusFailureCount += 1;
+    if (watchlistStatusFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ rows: [] }) });
+  };
+  await page.route("**/api/watchlist", failWatchlistStatusOnce);
+  await page.goto(`${server.rootUrl}?page=stocks&symbol=ZZZZ`, { waitUntil: "networkidle" });
+  assert(await page.locator(".stockPreviewWatchlist .requestRetry").isVisible(), "Watchlist status failure should stop the add action and show retry");
+  assert((await page.locator("body").innerText()).includes("temporary failure") === false, "Watchlist status should not expose a technical error");
+  await page.locator(".stockPreviewWatchlist .requestRetry").click();
+  await page.getByRole("button", { name: "加入自选", exact: true }).waitFor({ state: "visible" });
+  assert(watchlistStatusFailureCount === 2, "Watchlist status retry should make one new request");
+  await page.unroute("**/api/watchlist", failWatchlistStatusOnce);
+
+  let cryptoFailureCount = 0;
+  const failCryptoOnce = async (route) => {
+    cryptoFailureCount += 1;
+    if (cryptoFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        asOf: "2026-08-21",
+        assets: {
+          BTC: { latestDate: "2026-08-21", latestFlowUsd: 1, flow5dUsd: 2, flow21dUsd: 3, history: [] },
+          ETH: { latestDate: "2026-08-21", latestFlowUsd: 1, flow5dUsd: 2, flow21dUsd: 3, history: [] },
+        },
+        history: [{ date: "2026-08-21", btcFlowUsd: 1, ethFlowUsd: 1, totalFlowUsd: 2 }],
+      }),
+    });
+  };
+  await page.route("**/api/product/raw/crypto-etf-flows", failCryptoOnce);
+  await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
+  await page.getByRole("tab", { name: "加密 ETF", exact: true }).evaluate((element) => element.click());
+  assert(await page.locator(".cryptoEtfState").isVisible(), "Crypto ETF failure should show a retry action");
+  assert((await page.locator("body").innerText()).includes("temporary failure") === false, "Crypto ETF should not expose a technical error");
+  await page.locator(".cryptoEtfState .requestRetry").click();
+  await page.locator(".cryptoEtfView").waitFor({ state: "visible" });
+  assert(cryptoFailureCount === 2, "Crypto ETF retry should make one new request");
+  await page.unroute("**/api/product/raw/crypto-etf-flows", failCryptoOnce);
+
   let openFailureCount = 0;
   const failOpenOnce = async (route) => {
     openFailureCount += 1;

@@ -2324,6 +2324,7 @@ function StockDetailPage({
 }) {
   const [detail, setDetail] = useState<SymbolDetailPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reload, setReload] = useState(0);
   const activeSymbol = symbol.trim().toUpperCase();
   const row = rows.find((item) => item.symbol === activeSymbol) || null;
   const profile = detail?.profile;
@@ -2381,10 +2382,10 @@ function StockDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [activeSymbol]);
+  }, [activeSymbol, reload]);
 
   if (!profile && !row && loading) return <div className="trackingDetailPage"><div className="loading" /></div>;
-  if (!profile && !row) return <div className="trackingDetailPage"><button type="button" className="trackingDetailBack" onClick={onBack}>返回{backLabel}</button><div className="trackingDetailEmpty"><strong>股票详情加载失败</strong></div></div>;
+  if (!profile && !row) return <div className="trackingDetailPage"><button type="button" className="trackingDetailBack" onClick={onBack}>返回{backLabel}</button><div className="trackingDetailEmpty"><strong>股票详情加载失败</strong><button type="button" className="trackingDetailBack requestRetry" onClick={() => setReload((value) => value + 1)}>重新加载</button></div></div>;
 
   return (
     <div className="trackingDetailPage">
@@ -3114,8 +3115,8 @@ function CryptoEtfFlowView() {
       .then((data) => {
         if (alive) setPayload(data);
       })
-      .catch((reason) => {
-        if (alive) setError(reason instanceof Error ? reason.message : "加载失败");
+      .catch(() => {
+        if (alive) setError("加密 ETF 数据加载失败");
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -3128,7 +3129,7 @@ function CryptoEtfFlowView() {
 
   if (loading) return <div className="cryptoEtfState">加载中</div>;
   if (error || !payload?.assets?.BTC || !payload?.assets?.ETH) {
-    return <div className="cryptoEtfState"><span>{error || "暂无数据"}</span><button type="button" onClick={() => setRequestId((value) => value + 1)}>重新加载</button></div>;
+    return <div className="cryptoEtfState"><span>{error || "加密 ETF 数据暂不可用"}</span><button type="button" className="requestRetry" onClick={() => setRequestId((value) => value + 1)}>重新加载</button></div>;
   }
 
   const rangeInvalid = Boolean(startDate && endDate && startDate > endDate);
@@ -3514,20 +3515,27 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
 function AddToWatchlistButton({ symbol }: { symbol: string }) {
   const [active, setActive] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setActive(false);
+    setLoading(true);
     setError("");
     api.watchlist()
       .then((payload) => {
         if (!cancelled) setActive(payload.rows.some((item) => item.symbol === symbol));
       })
       .catch(() => {
-        if (!cancelled) setError("自选状态读取失败");
+        if (!cancelled) setError("自选状态加载失败");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [symbol]);
+  }, [symbol, reload]);
 
   const add = async () => {
     setBusy(true);
@@ -3535,8 +3543,8 @@ function AddToWatchlistButton({ symbol }: { symbol: string }) {
     try {
       await api.addWatchlist(symbol, "股票详情");
       setActive(true);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "添加失败");
+    } catch {
+      setError("添加失败，请重试");
     } finally {
       setBusy(false);
     }
@@ -3544,7 +3552,11 @@ function AddToWatchlistButton({ symbol }: { symbol: string }) {
 
   return (
     <span className="stockPreviewWatchlist">
-      <button type="button" disabled={active || busy} onClick={() => void add()}>{active ? "已在自选" : busy ? "添加中" : "加入自选"}</button>
+      {error ? (
+        <button type="button" className="requestRetry" onClick={() => setReload((value) => value + 1)}>重新加载</button>
+      ) : (
+        <button type="button" disabled={active || busy || loading} onClick={() => void add()}>{active ? "已在自选" : busy ? "添加中" : loading ? "读取中" : "加入自选"}</button>
+      )}
       {error ? <em role="alert">{error}</em> : null}
     </span>
   );
