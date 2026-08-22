@@ -359,6 +359,30 @@ try {
   assert(watchlistFailureCount === 2, "Watchlist retry should make one new request");
   await page.unroute("**/api/watchlist", failWatchlistOnce);
 
+  let watchlistWriteGets = 0;
+  const failWatchlistRefreshAfterSave = async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ ok: true, saved: 1, skipped: 0 }) });
+      return;
+    }
+    watchlistWriteGets += 1;
+    if (watchlistWriteGets === 2) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ rows: [] }) });
+  };
+  await page.route("**/api/watchlist", failWatchlistRefreshAfterSave);
+  await page.goto(`${server.rootUrl}?page=watchlist`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "添加股票", exact: true }).click();
+  await page.getByPlaceholder("输入股票代码，如 NVDA").fill("NVDA");
+  await page.getByRole("button", { name: "确认添加", exact: true }).click();
+  await page.locator(".watchlistDataError").waitFor({ state: "visible" });
+  const watchlistWriteFailureText = await page.locator(".watchlistDataError").innerText();
+  assert(watchlistWriteFailureText.includes("NVDA 已加入自选，请重新加载列表"), "A failed refresh must not report a successful watchlist write as failed");
+  assert(watchlistWriteFailureText.includes("添加失败") === false, "A successful watchlist write must not show an operation failure");
+  await page.unroute("**/api/watchlist", failWatchlistRefreshAfterSave);
+
   let detailFailureCount = 0;
   const failDetailOnce = async (route) => {
     detailFailureCount += 1;

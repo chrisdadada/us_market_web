@@ -4275,6 +4275,15 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
       .finally(() => setLoading(false));
   }, [refresh]);
 
+  const refreshAfterSave = async (successText: string) => {
+    setMessage({ tone: "ok", text: successText });
+    try {
+      await refresh();
+    } catch {
+      setLoadFailed(true);
+    }
+  };
+
   useEffect(() => {
     if (!enabled) {
       setLoading(false);
@@ -4318,8 +4327,7 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
       await api.addWatchlist(symbol);
       setNewSymbol("");
       setAdding(false);
-      await refresh();
-      setMessage({ tone: "ok", text: `${symbol} 已加入自选` });
+      await refreshAfterSave(`${symbol} 已加入自选`);
     } catch {
       setMessage({ tone: "error", text: "添加失败，请重试" });
     } finally {
@@ -4332,8 +4340,7 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
     setMessage(null);
     try {
       await api.reviewWatchlist(symbol, action);
-      await refresh();
-      setMessage({ tone: "ok", text: `${symbol} 复盘状态已更新` });
+      await refreshAfterSave(`${symbol} 复盘状态已更新`);
     } catch {
       setMessage({ tone: "error", text: "更新失败，请重试" });
     } finally {
@@ -4347,8 +4354,7 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
     try {
       await api.removeWatchlist(symbol);
       setRemoveSymbol("");
-      await refresh();
-      setMessage({ tone: "ok", text: `${symbol} 已移除` });
+      await refreshAfterSave(`${symbol} 已移除`);
     } catch {
       setMessage({ tone: "error", text: "移除失败，请重试" });
     } finally {
@@ -4364,8 +4370,7 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
       const result = await api.importWatchlist(payload);
       localStorage.setItem(watchlistImportDismissedKey, "1");
       setLegacyItems([]);
-      await refresh();
-      setMessage({ tone: "ok", text: `已导入 ${result.saved} 只旧版自选${result.skipped ? `，${result.skipped} 只代码已失效` : ""}` });
+      await refreshAfterSave(`已导入 ${result.saved} 只旧版自选${result.skipped ? `，${result.skipped} 只代码已失效` : ""}`);
     } catch {
       setMessage({ tone: "error", text: "导入失败，请重试" });
     } finally {
@@ -4385,7 +4390,7 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
     return (
       <section className="watchlistPage compactProductPage">
         <div className="marketToolError compact watchlistDataError" role="alert">
-          <span>自选数据加载失败</span>
+          <span>{message?.tone === "ok" ? `${message.text}，请重新加载列表` : "自选数据加载失败"}</span>
           <button type="button" className="requestRetry" onClick={() => void load()}>重新加载</button>
         </div>
       </section>
