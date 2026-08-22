@@ -33,6 +33,8 @@ assert.match(calendarCss, /\.topbar\.calendarTopbar\s*\{[^}]*height:\s*64px\s*!i
 assert.match(calendarCss, /\.topbar\.calendarTopbar \.accountMenu,\s*\.topbar\.calendarTopbar > \.accountButton\s*\{[^}]*position:\s*relative[^}]*top:\s*auto[^}]*right:\s*auto/s);
 assert.match(rollingCss, /\.rollingToolPage\s*\{[^}]*align-content:\s*start/s);
 assert.match(rollingCss, /\.rollingInlineQuote\s*\{[^}]*white-space:\s*nowrap/s);
+assert.match(marketFundsCss, /\.cryptoEtfView \.marketSegment\s*\{[^}]*display:\s*inline-flex[^}]*height:\s*34px/s);
+assert.match(marketFundsCss, /\.cryptoEtfView \.marketSegment button\.active\s*\{[^}]*background:\s*#fff[^}]*color:\s*#1677e8/s);
 assert.doesNotMatch(css, /\.(?:calendar[A-Za-z0-9_-]*|stocksPage|stockLibrary[A-Za-z0-9_-]*|market[A-Za-z0-9_-]*V3|marketViewTabs|cryptoEtf[A-Za-z0-9_-]*|tracking[A-Za-z0-9_-]*|opinion[A-Za-z0-9_-]*)/);
 assert.deepEqual(duplicateSelectors(calendarCss, "calendar.css"), []);
 assert.deepEqual(duplicateSelectors(stocksCss, "stocks.css"), []);

@@ -991,6 +991,43 @@
   font-weight: 650;
 }
 
+.cryptoEtfView .marketSegment {
+  display: inline-flex;
+  height: 34px;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #d7e1ed;
+  border-radius: 7px;
+  padding: 2px;
+  background: #f3f6fa;
+}
+
+.cryptoEtfView .marketSegment button {
+  height: 28px;
+  min-width: 54px;
+  border: 0;
+  border-radius: 5px;
+  padding: 0 12px;
+  background: transparent;
+  color: #65748a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cryptoEtfView .marketSegment button.active {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(32, 53, 83, .14);
+  color: #1677e8;
+}
+
+.cryptoEtfView .marketSegment button:focus-visible {
+  outline: 2px solid #8ec2ff;
+  outline-offset: 1px;
+}
+
 .cryptoEtfDateRange {
   position: relative;
 }
@@ -1270,6 +1307,11 @@
   .cryptoEtfChartTools {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .cryptoEtfView .marketSegment button {
+    min-width: 48px;
+    padding: 0 9px;
   }
 
   .cryptoEtfChart {

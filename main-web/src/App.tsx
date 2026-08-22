@@ -3038,10 +3038,10 @@ function CryptoEtfFlowView() {
 
       <section className="cryptoEtfChartPanel">
         <header className="cryptoEtfPanelHead">
-          <div className="cryptoEtfPanelTitle"><strong>资金趋势</strong><div className="marketSegment"><button type="button" className={asset === "BTC" ? "active" : ""} onClick={() => setAsset("BTC")}>BTC</button><button type="button" className={asset === "ETH" ? "active" : ""} onClick={() => setAsset("ETH")}>ETH</button></div></div>
+          <div className="cryptoEtfPanelTitle"><strong>资金趋势</strong><div className="marketSegment" role="group" aria-label="图表资产"><button type="button" className={asset === "BTC" ? "active" : ""} aria-pressed={asset === "BTC"} onClick={() => setAsset("BTC")}>BTC</button><button type="button" className={asset === "ETH" ? "active" : ""} aria-pressed={asset === "ETH"} onClick={() => setAsset("ETH")}>ETH</button></div></div>
           <div className="cryptoEtfChartTools">
-            <div className="marketSegment">
-              {([['day', '单日'], ['week', '单周'], ['month', '单月']] as const).map(([value, label]) => <button type="button" key={value} className={interval === value ? "active" : ""} onClick={() => setInterval(value)}>{label}</button>)}
+            <div className="marketSegment" role="group" aria-label="时间粒度">
+              {([['day', '单日'], ['week', '单周'], ['month', '单月']] as const).map(([value, label]) => <button type="button" key={value} className={interval === value ? "active" : ""} aria-pressed={interval === value} onClick={() => setInterval(value)}>{label}</button>)}
             </div>
             <details ref={dateRangeRef} className="cryptoEtfDateRange">
               <summary className={startDate || endDate ? "active" : ""}>日期范围</summary>
@@ -3060,7 +3060,7 @@ function CryptoEtfFlowView() {
       </section>
 
       <section className="cryptoEtfHistory">
-        <div className="cryptoEtfPanelHead"><strong>资金明细</strong><div className="marketSegment"><button type="button" className={tableAsset === "BTC" ? "active" : ""} onClick={() => setTableAsset("BTC")}>BTC</button><button type="button" className={tableAsset === "ETH" ? "active" : ""} onClick={() => setTableAsset("ETH")}>ETH</button><button type="button" className={tableAsset === "all" ? "active" : ""} onClick={() => setTableAsset("all")}>全部</button></div></div>
+        <div className="cryptoEtfPanelHead"><strong>资金明细</strong><div className="marketSegment" role="group" aria-label="明细资产"><button type="button" className={tableAsset === "BTC" ? "active" : ""} aria-pressed={tableAsset === "BTC"} onClick={() => setTableAsset("BTC")}>BTC</button><button type="button" className={tableAsset === "ETH" ? "active" : ""} aria-pressed={tableAsset === "ETH"} onClick={() => setTableAsset("ETH")}>ETH</button><button type="button" className={tableAsset === "all" ? "active" : ""} aria-pressed={tableAsset === "all"} onClick={() => setTableAsset("all")}>全部</button></div></div>
         <div className="cryptoEtfTableScroll"><table>
           <thead><tr><th>日期</th>{tableAsset === "all" || tableAsset === "BTC" ? <th>BTC净流量</th> : null}{tableAsset === "all" || tableAsset === "ETH" ? <th>ETH净流量</th> : null}{tableAsset === "all" ? <th>合计</th> : null}<th>资金方向</th></tr></thead>
           <tbody>{tableRows.map((row) => {
