@@ -9,10 +9,11 @@ from pathlib import Path
 
 try:
     import pandas as pd
-    from scripts.build_tracking_pool import KEY_LEVEL_MIN_BARS, build_key_levels
+    from scripts.build_tracking_pool import KEY_LEVEL_MIN_BARS, _breakout_confirmation, build_key_levels
 except ModuleNotFoundError:
     pd = None
     KEY_LEVEL_MIN_BARS = 90
+    _breakout_confirmation = None
     build_key_levels = None
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
@@ -33,7 +34,67 @@ def sample_bars(count: int) -> pd.DataFrame:
     )
 
 
+def breakout_fixture() -> tuple[dict, pd.DataFrame]:
+    closes = [103.0, 104.0, 103.0, 97.0, 96.0]
+    lows = [102.0, 103.0, 99.0, 96.0, 95.0]
+    dates = pd.bdate_range("2026-01-02", periods=25 + len(closes))
+    bars = pd.DataFrame(
+        {
+            "trade_date": dates.strftime("%Y-%m-%d"),
+            "adj_high": [98.0] * 25 + [value + 1 for value in closes],
+            "adj_low": [92.0] * 25 + lows,
+            "adj_close": [95.0] * 25 + closes,
+            "adj_volume": [1_000_000] * (25 + len(closes)),
+        }
+    )
+    cluster = {
+        "center": 100.0,
+        "points": [{"date": str(dates[24].date()), "price": 100.0, "type": "high"}],
+    }
+    return cluster, bars
+
+
 class TrackingKeyLevelsTest(unittest.TestCase):
+    @unittest.skipIf(_breakout_confirmation is None, "pandas is available in the quant environment")
+    def test_breakout_confirmation_uses_only_bars_available_at_each_date(self) -> None:
+        cluster, bars = breakout_fixture()
+        expected = {
+            26: "breakout_watch",
+            27: "awaiting_retest",
+            28: "confirmed_support",
+            29: "confirmed_support",
+            30: "breakout_failed",
+        }
+
+        for end, status in expected.items():
+            with self.subTest(end=end, status=status):
+                confirmation = _breakout_confirmation(cluster, bars.iloc[:end].copy(), 8.0)
+                self.assertIsNotNone(confirmation)
+                self.assertEqual(confirmation["status"], status)
+
+    @unittest.skipIf(_breakout_confirmation is None, "pandas is available in the quant environment")
+    def test_non_resistance_cluster_does_not_emit_breakout_confirmation(self) -> None:
+        cluster, bars = breakout_fixture()
+        cluster["points"][0]["type"] = "low"
+
+        self.assertIsNone(_breakout_confirmation(cluster, bars, 8.0))
+
+    @unittest.skipIf(_breakout_confirmation is None, "pandas is available in the quant environment")
+    def test_unconfirmed_breakout_expires_after_retest_window(self) -> None:
+        cluster, bars = breakout_fixture()
+        extension = pd.DataFrame(
+            {
+                "trade_date": pd.bdate_range("2026-02-13", periods=22).strftime("%Y-%m-%d"),
+                "adj_high": [106.0] * 22,
+                "adj_low": [103.0] * 22,
+                "adj_close": [105.0] * 22,
+                "adj_volume": [1_000_000] * 22,
+            }
+        )
+        waiting = pd.concat([bars.iloc[:27], extension], ignore_index=True)
+
+        self.assertIsNone(_breakout_confirmation(cluster, waiting, 8.0))
+
     @unittest.skipIf(build_key_levels is None, "pandas is available in the quant environment")
     def test_insufficient_history_does_not_emit_levels(self) -> None:
         levels, history = build_key_levels(sample_bars(30), "2026-07-22")

@@ -178,6 +178,13 @@ function trackingFixture(board, includeAnalysis) {
         support: { center: 100, lower: 99, upper: 101, strength: "strong", strengthText: "强", touches: 3, basis: "近120日出现 3 次确认", lastConfirmedAt: "2026-07-08" },
         secondarySupport: { center: 95, lower: 94, upper: 96, strength: "medium", strengthText: "中", touches: 2, basis: "近120日出现 2 次确认", lastConfirmedAt: "2026-06-18" },
         resistance: { center: 110, lower: 109, upper: 111, strength: "converting", strengthText: "转换中", touches: 1, basis: "原支撑跌破后，等待反抽确认", lastConfirmedAt: "2026-07-15" },
+        breakoutConfirmation: {
+          status: "awaiting_retest",
+          level: { center: 104, lower: 103, upper: 105, strength: "medium", strengthText: "中", touches: 2, basis: "近120日出现 2 次确认", lastConfirmedAt: "2026-07-11" },
+          eventAt: "2026-07-21",
+          breakoutAt: "2026-07-18",
+          confirmedAt: "2026-07-21",
+        },
         position: "near_resistance",
         positionText: "接近阻力",
         supportDistancePct: 6.3,
@@ -663,10 +670,14 @@ try {
         const aaplRow = page.locator(".trackingPage .screenerTable tbody tr", { hasText: "AAPL" });
         assert((await aaplRow.innerText()).includes("$100.00"), "paid tracking row should show support");
         assert((await aaplRow.innerText()).includes("$110.00"), "paid tracking row should show resistance");
+        assert(!(await aaplRow.innerText()).includes("等待回踩"), "tracking list should keep breakout confirmation in detail");
         await aaplRow.locator(".screenerLink").click();
         await page.waitForSelector(".trackingDetailMain");
         assert(await page.locator(".trackingPriceChart svg").count() === 1, "tracking detail should show the price chart");
-        assert((await page.locator(".trackingDetailMain").innerText()).includes("支撑区"), "tracking detail should show level evidence");
+        const trackingDetailText = await page.locator(".trackingDetailMain").innerText();
+        assert(trackingDetailText.includes("等待回踩"), "tracking detail should show the breakout confirmation stage");
+        assert(trackingDetailText.includes("回踩观察区"), "tracking detail should show the candidate zone");
+        assert(trackingDetailText.includes("现有支撑"), "tracking detail should keep the established support visible");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail.png`, fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(300);
