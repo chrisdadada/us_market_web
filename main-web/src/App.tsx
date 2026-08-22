@@ -1160,8 +1160,8 @@ function App() {
             ) : null}
             {page === "stocks" && !selectedSymbol ? <StocksPage signalStates={signalStates} onSelectSymbol={(nextSymbol) => selectSymbol(nextSymbol, "stocks")} /> : null}
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
-            {page === "open" ? <OpenPortfolioPage /> : null}
-            {page === "watchlist" ? <WatchlistPage onOpenStock={selectSymbol} /> : null}
+            {page === "open" ? <OpenPortfolioPage enabled={pageUnlocked} /> : null}
+            {page === "watchlist" ? <WatchlistPage enabled={pageUnlocked} onOpenStock={selectSymbol} /> : null}
             {page === "dca1" ? <ValueDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
             {page === "dca2" ? <ReversalDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
             {page === "position" ? <PositionSizingPage /> : null}
@@ -4158,7 +4158,7 @@ function watchlistTrend(row?: SymbolRow) {
   return { label: "无明确信号", className: "neutral" };
 }
 
-function WatchlistPage({ onOpenStock }: { onOpenStock: (symbol: string, source?: StockSource) => void }) {
+function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: StockSource) => void }) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [profiles, setProfiles] = useState<Record<string, SymbolRow>>({});
   const [query, setQuery] = useState("");
@@ -4189,6 +4189,7 @@ function WatchlistPage({ onOpenStock }: { onOpenStock: (symbol: string, source?:
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     void refresh().catch((error) => setMessage({ tone: "error", text: error instanceof Error ? error.message : "自选加载失败" }));
     if (localStorage.getItem(watchlistImportDismissedKey)) return;
     try {
@@ -4199,7 +4200,7 @@ function WatchlistPage({ onOpenStock }: { onOpenStock: (symbol: string, source?:
     } catch {
       localStorage.removeItem(legacyWatchlistStorageKey);
     }
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   const stats = useMemo(() => ({
     due: items.filter(watchlistIsDue).length,
@@ -4714,7 +4715,7 @@ function openCurvePath(points: OpenPortfolioPayload["curve"]) {
   return { line, area: `${line} L${width},${height} L0,${height} Z` };
 }
 
-function OpenPortfolioPage() {
+function OpenPortfolioPage({ enabled }: { enabled: boolean }) {
   const [data, setData] = useState<OpenPortfolioPayload | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -4753,6 +4754,10 @@ function OpenPortfolioPage() {
   const historyRows = (data?.trades || []).slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     api.openPortfolio()
       .then((payload) => {
@@ -4762,7 +4767,7 @@ function OpenPortfolioPage() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : "读取失败"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [enabled]);
 
   return (
     <div className="openPortfolioPage">
@@ -5347,7 +5352,7 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
   }, [isAdmin, scannerQuery]);
 
   useEffect(() => {
-    if (loadedOnce) return;
+    if (!isAdmin || loadedOnce) return;
     setLoadedOnce(true);
     const query = scannerQuery(true);
     if (query) {

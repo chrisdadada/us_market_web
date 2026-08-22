@@ -205,6 +205,10 @@ async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/auth/status") return authProfile;
   if (url.pathname === "/api/auth/logout") return { ok: true };
   if (url.pathname === "/api/open-portfolio") return { curve: [], holdings: [], trades: [] };
+  if (url.pathname === "/api/watchlist") return { rows: [] };
+  if (url.pathname === "/api/courses") return { series: [] };
+  if (url.pathname === "/api/tools/funding-arbitrage") return { rows: [], updated_at: "2026-08-22 12:00:00", stale: false };
+  if (url.pathname === "/api/product/raw/index-valuation") return readDataset("index-valuation");
   if (url.pathname === "/api/tools/dca-strategies") {
     const bottom = JSON.parse(await readFile(join(root, "server", "bottom_strategy.json"), "utf8"));
     const qqq = bottom.markets.QQQ;
@@ -444,6 +448,8 @@ const scenarios = [
   { profile: "anonymous", page: "market", present: [gates.open] },
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
   { profile: "anonymous", page: "risk", present: ["注册后查看"] },
+  { profile: "anonymous", page: "valuation", present: ["注册后查看"], absentSelector: ".valuationPanel" },
+  { profile: "anonymous", page: "watchlist", present: ["注册后查看"] },
   { profile: "anonymous", page: "position", present: [gates.open] },
   { profile: "anonymous", page: "rolling", present: [gates.open] },
   { profile: "anonymous", page: "dca1", present: ["登录后查看定投产品"] },
@@ -454,6 +460,9 @@ const scenarios = [
   { profile: "free", page: "open", present: [gates.open] },
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
+  { profile: "free", page: "valuation", presentSelector: "[data-testid='index-valuation-page']", absent: Object.values(gates) },
+  { profile: "free", page: "watchlist", presentSelector: ".watchlistPage", present: ["还没有自选"], absent: Object.values(gates) },
+  { profile: "free", page: "funding", presentSelector: ".fundingLockedPanel", present: ["当前账号暂未开通该工具"] },
   { profile: "free", page: "position", present: [gates.open] },
   { profile: "free", page: "rolling", present: [gates.open] },
   { profile: "free", page: "dca1", presentSelector: ".dcaGate", present: ["开通查看操作参考"] },
@@ -470,6 +479,7 @@ const scenarios = [
   { profile: "monthly", page: "rolling", present: [gates.open], absentSelector: "[data-testid='rolling-tool-page']" },
   { profile: "monthly", page: "dca1", presentSelector: "[data-testid='dca1-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
   { profile: "monthly", page: "dca2", presentSelector: "[data-testid='dca2-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
+  { profile: "monthly", page: "courses", presentSelector: ".coursesPage", present: ["暂无课程"] },
   { profile: "yearly", page: "opinions", absent: Object.values(gates) },
   { profile: "yearly", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "yearly", page: "open", absent: [gates.open] },
@@ -482,6 +492,7 @@ const scenarios = [
   { profile: "admin", page: "market", absent: Object.values(gates) },
   { profile: "admin", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
   { profile: "admin", page: "rolling", presentSelector: "[data-testid='rolling-tool-page']", absent: Object.values(gates) },
+  { profile: "admin", page: "funding", presentSelector: ".fundingScannerPage", present: ["没有符合条件的结果"], absentSelector: ".fundingLockedPanel" },
 ];
 const selectedScenarios = dcaOnly
   ? scenarios.filter((item) => ["dca1", "dca2"].includes(item.page) && ["anonymous", "free", "monthly"].includes(item.profile))
@@ -556,6 +567,20 @@ try {
             assert(await page.locator(".readerMemberPreview i").count() === 0, "opinion detail should not show a lock icon");
             assert((await page.locator(".readerMemberPreview").innerText()).includes("查看完整观点"), "opinion detail should keep one clear next action");
           }
+          if (baseUrl === server.rootUrl && scenario.page === "valuation" && profileName === "free") {
+            await page.waitForSelector(".valuationPanel");
+            await page.getByRole("button", { name: "近10年" }).click();
+            assert(await page.getByRole("button", { name: "近10年" }).evaluate((element) => element.classList.contains("active")), "valuation range should be interactive");
+          }
+          if (baseUrl === server.rootUrl && scenario.page === "watchlist" && profileName === "free") {
+            await page.getByRole("button", { name: "添加股票" }).click();
+            await page.waitForSelector(".watchlistAddForm");
+            assert(await page.getByPlaceholder("输入股票代码，如 NVDA").isVisible(), "watchlist should open its add form");
+          }
+          if (baseUrl === server.rootUrl && scenario.page === "funding" && profileName === "admin") {
+            assert(await page.getByRole("button", { name: "刷新", exact: true }).isVisible(), "admin funding scanner should expose refresh controls");
+            assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "funding scanner should not overflow horizontally");
+          }
         }
       }
       const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
@@ -564,6 +589,26 @@ try {
       }
       if (fullQa && profileName === "monthly") {
         assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
+      }
+      if (fullQa) {
+        const requestCount = (path) => server.apiRequests.filter((item) => item === path).length;
+        if (profileName === "anonymous") {
+          assert(requestCount("/api/product/raw/index-valuation") === 0, "anonymous visitor should not request registered valuation data");
+          assert(requestCount("/api/watchlist") === 0, "anonymous visitor should not request account watchlist data");
+          assert(requestCount("/api/open-portfolio") === 0, "anonymous visitor should not request yearly portfolio data");
+        }
+        if (profileName === "free") {
+          assert(requestCount("/api/product/raw/index-valuation") > 0, "registered user should request valuation data");
+          assert(requestCount("/api/watchlist") > 0, "registered user should request watchlist data");
+          assert(requestCount("/api/open-portfolio") === 0, "free user should not request yearly portfolio data");
+          assert(requestCount("/api/tools/funding-arbitrage") === 0, "non-admin user should not request the admin funding scanner");
+        }
+        if (profileName === "monthly") {
+          assert(requestCount("/api/open-portfolio") === 0, "monthly user should not request yearly portfolio data");
+          assert(requestCount("/api/courses") > 0, "signed-in user should request the course catalog");
+        }
+        if (profileName === "yearly") assert(requestCount("/api/open-portfolio") > 0, "yearly user should request portfolio data");
+        if (profileName === "admin") assert(requestCount("/api/tools/funding-arbitrage") > 0, "admin should request the funding scanner");
       }
       if (!dcaOnly && profileName === "yearly") {
         await page.setViewportSize({ width: 1440, height: 1000 });
