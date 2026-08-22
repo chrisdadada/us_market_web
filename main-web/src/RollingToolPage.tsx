@@ -94,6 +94,8 @@ export default function RollingToolPage() {
   const [plans, setPlans] = useState<RollingPlan[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reload, setReload] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [marketError, setMarketError] = useState("");
@@ -127,7 +129,9 @@ export default function RollingToolPage() {
 
   useEffect(() => {
     let active = true;
-    refresh().catch((reason) => active && setError(reason instanceof Error ? reason.message : "计划读取失败")).finally(() => active && setLoading(false));
+    setLoading(true);
+    setLoadError("");
+    refresh().catch(() => active && setLoadError("计划暂时无法加载")).finally(() => active && setLoading(false));
     const timer = window.setInterval(() => {
       if (active) refresh().catch(() => undefined);
     }, 1500);
@@ -135,7 +139,7 @@ export default function RollingToolPage() {
       active = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     if (selectedId !== "new" || !/^[A-Z0-9]{5,20}$/.test(symbol)) {
@@ -148,9 +152,9 @@ export default function RollingToolPage() {
           setDraftQuote(quote.price);
           setMarketError("");
         })
-        .catch((reason) => {
+        .catch(() => {
           setDraftQuote(null);
-          setMarketError(reason instanceof Error ? reason.message : "Binance 行情暂时不可用");
+          setMarketError("行情暂时不可用");
         });
     }, 500);
     return () => window.clearTimeout(timer);
@@ -238,6 +242,7 @@ export default function RollingToolPage() {
   }
 
   if (loading) return <div className="rollingLoading">正在读取滚仓计划...</div>;
+  if (loadError) return <div className="marketToolError"><span>{loadError}</span><button type="button" className="requestRetry" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>;
 
   return (
     <div className="positionSizingPage rollingToolPage" data-testid="rolling-tool-page">

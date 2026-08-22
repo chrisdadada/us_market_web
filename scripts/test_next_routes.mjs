@@ -323,6 +323,24 @@ try {
     }),
   }));
 
+  let rollingFailureCount = 0;
+  const failRollingOnce = async (route) => {
+    rollingFailureCount += 1;
+    if (rollingFailureCount === 1) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary failure" }) });
+      return;
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ plans: [], marketError: "" }) });
+  };
+  await page.route("**/api/rolling/plans", failRollingOnce);
+  await page.goto(`${server.rootUrl}?page=rolling`, { waitUntil: "networkidle" });
+  assert(await page.locator(".marketToolError").isVisible(), "Rolling plan failure should not look like an empty plan list");
+  assert((await page.locator("body").innerText()).includes("temporary failure") === false, "Rolling plan failure should not expose a technical error");
+  await page.locator(".marketToolError .requestRetry").click();
+  await page.locator("[data-testid='rolling-tool-page']").waitFor({ state: "visible" });
+  assert(rollingFailureCount === 2, "Rolling plan retry should make one new request");
+  await page.unroute("**/api/rolling/plans", failRollingOnce);
+
   let watchlistFailureCount = 0;
   const failWatchlistOnce = async (route) => {
     watchlistFailureCount += 1;
