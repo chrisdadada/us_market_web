@@ -10,6 +10,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT / "data" / "product.db"
+REQUIRED_RAW_PAYLOADS = {"crypto-etf-flows", "retail-sentiment"}
 
 
 def query_one(conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ()) -> int:
@@ -91,6 +92,9 @@ def build_report(db_path: Path) -> dict[str, Any]:
             ORDER BY name
             """,
         )
+        raw_payload_names = {
+            row["name"] for row in query_rows(conn, "SELECT name FROM raw_payloads ORDER BY name")
+        }
         dataset_valuation_payload = dataset_payload(conn, "datasets", "index-valuation")
         valuation_payload = dataset_payload(conn, "raw_payloads", "index-valuation")
         qqq = next(
@@ -115,6 +119,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
         "fomcEvents": fomc_events,
         "options": options,
         "datasets": datasets,
+        "missingRequiredRawPayloads": sorted(REQUIRED_RAW_PAYLOADS - raw_payload_names),
         "indexValuation": {
             "forwardAsOf": forward.get("asOf"),
             "forwardHistoricalAsOf": forward.get("historicalAsOf"),
@@ -176,6 +181,8 @@ def validate(report: dict[str, Any], args: argparse.Namespace) -> tuple[list[str
         failures.append("QQQ forward valuation current value and history use different snapshots")
     if not valuation["payloadsMatch"]:
         failures.append("index-valuation datasets and raw_payloads are out of sync")
+    for name in report["missingRequiredRawPayloads"]:
+        failures.append(f"required raw payload is missing: {name}")
     return failures, warnings
 
 
