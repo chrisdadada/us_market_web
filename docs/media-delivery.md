@@ -17,7 +17,7 @@
 
 ## 验收工具
 
-`scripts/audit_media_delivery.py` 只读取每个对象的首字节，用于检查文件大小、Range、缓存命中和 Cloudflare Free 适配性。报告不会保存 URL 查询参数。
+`scripts/audit_media_delivery.py` 只读取每个对象的首字节，用于检查文件大小、首字节耗时、Range、缓存命中和 Cloudflare Free 适配性。报告不会保存 URL 查询参数。
 
 公开静态文件：
 
@@ -66,7 +66,7 @@ python3 scripts/audit_course_media.py \
 
 后端仅在用户通过权限校验且成功生成播放地址后记录 `course_play_grant`。它表示播放地址发放成功，不代表视频实际开始播放、观看完成或产生了多少流量；真实传输量仍以 COS / CDN 账单与访问日志为准。
 
-聚合报告只读取 dev 用户库和指定的视频元数据报告，不输出用户身份、签名地址、IP 或单次访问时间：
+聚合报告只读取 dev 用户库和指定的视频元数据报告，包含地址获取耗时档位、媒体就绪耗时档位和去重后的缓冲报告；不输出用户身份、签名地址、IP、设备或播放进度：
 
 ```bash
 python3 scripts/report_course_media_usage.py \

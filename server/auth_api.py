@@ -19,6 +19,7 @@ import xml.etree.ElementTree as ET
 from bisect import bisect_right
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
+from functools import lru_cache
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -3310,6 +3311,8 @@ def course_hls_playlist_url(lesson_id: int, video_key: str) -> str:
     return f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': course_video_key(video_key)})}"
 
 
+# HLS batches use immutable keys; segment URLs are still signed per request below.
+@lru_cache(maxsize=256)
 def fetch_course_cos_text(key: str) -> str:
     request = urllib.request.Request(
         signed_course_cos_url(key, method="get", ttl=120),
