@@ -15,6 +15,7 @@ MARKET_FUNDS_STYLES = (ROOT / "main-web/src/marketFunds.css").read_text(encoding
 TRACKING_STYLES = (ROOT / "main-web/src/tracking.css").read_text(encoding="utf-8")
 PRODUCT_CONFIG = (ROOT / "main-web/src/productConfig.ts").read_text(encoding="utf-8")
 ROLLING_TOOL = (ROOT / "main-web/src/RollingToolPage.tsx").read_text(encoding="utf-8")
+RETAIL_SENTIMENT = (ROOT / "main-web/src/RetailSentimentView.tsx").read_text(encoding="utf-8")
 DEPLOY = (ROOT / "scripts/deploy_dev.sh").read_text(encoding="utf-8")
 
 LEGACY_MIGRATION_ROUTES = {
@@ -172,12 +173,22 @@ class FrontendArchitectureTest(unittest.TestCase):
     def test_market_funds_styles_have_one_owner(self) -> None:
         self.assertNotRegex(
             MAIN_STYLES,
-            r"\.(?:market[A-Za-z0-9_-]*V3|marketViewTabs|cryptoEtf[A-Za-z0-9_-]*)",
+            r"\.(?:market[A-Za-z0-9_-]*V3|marketViewTabs|cryptoEtf[A-Za-z0-9_-]*|retailSentiment[A-Za-z0-9_-]*)",
         )
         self.assertIn(".marketPageV3", MARKET_FUNDS_STYLES)
         self.assertIn(".marketHeatmapV3", MARKET_FUNDS_STYLES)
         self.assertIn(".marketViewTabs", MARKET_FUNDS_STYLES)
         self.assertIn(".cryptoEtfView", MARKET_FUNDS_STYLES)
+        self.assertIn(".retailSentimentView", MARKET_FUNDS_STYLES)
+
+    def test_retail_sentiment_stays_plain_language_without_source_chrome(self) -> None:
+        self.assertIn(">散户情绪</button>", MAIN_APP)
+        self.assertIn('"期权交易"', RETAIL_SENTIMENT)
+        self.assertIn('"散户调查"', RETAIL_SENTIMENT)
+        self.assertIn('"融资杠杆"', RETAIL_SENTIMENT)
+        self.assertNotIn("数据口径", RETAIL_SENTIMENT)
+        self.assertNotIn("数据来源", RETAIL_SENTIMENT)
+        self.assertNotIn("Put/Call", RETAIL_SENTIMENT)
 
     def test_tracking_empty_state_hides_internal_data_thresholds(self) -> None:
         self.assertNotIn("历史数据不足", MAIN_APP)

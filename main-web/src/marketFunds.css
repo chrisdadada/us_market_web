@@ -1270,6 +1270,191 @@
   color: var(--red);
 }
 
+.retailSentimentView {
+  display: grid;
+  gap: 12px;
+}
+
+.retailSentimentSummary,
+.retailSentimentCards > button,
+.retailSentimentTrend,
+.retailSentimentState {
+  border: 1px solid var(--front-card-border);
+  border-radius: var(--front-card-radius);
+  background: var(--panel);
+  box-shadow: var(--front-card-shadow);
+}
+
+.retailSentimentSummary {
+  display: grid;
+  min-height: 72px;
+  align-items: center;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 0 18px;
+}
+
+.retailSentimentSummary span,
+.retailSentimentSummary small,
+.retailSentimentTrend header span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.retailSentimentSummary strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.retailSentimentSummary small {
+  white-space: nowrap;
+}
+
+.retailSentimentCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.retailSentimentCards > button {
+  position: relative;
+  display: grid;
+  min-height: 148px;
+  align-content: start;
+  gap: 8px;
+  border-color: var(--front-card-border);
+  padding: 15px 17px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.retailSentimentCards > button:hover,
+.retailSentimentCards > button.active {
+  border-color: #8fc2fb;
+}
+
+.retailSentimentCards > button.active {
+  box-shadow: inset 3px 0 0 var(--primary), var(--front-card-shadow);
+}
+
+.retailSentimentCards > button:focus-visible {
+  outline: 2px solid #8ec2ff;
+  outline-offset: 2px;
+}
+
+.retailSentimentCards > button > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.retailSentimentCards > button > span strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.retailSentimentCards b,
+.retailSentimentTrend header b {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.retailSentimentCards small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.retailSentimentCards em {
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.retailSentimentCards i {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.retailSentimentView .positive {
+  color: var(--green);
+}
+
+.retailSentimentView .negative {
+  color: var(--red);
+}
+
+.retailSentimentView .neutral {
+  color: var(--muted);
+}
+
+.retailSentimentTrend {
+  overflow: hidden;
+}
+
+.retailSentimentTrend header {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 0 16px;
+}
+
+.retailSentimentTrend header > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.retailSentimentTrend header strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.retailSentimentChart,
+.retailSentimentChartLoading {
+  width: 100%;
+  height: 300px;
+}
+
+.retailSentimentChartLoading {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.retailSentimentState {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.retailSentimentState button {
+  height: 32px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  padding: 0 12px;
+  background: var(--panel);
+  color: var(--primary);
+  cursor: pointer;
+}
+
 @media (max-width: 760px) {
   .marketViewTabs {
     min-height: 56px;
@@ -1347,5 +1532,48 @@
   .cryptoEtfDateRange > div {
     right: 0;
     width: min(300px, calc(100vw - 32px));
+  }
+
+  .retailSentimentSummary {
+    min-height: 90px;
+    align-content: center;
+    grid-template-columns: 1fr auto;
+    gap: 6px 12px;
+    padding: 12px 14px;
+  }
+
+  .retailSentimentSummary strong {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    line-height: 1.6;
+  }
+
+  .retailSentimentSummary small {
+    text-align: right;
+  }
+
+  .retailSentimentCards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .retailSentimentCards > button {
+    min-height: 128px;
+    padding: 13px 14px;
+  }
+
+  .retailSentimentTrend header {
+    min-height: 56px;
+    padding: 0 14px;
+  }
+
+  .retailSentimentTrend header > div {
+    display: grid;
+    gap: 3px;
+  }
+
+  .retailSentimentChart,
+  .retailSentimentChartLoading {
+    height: 260px;
   }
 }

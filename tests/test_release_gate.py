@@ -416,6 +416,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 ("macro-series", {"indicators": [{"key": "vix"}]}),
                 ("strength-scanner", {"rows": [{"symbol": "MU"}]}),
                 ("crypto-etf-flows", {"assets": {"BTC": {}, "ETH": {}}}),
+                ("retail-sentiment", {"options": {}, "survey": {}, "margin": {}}),
             ]
             conn.executemany(
                 "INSERT INTO raw_payloads (name, source_path, payload_json) VALUES (?, ?, ?)",
@@ -445,6 +446,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = free.get("/api/product/raw/crypto-etf-flows")
         self.assertEqual(status, 403, payload)
         self.assertEqual(payload["code"], "membership_required")
+        status, payload = free.get("/api/product/raw/retail-sentiment")
+        self.assertEqual(status, 403, payload)
+        self.assertEqual(payload["code"], "membership_required")
 
         admin = self.login("admin@example.test", "admin-password")
         expires_at = (date.today() + timedelta(days=30)).isoformat()
@@ -456,6 +460,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = monthly.get("/api/product/raw/crypto-etf-flows")
         self.assertEqual(status, 200, payload)
         self.assertIn("BTC", payload["assets"])
+        status, payload = monthly.get("/api/product/raw/retail-sentiment")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("options", payload)
 
     def test_product_strength_supports_paid_pagination_search_and_filters(self) -> None:
         db_path = Path(self.tempdir.name) / "product.db"
