@@ -518,7 +518,7 @@ try {
   assert(dca1Action.includes("等待机会"), `DCA 1 should show the current action; received: ${dca1Action}`);
   assert((await page.locator(".dcaAdvice").count()) === 0, "DCA pages should not repeat the action in a side panel");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 1 history chart should be visible");
-  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).includes("历史机会区间\n开始日"), "DCA 1 should explain the opportunity band and entry date");
+  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).includes("机会区\n机会日"), "DCA 1 should explain the opportunity band and opportunity date");
   assert(await page.locator(".dcaOpportunityDot").count() === 5, "DCA 1 should place each fixture opportunity on the QQQ chart");
   assert((await page.locator("[data-testid='dca-history']").innerText()).includes("历史机会\n5 次"), "DCA 1 should show its own verified opportunity count");
   assert((await page.locator("body").innerText()).includes("收益") === false, "DCA pages should not market historical returns");
@@ -529,7 +529,7 @@ try {
   await page.goto(`${server.rootUrl}?page=bottom`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca2-strategy-page']").isVisible(), "Legacy bottom route should open DCA 2");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 2 history chart should be visible");
-  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).trim() === "历史机会", "DCA 2 should identify its own historical opportunities");
+  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).trim() === "机会区\n机会日", "DCA 2 should explain the opportunity band and opportunity date");
   const dca2History = await page.locator("[data-testid='dca-history']").innerText();
   assert(dca2History.includes("+20.7%") && dca2History.includes("+30.6%"), "DCA 2 should show its verified recent history summary");
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Desktop DCA page should not overflow horizontally");
