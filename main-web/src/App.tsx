@@ -4207,6 +4207,9 @@ function CalendarEventsTable({
   );
 }
 
+type PositionMarket = "stock" | "crypto";
+type CryptoTradeKind = "spot" | "perp";
+
 type PositionHistoryItem = {
   id: string;
   symbol: string;
@@ -4219,11 +4222,34 @@ type PositionHistoryItem = {
   actualRisk: number;
   positionAmount: number;
   createdAt: string;
+  market?: PositionMarket;
+  cryptoKind?: CryptoTradeKind;
+  leverage?: number;
+  requiredMargin?: number;
 };
 
 const positionHistoryKey = "dongbimao_position_sizing_history_v2";
 const positionAccountKey = "dongbimao_position_sizing_account";
 const positionRiskKey = "dongbimao_position_sizing_risk";
+
+function positionQuantity(value: number, market: PositionMarket) {
+  return value.toLocaleString("en-US", { maximumFractionDigits: market === "crypto" ? 8 : 0 });
+}
+
+function positionCurrency(value: number | undefined | null, market: PositionMarket, price = false) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  if (market === "stock") return exactMoney(value);
+  const number = Number(value);
+  return `${number.toLocaleString("en-US", {
+    minimumFractionDigits: price && Math.abs(number) < 1 ? 4 : 2,
+    maximumFractionDigits: price ? 8 : 2
+  })} USDT`;
+}
+
+function cryptoQuantityUnit(symbol: string) {
+  const compact = symbol.replace(/[^A-Z0-9]/g, "");
+  return compact.endsWith("USDT") ? compact.slice(0, -4) || "币" : compact || "币";
+}
 
 const legacyWatchlistStorageKey = "meigu_strategy_watchlist_v1";
 const watchlistImportDismissedKey = "watchlist_import_dismissed_v1";
@@ -4491,6 +4517,9 @@ function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock
 }
 
 function PositionSizingPage() {
+  const [market, setMarket] = useState<PositionMarket>("stock");
+  const [cryptoKind, setCryptoKind] = useState<CryptoTradeKind>("perp");
+  const [leverage, setLeverage] = useState(10);
   const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<PositionDirection>("long");
   const [accountSize, setAccountSize] = useState(() => window.localStorage.getItem(positionAccountKey) || "100,000");
@@ -4510,6 +4539,9 @@ function PositionSizingPage() {
     }
   });
   const normalizedSymbol = symbol.trim().toUpperCase();
+  const isCrypto = market === "crypto";
+  const effectiveLeverage = isCrypto && cryptoKind === "perp" ? leverage : 1;
+  const quantityUnit = isCrypto ? cryptoQuantityUnit(normalizedSymbol) : "股";
   const accountNumber = inputMoneyNumber(accountSize);
   const riskPercentNumber = inputMoneyNumber(riskPercent);
   const riskAmount = accountNumber * riskPercentNumber / 100;
@@ -4523,20 +4555,22 @@ function PositionSizingPage() {
           accountSize: accountNumber,
           riskAmount,
           entryPrice: inputMoneyNumber(entryPrice),
-          stopPrice: inputMoneyNumber(stopPrice)
+          stopPrice: inputMoneyNumber(stopPrice),
+          quantityStep: isCrypto ? 0.00000001 : 1,
+          leverage: effectiveLeverage
         }),
         error: ""
       };
     } catch (err) {
       return { result: null, error: err instanceof Error ? err.message : "请检查输入。" };
     }
-  }, [accountNumber, direction, entryPrice, hasCoreInput, riskAmount, stopPrice]);
+  }, [accountNumber, direction, effectiveLeverage, entryPrice, hasCoreInput, isCrypto, riskAmount, stopPrice]);
   const result = calculation.result;
 
   useEffect(() => {
     setCopyStatus("复制");
     setSaveStatus("保存计划");
-  }, [accountSize, direction, entryPrice, normalizedSymbol, riskPercent, stopPrice]);
+  }, [accountSize, cryptoKind, direction, entryPrice, leverage, market, normalizedSymbol, riskPercent, stopPrice]);
 
   useEffect(() => {
     if (accountNumber > 0) window.localStorage.setItem(positionAccountKey, accountSize);
@@ -4544,7 +4578,7 @@ function PositionSizingPage() {
   }, [accountNumber, accountSize, riskPercent, riskPercentNumber]);
 
   useEffect(() => {
-    if (!normalizedSymbol) {
+    if (isCrypto || !normalizedSymbol) {
       setLatestPrice(null);
       setPriceStatus("");
       return;
@@ -4572,7 +4606,25 @@ function PositionSizingPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [normalizedSymbol]);
+  }, [isCrypto, normalizedSymbol]);
+
+  function changeMarket(next: PositionMarket) {
+    if (next === market) return;
+    setMarket(next);
+    setSymbol("");
+    setDirection("long");
+    setEntryPrice("");
+    setStopPrice("");
+    setLatestPrice(null);
+    setPriceStatus("");
+    setFormError("");
+  }
+
+  function changeCryptoKind(next: CryptoTradeKind) {
+    setCryptoKind(next);
+    if (next === "spot") setDirection("long");
+    setFormError("");
+  }
 
   function applyRiskPreset(percent: number) {
     setFormError("");
@@ -4596,7 +4648,11 @@ function PositionSizingPage() {
       stopPrice: inputMoneyNumber(stopPrice),
       actualRisk: result.actualRisk,
       positionAmount: result.positionAmount,
-      createdAt: formatDateTime(new Date().toISOString())
+      createdAt: formatDateTime(new Date().toISOString()),
+      market,
+      cryptoKind: isCrypto ? cryptoKind : undefined,
+      leverage: isCrypto && cryptoKind === "perp" ? leverage : undefined,
+      requiredMargin: isCrypto ? result.requiredMargin : undefined
     };
     const next = [item, ...history].slice(0, 5);
     setHistory(next);
@@ -4611,6 +4667,10 @@ function PositionSizingPage() {
   }
 
   function restoreCalculation(item: PositionHistoryItem) {
+    const itemMarket = item.market || "stock";
+    setMarket(itemMarket);
+    setCryptoKind(item.cryptoKind || "perp");
+    setLeverage(item.leverage || 10);
     setSymbol(item.symbol === "--" ? "" : item.symbol);
     setDirection(item.direction);
     setAccountSize(item.accountSize.toLocaleString("en-US", { maximumFractionDigits: 2 }));
@@ -4622,7 +4682,7 @@ function PositionSizingPage() {
 
   function copyPlan() {
     if (!result) return;
-    const plan = `${normalizedSymbol || "交易计划"} ${direction === "long" ? "做多" : "做空"} · 入场 ${exactMoney(inputMoneyNumber(entryPrice))} · 止损 ${exactMoney(inputMoneyNumber(stopPrice))} · ${result.shares.toLocaleString("en-US")} 股 · 最大亏损 ${exactMoney(result.actualRisk)}`;
+    const plan = `${normalizedSymbol || "交易计划"} ${direction === "long" ? (isCrypto && cryptoKind === "spot" ? "买入" : "做多") : "做空"} · 入场 ${positionCurrency(inputMoneyNumber(entryPrice), market, true)} · 止损 ${positionCurrency(inputMoneyNumber(stopPrice), market, true)} · ${positionQuantity(result.shares, market)} ${quantityUnit} · 最大亏损 ${positionCurrency(result.actualRisk, market)}`;
     if (!navigator.clipboard) {
       setCopyStatus("复制失败");
       return;
@@ -4643,14 +4703,31 @@ function PositionSizingPage() {
     setCopyStatus("复制");
   }
 
+  const directionControl = (
+    <span className="positionSegment">
+      <button type="button" className={`long ${direction === "long" ? "active" : ""}`} onClick={() => setDirection("long")}>{isCrypto && cryptoKind === "spot" ? "买入" : "做多"}</button>
+      {isCrypto && cryptoKind === "spot" ? null : <button type="button" className={`short ${direction === "short" ? "active" : ""}`} onClick={() => setDirection("short")}>做空</button>}
+    </span>
+  );
+  const riskControl = (
+    <span className="positionRiskInput">
+      <span className="positionInput"><input data-testid="position-risk" inputMode="decimal" value={riskPercent} onChange={(event) => setRiskPercent(event.target.value)} placeholder="1" /><i>%</i></span>
+      <span className="positionPresetRow">
+        {[0.5, 1, 2].map((percent) => (
+          <button type="button" className={riskPercentNumber === percent ? "active" : ""} key={percent} onClick={() => applyRiskPreset(percent)}>{percent}%</button>
+        ))}
+      </span>
+    </span>
+  );
+
   return (
     <div className="positionSizingPage" data-testid="position-sizing-page">
       <header className="positionSizingHead">
-        <div>
-          <h1>以损定仓</h1>
-          <p>先定能亏多少，再算该买多少。</p>
+        <h1>以损定仓</h1>
+        <div className="positionMarketTabs" role="tablist" aria-label="市场">
+          <button type="button" role="tab" aria-selected={market === "stock"} className={market === "stock" ? "active" : ""} onClick={() => changeMarket("stock")}>美股</button>
+          <button type="button" role="tab" aria-selected={market === "crypto"} className={market === "crypto" ? "active" : ""} onClick={() => changeMarket("crypto")}>加密</button>
         </div>
-        <span>美股 · 整股 · 默认无杠杆</span>
       </header>
 
       <section className="positionSizingGrid">
@@ -4661,52 +4738,68 @@ function PositionSizingPage() {
           </div>
           <div className="positionFormBody">
             <div className="positionFieldGrid">
+              {isCrypto ? (
+                <label>
+                  <span>交易类型</span>
+                  <span className="positionSegment">
+                    <button type="button" className={cryptoKind === "spot" ? "active" : ""} onClick={() => changeCryptoKind("spot")}>现货</button>
+                    <button type="button" className={cryptoKind === "perp" ? "active" : ""} onClick={() => changeCryptoKind("perp")}>USDT 合约</button>
+                  </span>
+                </label>
+              ) : (
+                <label>
+                  <span>股票代码 <em>可选</em></span>
+                  <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 NVDA" />
+                  <small>
+                    {priceStatus}
+                    {latestPrice ? <button type="button" onClick={() => setEntryPrice(String(latestPrice))}>设为入场价</button> : null}
+                  </small>
+                </label>
+              )}
               <label>
-                <span>股票代码 <em>可选</em></span>
-                <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 NVDA" />
-                <small>
-                  {priceStatus}
-                  {latestPrice ? <button type="button" onClick={() => setEntryPrice(String(latestPrice))}>设为入场价</button> : null}
-                </small>
-              </label>
-              <label>
-                <span>交易方向</span>
-                <span className="positionSegment">
-                  <button type="button" className={`long ${direction === "long" ? "active" : ""}`} onClick={() => setDirection("long")}>做多</button>
-                  <button type="button" className={`short ${direction === "short" ? "active" : ""}`} onClick={() => setDirection("short")}>做空</button>
-                </span>
+                <span>{isCrypto ? "交易对" : "交易方向"}{isCrypto ? <em>可选</em> : null}</span>
+                {isCrypto ? <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 BTCUSDT" /> : directionControl}
               </label>
             </div>
 
             <div className="positionFieldGrid">
+              {isCrypto ? <label><span>交易方向</span>{directionControl}</label> : null}
               <label>
                 <span>账户资金</span>
-                <span className="positionInput"><i>$</i><input data-testid="position-account" inputMode="decimal" value={accountSize} onChange={(event) => setAccountSize(event.target.value)} placeholder="例如 100,000" /></span>
+                <span className="positionInput">{isCrypto ? null : <i>$</i>}<input data-testid="position-account" inputMode="decimal" value={accountSize} onChange={(event) => setAccountSize(event.target.value)} placeholder={isCrypto ? "例如 20,000" : "例如 100,000"} />{isCrypto ? <i>USDT</i> : null}</span>
               </label>
-              <label>
+              {!isCrypto ? <label>
                 <span>单笔风险</span>
-                <span className="positionRiskInput">
-                  <span className="positionInput"><input data-testid="position-risk" inputMode="decimal" value={riskPercent} onChange={(event) => setRiskPercent(event.target.value)} placeholder="1" /><i>%</i></span>
-                  <span className="positionPresetRow">
-                    {[0.5, 1, 2].map((percent) => (
-                      <button type="button" className={riskPercentNumber === percent ? "active" : ""} key={percent} onClick={() => applyRiskPreset(percent)}>{percent}%</button>
-                    ))}
-                  </span>
-                </span>
-              </label>
+                {riskControl}
+              </label> : null}
             </div>
-            <p className="positionDerivedRisk">本次最多亏损 <strong>{accountNumber > 0 && riskPercentNumber > 0 ? exactMoney(riskAmount) : "--"}</strong></p>
+            {isCrypto ? (
+              <div className="positionFieldGrid positionRiskRow">
+                <label><span>单笔风险</span>{riskControl}</label>
+                <p className="positionDerivedRisk">本次最多亏损 <strong>{accountNumber > 0 && riskPercentNumber > 0 ? positionCurrency(riskAmount, market) : "--"}</strong></p>
+              </div>
+            ) : <p className="positionDerivedRisk">本次最多亏损 <strong>{accountNumber > 0 && riskPercentNumber > 0 ? exactMoney(riskAmount) : "--"}</strong></p>}
 
             <div className="positionFieldGrid">
               <label>
-                <span>{direction === "long" ? "计划买入价" : "计划卖出价"}</span>
-                <span className="positionInput"><i>$</i><input data-testid="position-entry" inputMode="decimal" value={entryPrice} onChange={(event) => setEntryPrice(event.target.value)} placeholder="例如 100.00" /></span>
+                <span>{isCrypto ? "计划入场价" : direction === "long" ? "计划买入价" : "计划卖出价"}</span>
+                <span className="positionInput">{isCrypto ? null : <i>$</i>}<input data-testid="position-entry" inputMode="decimal" value={entryPrice} onChange={(event) => setEntryPrice(event.target.value)} placeholder={isCrypto ? "例如 68,000" : "例如 100.00"} />{isCrypto ? <i>USDT</i> : null}</span>
               </label>
               <label>
                 <span>止损价</span>
-                <span className="positionInput"><i>$</i><input data-testid="position-stop" inputMode="decimal" value={stopPrice} onChange={(event) => setStopPrice(event.target.value)} placeholder={direction === "long" ? "低于买入价" : "高于卖出价"} /></span>
+                <span className="positionInput">{isCrypto ? null : <i>$</i>}<input data-testid="position-stop" inputMode="decimal" value={stopPrice} onChange={(event) => setStopPrice(event.target.value)} placeholder={direction === "long" ? "低于入场价" : "高于入场价"} />{isCrypto ? <i>USDT</i> : null}</span>
               </label>
             </div>
+
+            {isCrypto && cryptoKind === "perp" ? (
+              <div className="positionLeverageField">
+                <span>杠杆</span>
+                <div className="positionLeverageRow">
+                  {[3, 5, 10, 20].map((value) => <button type="button" key={value} className={leverage === value ? "active" : ""} onClick={() => setLeverage(value)}>{value}x</button>)}
+                </div>
+                <small>杠杆只影响保证金，不改变按止损计算的亏损。</small>
+              </div>
+            ) : null}
 
             {calculation.error || formError ? <p className="positionError">{formError || calculation.error}</p> : null}
             <div className="positionFormFoot">
@@ -4719,35 +4812,41 @@ function PositionSizingPage() {
         <aside className="positionSizingPanel positionResultPanel">
           <div className="panelHead">
             <strong>结果</strong>
-            <span>{direction === "long" ? "做多" : "做空"}</span>
+            <span>{isCrypto ? cryptoKind === "spot" ? "现货" : `USDT 合约 · ${leverage}x` : direction === "long" ? "做多" : "做空"}</span>
           </div>
           <div className="positionResultHero">
-            <span>{direction === "long" ? "建议买入" : "建议卖出"}</span>
-            <strong data-testid="position-result-shares">{result ? result.shares.toLocaleString("en-US") : "--"} <i>股</i></strong>
-            <em>{result ? <>预计占用资金 <b>{exactMoney(result.positionAmount)}</b></> : "填入账户、风险和价格后自动计算"}</em>
+            <span>{isCrypto ? "建议下单" : direction === "long" ? "建议买入" : "建议卖出"}</span>
+            <strong data-testid="position-result-shares">{result ? positionQuantity(result.shares, market) : "--"} <i>{quantityUnit}</i></strong>
+            <em>{result ? <>{isCrypto ? "名义仓位" : "预计占用资金"} <b>{positionCurrency(result.positionAmount, market)}</b></> : "填入账户、风险和价格后自动计算"}</em>
           </div>
+          {isCrypto ? (
+            <div className="positionResultHighlights">
+              <div><span>{cryptoKind === "perp" ? "预计保证金" : "预计占用资金"}</span><strong>{positionCurrency(result?.requiredMargin, market)}</strong></div>
+              <div><span>止损最大亏损</span><strong className="negative">{result ? `-${positionCurrency(result.actualRisk, market)}` : "--"}</strong></div>
+            </div>
+          ) : null}
           {result && (result.cashLimited || riskPercentNumber > 2 || result.stopDistancePct < 0.5) ? (
             <div className="positionWarnings" data-testid="position-warnings">
-              {result.cashLimited ? <p>风险公式得出 {result.riskBasedShares.toLocaleString("en-US")} 股，已按账户资金下调。</p> : null}
+              {result.cashLimited ? <p>风险公式得出 {positionQuantity(result.riskBasedShares, market)} {quantityUnit}，已按{isCrypto && cryptoKind === "perp" ? "可用保证金" : "账户资金"}下调。</p> : null}
               {riskPercentNumber > 2 ? <p>单笔风险超过账户资金的 2%，请确认风险预算。</p> : null}
               {result.stopDistancePct < 0.5 ? <p>止损距离较小，请确认止损位置不是误填。</p> : null}
             </div>
           ) : null}
           <div className="positionMetricList">
-            <div><span>仓位占比</span><strong>{exactPercent(result?.positionPct)}</strong></div>
-            <div><span>止损最大亏损</span><strong className="negative">{result ? `-${exactMoney(result.actualRisk)}` : "--"}</strong></div>
+            <div><span>{isCrypto ? "名义仓位占账户" : "仓位占比"}</span><strong>{exactPercent(result?.positionPct)}</strong></div>
+            {!isCrypto ? <div><span>止损最大亏损</span><strong className="negative">{result ? `-${exactMoney(result.actualRisk)}` : "--"}</strong></div> : null}
             <div><span>实际账户风险</span><strong>{exactPercent(result?.riskPct)}</strong></div>
-            <div><span>每股风险 / 止损距离</span><strong>{result ? `${exactMoney(result.perShareRisk)} / ${exactPercent(result.stopDistancePct)}` : "--"}</strong></div>
-            <div><span>1R / 2R 参考价</span><strong className="positive">{result ? `${exactMoney(result.oneRPrice)} / ${exactMoney(result.twoRPrice)}` : "--"}</strong></div>
+            <div><span>{isCrypto ? "每币风险" : "每股风险"} / 止损距离</span><strong>{result ? `${positionCurrency(result.perShareRisk, market, true)} / ${exactPercent(result.stopDistancePct)}` : "--"}</strong></div>
+            <div><span>1R / 2R 参考价</span><strong className="positive">{result ? `${positionCurrency(result.oneRPrice, market, true)} / ${positionCurrency(result.twoRPrice, market, true)}` : "--"}</strong></div>
           </div>
           <p className="positionPlanSummary">
-            {result ? `${normalizedSymbol || "交易计划"} ${direction === "long" ? "做多" : "做空"} · 入场 ${exactMoney(inputMoneyNumber(entryPrice))} · 止损 ${exactMoney(inputMoneyNumber(stopPrice))} · ${result.shares.toLocaleString("en-US")} 股 · 最大亏损 ${exactMoney(result.actualRisk)}` : "--"}
+            {result ? `${normalizedSymbol || "交易计划"} ${direction === "long" ? (isCrypto && cryptoKind === "spot" ? "买入" : "做多") : "做空"} · 入场 ${positionCurrency(inputMoneyNumber(entryPrice), market, true)} · 止损 ${positionCurrency(inputMoneyNumber(stopPrice), market, true)} · ${positionQuantity(result.shares, market)} ${quantityUnit} · 最大亏损 ${positionCurrency(result.actualRisk, market)}` : "--"}
           </p>
           <div className="positionResultActions">
             <button className="positionPrimaryButton" data-testid="position-save" type="button" disabled={!result} onClick={() => saveCalculation()}>{saveStatus}</button>
             <button type="button" disabled={!result} onClick={copyPlan}>{copyStatus}</button>
           </div>
-          <p className="positionDisclaimer">按止损价成交测算；跳空、滑点和费用可能使实际亏损高于计划值。做空未计算券商保证金和借券限制。</p>
+          <p className="positionDisclaimer">{isCrypto ? "不含手续费、资金费和滑点；实际数量以交易所下单精度为准。" : "按止损价成交测算；跳空、滑点和费用可能使实际亏损高于计划值。做空未计算券商保证金和借券限制。"}</p>
         </aside>
       </section>
 
@@ -4762,33 +4861,42 @@ function PositionSizingPage() {
               <tr>
                 <th>时间</th>
                 <th>标的</th>
+                <th>类型</th>
                 <th>方向</th>
-                <th>股数</th>
+                <th>数量</th>
                 <th>价格</th>
                 <th>风险</th>
-                <th>仓位</th>
+                <th>名义仓位</th>
+                <th>保证金</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {history.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.createdAt}</td>
-                  <td><button className="positionHistorySymbol" type="button" onClick={() => restoreCalculation(item)}>{item.symbol}</button></td>
-                  <td>{item.direction === "long" ? "做多" : "做空"}</td>
-                  <td>{item.shares.toLocaleString("en-US")}</td>
-                  <td>{exactMoney(item.entryPrice)} / {exactMoney(item.stopPrice)}</td>
-                  <td>{exactMoney(item.actualRisk)}</td>
-                  <td>{exactMoney(item.positionAmount)}</td>
-                  <td><button className="positionHistoryDelete" type="button" onClick={() => updateHistory(history.filter((row) => row.id !== item.id))}>删除</button></td>
-                </tr>
-              ))}
-              {!history.length ? <tr><td className="positionHistoryEmpty" colSpan={8}>暂无最近计算</td></tr> : null}
+              {history.map((item) => {
+                const itemMarket = item.market || "stock";
+                const itemUnit = itemMarket === "crypto" ? cryptoQuantityUnit(item.symbol) : "股";
+                const itemType = itemMarket === "stock" ? "美股" : item.cryptoKind === "spot" ? "现货" : `USDT 合约 · ${item.leverage || 10}x`;
+                return (
+                  <tr key={item.id}>
+                    <td>{item.createdAt}</td>
+                    <td><button className="positionHistorySymbol" type="button" onClick={() => restoreCalculation(item)}>{item.symbol}</button></td>
+                    <td>{itemType}</td>
+                    <td>{item.direction === "long" ? itemMarket === "crypto" && item.cryptoKind === "spot" ? "买入" : "做多" : "做空"}</td>
+                    <td>{positionQuantity(item.shares, itemMarket)} {itemUnit}</td>
+                    <td>{positionCurrency(item.entryPrice, itemMarket, true)} / {positionCurrency(item.stopPrice, itemMarket, true)}</td>
+                    <td>{positionCurrency(item.actualRisk, itemMarket)}</td>
+                    <td>{positionCurrency(item.positionAmount, itemMarket)}</td>
+                    <td>{itemMarket === "crypto" ? positionCurrency(item.requiredMargin ?? item.positionAmount, itemMarket) : "--"}</td>
+                    <td><button className="positionHistoryDelete" type="button" onClick={() => updateHistory(history.filter((row) => row.id !== item.id))}>删除</button></td>
+                  </tr>
+                );
+              })}
+              {!history.length ? <tr><td className="positionHistoryEmpty" colSpan={10}>暂无最近计算</td></tr> : null}
             </tbody>
           </table>
         </div>
       </section>
-      {result ? <div className="positionMobileResult"><span>建议 {result.shares.toLocaleString("en-US")} 股</span><strong>{exactMoney(result.positionAmount)}</strong></div> : null}
+      {result ? <div className="positionMobileResult"><span>建议 {positionQuantity(result.shares, market)} {quantityUnit}</span><strong>{positionCurrency(result.positionAmount, market)}</strong></div> : null}
     </div>
   );
 }

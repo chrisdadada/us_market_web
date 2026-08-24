@@ -5747,7 +5747,7 @@ body,
 
 .positionSizingHead {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
@@ -5761,15 +5761,30 @@ body,
   line-height: 1.2;
 }
 
-.positionSizingHead p {
-  margin: 6px 0 0;
-  color: #718096;
-  font-size: 13px;
+.positionMarketTabs {
+  display: grid;
+  grid-template-columns: repeat(2, 72px);
+  gap: 3px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #f8fafc;
+  padding: 3px;
 }
 
-.positionSizingHead > span {
-  color: #8290a4;
-  font-size: 12px;
+.positionMarketTabs button {
+  height: 32px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #65758c;
+  cursor: pointer;
+}
+
+.positionMarketTabs button.active {
+  background: #fff;
+  color: #1677ff;
+  box-shadow: 0 1px 3px rgba(31, 49, 78, .12);
+  font-weight: 600;
 }
 
 .positionSizingGrid {
@@ -5960,6 +5975,17 @@ body,
   font-weight: 600;
 }
 
+.positionSegment button.active:not(.long):not(.short) {
+  background: #eef6ff;
+  color: #1264c8;
+  box-shadow: inset 0 0 0 1px #72aefb;
+  font-weight: 600;
+}
+
+.positionSegment button:only-child {
+  grid-column: 1 / -1;
+}
+
 .positionRiskInput {
   display: grid;
   grid-template-columns: minmax(90px, 1fr) 132px;
@@ -5996,6 +6022,57 @@ body,
 .positionDerivedRisk strong {
   color: #263247;
   font-weight: 600;
+}
+
+.positionRiskRow {
+  align-items: end;
+}
+
+.positionRiskRow .positionDerivedRisk {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+}
+
+.positionLeverageField {
+  display: grid;
+  gap: 7px;
+  margin: 2px 0 16px;
+}
+
+.positionLeverageField > span {
+  color: #65758c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.positionLeverageRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.positionLeverageRow button {
+  height: 38px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  background: #fff;
+  color: #65758c;
+  cursor: pointer;
+}
+
+.positionLeverageRow button.active {
+  border-color: #72aefb;
+  background: #eef6ff;
+  color: #1264c8;
+  font-weight: 600;
+}
+
+.positionLeverageField small {
+  color: #8290a4;
+  font-size: 11px;
 }
 
 .positionError {
@@ -6066,6 +6143,37 @@ body,
 .positionResultHero em b {
   color: #172033;
   font-weight: 650;
+}
+
+.positionResultHighlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 20px 14px;
+}
+
+.positionResultHighlights div {
+  border-radius: 7px;
+  background: #f6f9fc;
+  padding: 10px 12px;
+}
+
+.positionResultHighlights span {
+  display: block;
+  color: #718096;
+  font-size: 11px;
+}
+
+.positionResultHighlights strong {
+  display: block;
+  color: #172033;
+  font-size: 15px;
+  font-weight: 650;
+  margin-top: 5px;
+}
+
+.positionResultHighlights strong.negative {
+  color: #d84a5d;
 }
 
 .positionWarnings {
@@ -6177,7 +6285,7 @@ body,
 
 .positionHistoryTable table {
   width: 100%;
-  min-width: 820px;
+  min-width: 1040px;
   border-collapse: collapse;
 }
 

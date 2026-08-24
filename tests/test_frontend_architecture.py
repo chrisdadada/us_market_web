@@ -84,6 +84,13 @@ class FrontendArchitectureTest(unittest.TestCase):
     def test_position_quote_failure_is_not_reported_as_missing_data(self) -> None:
         self.assertIn('setPriceStatus("行情暂时不可用")', MAIN_APP)
 
+    def test_position_sizing_supports_crypto_without_guessing_liquidation(self) -> None:
+        self.assertIn('onClick={() => changeMarket("crypto")}>加密</button>', MAIN_APP)
+        self.assertIn('onClick={() => changeCryptoKind("perp")}>USDT 合约</button>', MAIN_APP)
+        self.assertIn('quantityStep: isCrypto ? 0.00000001 : 1', MAIN_APP)
+        self.assertIn('杠杆只影响保证金，不改变按止损计算的亏损。', MAIN_APP)
+        self.assertNotIn("爆仓价", MAIN_APP)
+
     def test_admin_auth_failure_does_not_look_signed_out(self) -> None:
         self.assertIn('className="loginPage adminAuthStatusError"', ADMIN_APP)
         self.assertIn("后台暂时无法连接", ADMIN_APP)

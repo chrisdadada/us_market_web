@@ -67,6 +67,25 @@ test("caps the result at the cash account limit", () => {
   assert.equal(result.cashLimited, true);
 });
 
+test("sizes USDT perpetuals in fractional coins and keeps leverage out of risk sizing", () => {
+  const input = {
+    direction: "long",
+    accountSize: 20_000,
+    riskAmount: 200,
+    entryPrice: 68_000,
+    stopPrice: 64_600,
+    quantityStep: 0.00000001
+  };
+  const fiveX = calculatePositionSizing({ ...input, leverage: 5 });
+  const twentyX = calculatePositionSizing({ ...input, leverage: 20 });
+
+  assert.equal(fiveX.shares, 0.05882352);
+  assert.equal(twentyX.shares, fiveX.shares);
+  assert.ok(Math.abs(fiveX.actualRisk - 200) < 0.001);
+  assert.ok(Math.abs(fiveX.requiredMargin - 800) < 0.001);
+  assert.ok(Math.abs(twentyX.requiredMargin - 200) < 0.001);
+});
+
 test("rejects invalid stops and unaffordable trades", () => {
   assert.throws(() => calculatePositionSizing({
     direction: "long",
