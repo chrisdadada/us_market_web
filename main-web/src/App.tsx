@@ -682,6 +682,10 @@ function pageNeedsBootstrap(page: PageKey) {
   return page === "home" || page === "tracking" || page === "market";
 }
 
+function bootstrapLimitForPage(page: PageKey) {
+  return page === "market" ? 500 : 4;
+}
+
 function pageNeedsOpinions(page: PageKey) {
   return page === "home" || page === "opinions";
 }
@@ -757,6 +761,7 @@ function App() {
   const [auth, setAuth] = useState<AuthStatus | null>(null);
   const [authFailed, setAuthFailed] = useState(false);
   const [bootstrap, setBootstrap] = useState<BootstrapPayload | null>(null);
+  const [bootstrapLimit, setBootstrapLimit] = useState(0);
   const [opinions, setOpinions] = useState<Opinion[]>([]);
   const [calendar, setCalendar] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -800,11 +805,14 @@ function App() {
     setSharedDataFailures((current) => current[source] === failed ? current : { ...current, [source]: failed });
   }, []);
 
-  const refreshBootstrap = useCallback(() => {
+  const refreshBootstrap = useCallback((limit: number) => {
     setBootstrapLoading(true);
     setSharedDataFailure("bootstrap", false);
-    return api.bootstrap(500, trackingSymbols)
-      .then((payload) => setBootstrap(payload))
+    return api.bootstrap(limit, trackingSymbols)
+      .then((payload) => {
+        setBootstrap(payload);
+        setBootstrapLimit(limit);
+      })
       .catch(() => setSharedDataFailure("bootstrap", true))
       .finally(() => setBootstrapLoading(false));
   }, [setSharedDataFailure]);
@@ -878,7 +886,7 @@ function App() {
     void refreshAuth()
       .catch(() => undefined)
       .finally(() => setLoading(false));
-    if (pageNeedsBootstrap(initialRoute.page)) void refreshBootstrap();
+    if (pageNeedsBootstrap(initialRoute.page)) void refreshBootstrap(bootstrapLimitForPage(initialRoute.page));
     if (pageNeedsOpinions(initialRoute.page)) {
       void refreshOpinions().then(() => setSelectedOpinion((current) => current || initialRoute.opinionId || ""));
     }
@@ -887,9 +895,10 @@ function App() {
   }, [initialRoute.opinionId, initialRoute.page, refreshAuth, refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals]);
 
   useEffect(() => {
-    if (!pageNeedsBootstrap(page) || bootstrap || bootstrapLoading || sharedDataFailures.bootstrap) return;
-    void refreshBootstrap();
-  }, [bootstrap, bootstrapLoading, page, refreshBootstrap, sharedDataFailures.bootstrap]);
+    const requiredLimit = bootstrapLimitForPage(page);
+    if (!pageNeedsBootstrap(page) || bootstrapLimit >= requiredLimit || bootstrapLoading || sharedDataFailures.bootstrap) return;
+    void refreshBootstrap(requiredLimit);
+  }, [bootstrapLimit, bootstrapLoading, page, refreshBootstrap, sharedDataFailures.bootstrap]);
 
   useEffect(() => {
     if (!pageNeedsOpinions(page) || opinionsLoaded || opinionsLoading || sharedDataFailures.opinions) return;
@@ -947,11 +956,10 @@ function App() {
     setSelectedSymbolSource("stocks");
     pushRouteState({ page: nextPage });
     void api.analyticsEvent("nav_click", nextPage).catch(() => {});
-    if (pageNeedsBootstrap(nextPage)) void refreshBootstrap();
     if (pageNeedsOpinions(nextPage)) void refreshOpinions();
     if (pageNeedsCalendar(nextPage)) void refreshCalendar();
     if (pageNeedsSignals(nextPage)) void refreshSignals();
-  }, [refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals, requireLogin]);
+  }, [refreshCalendar, refreshOpinions, refreshSignals, requireLogin]);
 
   const clearOpinion = useCallback(() => {
     if (!requireLogin()) return;
@@ -1037,18 +1045,20 @@ function App() {
   }, [auth?.authenticated, openAuth]);
   const pageDataLoading =
     page !== "home" && (
-      (pageNeedsBootstrap(page) && !bootstrap && !sharedDataFailures.bootstrap) ||
+      (pageNeedsBootstrap(page) && bootstrapLimit < bootstrapLimitForPage(page) && !sharedDataFailures.bootstrap) ||
       (pageNeedsOpinions(page) && !opinionsLoaded && !sharedDataFailures.opinions) ||
       (pageNeedsCalendar(page) && !calendarLoaded && !sharedDataFailures.calendar) ||
       (pageNeedsSignals(page) && !signalsLoaded && !sharedDataFailures.signals)
     );
   const pageDataFailed =
-    (pageNeedsBootstrap(page) && sharedDataFailures.bootstrap) ||
+    (pageNeedsBootstrap(page) && bootstrapLimit < bootstrapLimitForPage(page) && sharedDataFailures.bootstrap) ||
     (pageNeedsOpinions(page) && sharedDataFailures.opinions) ||
     (pageNeedsCalendar(page) && sharedDataFailures.calendar) ||
     (pageNeedsSignals(page) && sharedDataFailures.signals);
   const retryPageData = () => {
-    if (pageNeedsBootstrap(page) && sharedDataFailures.bootstrap) void refreshBootstrap();
+    if (pageNeedsBootstrap(page) && bootstrapLimit < bootstrapLimitForPage(page) && sharedDataFailures.bootstrap) {
+      void refreshBootstrap(bootstrapLimitForPage(page));
+    }
     if (pageNeedsOpinions(page) && sharedDataFailures.opinions) void refreshOpinions();
     if (pageNeedsCalendar(page) && sharedDataFailures.calendar) void refreshCalendar();
     if (pageNeedsSignals(page) && sharedDataFailures.signals) void refreshSignals();
