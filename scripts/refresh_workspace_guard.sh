@@ -3,6 +3,7 @@
 require_refresh_workspace() {
   local root="$1"
   local expected_branch="$2"
+  local required_sync_branch="${3:-}"
   local actual_root actual_branch dirty
 
   actual_root="$(git -C "${root}" rev-parse --show-toplevel 2>/dev/null || true)"
@@ -27,6 +28,17 @@ require_refresh_workspace() {
   if ! grep -Eq '^SCHEMA_VERSION[[:space:]]*=[[:space:]]*2[[:space:]]*$' "${root}/scripts/build_product_db.py"; then
     echo "ERROR: refresh code does not declare product schema version 2."
     return 2
+  fi
+
+  if [[ -n "${required_sync_branch}" && "${required_sync_branch}" != "${actual_branch}" ]]; then
+    if ! git -C "${root}" show-ref --verify --quiet "refs/heads/${required_sync_branch}"; then
+      echo "ERROR: required sync branch does not exist: ${required_sync_branch}."
+      return 2
+    fi
+    if ! git -C "${root}" merge-base --is-ancestor "${required_sync_branch}" HEAD; then
+      echo "ERROR: ${actual_branch} is behind ${required_sync_branch}; merge it before running refresh."
+      return 2
+    fi
   fi
 }
 

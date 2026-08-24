@@ -33,7 +33,10 @@ fi
 
 # shellcheck source=scripts/refresh_workspace_guard.sh
 source "${ROOT}/scripts/refresh_workspace_guard.sh"
-require_refresh_workspace "${ROOT}" "${REQUIRED_REFRESH_BRANCH:-codex/automation-refresh}"
+require_refresh_workspace \
+  "${ROOT}" \
+  "${REQUIRED_REFRESH_BRANCH:-codex/automation-refresh}" \
+  "${REQUIRED_SYNC_BRANCH:-codex/dev-integration}"
 
 if [[ ! -d "${DATA_ROOT}" ]]; then
   echo "External data root is not mounted: ${DATA_ROOT}"
@@ -361,29 +364,10 @@ run_root "build product DB" \
 run_root "verify product DB schema" \
   verify_product_db_schema "${ROOT}/data/product.db" "${PY}"
 
-run_root "verify bottom strategy freshness" \
-  "${PY}" - "${ROOT}/data/product.db" "${ASOF}" <<'PY'
-import json
-import sqlite3
-import sys
-
-db_path, expected_as_of = sys.argv[1:]
-with sqlite3.connect(db_path) as conn:
-    row = conn.execute(
-        "SELECT payload_json FROM datasets WHERE name = ?",
-        ("bottom-strategy",),
-    ).fetchone()
-if not row:
-    raise SystemExit("bottom-strategy dataset is missing")
-payload = json.loads(row[0])
-status = (payload.get("freshness") or {}).get("status")
-as_of = payload.get("asOf")
-if status != "current" or as_of != expected_as_of:
-    raise SystemExit(
-        f"bottom-strategy is not current: status={status!r}, asOf={as_of!r}, expected={expected_as_of!r}"
-    )
-print(f"bottom-strategy current through {as_of}")
-PY
+run_root "verify product data contract" \
+  "${PY}" scripts/check_product_coverage.py \
+  --db "${ROOT}/data/product.db" \
+  --expected-as-of "${ASOF}"
 
 run_root "project checks" \
   npm run check

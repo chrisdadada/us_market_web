@@ -105,8 +105,15 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
 
         self.assertIn("branch --show-current", REFRESH_GUARD)
         self.assertIn("--untracked-files=no", REFRESH_GUARD)
+        self.assertIn("merge-base --is-ancestor", REFRESH_GUARD)
+        self.assertIn("is behind", REFRESH_GUARD)
         self.assertIn("Product DB baseline is incomplete", REFRESH_GUARD)
         self.assertIn("product schema version 2", REFRESH_GUARD)
+
+    def test_data_deploys_share_the_product_contract_gate(self) -> None:
+        self.assertIn('scripts/check_product_coverage.py --db "${BUILD_DB}"', DATA_SCRIPT)
+        self.assertIn('scripts/check_product_coverage.py --db "${BUILD_DB}"', (ROOT / "scripts" / "deploy_dev_data.sh").read_text(encoding="utf-8"))
+        self.assertIn("--expected-as-of", AUTOMATED_REFRESH)
 
     def test_options_job_targets_the_dedicated_refresh_worktree(self) -> None:
         expected_root = "/Users/linlifu/Documents/New project-automation-refresh"

@@ -31,7 +31,10 @@ fi
 
 # shellcheck source=scripts/refresh_workspace_guard.sh
 source "${ROOT}/scripts/refresh_workspace_guard.sh"
-require_refresh_workspace "${ROOT}" "${REQUIRED_REFRESH_BRANCH:-codex/automation-refresh}"
+require_refresh_workspace \
+  "${ROOT}" \
+  "${REQUIRED_REFRESH_BRANCH:-codex/automation-refresh}" \
+  "${REQUIRED_SYNC_BRANCH:-codex/dev-integration}"
 
 if [[ ! -d "${DATA_ROOT}" ]]; then
   echo "External data root is not mounted: ${DATA_ROOT}"

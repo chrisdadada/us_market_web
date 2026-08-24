@@ -9,14 +9,21 @@ bash "${AUTOMATION_ROOT}/scripts/automated_refresh.sh"
 ```
 
 The worktree must be clean and checked out on `codex/automation-refresh`.
-`scripts/refresh_workspace_guard.sh` stops the run otherwise.
+It must also contain the current `codex/dev-integration` commit.
+`scripts/refresh_workspace_guard.sh` stops the run before downloading data otherwise.
 
 It updates recent Polygon daily stock bars, rebuilds current-year universe and split-adjusted daily files, refreshes FRED and available Polygon fundamentals, rebuilds research features, rebuilds the product DB, and runs the release gate.
 
 After DB-first validation, release gate, product DB coverage, and packaging pass,
-the automation deploys the site and rebuilt `data/product.db` to dev. The dev
+the automation deploys the rebuilt `data/product.db` to dev. The dev
 data step backs up the current DB and preserves dev-side content and Open holding
 runtime tables before replacing it.
+
+The coverage gate validates both snapshot dates and the payload fields used by
+the product pages. In particular, the bottom-strategy payload must carry complete,
+ordered QQQ/SPY daily history through the current dataset date. A missing field,
+old automation branch, or mismatched `datasets`/`raw_payloads` payload stops the
+run before either environment is changed.
 
 Production data is skipped unless the current run carries explicit Open holding
 data approval. This never promotes production site code, admin assets, user data,

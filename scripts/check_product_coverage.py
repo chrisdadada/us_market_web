@@ -34,6 +34,28 @@ def dataset_payload(conn: sqlite3.Connection, table: str, name: str) -> dict[str
         return {}
 
 
+def bottom_market_contract(payload: dict[str, Any], symbol: str) -> dict[str, Any]:
+    market = (payload.get("markets") or {}).get(symbol) or {}
+    prices = market.get("dailyPrices") or []
+    dates = [str(item.get("date") or "")[:10] for item in prices if isinstance(item, dict)]
+    complete_rows = sum(
+        1
+        for item in prices
+        if isinstance(item, dict)
+        and item.get("date")
+        and all(isinstance(item.get(field), (int, float)) for field in ("open", "high", "close"))
+    )
+    return {
+        "asOf": market.get("asOf"),
+        "recordRows": len(market.get("records") or []),
+        "dailyPriceRows": len(prices),
+        "completeDailyPriceRows": complete_rows,
+        "firstDailyPriceDate": dates[0] if dates else None,
+        "latestDailyPriceDate": dates[-1] if dates else None,
+        "dailyPriceDatesSortedUnique": dates == sorted(set(dates)),
+    }
+
+
 def build_report(db_path: Path) -> dict[str, Any]:
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
@@ -106,6 +128,8 @@ def build_report(db_path: Path) -> dict[str, Any]:
             valuation_payload,
         )
         forward = qqq.get("forwardValuation") or {}
+        dataset_bottom_payload = dataset_payload(conn, "datasets", "bottom-strategy")
+        bottom_payload = dataset_payload(conn, "raw_payloads", "bottom-strategy")
     total = max(1, symbols["total"])
     return {
         "db": str(db_path),
@@ -129,6 +153,16 @@ def build_report(db_path: Path) -> dict[str, Any]:
             "forwardHistoryRows": len(forward.get("history") or []),
             "hasFiveYearRange": "5y" in (forward.get("ranges") or {}),
             "payloadsMatch": valuation_payload == dataset_valuation_payload,
+        },
+        "bottomStrategy": {
+            "asOf": bottom_payload.get("asOf"),
+            "expectedAsOf": (bottom_payload.get("freshness") or {}).get("expectedAsOf"),
+            "freshnessStatus": (bottom_payload.get("freshness") or {}).get("status"),
+            "payloadsMatch": bottom_payload == dataset_bottom_payload,
+            "markets": {
+                symbol: bottom_market_contract(bottom_payload, symbol)
+                for symbol in ("QQQ", "SPY")
+            },
         },
     }
 
@@ -181,6 +215,35 @@ def validate(report: dict[str, Any], args: argparse.Namespace) -> tuple[list[str
         failures.append("QQQ forward valuation current value and history use different snapshots")
     if not valuation["payloadsMatch"]:
         failures.append("index-valuation datasets and raw_payloads are out of sync")
+    bottom = report["bottomStrategy"]
+    if bottom["freshnessStatus"] != "current":
+        failures.append(f"bottom-strategy freshness is {bottom['freshnessStatus'] or 'missing'}")
+    if not bottom["asOf"] or bottom["expectedAsOf"] != bottom["asOf"]:
+        failures.append("bottom-strategy asOf and expectedAsOf use different snapshots")
+    if args.expected_as_of and bottom["asOf"] != args.expected_as_of:
+        failures.append(f"bottom-strategy asOf {bottom['asOf'] or 'missing'} != expected {args.expected_as_of}")
+    if not bottom["payloadsMatch"]:
+        failures.append("bottom-strategy datasets and raw_payloads are out of sync")
+    for symbol, market in bottom["markets"].items():
+        if market["asOf"] != bottom["asOf"]:
+            failures.append(f"{symbol} bottom-strategy asOf does not match the dataset")
+        if market["recordRows"] < 1:
+            failures.append(f"{symbol} bottom-strategy records are missing")
+        if market["dailyPriceRows"] < args.min_bottom_daily_prices:
+            failures.append(
+                f"{symbol} bottom-strategy daily prices {market['dailyPriceRows']} < {args.min_bottom_daily_prices}"
+            )
+        if market["completeDailyPriceRows"] != market["dailyPriceRows"]:
+            failures.append(f"{symbol} bottom-strategy daily prices contain incomplete rows")
+        if not market["dailyPriceDatesSortedUnique"]:
+            failures.append(f"{symbol} bottom-strategy daily price dates are not sorted and unique")
+        if market["firstDailyPriceDate"] and market["firstDailyPriceDate"] > args.bottom_history_start_by:
+            failures.append(
+                f"{symbol} bottom-strategy history starts at {market['firstDailyPriceDate']}, "
+                f"later than {args.bottom_history_start_by}"
+            )
+        if market["latestDailyPriceDate"] != bottom["asOf"]:
+            failures.append(f"{symbol} bottom-strategy daily prices do not reach {bottom['asOf'] or 'the dataset date'}")
     for name in report["missingRequiredRawPayloads"]:
         failures.append(f"required raw payload is missing: {name}")
     return failures, warnings
@@ -225,6 +288,16 @@ def print_text_report(report: dict[str, Any], failures: list[str], warnings: lis
         f"5y range {'ready' if valuation['hasFiveYearRange'] else 'missing'}, "
         f"API payload {'synced' if valuation['payloadsMatch'] else 'out of sync'}"
     )
+    bottom = report["bottomStrategy"]
+    market_rows = ", ".join(
+        f"{symbol}={market['dailyPriceRows']}"
+        for symbol, market in bottom["markets"].items()
+    )
+    print(
+        "  bottom strategy: "
+        f"as of {bottom['asOf'] or '--'}, {market_rows} daily rows, "
+        f"API payload {'synced' if bottom['payloadsMatch'] else 'out of sync'}"
+    )
     for warning in warnings:
         print(f"  WARN: {warning}")
     for failure in failures:
@@ -243,6 +316,9 @@ def main() -> None:
     parser.add_argument("--min-earnings-events", type=int, default=0)
     parser.add_argument("--min-options-rows", type=int, default=0)
     parser.add_argument("--min-forward-valuation-history", type=int, default=100)
+    parser.add_argument("--min-bottom-daily-prices", type=int, default=1000)
+    parser.add_argument("--bottom-history-start-by", default="2020-03-13")
+    parser.add_argument("--expected-as-of")
     parser.add_argument("--max-unknown-sector-pct", type=float, default=20.0)
     parser.add_argument("--max-market-cap-missing-pct", type=float, default=5.0)
     args = parser.parse_args()

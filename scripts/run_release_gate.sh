@@ -11,6 +11,8 @@ fi
 
 python3 -m unittest \
   tests.test_release_gate \
+  tests.test_refresh_workspace_guard \
+  tests.test_product_coverage \
   tests.test_macro_calendar_results \
   tests.test_crypto_etf_flows \
   tests.test_retail_sentiment \
