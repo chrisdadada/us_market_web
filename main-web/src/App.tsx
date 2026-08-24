@@ -5242,7 +5242,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
             if (activeLessonId) reportPlaybackError(activeLessonId, "unsupported");
             return;
           }
-          const hls = new Hls({ enableWorker: true });
+          const hls = new Hls({ enableWorker: true, capLevelToPlayerSize: true, maxDevicePixelRatio: 2 });
           hlsRef.current = hls;
           hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(videoUrl));
           hls.on(Hls.Events.MANIFEST_PARSED, startPlayback);
