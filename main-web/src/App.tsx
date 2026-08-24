@@ -32,6 +32,7 @@ import { calculatePositionSizing, type PositionDirection, type PositionSizingRes
 import type { CryptoEtfAssetKey, CryptoEtfInterval } from "./CryptoEtfChart";
 import { ReversalDcaPage, ValueDcaPage } from "./DcaStrategyPages";
 import RollingToolPage from "./RollingToolPage";
+import RetailSentimentView from "./RetailSentimentView";
 import {
   legacyMigrationNavItems,
   memberToolNavItems,
@@ -3215,7 +3216,7 @@ function CryptoEtfFlowView() {
 }
 
 function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null; onPage: (page: PageKey) => void }) {
-  const [marketView, setMarketView] = useState<"sectors" | "crypto">("sectors");
+  const [marketView, setMarketView] = useState<"sectors" | "crypto" | "sentiment">("sectors");
   const [sectorRange, setSectorRange] = useState<"day" | "week" | "month">("day");
   const [sectorPayload, setSectorPayload] = useState<SectorFlowPayload | null>(null);
   const [sectorState, setSectorState] = useState<"loading" | "idle" | "error">("loading");
@@ -3320,6 +3321,7 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
       <div className="marketViewTabs" role="tablist" aria-label={`${pageLabels.market}分类`}>
         <button type="button" role="tab" aria-selected={marketView === "sectors"} className={marketView === "sectors" ? "active" : ""} onClick={() => setMarketView("sectors")}>板块资金</button>
         <button type="button" role="tab" aria-selected={marketView === "crypto"} className={marketView === "crypto" ? "active" : ""} onClick={() => setMarketView("crypto")}>加密 ETF</button>
+        <button type="button" role="tab" aria-selected={marketView === "sentiment"} className={marketView === "sentiment" ? "active" : ""} onClick={() => setMarketView("sentiment")}>散户情绪</button>
       </div>
       {marketView === "sectors" ? (
       <>
@@ -3507,7 +3509,7 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
         </div>
       </section>
       </>
-      ) : <CryptoEtfFlowView />}
+      ) : marketView === "crypto" ? <CryptoEtfFlowView /> : <RetailSentimentView />}
     </div>
   );
 }

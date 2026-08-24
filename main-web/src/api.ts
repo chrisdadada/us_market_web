@@ -412,6 +412,32 @@ export type CryptoEtfFlowPayload = {
   }>;
 };
 
+export type RetailSentimentPayload = {
+  asOf: string;
+  generatedAt?: string;
+  options: {
+    date: string;
+    putCallRatio: number;
+    callSharePct: number;
+    changePp: number;
+    history: Array<{ date: string; putCallRatio: number; callSharePct: number }>;
+  };
+  survey: {
+    date: string;
+    bullishPct: number;
+    neutralPct: number;
+    bearishPct: number;
+    spreadPp: number;
+    history: Array<{ date: string; bullishPct: number; neutralPct: number; bearishPct: number }>;
+  };
+  margin: {
+    date: string;
+    balanceUsdMillions: number;
+    changePct: number;
+    history: Array<{ date: string; balanceUsdMillions: number }>;
+  };
+};
+
 export type StockEventRow = {
   board?: string;
   rank?: number;
@@ -837,6 +863,7 @@ export const api = {
   macroSeries: () => request<MacroSeriesPayload>("/api/product/raw/macro-series"),
   indexValuation: () => request<IndexValuationPayload>("/api/product/raw/index-valuation"),
   cryptoEtfFlows: () => request<CryptoEtfFlowPayload>("/api/product/raw/crypto-etf-flows"),
+  retailSentiment: () => request<RetailSentimentPayload>("/api/product/raw/retail-sentiment"),
   strengthScanner: (options?: { limit?: number; offset?: number; bucket?: string; q?: string; sector?: string; heat?: string; sort?: string }) => {
     const params = new URLSearchParams({
       limit: String(options?.limit || 20),

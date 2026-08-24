@@ -120,6 +120,8 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
         return load_strength_review_payload()
     if name == "crypto-etf-flows":
         return load_crypto_etf_flows_payload()
+    if name == "retail-sentiment":
+        return load_retail_sentiment_payload()
     if name == "bottom-strategy":
         fallback_path = ROOT / "server" / "bottom_strategy.json"
         fallback = parse_json_text(fallback_path.read_text(encoding="utf-8"), {})
@@ -239,6 +241,20 @@ def load_crypto_etf_flows_payload() -> tuple[dict[str, Any], Path]:
     if cached.get("assets"):
         return cached, cache_path
     raise RuntimeError("crypto-etf-flows has no valid live, database, or cached payload")
+
+
+def load_retail_sentiment_payload() -> tuple[dict[str, Any], Path]:
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from build_retail_sentiment import fetch_payload
+
+        return fetch_payload(), Path("direct:retail-sentiment")
+    except Exception as exc:
+        print(f"WARN: retail-sentiment direct import skipped: {exc}")
+    payload, path = load_existing_dataset_payload("retail-sentiment")
+    if payload.get("options") and payload.get("survey") and payload.get("margin"):
+        return payload, path
+    raise RuntimeError("retail-sentiment has no valid live or database payload")
 
 
 def json_text(value: Any) -> str:
@@ -1213,7 +1229,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "options_flow_rows": import_options_flow(conn),
                 "market_opinion_items": import_market_opinion(conn, output if output.exists() else None),
             }
-            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review", "crypto-etf-flows", "bottom-strategy"])
+            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review", "crypto-etf-flows", "retail-sentiment", "bottom-strategy"])
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('generated_at', ?)", (now_iso(),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('source_data_dir', ?)", (str(DATA_DIR),))
