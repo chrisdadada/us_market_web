@@ -876,6 +876,17 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         status, payload = user.post("/api/analytics/event", {"eventType": "course_play_grant", "eventKey": "1"})
         self.assertEqual(status, 400, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_error", "eventKey": "12:source", "path": "https://signed.example.test/private"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_error", "eventKey": "12:source"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_error", "eventKey": "12:unknown"})
+        self.assertEqual(status, 400, payload)
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            video_events = conn.execute(
+                "SELECT event_key, path FROM analytics_events WHERE event_type = 'course_video_error'"
+            ).fetchall()
+        self.assertEqual(video_events, [("12:source", "/courses/playback")])
 
         status, payload = admin.get("/api/admin/metrics")
         self.assertEqual(status, 200, payload)

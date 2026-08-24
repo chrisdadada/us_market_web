@@ -875,23 +875,15 @@ function App() {
   }, [auth?.authenticated, openAuth]);
 
   useEffect(() => {
-    const tasks: Array<Promise<unknown>> = [
-      refreshAuth().catch(() => undefined)
-    ];
-    if (pageNeedsBootstrap(initialRoute.page)) tasks.push(refreshBootstrap());
+    void refreshAuth()
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+    if (pageNeedsBootstrap(initialRoute.page)) void refreshBootstrap();
     if (pageNeedsOpinions(initialRoute.page)) {
-      tasks.push(refreshOpinions().then(() => setSelectedOpinion((current) => current || initialRoute.opinionId || "")));
+      void refreshOpinions().then(() => setSelectedOpinion((current) => current || initialRoute.opinionId || ""));
     }
-    if (pageNeedsCalendar(initialRoute.page)) tasks.push(refreshCalendar());
-    if (pageNeedsSignals(initialRoute.page)) tasks.push(refreshSignals());
-    Promise.all(tasks)
-      .finally(() => {
-        setBootstrapLoading(false);
-        setOpinionsLoading(false);
-        setCalendarLoading(false);
-        setSignalsLoading(false);
-        setLoading(false);
-      });
+    if (pageNeedsCalendar(initialRoute.page)) void refreshCalendar();
+    if (pageNeedsSignals(initialRoute.page)) void refreshSignals();
   }, [initialRoute.opinionId, initialRoute.page, refreshAuth, refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals]);
 
   useEffect(() => {
@@ -5028,11 +5020,19 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
   const pendingLessonRef = useRef<number | null>(null);
   const playbackResumeRef = useRef<{ lessonId: number; currentTime: number; shouldPlay: boolean } | null>(null);
   const autoRenewAttemptedRef = useRef(false);
+  const reportedPlaybackErrorsRef = useRef(new Set<string>());
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const unlockedSeries = useMemo(() => series.filter((item) => item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
   const lockedSeries = useMemo(() => series.filter((item) => !item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
   const visibleSeries = courseView === "mine" ? unlockedSeries : lockedSeries;
+
+  const reportPlaybackError = useCallback((lessonId: number, reason: "url" | "renew" | "source" | "play" | "unsupported") => {
+    const eventKey = `${lessonId}:${reason}`;
+    if (reportedPlaybackErrorsRef.current.has(eventKey)) return;
+    reportedPlaybackErrorsRef.current.add(eventKey);
+    void api.analyticsEvent("course_video_error", eventKey, "/courses/playback").catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -5085,6 +5085,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     }
     setManualPlayRequired(false);
     setPlayError("播放失败，请重试");
+    if (activeLessonId) reportPlaybackError(activeLessonId, "play");
   }
 
   async function resumeCurrentVideo() {
@@ -5110,6 +5111,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
       return;
     }
     setPlayError("播放失败，请重试");
+    if (activeLesson) reportPlaybackError(activeLesson.id, "source");
   }
 
   async function playLesson(lessonId: number, forceRefresh = false, preservePaused = false) {
@@ -5149,6 +5151,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     } catch (err) {
       if (controller.signal.aborted || playRequestRef.current !== requestId) return;
       playbackResumeRef.current = null;
+      reportPlaybackError(lessonId, forceRefresh ? "renew" : "url");
       if (!preservePaused) setPlayError("播放失败，请重试");
     } finally {
       if (playRequestRef.current === requestId) {
@@ -5204,6 +5207,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
           if (cancelled) return;
           if (!Hls.isSupported()) {
             setPlayError("当前浏览器暂不支持播放");
+            if (activeLessonId) reportPlaybackError(activeLessonId, "unsupported");
             return;
           }
           const hls = new Hls({ enableWorker: true });
@@ -5217,7 +5221,10 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
           hls.attachMedia(video);
         })
         .catch(() => {
-          if (!cancelled) setPlayError("播放失败，请重试");
+          if (!cancelled) {
+            setPlayError("播放失败，请重试");
+            if (activeLessonId) reportPlaybackError(activeLessonId, "source");
+          }
         });
       return () => {
         cancelled = true;

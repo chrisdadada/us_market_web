@@ -2433,9 +2433,28 @@ def insert_analytics_event(
 def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
     event_type = analytics_text(payload.get("eventType"), 40)
     event_key = analytics_text(payload.get("eventKey"), 80)
-    if event_type != "nav_click" or not event_key:
-        raise ValueError("埋点参数不正确")
-    insert_analytics_event(conn, user, event_type, event_key, str(payload.get("path") or ""))
+    if event_type == "nav_click" and event_key:
+        insert_analytics_event(conn, user, event_type, event_key, str(payload.get("path") or ""))
+        return
+    if event_type == "course_video_error" and re.fullmatch(
+        r"[1-9][0-9]{0,9}:(?:url|renew|source|play|unsupported)", event_key
+    ):
+        if not user:
+            return
+        duplicate = conn.execute(
+            """
+            SELECT 1 FROM analytics_events
+            WHERE user_id = ? AND event_type = ? AND event_key = ?
+              AND datetime(created_at) >= datetime('now', '-1 hour')
+            LIMIT 1
+            """,
+            (user["id"], event_type, event_key),
+        ).fetchone()
+        if duplicate:
+            return
+        insert_analytics_event(conn, user, event_type, event_key, "/courses/playback")
+        return
+    raise ValueError("埋点参数不正确")
 
 
 def write_course_play_grant(user: sqlite3.Row, lesson_id: int) -> None:
