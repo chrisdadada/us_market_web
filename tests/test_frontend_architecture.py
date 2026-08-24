@@ -64,6 +64,11 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn('return "gte8"', MAIN_APP)
         self.assertNotIn('api.analyticsEvent("course_video_ready", videoUrl', MAIN_APP)
 
+    def test_hls_quality_is_capped_to_visible_player_size(self) -> None:
+        self.assertIn("capLevelToPlayerSize: true", MAIN_APP)
+        self.assertIn("maxDevicePixelRatio: 2", MAIN_APP)
+        self.assertNotIn("maxBufferLength:", MAIN_APP)
+
     def test_course_detail_failure_is_not_reported_as_missing_course(self) -> None:
         course_detail = re.search(r"if \(courseId\) \{(.*?)if \(!selected\)", MAIN_APP, re.S)
         self.assertIsNotNone(course_detail)
