@@ -4803,7 +4803,6 @@ function PositionSizingPage() {
 
             {calculation.error || formError ? <p className="positionError">{formError || calculation.error}</p> : null}
             <div className="positionFormFoot">
-              <span>止损应设在交易逻辑失效的位置，再由系统反推仓位。</span>
               <button type="button" onClick={clearTrade}>清空</button>
             </div>
           </div>

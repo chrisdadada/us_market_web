@@ -6088,7 +6088,7 @@ body,
 .positionFormFoot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   border-top: 1px solid #edf1f5;
   color: #8290a4;
