@@ -43,6 +43,13 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn("finally(() => setLoading(false))", startup.group(1))
         self.assertNotIn("Promise.all(tasks)", startup.group(1))
 
+    def test_home_bootstrap_is_small_and_market_keeps_full_data(self) -> None:
+        self.assertIn('return page === "market" ? 500 : 4', MAIN_APP)
+        self.assertIn("api.bootstrap(limit, trackingSymbols)", MAIN_APP)
+        self.assertIn("bootstrapLimit < bootstrapLimitForPage(page)", MAIN_APP)
+        self.assertIn("bootstrapLimit >= requiredLimit", MAIN_APP)
+        self.assertNotIn("api.bootstrap(500, trackingSymbols)", MAIN_APP)
+
     def test_course_video_errors_are_deduplicated_without_sensitive_context(self) -> None:
         self.assertIn('api.analyticsEvent("course_video_error", eventKey, "/courses/playback")', MAIN_APP)
         self.assertIn("reportedPlaybackErrorsRef.current.has(eventKey)", MAIN_APP)

@@ -10,6 +10,7 @@ import { strengthPageFixture } from "./strength_page_fixture.mjs";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
 const dcaOnly = process.env.DCA_ONLY === "1";
+const bootstrapLimits = [];
 
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -89,6 +90,7 @@ async function apiPayload(url) {
   ];
 
   if (url.pathname === "/api/product/bootstrap") {
+    bootstrapLimits.push(Number(url.searchParams.get("limit")));
     return {
       meta: { schemaVersion: "test", generatedAt: ytd.updatedAt || movers.updatedAt || "", counts: {} },
       ytd: { ...ytd, rows: (ytd.rows || []).slice(0, 20) },
@@ -263,6 +265,14 @@ try {
       assert(height < 9000, `Page too tall for ${baseUrl}${item.query || ""}: ${height}`);
       assert(logoLoaded, `Logo failed to load for ${baseUrl}${item.query || ""}`);
     }
+  }
+  if (!dcaOnly) {
+    bootstrapLimits.length = 0;
+    await page.goto(server.rootUrl, { waitUntil: "networkidle" });
+    assert(bootstrapLimits.at(-1) === 4, `Home should request only the rows it displays: ${bootstrapLimits.join(",")}`);
+    bootstrapLimits.length = 0;
+    await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
+    assert(bootstrapLimits.at(-1) === 500, `Market page should keep the full dataset: ${bootstrapLimits.join(",")}`);
   }
   const sharedFailureCounts = { bootstrap: 0, signals: 0 };
   const failOnce = (key) => async (route) => {
