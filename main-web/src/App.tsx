@@ -1078,7 +1078,7 @@ function App() {
       <aside className={`sideRail ${mobileNavOpen ? "mobileOpen" : ""}`} aria-label="网站导航">
         <div className="sideRailHeader">
           <a className="brand" href="/" onClick={() => setMobileNavOpen(false)}>
-            <img src="/assets/dongbimao-logo.png" alt="" width="38" height="38" />
+            <img src="/assets/dongbimao-logo.png?v=20260824" alt="" width="38" height="38" />
             <span>
               <strong>懂币猫</strong>
               <small>美股投研</small>
@@ -1124,7 +1124,7 @@ function App() {
       <section className="workspace" inert={mobileNavOpen}>
         <header className="mobileShellBar">
           <a className="mobileShellBrand" href="/">
-            <img src="/assets/dongbimao-logo.png" alt="" width="34" height="34" />
+            <img src="/assets/dongbimao-logo.png?v=20260824" alt="" width="34" height="34" />
             <span><strong>懂币猫</strong><small>美股投研</small></span>
           </a>
           <div>

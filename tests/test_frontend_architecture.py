@@ -70,6 +70,7 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertNotIn("/legacy/", MAIN_ENTRY)
         self.assertNotIn("app.js", MAIN_HTML)
         self.assertNotIn("styles.css", MAIN_HTML)
+        self.assertIn("dongbimao-logo.png?v=20260824", MAIN_HTML)
 
     def test_product_navigation_has_one_source_of_truth(self) -> None:
         self.assertIn('from "./productConfig"', MAIN_APP)
