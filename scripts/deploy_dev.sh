@@ -222,6 +222,10 @@ if [ "${service_ready}" -ne 1 ]; then
   exit 1
 fi
 
+python3 "${dev_root}/scripts/check_web_delivery.py" \
+  --base-url https://dev.dongbimao.org \
+  --release "${release_commit}"
+
 rm -rf "${old_root}" "${old_web}"
 old_root=""
 old_web=""
