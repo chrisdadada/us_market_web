@@ -882,11 +882,35 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         status, payload = user.post("/api/analytics/event", {"eventType": "course_video_error", "eventKey": "12:unknown"})
         self.assertEqual(status, 400, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_url_ready", "eventKey": "12:lt1"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_url_ready", "eventKey": "12:gte8"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_ready", "eventKey": "12:1to3"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_buffer", "eventKey": "12"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_buffer", "eventKey": "12"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_ready", "eventKey": "12:exactly-2400"})
+        self.assertEqual(status, 400, payload)
         with sqlite3.connect(auth_api.DB_PATH) as conn:
             video_events = conn.execute(
                 "SELECT event_key, path FROM analytics_events WHERE event_type = 'course_video_error'"
             ).fetchall()
         self.assertEqual(video_events, [("12:source", "/courses/playback")])
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            health_events = conn.execute(
+                "SELECT event_type, event_key, path FROM analytics_events WHERE event_type LIKE 'course_video_%' AND event_type <> 'course_video_error' ORDER BY id"
+            ).fetchall()
+        self.assertEqual(
+            health_events,
+            [
+                ("course_video_url_ready", "12:lt1", "/courses/playback"),
+                ("course_video_ready", "12:1to3", "/courses/playback"),
+                ("course_video_buffer", "12", "/courses/playback"),
+            ],
+        )
 
         status, payload = admin.get("/api/admin/metrics")
         self.assertEqual(status, 200, payload)

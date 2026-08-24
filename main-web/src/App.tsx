@@ -5031,6 +5031,8 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
   const playbackResumeRef = useRef<{ lessonId: number; currentTime: number; shouldPlay: boolean } | null>(null);
   const autoRenewAttemptedRef = useRef(false);
   const reportedPlaybackErrorsRef = useRef(new Set<string>());
+  const reportedPlaybackMetricsRef = useRef(new Set<string>());
+  const playbackObservationRef = useRef<{ lessonId: number; startedAt: number; ready: boolean; hasPlayed: boolean } | null>(null);
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const unlockedSeries = useMemo(() => series.filter((item) => item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
@@ -5043,6 +5045,20 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     reportedPlaybackErrorsRef.current.add(eventKey);
     void api.analyticsEvent("course_video_error", eventKey, "/courses/playback").catch(() => {});
   }, []);
+
+  const reportPlaybackMetric = useCallback((eventType: "course_video_url_ready" | "course_video_ready" | "course_video_buffer", eventKey: string) => {
+    const dedupeKey = `${eventType}:${eventKey.split(":", 1)[0]}`;
+    if (reportedPlaybackMetricsRef.current.has(dedupeKey)) return;
+    reportedPlaybackMetricsRef.current.add(dedupeKey);
+    void api.analyticsEvent(eventType, eventKey, "/courses/playback").catch(() => {});
+  }, []);
+
+  function playbackLatencyBucket(elapsedMs: number) {
+    if (elapsedMs < 1000) return "lt1";
+    if (elapsedMs < 3000) return "1to3";
+    if (elapsedMs < 8000) return "3to8";
+    return "gte8";
+  }
 
   useEffect(() => {
     if (!enabled) {
@@ -5148,12 +5164,17 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
         }
       : null;
     if (!refreshingCurrentVideo) stopCurrentVideo();
+    playbackObservationRef.current = { lessonId, startedAt: performance.now(), ready: false, hasPlayed: false };
     setActiveLessonId(lessonId);
     setPlayLoading(true);
     setPlayError("");
     try {
       const payload = await api.coursePlayUrl(lessonId, controller.signal);
       if (playRequestRef.current !== requestId) return;
+      const observation = playbackObservationRef.current;
+      if (observation?.lessonId === lessonId) {
+        reportPlaybackMetric("course_video_url_ready", `${lessonId}:${playbackLatencyBucket(performance.now() - observation.startedAt)}`);
+      }
       if (refreshingCurrentVideo) stopCurrentVideo();
       setVideoType(payload.type);
       setVideoExpiresAt(Date.now() + Math.max(60, payload.expiresIn) * 1000);
@@ -5182,6 +5203,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     setPlayError("");
     autoRenewAttemptedRef.current = false;
     playbackResumeRef.current = null;
+    playbackObservationRef.current = null;
     setActiveLessonId(selected?.unlocked ? selected.lessons?.[0]?.id || null : null);
   }, [selected?.id, selected?.unlocked, selected?.lessons, stopCurrentVideo]);
 
@@ -5316,6 +5338,21 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
                         preload="metadata"
                         playsInline
                         onPlay={() => { autoRenewAttemptedRef.current = false; setIsVideoPlaying(true); setManualPlayRequired(false); setPlayError(""); }}
+                        onCanPlay={() => {
+                          const observation = playbackObservationRef.current;
+                          if (!observation || observation.lessonId !== activeLessonId || observation.ready) return;
+                          observation.ready = true;
+                          reportPlaybackMetric("course_video_ready", `${observation.lessonId}:${playbackLatencyBucket(performance.now() - observation.startedAt)}`);
+                        }}
+                        onPlaying={() => {
+                          const observation = playbackObservationRef.current;
+                          if (observation?.lessonId === activeLessonId) observation.hasPlayed = true;
+                        }}
+                        onWaiting={(event) => {
+                          const observation = playbackObservationRef.current;
+                          if (!observation?.hasPlayed || observation.lessonId !== activeLessonId || event.currentTarget.seeking) return;
+                          reportPlaybackMetric("course_video_buffer", String(observation.lessonId));
+                        }}
                         onPause={() => setIsVideoPlaying(false)}
                         onEnded={() => setIsVideoPlaying(false)}
                         onError={(event) => {

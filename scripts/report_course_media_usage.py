@@ -12,6 +12,7 @@ from typing import Any
 DEV_DB = Path("/var/lib/ytd-gainers-dev/app.db")
 DEV_AUDIT_ROOT = Path("/opt/dongbimao-dev/.local/media-audits")
 EVENT_TYPE = "course_play_grant"
+LATENCY_BUCKETS = ("lt1", "1to3", "3to8", "gte8")
 
 
 def has_symlink(path: Path) -> bool:
@@ -96,6 +97,31 @@ def build_report(
             "assetCodec": str(video.get("videoCodec") or ""),
         })
 
+    health_rows = conn.execute(
+        """
+        SELECT event_type, event_key
+        FROM analytics_events
+        WHERE event_type IN ('course_video_url_ready', 'course_video_ready', 'course_video_buffer')
+          AND created_at >= ? AND created_at < ?
+        ORDER BY created_at, id
+        """,
+        (start.isoformat(), end.isoformat()),
+    ).fetchall()
+    url_ready = {bucket: 0 for bucket in LATENCY_BUCKETS}
+    video_ready = {bucket: 0 for bucket in LATENCY_BUCKETS}
+    buffering_reports = 0
+    for event_type, event_key in health_rows:
+        if event_type == "course_video_buffer":
+            if not str(event_key).isdigit() or int(event_key) not in metadata:
+                raise ValueError("播放缓冲记录包含无效课时")
+            buffering_reports += 1
+            continue
+        parts = str(event_key).split(":", 1)
+        if len(parts) != 2 or not parts[0].isdigit() or int(parts[0]) not in metadata or parts[1] not in LATENCY_BUCKETS:
+            raise ValueError("播放耗时记录格式无效")
+        target = url_ready if event_type == "course_video_url_ready" else video_ready
+        target[parts[1]] += 1
+
     return {
         "ok": True,
         "mode": "read-only",
@@ -106,6 +132,12 @@ def build_report(
             "grants": len(rows),
             "uniqueUsers": len(all_users),
             "lessonsGranted": len(all_lessons),
+        },
+        "playbackHealth": {
+            "urlReady": url_ready,
+            "videoReady": video_ready,
+            "bufferingReports": buffering_reports,
+            "meaning": "按用户和课时去重后的耗时档位与缓冲报告；不记录播放进度或签名地址",
         },
         "rows": output_rows,
     }
