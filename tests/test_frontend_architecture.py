@@ -36,6 +36,18 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn("autoRenewAttemptedRef", MAIN_APP)
         self.assertIn("if (!refreshingCurrentVideo) stopCurrentVideo()", MAIN_APP)
 
+    def test_home_shell_only_waits_for_authentication(self) -> None:
+        startup = re.search(r"useEffect\(\(\) => \{(.*?)\}, \[initialRoute\.opinionId", MAIN_APP, re.S)
+        self.assertIsNotNone(startup)
+        self.assertIn("refreshAuth()", startup.group(1))
+        self.assertIn("finally(() => setLoading(false))", startup.group(1))
+        self.assertNotIn("Promise.all(tasks)", startup.group(1))
+
+    def test_course_video_errors_are_deduplicated_without_sensitive_context(self) -> None:
+        self.assertIn('api.analyticsEvent("course_video_error", eventKey, "/courses/playback")', MAIN_APP)
+        self.assertIn("reportedPlaybackErrorsRef.current.has(eventKey)", MAIN_APP)
+        self.assertNotIn('api.analyticsEvent("course_video_error", videoUrl', MAIN_APP)
+
     def test_course_detail_failure_is_not_reported_as_missing_course(self) -> None:
         course_detail = re.search(r"if \(courseId\) \{(.*?)if \(!selected\)", MAIN_APP, re.S)
         self.assertIsNotNone(course_detail)
