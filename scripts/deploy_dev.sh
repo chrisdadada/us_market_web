@@ -209,7 +209,18 @@ systemctl restart ytd-gainers-auth-dev
 systemctl is-active ytd-gainers-auth-dev >/dev/null
 curl --fail --silent --show-error --max-time 15 "https://dev.dongbimao.org/release.json?v=${release_commit}" \
   | grep -q "\"commit\":\"${release_commit}\""
-curl --fail --silent --show-error --max-time 15 https://dev.dongbimao.org/api/product/health >/dev/null
+service_ready=0
+for _ in $(seq 1 20); do
+  if curl --fail --silent --max-time 5 https://dev.dongbimao.org/api/product/health >/dev/null; then
+    service_ready=1
+    break
+  fi
+  sleep 1
+done
+if [ "${service_ready}" -ne 1 ]; then
+  echo "Dev API did not become ready after restart." >&2
+  exit 1
+fi
 
 rm -rf "${old_root}" "${old_web}"
 old_root=""

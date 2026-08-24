@@ -107,6 +107,8 @@ class DevCodeDeployTest(unittest.TestCase):
         self.assertIn('root_swapped', DEPLOY)
         self.assertIn('web_swapped', DEPLOY)
         self.assertIn('systemctl is-active ytd-gainers-auth-dev', DEPLOY)
+        self.assertIn('service_ready=0', DEPLOY)
+        self.assertIn('Dev API did not become ready after restart.', DEPLOY)
 
     def test_code_deploy_preserves_runtime_data(self) -> None:
         self.assertIn('cp -a "${dev_root}/data" "${next_root}/data"', DEPLOY)
