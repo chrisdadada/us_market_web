@@ -5012,6 +5012,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
   const [loadVersion, setLoadVersion] = useState(0);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoType, setVideoType] = useState<"file" | "hls">("file");
+  const [videoExpiresAt, setVideoExpiresAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [playLoading, setPlayLoading] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -5023,6 +5024,8 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
   const playRequestRef = useRef(0);
   const playAbortRef = useRef<AbortController | null>(null);
   const pendingLessonRef = useRef<number | null>(null);
+  const playbackResumeRef = useRef<{ lessonId: number; currentTime: number; shouldPlay: boolean } | null>(null);
+  const autoRenewAttemptedRef = useRef(false);
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const unlockedSeries = useMemo(() => series.filter((item) => item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
@@ -5066,6 +5069,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     }
     setVideoUrl("");
     setVideoType("file");
+    setVideoExpiresAt(0);
     setIsVideoPlaying(false);
     setManualPlayRequired(false);
   }, []);
@@ -5094,7 +5098,19 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     }
   }
 
-  async function playLesson(lessonId: number, forceRefresh = false) {
+  function recoverPlaybackSource() {
+    setIsVideoPlaying(false);
+    setManualPlayRequired(false);
+    if (activeLesson && pendingLessonRef.current === activeLesson.id) return;
+    if (activeLesson && !autoRenewAttemptedRef.current) {
+      autoRenewAttemptedRef.current = true;
+      void playLesson(activeLesson.id, true);
+      return;
+    }
+    setPlayError("播放失败，请重试");
+  }
+
+  async function playLesson(lessonId: number, forceRefresh = false, preservePaused = false) {
     if (!forceRefresh && pendingLessonRef.current === lessonId) return;
     if (!forceRefresh && activeLessonId === lessonId && videoUrl) {
       await resumeCurrentVideo();
@@ -5108,18 +5124,30 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     playAbortRef.current = controller;
     pendingLessonRef.current = lessonId;
 
-    stopCurrentVideo();
+    const currentVideo = videoRef.current;
+    const refreshingCurrentVideo = Boolean(forceRefresh && activeLessonId === lessonId && videoUrl && currentVideo);
+    playbackResumeRef.current = refreshingCurrentVideo && currentVideo
+      ? {
+          lessonId,
+          currentTime: Number.isFinite(currentVideo.currentTime) ? currentVideo.currentTime : 0,
+          shouldPlay: preservePaused ? !currentVideo.paused && !currentVideo.ended : true
+        }
+      : null;
+    if (!refreshingCurrentVideo) stopCurrentVideo();
     setActiveLessonId(lessonId);
     setPlayLoading(true);
     setPlayError("");
     try {
       const payload = await api.coursePlayUrl(lessonId, controller.signal);
       if (playRequestRef.current !== requestId) return;
+      if (refreshingCurrentVideo) stopCurrentVideo();
       setVideoType(payload.type);
+      setVideoExpiresAt(Date.now() + Math.max(60, payload.expiresIn) * 1000);
       setVideoUrl(payload.url);
     } catch (err) {
       if (controller.signal.aborted || playRequestRef.current !== requestId) return;
-      setPlayError("播放失败，请重试");
+      playbackResumeRef.current = null;
+      if (!preservePaused) setPlayError("播放失败，请重试");
     } finally {
       if (playRequestRef.current === requestId) {
         playAbortRef.current = null;
@@ -5137,6 +5165,8 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     stopCurrentVideo();
     setPlayLoading(false);
     setPlayError("");
+    autoRenewAttemptedRef.current = false;
+    playbackResumeRef.current = null;
     setActiveLessonId(selected?.unlocked ? selected.lessons?.[0]?.id || null : null);
   }, [selected?.id, selected?.unlocked, selected?.lessons, stopCurrentVideo]);
 
@@ -5144,7 +5174,19 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     if (!videoUrl || !videoRef.current) return;
     const video = videoRef.current;
     const startPlayback = () => {
-      void video.play().catch((err) => handlePlayFailure(video, err));
+      const resume = playbackResumeRef.current;
+      const finish = () => {
+        if (resume?.lessonId === activeLessonId && resume.currentTime > 0) {
+          video.currentTime = Math.min(resume.currentTime, Number.isFinite(video.duration) ? video.duration : resume.currentTime);
+        }
+        playbackResumeRef.current = null;
+        if (!resume || resume.shouldPlay) void video.play().catch((err) => handlePlayFailure(video, err));
+      };
+      if (resume?.lessonId === activeLessonId && video.readyState < 1) {
+        video.addEventListener("loadedmetadata", finish, { once: true });
+      } else {
+        finish();
+      }
     };
 
     if (videoType === "hls") {
@@ -5168,9 +5210,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
           hls.on(Hls.Events.MANIFEST_PARSED, startPlayback);
           hls.on(Hls.Events.ERROR, (_, data) => {
             if (!data.fatal || hlsRef.current !== hls) return;
-            setIsVideoPlaying(false);
-            setManualPlayRequired(false);
-            setPlayError("播放失败，请重试");
+            recoverPlaybackSource();
           });
           hls.attachMedia(video);
         })
@@ -5188,6 +5228,15 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
     video.load();
     startPlayback();
   }, [videoType, videoUrl]);
+
+  useEffect(() => {
+    if (!videoUrl || !videoExpiresAt || !activeLessonId) return;
+    const delay = Math.max(1000, videoExpiresAt - Date.now() - 120_000);
+    const timer = window.setTimeout(() => {
+      void playLesson(activeLessonId, true, true);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [activeLessonId, videoExpiresAt, videoUrl]);
 
   useEffect(() => () => {
     playRequestRef.current += 1;
@@ -5247,18 +5296,16 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
                         controlsList="nodownload"
                         preload="metadata"
                         playsInline
-                        onPlay={() => { setIsVideoPlaying(true); setManualPlayRequired(false); setPlayError(""); }}
+                        onPlay={() => { autoRenewAttemptedRef.current = false; setIsVideoPlaying(true); setManualPlayRequired(false); setPlayError(""); }}
                         onPause={() => setIsVideoPlaying(false)}
                         onEnded={() => setIsVideoPlaying(false)}
                         onError={(event) => {
                           if (!event.currentTarget.currentSrc) return;
-                          setIsVideoPlaying(false);
-                          setManualPlayRequired(false);
-                          setPlayError("播放失败，请重试");
+                          recoverPlaybackSource();
                         }}
                       />
                       {playError ? (
-                        <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
+                        <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => { autoRenewAttemptedRef.current = false; if (activeLesson) void playLesson(activeLesson.id, true); }}>重试</button></div>
                       ) : manualPlayRequired ? (
                         <button type="button" className="courseVideoResume" onClick={resumeCurrentVideo}>继续播放</button>
                       ) : null}
@@ -5266,7 +5313,7 @@ function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock 
                   ) : playLoading ? (
                     <div className="courseVideoState"><i aria-hidden="true" /><span>正在加载</span></div>
                   ) : playError ? (
-                    <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
+                    <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => { autoRenewAttemptedRef.current = false; if (activeLesson) void playLesson(activeLesson.id, true); }}>重试</button></div>
                   ) : (
                     <button type="button" className="courseVideoPlayButton" disabled={!activeLesson} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
                       <span />

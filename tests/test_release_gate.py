@@ -97,6 +97,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_COS_BUCKET = ""
         auth_api.COURSE_COS_REGION = ""
         auth_api.COURSE_COS_DOMAIN = ""
+        auth_api.COURSE_VIDEO_SIGN_TTL = 21600
+        auth_api.COURSE_HLS_SIGN_TTL = 21600
         auth_api.COURSE_CDN_ENABLED = False
         auth_api.COURSE_CDN_DOMAIN = ""
         auth_api.COURSE_CDN_AUTH_KEY = ""
@@ -1798,6 +1800,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         )
         self.assertIn("q-sign-algorithm=sha1", url)
         self.assertIn("/lesson/demo.mp4?", url)
+        self.assertIn("q-sign-time=1700000000%3B1700021600", url)
 
     def test_course_cdn_type_a_signing_is_limited_to_allowlist(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"
@@ -1832,7 +1835,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         cos_url = auth_api.signed_course_video_url("lesson/other.mp4", now=1_700_000_000)
         self.assertIn("cos.ap-chengdu.myqcloud.com", cos_url)
         self.assertIn("q-sign-algorithm=sha1", cos_url)
-        self.assertEqual(auth_api.course_video_url_ttl("lesson/other.mp4"), 1800)
+        self.assertEqual(auth_api.course_video_url_ttl("lesson/other.mp4"), 21600)
 
         auth_api.COURSE_CDN_AUTH_KEY = "bad-key!"
         with self.assertRaisesRegex(RuntimeError, "密钥格式错误"):
@@ -1901,7 +1904,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertIn("cos.ap-chengdu.myqcloud.com/lesson/poc.mp4", payload["url"])
         self.assertIn("q-sign-algorithm=sha1", payload["url"])
-        self.assertEqual(payload["expiresIn"], 1800)
+        self.assertEqual(payload["expiresIn"], 21600)
 
     def test_course_hls_playback_keeps_access_checks_and_signs_segments(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"
@@ -2019,7 +2022,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             )
     def test_course_play_observation_reuses_recent_grant_without_blocking(self) -> None:
         auth_api.COURSE_PLAY_REUSE_SECONDS = 120
-        auth_api.COURSE_COS_SIGN_TTL = 1800
+        auth_api.COURSE_VIDEO_SIGN_TTL = 21600
         with (
             patch.object(auth_api.time, "time", side_effect=[1_700_000_000, 1_700_000_030]),
             patch.object(auth_api, "signed_course_video_url", side_effect=["https://video.example/first", "https://video.example/second"]) as signer,
@@ -2028,8 +2031,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             first = auth_api.observed_course_play_url(7, 11, "lesson/demo.mp4", "1.2.3.4", "Test Browser")
             second = auth_api.observed_course_play_url(7, 11, "lesson/demo.mp4", "5.6.7.8", "Test Browser")
 
-        self.assertEqual(first, ("https://video.example/first", 1800))
-        self.assertEqual(second, ("https://video.example/first", 1770))
+        self.assertEqual(first, ("https://video.example/first", 21600))
+        self.assertEqual(second, ("https://video.example/first", 21570))
         self.assertEqual(signer.call_count, 1)
         event = json.loads(output.call_args_list[-1].args[0].removeprefix("course_play_observation "))
         self.assertTrue(event["reused"])

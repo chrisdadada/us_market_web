@@ -27,6 +27,14 @@ LEGACY_FILES = ("index.html", "admin.html", "app.js", "styles.css")
 
 
 class FrontendArchitectureTest(unittest.TestCase):
+    def test_course_video_renews_before_expiry_and_preserves_progress(self) -> None:
+        self.assertIn("Math.max(60, payload.expiresIn)", MAIN_APP)
+        self.assertIn("videoExpiresAt - Date.now() - 120_000", MAIN_APP)
+        self.assertIn("playbackResumeRef", MAIN_APP)
+        self.assertIn("recoverPlaybackSource", MAIN_APP)
+        self.assertIn("autoRenewAttemptedRef", MAIN_APP)
+        self.assertIn("if (!refreshingCurrentVideo) stopCurrentVideo()", MAIN_APP)
+
     def test_course_detail_failure_is_not_reported_as_missing_course(self) -> None:
         course_detail = re.search(r"if \(courseId\) \{(.*?)if \(!selected\)", MAIN_APP, re.S)
         self.assertIsNotNone(course_detail)

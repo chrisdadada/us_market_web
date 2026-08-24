@@ -104,7 +104,8 @@ COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCE
 COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCENT_COS_REGION") or ""
 COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
-COURSE_HLS_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 7200)
+COURSE_VIDEO_SIGN_TTL = max(60, int(os.environ.get("COURSE_VIDEO_SIGN_TTL_SECONDS", "21600")))
+COURSE_HLS_SIGN_TTL = max(COURSE_VIDEO_SIGN_TTL, 7200)
 COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
 COURSE_CDN_ENABLED = os.environ.get("COURSE_CDN_ENABLED", "0") == "1"
 COURSE_CDN_DOMAIN = os.environ.get("COURSE_CDN_DOMAIN", "").strip().rstrip("/")
@@ -3189,7 +3190,7 @@ def signed_course_video_url(video_key: str, now: int | None = None) -> str:
         return raw
     if course_video_uses_cdn(raw):
         return signed_course_cdn_url(raw, now=now)
-    return signed_course_cos_url(raw, method="get", now=now)
+    return signed_course_cos_url(raw, method="get", now=now, ttl=COURSE_VIDEO_SIGN_TTL)
 
 
 def signed_course_hls_segment_url(video_key: str) -> str:
@@ -3271,7 +3272,7 @@ def course_video_url_ttl(video_key: str) -> int:
     raw = course_video_key(str(video_key or "").strip())
     if course_video_is_hls(raw):
         return COURSE_HLS_SIGN_TTL
-    return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_COS_SIGN_TTL)
+    return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_VIDEO_SIGN_TTL)
 
 
 def safe_course_video_filename(value: str) -> str:
