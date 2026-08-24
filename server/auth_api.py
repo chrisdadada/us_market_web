@@ -23,6 +23,7 @@ from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from statistics import median
 from typing import Any, Iterator
 from urllib.parse import parse_qs, quote, urlencode, unquote, urlparse
 from zoneinfo import ZoneInfo
@@ -1734,7 +1735,7 @@ def bottom_strategy_payload(include_details: bool) -> dict[str, Any]:
 
     markets: dict[str, Any] = {}
     for key, source in payload.get("markets", {}).items():
-        item = {field: value for field, value in source.items() if field not in {"machineState", "dailyStates"}}
+        item = {field: value for field, value in source.items() if field not in {"machineState", "dailyStates", "dailyPrices"}}
         records = source.get("records") or []
         item["opportunityDates"] = [
             str(record.get("signalDate"))[:10]
@@ -2006,30 +2007,75 @@ def _dca1_valuation_usable(
     return estimated_sessions <= DCA1_MAX_SOURCE_LAG_SESSIONS
 
 
-def _dca_history_payload(opportunity_dates: list[str], market: dict[str, Any] | None = None) -> dict[str, Any]:
+def _dca_price_history_records(
+    opportunity_dates: list[str],
+    daily_prices: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "date": str(item.get("date") or "")[:10],
+            "open": float(item["open"]),
+            "high": float(item["high"]),
+            "close": float(item["close"]),
+        }
+        for item in daily_prices
+        if item.get("date")
+        and all(isinstance(item.get(field), (int, float)) for field in ("open", "high", "close"))
+    ]
+    rows.sort(key=lambda item: item["date"])
+    if not rows:
+        return []
+    row_dates = [item["date"] for item in rows]
+    records: list[dict[str, Any]] = []
+    for signal_date in reversed(sorted({str(item)[:10] for item in opportunity_dates if item})):
+        entry_index = bisect_right(row_dates, signal_date)
+        if entry_index >= len(rows) or rows[entry_index]["open"] <= 0:
+            continue
+        entry = rows[entry_index]["open"]
+        record: dict[str, Any] = {"opportunityDate": signal_date}
+        for horizon, target_key in ((30, "max30Pct"), (60, "max60Pct")):
+            final_index = entry_index + horizon
+            if final_index < len(rows):
+                highest = max(item["high"] for item in rows[entry_index : final_index + 1])
+                record[target_key] = round((highest / entry - 1) * 100, 2)
+        final_index = entry_index + 180
+        if final_index < len(rows):
+            record["end180Pct"] = round((rows[final_index]["close"] / entry - 1) * 100, 2)
+        records.append(record)
+    return records[:5]
+
+
+def _dca_history_payload(
+    opportunity_dates: list[str],
+    market: dict[str, Any] | None = None,
+    daily_prices: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     dates = sorted({str(item)[:10] for item in opportunity_dates if item})
     summary = (market or {}).get("summary") or {}
     source_records = (market or {}).get("recentRecords") or []
-    records: list[dict[str, Any]] = []
-    for source in source_records[:5]:
-        signal_date = str(source.get("signalDate") or "")[:10]
-        if not signal_date:
-            continue
-        performance = source.get("performance") or {}
-        record: dict[str, Any] = {"opportunityDate": signal_date}
-        for horizon, source_key, target_key in (
-            ("30", "maxPct", "max30Pct"),
-            ("60", "maxPct", "max60Pct"),
-            ("180", "endPct", "end180Pct"),
-        ):
-            value = (performance.get(horizon) or {}).get(source_key)
-            if isinstance(value, (int, float)):
-                record[target_key] = float(value)
-        records.append(record)
+    records = _dca_price_history_records(dates, daily_prices or [])
+    if not records:
+        for source in source_records[:5]:
+            signal_date = str(source.get("signalDate") or "")[:10]
+            if not signal_date:
+                continue
+            performance = source.get("performance") or {}
+            record: dict[str, Any] = {"opportunityDate": signal_date}
+            for horizon, source_key, target_key in (
+                ("30", "maxPct", "max30Pct"),
+                ("60", "maxPct", "max60Pct"),
+                ("180", "endPct", "end180Pct"),
+            ):
+                value = (performance.get(horizon) or {}).get(source_key)
+                if isinstance(value, (int, float)):
+                    record[target_key] = float(value)
+            records.append(record)
     if not records:
         records = [{"opportunityDate": item} for item in reversed(dates[-5:])]
-    max60 = (summary.get("stageMaxMedianPct") or {}).get("60")
-    end180 = summary.get("end180MedianPct")
+    max60_values = [float(item["max60Pct"]) for item in records if isinstance(item.get("max60Pct"), (int, float))]
+    end180_values = [float(item["end180Pct"]) for item in records if isinstance(item.get("end180Pct"), (int, float))]
+    max60 = median(max60_values) if daily_prices and max60_values else (summary.get("stageMaxMedianPct") or {}).get("60")
+    end180 = median(end180_values) if daily_prices and end180_values else summary.get("end180MedianPct")
     return {
         "sinceYear": int(dates[0][:4]) if dates else None,
         "totalOpportunities": int(summary.get("totalSignals") or len(dates)),
@@ -2136,7 +2182,10 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
                 "locationSeries": location_series,
                 "lowBoundaryPosition": boundary_position,
                 "priceSeries": price_series,
-                "history": _dca_history_payload(opportunity_dates_1) if include_details else None,
+                "history": _dca_history_payload(
+                    opportunity_dates_1,
+                    daily_prices=qqq_market.get("dailyPrices") or [],
+                ) if include_details else None,
             },
             "dca2": {
                 "available": dca2_available,

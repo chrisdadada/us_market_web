@@ -131,6 +131,23 @@ def sampled_prices(rows: list[dict[str, Any]], signal_dates: set[str]) -> list[d
     return points
 
 
+def daily_prices(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    points: list[dict[str, Any]] = []
+    for row in rows:
+        open_value = number(row.get("open"))
+        high_value = number(row.get("high"))
+        close_value = number(row.get("close"))
+        if open_value is None or high_value is None or close_value is None:
+            continue
+        points.append({
+            "date": row["date"],
+            "open": rounded(open_value),
+            "high": rounded(high_value),
+            "close": rounded(close_value),
+        })
+    return points
+
+
 def build_market(path: Path, symbol: str, name: str) -> dict[str, Any]:
     rows = load_rows(path)
     if not rows:
@@ -164,6 +181,7 @@ def build_market(path: Path, symbol: str, name: str) -> dict[str, Any]:
         "recentRecords": list(reversed(recent)),
         "records": list(reversed(records)),
         "priceSeries": sampled_prices(rows, {record["signalDate"] for record in records}),
+        "dailyPrices": daily_prices(rows),
     }
 
 
@@ -556,6 +574,7 @@ def build_market_data_payload(data_root: Path, baseline: dict[str, Any]) -> dict
             [{"date": row["date"], "close": row["close"]} for row in rows],
             {record["signalDate"] for record in market.get("records") or []},
         )
+        market["dailyPrices"] = daily_prices(rows)
         summarize_market(market, rows)
 
     expected = min(expected_dates)

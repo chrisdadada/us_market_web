@@ -89,6 +89,29 @@ class BottomStrategySnapshotTests(unittest.TestCase):
             "end180Pct": 52.78,
         })
 
+    def test_dca1_history_uses_daily_prices_for_stage_metrics(self) -> None:
+        start = datetime.fromisoformat("2020-01-01")
+        prices = [
+            {
+                "date": (start + timedelta(days=index)).date().isoformat(),
+                "open": 100.0,
+                "high": 100.0 + index,
+                "close": 100.0 + index,
+            }
+            for index in range(201)
+        ]
+
+        history = auth_api._dca_history_payload(["2020-01-01"], daily_prices=prices)
+
+        self.assertEqual(history["max60MedianPct"], 61.0)
+        self.assertEqual(history["end180MedianPct"], 181.0)
+        self.assertEqual(history["records"], [{
+            "opportunityDate": "2020-01-01",
+            "max30Pct": 31.0,
+            "max60Pct": 61.0,
+            "end180Pct": 181.0,
+        }])
+
     def test_fixed_low_valuation_cycles_fix_signal_at_first_entry(self) -> None:
         history = [
             {"date": "2020-01-03", "value": 25.0},
