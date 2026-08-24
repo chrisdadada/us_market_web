@@ -29,6 +29,7 @@ def report(history_rows: int, has_five_year_range: bool, payloads_match: bool = 
         "calendar": [{"type": "macro", "rows": 1}],
         "fomcEvents": 1,
         "options": [],
+        "missingRequiredRawPayloads": [],
         "indexValuation": {
             "forwardAsOf": "2026-08-18",
             "forwardHistoricalAsOf": latest_date,
@@ -67,6 +68,14 @@ class ProductCoverageTest(unittest.TestCase):
         failures, _ = validate(current, args())
 
         self.assertIn("FOMC calendar events 0 < 1", failures)
+
+    def test_rejects_missing_required_raw_payload(self):
+        current = report(521, True)
+        current["missingRequiredRawPayloads"] = ["retail-sentiment"]
+
+        failures, _ = validate(current, args())
+
+        self.assertIn("required raw payload is missing: retail-sentiment", failures)
 
 
 if __name__ == "__main__":
