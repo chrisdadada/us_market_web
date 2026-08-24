@@ -64,7 +64,7 @@ if [ -f "$backup" ]; then
 fi
 systemctl restart ytd-gainers-auth-dev
 systemctl is-active ytd-gainers-auth-dev >/dev/null
-python3 - <<'"'"'PY'"'"'
+python3 - <<'PY'
 import sqlite3
 
 with sqlite3.connect("/opt/dongbimao-dev/data/product.db") as conn:
