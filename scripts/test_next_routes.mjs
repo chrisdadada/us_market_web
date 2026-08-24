@@ -57,11 +57,18 @@ async function apiPayload(url) {
       date: point.date,
       position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15),
     }));
+    const dca1Dates = [40, 100, 160, 220, 280].map((index) => qqq.priceSeries[index].date);
+    const recentHistory = qqq.recentRecords.map((record) => ({
+      opportunityDate: record.signalDate,
+      max30Pct: record.performance["30"].maxPct,
+      max60Pct: record.performance["60"].maxPct,
+      end180Pct: record.performance["180"].endPct,
+    }));
     return {
       preview: false,
       products: {
-        dca1: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: null, locationSeries: locations, lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
-        dca2: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: qqq.records.at(-1)?.signalDate || null, locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+        dca1: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: dca1Dates, opportunityWindows: dca1Dates.map((date) => ({ startDate: date, endDate: date })), currentCycleStart: null, locationSeries: locations, lowBoundaryPosition: 30, priceSeries: qqq.priceSeries, history: { sinceYear: Number(dca1Dates[0].slice(0, 4)), totalOpportunities: dca1Dates.length, recentCount: dca1Dates.length, max60MedianPct: null, end180MedianPct: null, records: dca1Dates.map((opportunityDate) => ({ opportunityDate })).reverse() } },
+        dca2: { asOf: qqq.asOf, status: { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" }, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: qqq.records.at(-1)?.signalDate || null, locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries, history: { sinceYear: 2021, totalOpportunities: qqq.summary.totalSignals, recentCount: recentHistory.length, max60MedianPct: qqq.summary.stageMaxMedianPct["60"], end180MedianPct: qqq.summary.end180MedianPct, records: recentHistory } },
       },
     };
   }
@@ -508,11 +515,12 @@ try {
   await page.goto(`${server.rootUrl}?page=dca1`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca1-strategy-page']").isVisible(), "Paid DCA 1 page should be visible");
   const dca1Action = await page.locator(".dcaDecisionContent strong").innerText();
-  assert(dca1Action.includes("尚未进入分批区"), `DCA 1 should show the current action; received: ${dca1Action}`);
+  assert(dca1Action.includes("等待机会"), `DCA 1 should show the current action; received: ${dca1Action}`);
   assert((await page.locator(".dcaAdvice").count()) === 0, "DCA pages should not repeat the action in a side panel");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 1 history chart should be visible");
-  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).includes("分批区\n开始日"), "DCA 1 should explain the opportunity band and entry date");
+  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).includes("历史机会区间\n开始日"), "DCA 1 should explain the opportunity band and entry date");
   assert(await page.locator(".dcaOpportunityDot").count() === 5, "DCA 1 should place each fixture opportunity on the QQQ chart");
+  assert((await page.locator("[data-testid='dca-history']").innerText()).includes("历史机会\n5 次"), "DCA 1 should show its own verified opportunity count");
   assert((await page.locator("body").innerText()).includes("收益") === false, "DCA pages should not market historical returns");
   for (const internalCopy of ["回测", "算法", "阈值", "数据来源", "交易日更新"]) {
     assert((await page.locator("body").innerText()).includes(internalCopy) === false, `DCA pages should not expose internal copy: ${internalCopy}`);
@@ -521,7 +529,9 @@ try {
   await page.goto(`${server.rootUrl}?page=bottom`, { waitUntil: "networkidle" });
   assert(await page.locator("[data-testid='dca2-strategy-page']").isVisible(), "Legacy bottom route should open DCA 2");
   assert(await page.locator(".dcaChart").isVisible(), "DCA 2 history chart should be visible");
-  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).trim() === "确认日", "DCA 2 should identify confirmation dates without implying a shared opportunity band");
+  assert((await page.locator("[data-testid='dca-chart-legend']").innerText()).trim() === "历史机会", "DCA 2 should identify its own historical opportunities");
+  const dca2History = await page.locator("[data-testid='dca-history']").innerText();
+  assert(dca2History.includes("+20.7%") && dca2History.includes("+30.6%"), "DCA 2 should show its verified recent history summary");
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Desktop DCA page should not overflow horizontally");
   if (process.env.DCA_STRATEGY_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.DCA_STRATEGY_SCREENSHOT_PREFIX}-dca2-desktop.png`, fullPage: true });
 

@@ -10,37 +10,33 @@ const productCopy = {
   dca1: {
     title: "纳指定投 1 号",
     subtitle: "偏低位时分批买",
-    phases: ["观察中", "接近区间", "分批投入"],
+    phases: ["观察中", "接近区间", "分批买入"],
     lockedTitle: "开通查看操作参考",
-    chartTitle: "QQQ 走势与历史分批区",
-    legend: { band: "分批区", point: "开始日" },
-    historyTitle: "历史分批区",
-    opportunityText: "分批区",
+    chartTitle: "QQQ 走势与历史机会",
+    legend: { band: "历史机会区间", point: "开始日" },
     lastOpportunityLabel: "上次进入"
   },
   dca2: {
     title: "纳指定投 2 号",
-    subtitle: "等行情稳下来再分批买",
-    phases: ["观察中", "临近信号", "分批投入"],
+    subtitle: "行情确认后分批买入",
+    phases: ["观察中", "接近机会", "分批买入"],
     lockedTitle: "开通查看操作参考",
-    chartTitle: "QQQ 走势与历史确认点",
-    legend: { band: null, point: "确认日" },
-    historyTitle: "历史确认点",
-    opportunityText: "确认位置",
-    lastOpportunityLabel: "上次出现"
+    chartTitle: "QQQ 走势与历史机会",
+    legend: { band: null, point: "历史机会" },
+    lastOpportunityLabel: "上次机会"
   }
 } as const;
 
 const statusCopy: Record<ProductKey, Record<StatusKey, { title: string; detail: string; action: string }>> = {
   dca1: {
-    waiting: { title: "尚未进入分批区", detail: "本期暂不投入", action: "暂不投入" },
-    near: { title: "接近分批区", detail: "本期暂不投入", action: "暂不投入" },
-    action: { title: "进入分批区", detail: "可按计划分批投入", action: "分批投入" }
+    waiting: { title: "等待机会", detail: "暂不买入", action: "暂不买入" },
+    near: { title: "接近分批区", detail: "暂不买入", action: "暂不买入" },
+    action: { title: "可以开始分批", detail: "按计划分批买入", action: "分批买入" }
   },
   dca2: {
-    waiting: { title: "尚未出现信号", detail: "本期暂不投入", action: "暂不投入" },
-    near: { title: "接近确认", detail: "本期暂不投入", action: "暂不投入" },
-    action: { title: "信号已确认", detail: "可按计划分批投入", action: "分批投入" }
+    waiting: { title: "等待确认", detail: "暂不买入", action: "暂不买入" },
+    near: { title: "接近机会", detail: "暂不买入", action: "暂不买入" },
+    action: { title: "可以开始分批", detail: "按计划分批买入", action: "分批买入" }
   }
 };
 
@@ -59,6 +55,37 @@ function nearest(points: Point[], date: string) {
 
 function year(value?: string | null) {
   return value?.slice(0, 4) || "--";
+}
+
+function percent(value?: number | null) {
+  if (!Number.isFinite(value)) return "--";
+  return `${Number(value) >= 0 ? "+" : ""}${Number(value).toFixed(1)}%`;
+}
+
+function HistorySection({ history, kind }: { history: DcaStrategyProduct["history"]; kind: ProductKey }) {
+  if (!history?.totalOpportunities || !history.records.length) return null;
+  const show30 = history.records.some((record) => Number.isFinite(record.max30Pct));
+  const show60 = history.records.some((record) => Number.isFinite(record.max60Pct));
+  const show180 = history.records.some((record) => Number.isFinite(record.end180Pct));
+  const summaryCount = 1 + Number(Number.isFinite(history.max60MedianPct)) + Number(Number.isFinite(history.end180MedianPct));
+
+  return (
+    <section className={`dcaPanel dcaHistory ${kind}`} data-testid="dca-history">
+      <div className="dcaPanelHead"><strong>过往记录</strong></div>
+      <div className={`dcaHistorySummary count${summaryCount}`}>
+        <div><span>历史机会</span><strong>{history.totalOpportunities} 次</strong><small>{history.sinceYear ? `${history.sinceYear} 年至今` : ""}</small></div>
+        {Number.isFinite(history.max60MedianPct) ? <div><span>近 {history.recentCount} 次机会</span><strong>{percent(history.max60MedianPct)}</strong><small>60 日内最高涨幅中位数</small></div> : null}
+        {Number.isFinite(history.end180MedianPct) ? <div><span>180 日后</span><strong>{percent(history.end180MedianPct)}</strong><small>涨幅中位数</small></div> : null}
+      </div>
+      <div className="dcaHistoryTableHead">最近 {history.records.length} 次机会</div>
+      <div className="dcaHistoryTableWrap">
+        <table className={show30 || show60 || show180 ? "withMetrics" : ""}>
+          <thead><tr><th>日期</th>{show30 ? <th>30 日内最高</th> : null}{show60 ? <th>60 日内最高</th> : null}{show180 ? <th>180 日后</th> : null}</tr></thead>
+          <tbody>{history.records.map((record) => <tr key={record.opportunityDate}><td>{record.opportunityDate}</td>{show30 ? <td>{percent(record.max30Pct)}</td> : null}{show60 ? <td>{percent(record.max60Pct)}</td> : null}{show180 ? <td>{percent(record.end180Pct)}</td> : null}</tr>)}</tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
 
 function OpportunityChart({ product, kind }: { product: DcaStrategyProduct; kind: ProductKey }) {
@@ -194,12 +221,7 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
         <OpportunityChart product={product} kind={kind} />
       </section>
 
-      {opportunityDates.length ? (
-        <section className={`dcaPanel dcaHistory ${kind}`}>
-          <div className="dcaPanelHead"><strong>{copy.historyTitle}</strong></div>
-          <div className="dcaTimeline">{opportunityDates.map((date) => <div key={date}><time>{date}</time><span>{copy.opportunityText}</span></div>)}</div>
-        </section>
-      ) : null}
+      <HistorySection history={unlocked ? product.history : null} kind={kind} />
     </div>
   );
 }

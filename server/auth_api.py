@@ -2005,6 +2005,40 @@ def _dca1_valuation_usable(
     return estimated_sessions <= DCA1_MAX_SOURCE_LAG_SESSIONS
 
 
+def _dca_history_payload(opportunity_dates: list[str], market: dict[str, Any] | None = None) -> dict[str, Any]:
+    dates = sorted({str(item)[:10] for item in opportunity_dates if item})
+    summary = (market or {}).get("summary") or {}
+    source_records = (market or {}).get("recentRecords") or []
+    records: list[dict[str, Any]] = []
+    for source in source_records[:5]:
+        signal_date = str(source.get("signalDate") or "")[:10]
+        if not signal_date:
+            continue
+        performance = source.get("performance") or {}
+        record: dict[str, Any] = {"opportunityDate": signal_date}
+        for horizon, source_key, target_key in (
+            ("30", "maxPct", "max30Pct"),
+            ("60", "maxPct", "max60Pct"),
+            ("180", "endPct", "end180Pct"),
+        ):
+            value = (performance.get(horizon) or {}).get(source_key)
+            if isinstance(value, (int, float)):
+                record[target_key] = float(value)
+        records.append(record)
+    if not records:
+        records = [{"opportunityDate": item} for item in reversed(dates[-5:])]
+    max60 = (summary.get("stageMaxMedianPct") or {}).get("60")
+    end180 = summary.get("end180MedianPct")
+    return {
+        "sinceYear": int(dates[0][:4]) if dates else None,
+        "totalOpportunities": int(summary.get("totalSignals") or len(dates)),
+        "recentCount": len(records),
+        "max60MedianPct": float(max60) if isinstance(max60, (int, float)) else None,
+        "end180MedianPct": float(end180) if isinstance(end180, (int, float)) else None,
+        "records": records,
+    }
+
+
 def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
     with product_db() as conn:
         index_payload = product_raw_payload(conn, "index-valuation") or {}
@@ -2101,6 +2135,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
                 "locationSeries": location_series,
                 "lowBoundaryPosition": boundary_position,
                 "priceSeries": price_series,
+                "history": _dca_history_payload(opportunity_dates_1) if include_details else None,
             },
             "dca2": {
                 "available": dca2_available,
@@ -2112,6 +2147,7 @@ def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
                 "locationSeries": [],
                 "lowBoundaryPosition": None,
                 "priceSeries": price_series,
+                "history": _dca_history_payload(opportunity_dates_2, qqq_market) if include_details else None,
             },
         },
     }

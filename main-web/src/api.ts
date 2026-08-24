@@ -679,6 +679,19 @@ export type DcaStrategyProduct = {
   locationSeries: Array<{ date: string; position: number }>;
   lowBoundaryPosition?: number | null;
   priceSeries: Array<{ date: string; value: number }>;
+  history?: {
+    sinceYear?: number | null;
+    totalOpportunities: number;
+    recentCount: number;
+    max60MedianPct?: number | null;
+    end180MedianPct?: number | null;
+    records: Array<{
+      opportunityDate: string;
+      max30Pct?: number | null;
+      max60Pct?: number | null;
+      end180Pct?: number | null;
+    }>;
+  } | null;
 };
 
 export type DcaStrategiesPayload = {

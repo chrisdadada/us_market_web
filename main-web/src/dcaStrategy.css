@@ -136,12 +136,26 @@
 .dcaChartEmpty { display: grid; min-height: 300px; place-items: center; color: var(--muted); font-size: 12px; }
 
 .dcaHistory { margin-top: 14px; padding: 0 20px 16px; }
-.dcaTimeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 9px; padding-top: 14px; }
-.dcaTimeline > div { position: relative; border: 1px solid #e0e8f1; border-radius: 6px; padding: 12px 12px 11px 18px; background: #fbfcfe; }
-.dcaTimeline > div::before { position: absolute; top: 16px; left: 8px; width: 5px; height: 5px; border-radius: 50%; background: #0a9b6d; content: ""; }
-.dcaHistory.dca2 .dcaTimeline > div::before { background: #ef7b20; }
-.dcaTimeline time { display: block; font-size: 11px; font-weight: 680; }
-.dcaTimeline span { display: block; margin-top: 4px; color: #8290a5; font-size: 9px; }
+.dcaHistorySummary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--line-soft); }
+.dcaHistorySummary.count1 { grid-template-columns: minmax(0, 1fr); width: 33.333%; }
+.dcaHistorySummary > div { min-height: 92px; padding: 17px 18px 14px; }
+.dcaHistorySummary > div + div { border-left: 1px solid var(--line-soft); }
+.dcaHistorySummary span,
+.dcaHistorySummary small { display: block; color: #8290a5; font-size: 9px; }
+.dcaHistorySummary strong { display: block; margin: 7px 0 5px; font-size: 20px; font-weight: 680; }
+.dcaHistorySummary > div:not(:first-child) strong { color: #078b62; }
+.dcaHistory.dca2 .dcaHistorySummary > div:not(:first-child) strong { color: #d86712; }
+.dcaHistoryTableHead { padding: 16px 0 10px; font-size: 11px; font-weight: 680; }
+.dcaHistoryTableWrap { overflow-x: auto; }
+.dcaHistory table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.dcaHistory table.withMetrics { min-width: 560px; }
+.dcaHistory th,
+.dcaHistory td { border-top: 1px solid var(--line-soft); padding: 11px 14px; text-align: right; }
+.dcaHistory th { color: #8290a5; background: #f7f9fc; font-size: 9px; font-weight: 650; }
+.dcaHistory th:first-child,
+.dcaHistory td:first-child { text-align: left; }
+.dcaHistory td:not(:first-child) { color: #078b62; font-weight: 680; }
+.dcaHistory.dca2 td:not(:first-child) { color: #d86712; }
 
 .dcaPageState {
   display: flex;
@@ -180,5 +194,9 @@
   .dcaChartPanel { padding-right: 12px; padding-left: 12px; }
   .dcaPanelHead { align-items: flex-start; justify-content: center; flex-direction: column; gap: 4px; }
   .dcaPanelTitle { width: 100%; justify-content: space-between; gap: 10px; }
-  .dcaTimeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dcaHistory { padding-right: 12px; padding-left: 12px; }
+  .dcaHistorySummary,
+  .dcaHistorySummary.count1 { grid-template-columns: 1fr; width: 100%; }
+  .dcaHistorySummary > div { min-height: 0; padding: 14px 8px; }
+  .dcaHistorySummary > div + div { border-top: 1px solid var(--line-soft); border-left: 0; }
 }

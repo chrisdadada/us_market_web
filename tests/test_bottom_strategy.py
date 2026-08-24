@@ -66,6 +66,29 @@ class BottomStrategySnapshotTests(unittest.TestCase):
         )[0]
         self.assertIn("except (OSError, ValueError, sqlite3.Error):", route)
 
+    def test_dca_history_keeps_each_product_data_separate(self) -> None:
+        dca1 = auth_api._dca_history_payload(["2022-06-01", "2024-04-01"])
+        dca2 = auth_api._dca_history_payload(
+            [record["signalDate"] for record in self.payload["markets"]["QQQ"]["records"]],
+            self.payload["markets"]["QQQ"],
+        )
+
+        self.assertEqual(dca1["totalOpportunities"], 2)
+        self.assertEqual(dca1["records"], [
+            {"opportunityDate": "2024-04-01"},
+            {"opportunityDate": "2022-06-01"},
+        ])
+        self.assertIsNone(dca1["max60MedianPct"])
+        self.assertEqual(dca2["totalOpportunities"], 8)
+        self.assertEqual(dca2["max60MedianPct"], 20.67)
+        self.assertEqual(dca2["end180MedianPct"], 30.64)
+        self.assertEqual(dca2["records"][0], {
+            "opportunityDate": "2025-04-04",
+            "max30Pct": 27.86,
+            "max60Pct": 36.5,
+            "end180Pct": 52.78,
+        })
+
     def test_fixed_low_valuation_cycles_fix_signal_at_first_entry(self) -> None:
         history = [
             {"date": "2020-01-03", "value": 25.0},
