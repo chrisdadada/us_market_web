@@ -13,7 +13,7 @@ const productCopy = {
     phases: ["观察中", "接近区间", "分批买入"],
     lockedTitle: "开通查看操作参考",
     chartTitle: "QQQ 走势与历史机会",
-    legend: { band: "历史机会区间", point: "开始日" },
+    legend: { band: "机会区", point: "机会日" },
     lastOpportunityLabel: "上次进入"
   },
   dca2: {
@@ -22,7 +22,7 @@ const productCopy = {
     phases: ["观察中", "接近机会", "分批买入"],
     lockedTitle: "开通查看操作参考",
     chartTitle: "QQQ 走势与历史机会",
-    legend: { band: null, point: "历史机会" },
+    legend: { band: "机会区", point: "机会日" },
     lastOpportunityLabel: "上次机会"
   }
 } as const;
@@ -62,7 +62,14 @@ function percent(value?: number | null) {
   return `${Number(value) >= 0 ? "+" : ""}${Number(value).toFixed(1)}%`;
 }
 
-function HistorySection({ history, kind }: { history: DcaStrategyProduct["history"]; kind: ProductKey }) {
+function metricTone(value?: number | null) {
+  if (!Number.isFinite(value)) return "pending";
+  if (Number(value) > 0) return "positive";
+  if (Number(value) < 0) return "negative";
+  return "neutral";
+}
+
+function HistorySection({ history }: { history: DcaStrategyProduct["history"] }) {
   if (!history?.totalOpportunities || !history.records.length) return null;
   const show30 = history.records.some((record) => Number.isFinite(record.max30Pct));
   const show60 = history.records.some((record) => Number.isFinite(record.max60Pct));
@@ -70,18 +77,18 @@ function HistorySection({ history, kind }: { history: DcaStrategyProduct["histor
   const summaryCount = 1 + Number(Number.isFinite(history.max60MedianPct)) + Number(Number.isFinite(history.end180MedianPct));
 
   return (
-    <section className={`dcaPanel dcaHistory ${kind}`} data-testid="dca-history">
-      <div className="dcaPanelHead"><strong>过往记录</strong></div>
+    <section className="dcaHistory" data-testid="dca-history">
+      <div className="dcaHistoryHead"><strong>历史数据</strong></div>
       <div className={`dcaHistorySummary count${summaryCount}`}>
         <div><span>历史机会</span><strong>{history.totalOpportunities} 次</strong><small>{history.sinceYear ? `${history.sinceYear} 年至今` : ""}</small></div>
-        {Number.isFinite(history.max60MedianPct) ? <div><span>近 {history.recentCount} 次机会</span><strong>{percent(history.max60MedianPct)}</strong><small>60 日内最高涨幅中位数</small></div> : null}
-        {Number.isFinite(history.end180MedianPct) ? <div><span>180 日后</span><strong>{percent(history.end180MedianPct)}</strong><small>涨幅中位数</small></div> : null}
+        {Number.isFinite(history.max60MedianPct) ? <div><span>60 日内最高涨幅</span><strong className={metricTone(history.max60MedianPct)}>{percent(history.max60MedianPct)}</strong><small>中位数</small></div> : null}
+        {Number.isFinite(history.end180MedianPct) ? <div><span>180 日后涨幅</span><strong className={metricTone(history.end180MedianPct)}>{percent(history.end180MedianPct)}</strong><small>中位数</small></div> : null}
       </div>
-      <div className="dcaHistoryTableHead">最近 {history.records.length} 次机会</div>
+      <div className="dcaHistoryTableHead">机会记录</div>
       <div className="dcaHistoryTableWrap">
         <table className={show30 || show60 || show180 ? "withMetrics" : ""}>
           <thead><tr><th>日期</th>{show30 ? <th>30 日内最高</th> : null}{show60 ? <th>60 日内最高</th> : null}{show180 ? <th>180 日后</th> : null}</tr></thead>
-          <tbody>{history.records.map((record) => <tr key={record.opportunityDate}><td>{record.opportunityDate}</td>{show30 ? <td>{percent(record.max30Pct)}</td> : null}{show60 ? <td>{percent(record.max60Pct)}</td> : null}{show180 ? <td>{percent(record.end180Pct)}</td> : null}</tr>)}</tbody>
+          <tbody>{history.records.map((record) => <tr key={record.opportunityDate}><td>{record.opportunityDate}</td>{show30 ? <td className={metricTone(record.max30Pct)}>{percent(record.max30Pct)}</td> : null}{show60 ? <td className={metricTone(record.max60Pct)}>{percent(record.max60Pct)}</td> : null}{show180 ? <td className={metricTone(record.end180Pct)}>{Number.isFinite(record.end180Pct) ? percent(record.end180Pct) : "观察中"}</td> : null}</tr>)}</tbody>
         </table>
       </div>
     </section>
@@ -219,9 +226,8 @@ function StrategyPage({ kind, unlocked, authenticated, onAuth, onUnlock }: { kin
           <span>更新 {product.asOf || "--"}</span>
         </div>
         <OpportunityChart product={product} kind={kind} />
+        <HistorySection history={unlocked ? product.history : null} />
       </section>
-
-      <HistorySection history={unlocked ? product.history : null} kind={kind} />
     </div>
   );
 }
