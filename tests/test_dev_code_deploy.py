@@ -112,6 +112,12 @@ class DevCodeDeployTest(unittest.TestCase):
         self.assertIn('service_ready=0', DEPLOY)
         self.assertIn('Dev API did not become ready after restart.', DEPLOY)
 
+    def test_code_deploy_checks_public_cache_and_compression_before_cleanup(self) -> None:
+        delivery_check = DEPLOY.index('scripts/check_web_delivery.py')
+        cleanup = DEPLOY.index('rm -rf "${old_root}" "${old_web}"', delivery_check)
+        self.assertLess(delivery_check, cleanup)
+        self.assertIn('--release "${release_commit}"', DEPLOY)
+
     def test_code_deploy_preserves_runtime_data(self) -> None:
         self.assertIn('cp -a "${dev_root}/data" "${next_root}/data"', DEPLOY)
         self.assertIn('cp -a "${dev_root}/.local" "${next_root}/.local"', DEPLOY)
