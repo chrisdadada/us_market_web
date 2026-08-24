@@ -84,6 +84,8 @@ class DevCodeDeployTest(unittest.TestCase):
     def test_data_deploy_verifies_protected_table_fingerprints(self) -> None:
         self.assertIn('preserve_product_runtime_tables.py merge', DATA_DEPLOY)
         self.assertIn('preserve_product_runtime_tables.py verify', DATA_DEPLOY)
+        self.assertIn("python3 - <<'PY'", DATA_DEPLOY)
+        self.assertNotIn("<<'\"'\"'PY'\"'\"'", DATA_DEPLOY)
 
     def test_data_deploy_rejects_incomplete_product_coverage(self) -> None:
         self.assertIn('scripts/check_product_coverage.py --db "${BUILD_DB}"', DATA_DEPLOY)
