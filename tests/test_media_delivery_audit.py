@@ -2,6 +2,7 @@ import io
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from email.message import Message
 from pathlib import Path
 
@@ -56,6 +57,20 @@ class MediaDeliveryAuditTest(unittest.TestCase):
         self.assertTrue(result["cloudflareFree"]["withinSizeLimit"])
         self.assertIn("不得直接忽略查询参数", " ".join(result["issues"]))
 
+    def test_request_latency_is_measured_without_storing_query(self):
+        def opener(_request, **_kwargs):
+            return FakeResponse(206, {"Content-Range": "bytes 0-0/100", "Content-Length": "1"})
+
+        with patch.object(audit.time, "monotonic", side_effect=[10.0, 10.125]):
+            result = audit.probe_url(
+                "https://media.example.com/segment.ts?q-signature=secret-token",
+                attempts_count=1,
+                opener=opener,
+            )
+
+        self.assertEqual(result["attempts"][0]["elapsedMs"], 125.0)
+        self.assertNotIn("secret-token", json.dumps(result))
+
     def test_large_video_is_rejected_for_cloudflare_free_cache(self):
         size = audit.CLOUDFLARE_FREE_MAX_BYTES + 1
 
@@ -100,6 +115,7 @@ class MediaDeliveryAuditTest(unittest.TestCase):
                 "signedQueryDetected": False,
                 "cloudflareFree": {"withinSizeLimit": True},
                 "error": "",
+                "attempts": [{"elapsedMs": 100.0}],
             },
             {
                 "totalBytes": audit.CLOUDFLARE_FREE_MAX_BYTES + 1,
@@ -108,6 +124,7 @@ class MediaDeliveryAuditTest(unittest.TestCase):
                 "signedQueryDetected": True,
                 "cloudflareFree": {"withinSizeLimit": False},
                 "error": "",
+                "attempts": [{"elapsedMs": 300.0}],
             },
             {
                 "totalBytes": None,
@@ -116,6 +133,7 @@ class MediaDeliveryAuditTest(unittest.TestCase):
                 "signedQueryDetected": False,
                 "cloudflareFree": {"withinSizeLimit": None},
                 "error": "请求失败",
+                "attempts": [],
             },
         ])
 
@@ -124,6 +142,9 @@ class MediaDeliveryAuditTest(unittest.TestCase):
         self.assertEqual(summary["cloudflareFreeOverSizeLimit"], 1)
         self.assertEqual(summary["unknownSizes"], 1)
         self.assertEqual(summary["failed"], 1)
+        self.assertEqual(summary["firstAttemptSamples"], 2)
+        self.assertEqual(summary["medianFirstAttemptMs"], 200.0)
+        self.assertEqual(summary["slowestFirstAttemptMs"], 300.0)
 
     def test_strict_requirements_fail_closed(self):
         target = {

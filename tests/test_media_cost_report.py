@@ -37,7 +37,10 @@ class MediaCostReportTest(unittest.TestCase):
             INSERT INTO analytics_events
                 (user_id, event_type, event_key, path, created_at)
             VALUES
-                (7, 'course_play_grant', '11', '', '2026-07-22T01:00:00+00:00');
+                (7, 'course_play_grant', '11', '', '2026-07-22T01:00:00+00:00'),
+                (7, 'course_video_url_ready', '11:lt1', '', '2026-07-22T01:00:01+00:00'),
+                (7, 'course_video_ready', '11:1to3', '', '2026-07-22T01:00:02+00:00'),
+                (7, 'course_video_buffer', '11', '', '2026-07-22T01:00:03+00:00');
             """
         )
         self.metadata = {
@@ -95,6 +98,9 @@ class MediaCostReportTest(unittest.TestCase):
         self.assertEqual(report["transcoding"]["succeededJobs"], 3)
         self.assertEqual(report["transcoding"]["estimatedIdleCostCny"], 0.42)
         self.assertEqual(report["playAddressGrants"]["totals"]["grants"], 1)
+        self.assertEqual(report["playbackHealth"]["urlReady"]["lt1"], 1)
+        self.assertEqual(report["playbackHealth"]["videoReady"]["1to3"], 1)
+        self.assertEqual(report["playbackHealth"]["bufferingReports"], 1)
         self.assertEqual(report["externalCosts"]["tencentBilling"]["status"], "not-connected")
         self.assertNotIn("bytesDelivered", report["playAddressGrants"]["totals"])
 

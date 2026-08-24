@@ -106,6 +106,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_CDN_VIDEO_KEYS = set()
         auth_api.COURSE_VIDEO_AUTO_PROCESS_ENABLED = False
         auth_api.COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS = 21600
+        auth_api.fetch_course_cos_text.cache_clear()
         auth_api.reset_course_play_observation()
         auth_api.init_db()
 
@@ -1947,6 +1948,33 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertIn("cos.ap-chengdu.myqcloud.com/lesson/poc.mp4", payload["url"])
         self.assertIn("q-sign-algorithm=sha1", payload["url"])
         self.assertEqual(payload["expiresIn"], 21600)
+
+    def test_course_hls_playlist_fetch_reuses_immutable_object(self) -> None:
+        calls = []
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, _size=-1):
+                return b"#EXTM3U\n#EXT-X-ENDLIST\n"
+
+        def fake_urlopen(request, timeout=0):
+            calls.append((request.full_url, timeout))
+            return FakeResponse()
+
+        with (
+            patch.object(auth_api, "signed_course_cos_url", return_value="https://cos.example.test/playlist"),
+            patch.object(auth_api.urllib.request, "urlopen", side_effect=fake_urlopen),
+        ):
+            first = auth_api.fetch_course_cos_text("lesson/hls/batch/lesson-1/master.m3u8")
+            second = auth_api.fetch_course_cos_text("lesson/hls/batch/lesson-1/master.m3u8")
+
+        self.assertEqual(first, second)
+        self.assertEqual(len(calls), 1)
 
     def test_course_hls_playback_keeps_access_checks_and_signs_segments(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"
