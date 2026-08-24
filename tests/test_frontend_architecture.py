@@ -55,6 +55,15 @@ class FrontendArchitectureTest(unittest.TestCase):
         self.assertIn("reportedPlaybackErrorsRef.current.has(eventKey)", MAIN_APP)
         self.assertNotIn('api.analyticsEvent("course_video_error", videoUrl', MAIN_APP)
 
+    def test_course_video_health_uses_buckets_without_sensitive_context(self) -> None:
+        self.assertIn('reportPlaybackMetric("course_video_url_ready"', MAIN_APP)
+        self.assertIn('reportPlaybackMetric("course_video_ready"', MAIN_APP)
+        self.assertIn('reportPlaybackMetric("course_video_buffer"', MAIN_APP)
+        self.assertIn("onCanPlay={() =>", MAIN_APP)
+        self.assertIn("observation.hasPlayed = true", MAIN_APP)
+        self.assertIn('return "gte8"', MAIN_APP)
+        self.assertNotIn('api.analyticsEvent("course_video_ready", videoUrl', MAIN_APP)
+
     def test_course_detail_failure_is_not_reported_as_missing_course(self) -> None:
         course_detail = re.search(r"if \(courseId\) \{(.*?)if \(!selected\)", MAIN_APP, re.S)
         self.assertIsNotNone(course_detail)

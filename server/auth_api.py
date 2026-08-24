@@ -2503,6 +2503,40 @@ def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, pa
             return
         insert_analytics_event(conn, user, event_type, event_key, "/courses/playback")
         return
+    timing_event = event_type in {"course_video_url_ready", "course_video_ready"}
+    if timing_event and re.fullmatch(r"[1-9][0-9]{0,9}:(?:lt1|1to3|3to8|gte8)", event_key):
+        if not user:
+            return
+        lesson_id = event_key.split(":", 1)[0]
+        duplicate = conn.execute(
+            """
+            SELECT 1 FROM analytics_events
+            WHERE user_id = ? AND event_type = ? AND event_key LIKE ?
+              AND datetime(created_at) >= datetime('now', '-1 hour')
+            LIMIT 1
+            """,
+            (user["id"], event_type, f"{lesson_id}:%"),
+        ).fetchone()
+        if duplicate:
+            return
+        insert_analytics_event(conn, user, event_type, event_key, "/courses/playback")
+        return
+    if event_type == "course_video_buffer" and re.fullmatch(r"[1-9][0-9]{0,9}", event_key):
+        if not user:
+            return
+        duplicate = conn.execute(
+            """
+            SELECT 1 FROM analytics_events
+            WHERE user_id = ? AND event_type = ? AND event_key = ?
+              AND datetime(created_at) >= datetime('now', '-1 hour')
+            LIMIT 1
+            """,
+            (user["id"], event_type, event_key),
+        ).fetchone()
+        if duplicate:
+            return
+        insert_analytics_event(conn, user, event_type, event_key, "/courses/playback")
+        return
     raise ValueError("埋点参数不正确")
 
 
