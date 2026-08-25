@@ -70,6 +70,12 @@ class ProdCodeDeployScriptTests(unittest.TestCase):
         self.assertIn("systemctl restart ytd-gainers-auth", PROMOTE)
         self.assertIn("exit 2", PROMOTE)
 
+    def test_backend_health_waits_for_service_readiness(self) -> None:
+        self.assertIn("wait_for_url()", PROMOTE)
+        self.assertIn("for attempt in $(seq 1 15)", PROMOTE)
+        self.assertIn("wait_for_url https://www.dongbimao.org/api/health", PROMOTE)
+        self.assertIn("wait_for_url https://www.dongbimao.org/api/auth/status", PROMOTE)
+
     def test_recent_release_artifacts_are_retained_for_rollback(self) -> None:
         self.assertIn('release_store="$prod_root/releases"', PROMOTE)
         self.assertIn("snapshot_current_release", PROMOTE)

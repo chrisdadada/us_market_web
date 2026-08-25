@@ -141,6 +141,19 @@ write_manifest() {
   (cd "$root" && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$output"
 }
 
+wait_for_url() {
+  local url="$1"
+  local attempt
+  for attempt in $(seq 1 15); do
+    if curl --fail --silent --max-time 3 "$url" >/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "ERROR: service did not become ready: $url" >&2
+  return 1
+}
+
 snapshot_current_release() {
   local current_commit baseline_dir baseline_archive baseline_checksum
   current_commit="$(sed -n 's/^commit=//p' "$prod_root/RELEASE")"
@@ -297,8 +310,8 @@ if [ "$server_changed" -eq 1 ]; then
   server_swapped=1
   systemctl restart ytd-gainers-auth
   systemctl is-active ytd-gainers-auth >/dev/null
-  curl --fail --silent --show-error --max-time 15 https://www.dongbimao.org/api/health >/dev/null
-  curl --fail --silent --show-error --max-time 15 https://www.dongbimao.org/api/auth/status >/dev/null
+  wait_for_url https://www.dongbimao.org/api/health
+  wait_for_url https://www.dongbimao.org/api/auth/status
 fi
 
 if [ "$web_changed" -eq 1 ]; then
