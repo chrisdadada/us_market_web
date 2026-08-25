@@ -566,6 +566,16 @@ function latestSignalStates(states: SignalState[]) {
   return latest ? states.filter((item) => signalBatchDate(item) === latest) : [];
 }
 
+function latestSignalMap(states: SignalState[]) {
+  const map = new Map<string, SignalState>();
+  latestSignalStates(states).forEach((item) => {
+    const symbol = item.symbol.toUpperCase();
+    const key = symbol.endsWith("USDT.P") ? symbol.slice(0, -6) : symbol;
+    if (!map.has(key) || symbol === key) map.set(key, item);
+  });
+  return map;
+}
+
 type TrackingSortKey = "symbol" | "currentPrice" | "oneMonth" | "oneDay" | "oneWeek" | "volume" | "marketCap" | "signal" | "signalFirstSeen";
 type StockSortKey = "symbol" | "dayChange" | "weekChange" | "monthChange" | "ytdChange" | "dollarVolume" | "marketCap";
 type SortDir = "asc" | "desc";
@@ -711,7 +721,7 @@ function rowName(row?: MarketRow | StrengthRow | null) {
 
 function mergedTrackingRows(bootstrap: BootstrapPayload | null, signalStates: SignalState[] = []) {
   if (!bootstrap) return [];
-  const signalMap = new Map(latestSignalStates(signalStates).map((item) => [item.symbol, item]));
+  const signalMap = latestSignalMap(signalStates);
   const dayMap = new Map((bootstrap.movers?.boards?.day?.rows || []).map((row) => [row.symbol, row]));
   const weekMap = new Map((bootstrap.movers?.boards?.week?.rows || []).map((row) => [row.symbol, row]));
   const monthMap = new Map((bootstrap.movers?.boards?.month?.rows || []).map((row) => [row.symbol, row]));
@@ -3591,8 +3601,7 @@ function StocksPage({
   const [retry, setRetry] = useState(0);
   const [sectorOptions, setSectorOptions] = useState<Array<{ sector: string; count: number }>>([]);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const latestSignals = useMemo(() => latestSignalStates(signalStates), [signalStates]);
-  const signalMap = useMemo(() => new Map(latestSignals.map((item) => [item.symbol, item])), [latestSignals]);
+  const signalMap = useMemo(() => latestSignalMap(signalStates), [signalStates]);
   const stockSortHeader = (key: StockSortKey, label: string) => (
     <button
       type="button"

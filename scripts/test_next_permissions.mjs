@@ -204,6 +204,15 @@ function trackingFixture(board, includeAnalysis) {
 async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/auth/status") return authProfile;
   if (url.pathname === "/api/auth/logout") return { ok: true };
+  if (url.pathname === "/api/signals") {
+    const strength = await readDataset("strength-scanner");
+    const stockSymbol = strength.rows?.[0]?.symbol || "AAPL";
+    return {
+      states: ["AAPL", stockSymbol].map((symbol) => ({
+        symbol: `${symbol}USDT.P`, direction: "short", directionText: "做空", updatedAt: "2026-08-25T01:30:00Z",
+      })),
+    };
+  }
   if (url.pathname === "/api/open-portfolio") return { curve: [], holdings: [], trades: [] };
   if (url.pathname === "/api/watchlist") return { rows: [] };
   if (url.pathname === "/api/courses") return { series: [] };
@@ -740,6 +749,7 @@ try {
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.waitForTimeout(200);
         const aaplRow = page.locator(".trackingPage .screenerTable tbody tr", { hasText: "AAPL" });
+        assert((await aaplRow.innerText()).includes("空头"), "tracking rows should match USDT.P signals to their stock symbols");
         assert((await aaplRow.innerText()).includes("$100.00"), "paid tracking row should show support");
         assert((await aaplRow.innerText()).includes("$110.00"), "paid tracking row should show resistance");
         assert(!(await aaplRow.innerText()).includes("等待回踩"), "tracking list should keep breakout confirmation in detail");
@@ -765,6 +775,8 @@ try {
         assert(!(await page.locator(".stockLibraryMobileList").isVisible()), "desktop stock library should hide mobile rows");
         const stockLibraryHead = await page.locator(".stockLibraryTable thead").innerText();
         assert(stockLibraryHead.includes("现价") && stockLibraryHead.includes("操作"), "stock library should keep price and the overview action");
+        const firstStockRow = page.locator(".stockLibraryTable tbody tr").first();
+        assert((await firstStockRow.innerText()).includes("空头"), "stock library rows should share the USDT.P signal mapping");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop stock library should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-desktop.png`, fullPage: true });
 
