@@ -64,6 +64,14 @@ export const toolDataPageNavItems: NavItem[] = [
 export const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems];
 export const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 
+const prodHiddenPageKeys = new Set<PageKey>(["dca1", "dca2"]);
+
+export function pageVisibleOnHost(page: PageKey, hostname: string): boolean {
+  const host = hostname.trim().toLowerCase();
+  const isProd = host === "dongbimao.org" || host === "www.dongbimao.org";
+  return !isProd || !prodHiddenPageKeys.has(page);
+}
+
 export const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: string; text: string }>> = {
   opinions: {
     level: "monthly",

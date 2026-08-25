@@ -123,6 +123,10 @@ class FrontendArchitectureTest(unittest.TestCase):
             "home", "opinions", "calendar", "tracking", "stocks", "market", "risk",
             "strength", "valuation", "courses", "watchlist", "dca1", "dca2",
         ])
+        self.assertIn('new Set<PageKey>(["dca1", "dca2"])', PRODUCT_CONFIG)
+        self.assertIn('host === "dongbimao.org" || host === "www.dongbimao.org"', PRODUCT_CONFIG)
+        self.assertIn("pageVisibleOnHost(requestedPage, window.location.hostname)", MAIN_APP)
+        self.assertIn("primaryNavItems.filter((item) => pageVisibleOnHost(item.key, window.location.hostname))", MAIN_APP)
 
     def test_only_the_explicit_migration_list_can_open_legacy(self) -> None:
         references: dict[str, list[str]] = {}

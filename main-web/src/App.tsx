@@ -38,6 +38,7 @@ import {
   memberToolNavItems,
   pageAccessRules,
   pageLabels,
+  pageVisibleOnHost,
   primaryNavItems,
   secondaryNavItems,
   toolDataPageNavItems,
@@ -112,8 +113,9 @@ function readRouteState(): RouteState {
   const params = new URLSearchParams(window.location.search);
   const pageParam = params.get("page") as PageKey | null;
   const sourceParam = params.get("source");
+  const requestedPage = params.get("page") === "bottom" ? "dca2" : pageParam && validPageKeys.has(pageParam) ? pageParam : "home";
   return {
-    page: params.get("page") === "bottom" ? "dca2" : pageParam && validPageKeys.has(pageParam) ? pageParam : "home",
+    page: pageVisibleOnHost(requestedPage, window.location.hostname) ? requestedPage : "home",
     opinionId: params.get("opinion") || "",
     symbol: (params.get("symbol") || "").trim().toUpperCase(),
     stockSource: sourceParam === "tracking" || sourceParam === "watchlist" || sourceParam === "search" ? sourceParam : "stocks",
@@ -946,6 +948,7 @@ function App() {
   }, [mobileNavOpen]);
 
   const navigatePage = useCallback((nextPage: PageKey) => {
+    if (!pageVisibleOnHost(nextPage, window.location.hostname)) return;
     if (!requireLogin()) return;
     setMobileNavOpen(false);
     setMobileSearchOpen(false);
@@ -1089,7 +1092,7 @@ function App() {
           </a>
           <button ref={mobileNavCloseRef} type="button" className="mobileNavClose mobileNavigationControl" aria-label="关闭菜单" onClick={() => setMobileNavOpen(false)}>×</button>
         </div>
-        <nav>{renderNavItems(primaryNavItems)}</nav>
+        <nav>{renderNavItems(primaryNavItems.filter((item) => pageVisibleOnHost(item.key, window.location.hostname)))}</nav>
         <div className="navToolGroup">
           <p className="navGroupTitle">其他</p>
           {renderNavItems(secondaryNavItems)}
