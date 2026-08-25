@@ -34,6 +34,9 @@ class CourseMediaUsageReportTest(unittest.TestCase):
                 (1, "course_play_grant", "11", "2026-07-22T01:00:00+00:00"),
                 (1, "course_play_grant", "11", "2026-07-22T02:00:00+00:00"),
                 (2, "course_play_grant", "12", "2026-07-22T03:00:00+00:00"),
+                (1, "course_video_url_ready", "11:lt1", "2026-07-22T02:00:01+00:00"),
+                (1, "course_video_ready", "11:1to3", "2026-07-22T02:00:02+00:00"),
+                (1, "course_video_buffer", "11", "2026-07-22T02:00:03+00:00"),
                 (2, "nav_click", "courses", "2026-07-22T04:00:00+00:00"),
             ],
         )
@@ -47,6 +50,9 @@ class CourseMediaUsageReportTest(unittest.TestCase):
         self.assertEqual(report["rows"][0]["grants"], 2)
         self.assertEqual(report["rows"][0]["assetSizeBytes"], 1000)
         self.assertNotIn("bytesDelivered", report["totals"])
+        self.assertEqual(report["playbackHealth"]["urlReady"]["lt1"], 1)
+        self.assertEqual(report["playbackHealth"]["videoReady"]["1to3"], 1)
+        self.assertEqual(report["playbackHealth"]["bufferingReports"], 1)
 
     def test_missing_metadata_fails_closed(self) -> None:
         self.conn.execute(

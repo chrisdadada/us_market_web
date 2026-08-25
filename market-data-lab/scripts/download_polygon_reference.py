@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import pandas as pd
 import requests
 
-from common import data_path, env, load_env, read_symbols, write_parquet
+from common import data_path, env, load_env, public_url, read_symbols, write_parquet
 
 
 BASE_URL = "https://api.polygon.io"
@@ -32,6 +32,7 @@ def get_json(
     retry_sleep: float = 5.0,
 ) -> dict:
     request_url = with_api_key(url, api_key)
+    log_url = public_url(url)
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
         try:
@@ -42,15 +43,15 @@ def get_json(
             if attempt >= max_retries:
                 raise
             wait = retry_sleep * (attempt + 1)
-            print(f"WARN: retrying {url} after {type(exc).__name__}: attempt={attempt + 1}/{max_retries} sleep={wait:.1f}s", flush=True)
+            print(f"WARN: retrying {log_url} after {type(exc).__name__}: attempt={attempt + 1}/{max_retries} sleep={wait:.1f}s", flush=True)
             sleep(wait)
     else:
-        raise RuntimeError(f"{url}: request failed") from last_error
+        raise RuntimeError(f"{log_url}: request failed") from last_error
     if response.status_code != 200:
-        raise RuntimeError(f"{url}: {response.status_code} {response.text[:500]}")
+        raise RuntimeError(f"{log_url}: {response.status_code} {response.text[:500]}")
     data = response.json()
     if data.get("status") == "ERROR":
-        raise RuntimeError(f"{url}: {data}")
+        raise RuntimeError(f"{log_url}: {data}")
     return data
 
 

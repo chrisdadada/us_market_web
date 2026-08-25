@@ -4,7 +4,9 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import statistics
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -81,6 +83,7 @@ def range_request(
     timeout: int,
     opener: Callable[..., Any] = urllib.request.urlopen,
 ) -> dict[str, Any]:
+    started_at = time.monotonic()
     request = urllib.request.Request(
         url,
         headers={"Range": "bytes=0-0", "User-Agent": "dongbimao-media-audit/1.0"},
@@ -94,6 +97,7 @@ def range_request(
             "headers": headers,
             "totalBytes": total_bytes(status, headers),
             "rangeSupported": status == 206 and headers.get("content-range", "").lower().startswith("bytes "),
+            "elapsedMs": round((time.monotonic() - started_at) * 1000, 1),
         }
 
 
@@ -177,8 +181,13 @@ def write_report(path_value: str, payload: dict[str, Any], report_root: Path = R
     return path
 
 
-def summarize(targets: list[dict[str, Any]]) -> dict[str, int]:
+def summarize(targets: list[dict[str, Any]]) -> dict[str, Any]:
     sizes = [int(item["totalBytes"]) for item in targets if item.get("totalBytes") is not None]
+    first_attempt_ms = [
+        float(item["attempts"][0]["elapsedMs"])
+        for item in targets
+        if item.get("attempts") and item["attempts"][0].get("elapsedMs") is not None
+    ]
     return {
         "targets": len(targets),
         "totalBytes": sum(sizes),
@@ -193,6 +202,9 @@ def summarize(targets: list[dict[str, Any]]) -> dict[str, int]:
         ),
         "unknownSizes": len(targets) - len(sizes),
         "failed": sum(bool(item.get("error")) for item in targets),
+        "firstAttemptSamples": len(first_attempt_ms),
+        "medianFirstAttemptMs": round(statistics.median(first_attempt_ms), 1) if first_attempt_ms else None,
+        "slowestFirstAttemptMs": round(max(first_attempt_ms), 1) if first_attempt_ms else None,
     }
 
 

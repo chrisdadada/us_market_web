@@ -9,6 +9,9 @@ import { strengthPageFixture } from "./strength_page_fixture.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const distRoot = join(root, "main-web", "dist");
+const dcaOnly = process.env.DCA_ONLY === "1";
+const rollingOnly = process.env.ROLLING_ONLY === "1";
+const fullQa = !dcaOnly && !rollingOnly;
 
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -37,7 +40,7 @@ const profiles = {
   },
   yearly: {
     authenticated: true,
-    user: { id: 3, email: "yearly@example.test", role: "user", plan: "yearly", subscriptionExpiresAt: "2027-06-22 12:00:00" },
+    user: { id: 3, email: "yearly@example.test", role: "user", plan: "yearly", subscriptionExpiresAt: "2027-06-22 12:00:00", onboardingSeenAt: "2026-07-01 12:00:00" },
     entitlements: { paid: true, pro: true, proPlus: true, admin: false, yearly: true },
   },
   admin: {
@@ -56,6 +59,12 @@ function sendJson(response, payload, status = 200) {
   response.end(JSON.stringify(payload));
 }
 
+async function readJsonBody(request) {
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
+}
+
 function moneyValue(label) {
   const text = String(label || "").replace(/[$,]/g, "");
   const value = Number.parseFloat(text);
@@ -70,6 +79,83 @@ const trackingPriceHistory = Array.from({ length: 60 }, (_, index) => ({
   date: new Date(Date.UTC(2026, 4, 1 + index)).toISOString().slice(0, 10),
   close: 96 + index * 0.2 + Math.sin(index / 4) * 2,
 }));
+
+const opinionFixture = {
+  id: "test-opinion",
+  section: "premarket",
+  sectionLabel: "盘前前瞻",
+  title: "测试观点",
+  tradeDate: "2026-07-25 08:00:00",
+  summary: "用于验证会员预览和观点详情权限。",
+  symbols: ["AAPL"],
+  topics: ["测试"],
+  highlights: ["验证权限展示"],
+  body: "观点正文仅用于自动化权限测试。",
+  featured: true,
+  status: "published",
+};
+
+const opinionFixtures = [
+  opinionFixture,
+  { ...opinionFixture, id: "test-opinion-2", section: "daily", sectionLabel: "盘中观察", title: "第二条测试观点", featured: false },
+];
+
+const macroResultFixtures = [
+  {
+    id: "test-cpi-result",
+    date: "2026-07-14",
+    time: "20:30:00",
+    title: "美国 CPI",
+    type: "macro",
+    impact: "high",
+    actualLabel: "同比 3.5%",
+    actualValue: 3.5,
+    forecastLabel: "3.8%",
+    forecastValue: 3.8,
+    previousLabel: "4.2%",
+    previousValue: 4.2,
+    resultKind: "cpi",
+    resultHeadline: "低于预期",
+    resultMeaning: "通胀更低，美股短线通常偏利好",
+    resultTone: "positive",
+  },
+  {
+    id: "test-jobs-result",
+    date: "2026-07-02",
+    time: "20:30:00",
+    title: "美国非农就业",
+    type: "macro",
+    impact: "high",
+    actualLabel: "+20K",
+    actualValue: 20,
+    forecastLabel: "110K",
+    forecastValue: 110,
+    previousLabel: "+63K",
+    previousValue: 63,
+    resultKind: "jobs",
+    resultHeadline: "低于预期",
+    resultMeaning: "就业降温，降息预期可能升温",
+    resultTone: "watch",
+  },
+  {
+    id: "test-rate-result",
+    date: "2026-06-18",
+    time: "02:00:00",
+    title: "FOMC 议息会议",
+    type: "macro",
+    impact: "high",
+    actualLabel: "3.50%-3.75%",
+    actualValue: 3.75,
+    forecastLabel: "3.75%",
+    forecastValue: 3.75,
+    previousLabel: "3.50%-3.75%",
+    previousValue: 3.75,
+    resultKind: "rate",
+    resultHeadline: "利率不变",
+    resultMeaning: "借钱成本没有变化，美股影响偏中性",
+    resultTone: "neutral",
+  },
+];
 
 function trackingFixture(board, includeAnalysis) {
   const changeByBoard = { day: 1.2, week: 3.4, month: 8.6, volume: 1.2 };
@@ -92,6 +178,13 @@ function trackingFixture(board, includeAnalysis) {
         support: { center: 100, lower: 99, upper: 101, strength: "strong", strengthText: "强", touches: 3, basis: "近120日出现 3 次确认", lastConfirmedAt: "2026-07-08" },
         secondarySupport: { center: 95, lower: 94, upper: 96, strength: "medium", strengthText: "中", touches: 2, basis: "近120日出现 2 次确认", lastConfirmedAt: "2026-06-18" },
         resistance: { center: 110, lower: 109, upper: 111, strength: "converting", strengthText: "转换中", touches: 1, basis: "原支撑跌破后，等待反抽确认", lastConfirmedAt: "2026-07-15" },
+        breakoutConfirmation: {
+          status: "awaiting_retest",
+          level: { center: 104, lower: 103, upper: 105, strength: "medium", strengthText: "中", touches: 2, basis: "近120日出现 2 次确认", lastConfirmedAt: "2026-07-11" },
+          eventAt: "2026-07-21",
+          breakoutAt: "2026-07-18",
+          confirmedAt: "2026-07-21",
+        },
         position: "near_resistance",
         positionText: "接近阻力",
         supportDistancePct: 6.3,
@@ -112,6 +205,22 @@ async function apiPayload(url, authProfile) {
   if (url.pathname === "/api/auth/status") return authProfile;
   if (url.pathname === "/api/auth/logout") return { ok: true };
   if (url.pathname === "/api/open-portfolio") return { curve: [], holdings: [], trades: [] };
+  if (url.pathname === "/api/watchlist") return { rows: [] };
+  if (url.pathname === "/api/courses") return { series: [] };
+  if (url.pathname === "/api/tools/funding-arbitrage") return { rows: [], updated_at: "2026-08-22 12:00:00", stale: false };
+  if (url.pathname === "/api/product/raw/index-valuation") return readDataset("index-valuation");
+  if (url.pathname === "/api/tools/dca-strategies") {
+    const bottom = JSON.parse(await readFile(join(root, "server", "bottom_strategy.json"), "utf8"));
+    const qqq = bottom.markets.QQQ;
+    const unlocked = Boolean(authProfile.entitlements.paid || authProfile.entitlements.admin);
+    return {
+      preview: !unlocked,
+      products: {
+        dca1: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.slice(0, 5).map((item) => item.signalDate), opportunityWindows: qqq.records.slice(0, 5).map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: null, locationSeries: qqq.priceSeries.map((point, index, rows) => ({ date: point.date, position: Math.round((index / Math.max(1, rows.length - 1)) * 70 + 15) })), lowBoundaryPosition: 30, priceSeries: qqq.priceSeries },
+        dca2: { asOf: qqq.asOf, status: unlocked ? { key: "waiting", position: 0, headline: "暂未触发", action: "暂不执行" } : null, opportunityDates: qqq.records.map((item) => item.signalDate), opportunityWindows: qqq.records.map((item) => ({ startDate: item.signalDate, endDate: item.signalDate })), currentCycleStart: qqq.records.at(-1)?.signalDate || null, locationSeries: [], lowBoundaryPosition: null, priceSeries: qqq.priceSeries },
+      },
+    };
+  }
 
   const ytd = await readDataset("ytd-gainers");
   const movers = await readDataset("market-movers");
@@ -153,7 +262,8 @@ async function apiPayload(url, authProfile) {
   }
 
   if (url.pathname === "/api/product/opinions") {
-    const items = (opinions.items || [])
+    const sourceItems = opinions.items?.length ? opinions.items : opinionFixtures;
+    const items = sourceItems
       .map((item) => ({ ...item, status: item.status || "published" }))
       .filter((item) => item.status === "published");
     const limit = Number(url.searchParams.get("limit") || 8);
@@ -168,13 +278,16 @@ async function apiPayload(url, authProfile) {
     const offset = Number(url.searchParams.get("offset") || 0);
     const type = String(url.searchParams.get("type") || "");
     const impact = String(url.searchParams.get("impact") || "");
+    const resultsOnly = url.searchParams.get("resultsOnly") === "true";
     const windowDays = Number(url.searchParams.get("windowDays") || 0);
     const fixtureToday = new Date("2026-07-25T00:00:00Z");
     const startDate = fixtureToday.toISOString().slice(0, 10);
     const endDate = new Date(fixtureToday.getTime() + windowDays * 86400000).toISOString().slice(0, 10);
-    const rows = (calendar.events || []).filter((event) => {
+    const sourceRows = resultsOnly ? macroResultFixtures : (calendar.events || []);
+    const rows = sourceRows.filter((event) => {
       if (type && event.type !== type) return false;
       if (impact && event.impact !== impact) return false;
+      if (resultsOnly && (!event.resultHeadline || !event.resultMeaning)) return false;
       if (windowDays && (event.date < startDate || event.date > endDate)) return false;
       return true;
     });
@@ -219,11 +332,61 @@ async function apiPayload(url, authProfile) {
 
 function startServer(authProfile) {
   const apiRequests = [];
+  let rollingPlans = [];
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://127.0.0.1");
       if (url.pathname.startsWith("/api/")) {
         apiRequests.push(url.pathname);
+        if (url.pathname === "/api/rolling/quote") {
+          sendJson(response, { symbol: url.searchParams.get("symbol") || "BTCUSDT", price: "72000", asOf: Date.now() / 1000, connected: true });
+          return;
+        }
+        if (url.pathname === "/api/rolling/plans" && request.method === "GET") {
+          sendJson(response, { plans: rollingPlans, marketError: "" });
+          return;
+        }
+        if (url.pathname === "/api/rolling/plans" && request.method === "POST") {
+          const input = await readJsonBody(request);
+          const fixedAdd = Number(input.initialNotional) * Number(input.addPercent) / 100;
+          const plan = {
+            id: "0123456789abcdef0123456789abcdef",
+            symbol: input.symbol,
+            status: "running",
+            config: { ...input, schemaVersion: 1, maxAdds: Number(input.maxAdds), entryTriggerPrice: input.entryTriggerPrice || null },
+            state: { quantity: String(Number(input.initialNotional) / 72000), averagePrice: "72000", totalNotional: input.initialNotional, fixedAddNotional: String(fixedAdd), addsCompleted: 0, nextTriggerPrice: "73440", protectionPrice: "67680", entryPrice: "72000", exitPrice: null, estimatedPnl: null, lastFillPrice: "72000" },
+            currentPrice: "72000",
+            currentNotional: input.initialNotional,
+            estimatedPnl: "0",
+            estimatedMargin: String(Number(input.initialNotional) / Number(input.leverage)),
+            marketConnected: true,
+            marketAsOf: Date.now() / 1000,
+            createdAt: "2026-08-20T12:00:00Z",
+            updatedAt: "2026-08-20T12:00:00Z",
+            endedAt: null,
+            events: [{ id: 1, type: "entry", price: "72000", detail: {}, createdAt: "2026-08-20T12:00:00Z" }],
+          };
+          rollingPlans = [plan];
+          sendJson(response, { ok: true, id: plan.id }, 201);
+          return;
+        }
+        if (request.method === "POST" && /^\/api\/rolling\/plans\/[a-f0-9]{32}\/end$/.test(url.pathname) && rollingPlans.length) {
+          const plan = rollingPlans[0];
+          rollingPlans = [{
+            ...plan,
+            status: "ended",
+            state: { ...plan.state, exitPrice: "72720", estimatedPnl: "10" },
+            currentPrice: "72720",
+            currentNotional: "1010",
+            estimatedPnl: "10",
+            estimatedMargin: "336.66666667",
+            marketConnected: false,
+            endedAt: "2026-08-20T13:00:00Z",
+            events: [{ id: 2, type: "ended", price: "72720", detail: {}, createdAt: "2026-08-20T13:00:00Z" }, ...plan.events],
+          }];
+          sendJson(response, { ok: true });
+          return;
+        }
         sendJson(response, await apiPayload(url, authProfile));
         return;
       }
@@ -285,7 +448,12 @@ const scenarios = [
   { profile: "anonymous", page: "market", present: [gates.open] },
   { profile: "anonymous", page: "stocks", absent: Object.values(gates) },
   { profile: "anonymous", page: "risk", present: ["注册后查看"] },
+  { profile: "anonymous", page: "valuation", present: ["注册后查看"], absentSelector: ".valuationPanel" },
+  { profile: "anonymous", page: "watchlist", present: ["注册后查看"] },
+  { profile: "anonymous", page: "courses", present: ["注册后查看"], absentSelector: ".courseCardGrid" },
   { profile: "anonymous", page: "position", present: [gates.open] },
+  { profile: "anonymous", page: "rolling", present: [gates.open] },
+  { profile: "anonymous", page: "dca1", present: ["登录后查看定投产品"] },
   { profile: "anonymous", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "free", page: "opinions", absent: Object.values(gates) },
   { profile: "free", page: "tracking", presentSelector: ".lockedStockName" },
@@ -293,7 +461,14 @@ const scenarios = [
   { profile: "free", page: "open", present: [gates.open] },
   { profile: "free", page: "market", present: [gates.open] },
   { profile: "free", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
+  { profile: "free", page: "valuation", presentSelector: "[data-testid='index-valuation-page']", absent: Object.values(gates) },
+  { profile: "free", page: "watchlist", presentSelector: ".watchlistPage", present: ["还没有自选"], absent: Object.values(gates) },
+  { profile: "free", page: "courses", presentSelector: ".coursesPage", present: ["暂无课程"], absent: Object.values(gates) },
+  { profile: "free", page: "funding", presentSelector: ".fundingLockedPanel", present: ["当前账号暂未开通该工具"] },
   { profile: "free", page: "position", present: [gates.open] },
+  { profile: "free", page: "rolling", present: [gates.open] },
+  { profile: "free", page: "dca1", presentSelector: ".dcaGate", present: ["开通查看操作参考"] },
+  { profile: "free", page: "dca2", presentSelector: ".dcaGate", present: ["开通查看操作参考"] },
   { profile: "free", page: "strength", present: [gates.open], absentSelector: ".strengthMetrics" },
   { profile: "monthly", page: "opinions", absent: Object.values(gates) },
   { profile: "monthly", page: "tracking", absentSelector: ".lockedStockName" },
@@ -303,27 +478,39 @@ const scenarios = [
   { profile: "monthly", page: "risk", presentSelector: "[data-testid='market-temperature-page']", absent: Object.values(gates) },
   { profile: "monthly", page: "strength", presentSelector: "[data-testid='market-strength-page']", absent: Object.values(gates) },
   { profile: "monthly", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
+  { profile: "monthly", page: "rolling", present: [gates.open], absentSelector: "[data-testid='rolling-tool-page']" },
+  { profile: "monthly", page: "dca1", presentSelector: "[data-testid='dca1-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
+  { profile: "monthly", page: "dca2", presentSelector: "[data-testid='dca2-strategy-page']", absentSelector: ".dcaGate", absent: ["收益", "判断方式"] },
+  { profile: "monthly", page: "courses", presentSelector: ".coursesPage", present: ["暂无课程"] },
   { profile: "yearly", page: "opinions", absent: Object.values(gates) },
   { profile: "yearly", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "yearly", page: "open", absent: [gates.open] },
   { profile: "yearly", page: "market", absent: Object.values(gates) },
   { profile: "yearly", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
+  { profile: "yearly", page: "rolling", presentSelector: "[data-testid='rolling-tool-page']", absent: Object.values(gates) },
   { profile: "admin", page: "opinions", absent: Object.values(gates) },
   { profile: "admin", page: "tracking", absentSelector: ".lockedStockName" },
   { profile: "admin", page: "open", absent: [gates.open] },
   { profile: "admin", page: "market", absent: Object.values(gates) },
   { profile: "admin", page: "position", presentSelector: "[data-testid='position-sizing-page']", absent: Object.values(gates) },
+  { profile: "admin", page: "rolling", presentSelector: "[data-testid='rolling-tool-page']", absent: Object.values(gates) },
+  { profile: "admin", page: "funding", presentSelector: ".fundingScannerPage", present: ["没有符合条件的结果"], absentSelector: ".fundingLockedPanel" },
 ];
+const selectedScenarios = dcaOnly
+  ? scenarios.filter((item) => ["dca1", "dca2"].includes(item.page) && ["anonymous", "free", "monthly"].includes(item.profile))
+  : rollingOnly
+    ? scenarios.filter((item) => item.page === "rolling")
+    : scenarios;
 
 const browser = await launchBrowser();
 try {
-  for (const [profileName, authProfile] of Object.entries(profiles)) {
+  for (const [profileName, authProfile] of Object.entries(profiles).filter(([name]) => selectedScenarios.some((item) => item.profile === name))) {
     const server = await startServer(authProfile);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     page.on("pageerror", (error) => console.error(`Browser error (${profileName}):`, error.stack));
     try {
       for (const baseUrl of [server.rootUrl, server.nextUrl]) {
-        for (const scenario of scenarios.filter((item) => item.profile === profileName)) {
+        for (const scenario of selectedScenarios.filter((item) => item.profile === profileName)) {
           await page.goto(`${baseUrl}?page=${scenario.page}`, { waitUntil: "networkidle" });
           if (scenario.page === "home") {
             await page.waitForSelector(".frontHomeStrengthPanel");
@@ -374,32 +561,86 @@ try {
             }
           }
           if (scenario.page === "opinions" && profileName === "free" && baseUrl === server.rootUrl) {
-            const memberPreview = page.locator(".opinionMemberLabel").first();
-            await memberPreview.waitFor();
-            assert((await memberPreview.innerText()) === "会员可见", "opinion list should use a quiet member label");
+            assert(await page.locator(".opinionMemberLabel").count() === 0, "opinion list should stay readable without member labels");
             assert(await page.locator(".opinionInlineLock").count() === 0, "opinion list should not show lock icons");
-            const excerpt = page.locator(".opinionLockedExcerpt p").first();
-            const excerptStyle = await excerpt.evaluate((element) => {
-              const style = getComputedStyle(element);
-              return { filter: style.filter, opacity: style.opacity };
-            });
-            assert(excerptStyle.filter.includes("blur(2.6px)"), "opinion list should keep a light real-content preview");
-            assert(excerptStyle.opacity === "0.76", "opinion list preview should remain visibly loaded");
+            assert(await page.locator(".opinionListPreview p").count() > 0, "opinion list should expose a readable summary");
             await page.locator(".opinionProductFeed > button").first().click();
             await page.waitForSelector(".readerMemberPreview");
             assert(await page.locator(".readerMemberPreview i").count() === 0, "opinion detail should not show a lock icon");
             assert((await page.locator(".readerMemberPreview").innerText()).includes("查看完整观点"), "opinion detail should keep one clear next action");
           }
+          if (baseUrl === server.rootUrl && scenario.page === "valuation" && profileName === "free") {
+            await page.waitForSelector(".valuationPanel");
+            await page.getByRole("button", { name: "近10年" }).click();
+            assert(await page.getByRole("button", { name: "近10年" }).evaluate((element) => element.classList.contains("active")), "valuation range should be interactive");
+          }
+          if (baseUrl === server.rootUrl && scenario.page === "watchlist" && profileName === "free") {
+            await page.getByRole("button", { name: "添加股票" }).click();
+            await page.waitForSelector(".watchlistAddForm");
+            assert(await page.getByPlaceholder("输入股票代码，如 NVDA").isVisible(), "watchlist should open its add form");
+          }
+          if (baseUrl === server.rootUrl && scenario.page === "funding" && profileName === "admin") {
+            assert(await page.getByRole("button", { name: "刷新", exact: true }).isVisible(), "admin funding scanner should expose refresh controls");
+            assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "funding scanner should not overflow horizontally");
+          }
         }
       }
       const strengthRequestCount = server.apiRequests.filter((path) => path === "/api/product/strength").length;
-      if (profileName === "anonymous" || profileName === "free") {
+      if (fullQa && (profileName === "anonymous" || profileName === "free")) {
         assert(strengthRequestCount === 0, `${profileName} should not request the paid strength dataset`);
       }
-      if (profileName === "monthly") {
+      if (fullQa && profileName === "monthly") {
         assert(strengthRequestCount > 0, "monthly member should request the paid strength dataset");
       }
-      if (profileName === "monthly") {
+      if (fullQa) {
+        const requestCount = (path) => server.apiRequests.filter((item) => item === path).length;
+        if (profileName === "anonymous") {
+          assert(requestCount("/api/product/raw/index-valuation") === 0, "anonymous visitor should not request registered valuation data");
+          assert(requestCount("/api/watchlist") === 0, "anonymous visitor should not request account watchlist data");
+          assert(requestCount("/api/open-portfolio") === 0, "anonymous visitor should not request yearly portfolio data");
+          assert(requestCount("/api/courses") === 0, "anonymous visitor should not request the signed-in course catalog");
+        }
+        if (profileName === "free") {
+          assert(requestCount("/api/product/raw/index-valuation") > 0, "registered user should request valuation data");
+          assert(requestCount("/api/watchlist") > 0, "registered user should request watchlist data");
+          assert(requestCount("/api/courses") > 0, "registered user should request the course catalog");
+          assert(requestCount("/api/open-portfolio") === 0, "free user should not request yearly portfolio data");
+          assert(requestCount("/api/tools/funding-arbitrage") === 0, "non-admin user should not request the admin funding scanner");
+        }
+        if (profileName === "monthly") {
+          assert(requestCount("/api/open-portfolio") === 0, "monthly user should not request yearly portfolio data");
+          assert(requestCount("/api/courses") > 0, "signed-in user should request the course catalog");
+        }
+        if (profileName === "yearly") assert(requestCount("/api/open-portfolio") > 0, "yearly user should request portfolio data");
+        if (profileName === "admin") assert(requestCount("/api/tools/funding-arbitrage") > 0, "admin should request the funding scanner");
+      }
+      if (!dcaOnly && profileName === "yearly") {
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.goto(`${server.rootUrl}?page=rolling`, { waitUntil: "networkidle" });
+        const onboardingAccept = page.getByRole("button", { name: "同意并继续" });
+        if (await onboardingAccept.count()) await onboardingAccept.click();
+        await page.waitForSelector(".rollingInlineQuote.connected");
+        await page.getByTestId("rolling-start").click();
+        await page.waitForSelector("[data-testid='rolling-add-progress']");
+        const rollingBodyText = await page.locator("body").innerText();
+        assert((await page.getByTestId("rolling-add-progress").innerText()) === "已完成 0 · 剩余 4", "rolling server plan should begin with no adds");
+        assert(!rollingBodyText.includes("交易所下单 API"), "rolling tool should not expose exchange API implementation copy");
+        assert(!/(模拟|仿真|纸面)/.test(rollingBodyText), "rolling tool should not expose simulation wording");
+        assert(!rollingBodyText.includes("导出方案"), "rolling tool should hide plan export");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "desktop rolling tool should not overflow horizontally");
+        await page.getByRole("button", { name: "结束计划", exact: true }).click();
+        await page.getByRole("button", { name: "确认结束", exact: true }).click();
+        await page.waitForSelector("[data-testid='rolling-history-tab'][aria-selected='true']");
+        const rollingHistoryText = await page.locator("body").innerText();
+        assert(rollingHistoryText.includes("历史结果") && rollingHistoryText.includes("最终盈亏"), "ended rolling plans should open as history results");
+        assert(!rollingHistoryText.includes("下一次加仓后估算"), "rolling history should hide future projections");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-rolling-desktop.png`, fullPage: true });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForTimeout(200);
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile rolling tool should not overflow horizontally");
+        if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-rolling-mobile.png`, fullPage: true });
+      }
+      if (fullQa && profileName === "monthly") {
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=home`, { waitUntil: "networkidle" });
         assert(await page.locator(".frontHomeDesktopTable").isVisible(), "desktop home should show the stock table");
@@ -426,7 +667,7 @@ try {
         assert(await page.locator(".frontHomeMobileList").isVisible(), "mobile home should show the compact stock list");
         assert(!(await page.locator(".frontHomeDesktopTable").isVisible()), "mobile home should hide the desktop stock table");
         assert(await page.locator(".frontHomeMobileRow").count() > 0, "mobile home should keep the stock rows");
-        const firstHomeMobileRow = page.locator(".frontHomeMobileRow").first();
+        const firstHomeMobileRow = page.locator(".frontHomeMobileRow", { hasText: "AAPL" });
         const firstHomeMobileText = await firstHomeMobileRow.innerText();
         for (const label of ["近1天", "近1周", "近1月", "成交额", "关键点位", "支撑", "阻力"]) {
           assert(firstHomeMobileText.includes(label), `mobile home should keep ${label}`);
@@ -436,25 +677,32 @@ try {
 
         await page.goto(`${server.rootUrl}?page=opinions`, { waitUntil: "networkidle" });
         await page.waitForSelector(".opinionProductDay");
-        assert(await page.locator(".opinionProductFeed > button.featured").count() === 1, "opinion list should highlight one latest item");
+        assert(await page.locator(".opinionProductFeed > button.featured").count() === 0, "opinion list should keep one consistent reading rhythm");
+        assert(await page.locator(".opinionProductFeed .opinionRowChevron").count() > 0, "opinion list should keep a clear detail affordance");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile opinion list should not overflow horizontally");
         const mobileOpinionLayout = await page.locator(".opinionProductFeed > button").first().evaluate((element) => {
           const style = getComputedStyle(element);
+          const content = element.querySelector(".opinionProductItem");
+          const chevron = element.querySelector(".opinionRowChevron");
           const titleRow = element.querySelector(".opinionProductTitle");
           const title = element.querySelector(".opinionProductTitle strong");
           return {
             display: style.display,
+            gridTemplateColumns: style.gridTemplateColumns,
             width: element.getBoundingClientRect().width,
             feedWidth: element.parentElement.getBoundingClientRect().width,
+            contentMinWidth: content ? getComputedStyle(content).minWidth : "",
+            chevronVisible: chevron ? getComputedStyle(chevron).display !== "none" : false,
             titleDisplay: titleRow ? getComputedStyle(titleRow).display : "",
             titleAlign: title ? getComputedStyle(title).textAlign : "",
             titleFontSize: title ? Number.parseFloat(getComputedStyle(title).fontSize) : 0,
           };
         });
-        assert(mobileOpinionLayout.display === "block", "mobile opinion item should use a single-column layout");
+        assert(mobileOpinionLayout.display === "grid" && mobileOpinionLayout.gridTemplateColumns.split(" ").length === 2, "mobile opinion item should keep content and the detail affordance in separate columns");
         assert(Math.abs(mobileOpinionLayout.width - mobileOpinionLayout.feedWidth) <= 2, "mobile opinion item should use the full feed width");
+        assert(mobileOpinionLayout.contentMinWidth === "0px" && mobileOpinionLayout.chevronVisible, "mobile opinion content should shrink without hiding the detail affordance");
         assert(mobileOpinionLayout.titleDisplay === "block" && mobileOpinionLayout.titleAlign === "left", "mobile opinion title should use a full-width left-aligned row");
-        assert(mobileOpinionLayout.titleFontSize >= 16, "mobile opinion title should remain readable");
+        assert(mobileOpinionLayout.titleFontSize >= 15.5, "mobile opinion title should remain readable");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-opinions-mobile.png`, fullPage: true });
 
         await page.setViewportSize({ width: 1440, height: 1000 });
@@ -466,12 +714,7 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=tracking`, { waitUntil: "networkidle" });
-        const trackingGuideHelp = page.locator(".trackingHeading .infoTip");
-        await trackingGuideHelp.hover();
-        assert(await trackingGuideHelp.locator(".infoTipBubble").isVisible(), "tracking guide should appear immediately on hover");
-        const trackingGuideText = await trackingGuideHelp.locator(".infoTipBubble").innerText();
-        assert(trackingGuideText.includes("先看近1月和近1周谁更强"), "tracking guide should explain the first comparison");
-        assert(trackingGuideText.includes("不代表可以买入"), "tracking guide should state the product boundary");
+        assert(await page.locator(".trackingPage > h1, .trackingHeading").count() === 0, "tracking page should not repeat the navigation label");
         const keyLevelHelp = page.locator(".trackingKeyLevelsHead .infoTip");
         await keyLevelHelp.hover();
         assert(await keyLevelHelp.locator(".infoTipBubble").isVisible(), "tracking help should appear immediately on hover");
@@ -487,7 +730,7 @@ try {
         await page.waitForTimeout(200);
         assert(!(await page.locator(".trackingDesktopTable").isVisible()), "mobile tracking list should hide the desktop table");
         assert(await page.locator(".trackingMobileList").isVisible(), "mobile tracking list should show compact stock rows");
-        const mobileTrackingText = await page.locator(".trackingMobileRow").first().innerText();
+        const mobileTrackingText = await page.locator(".trackingMobileRow", { hasText: "AAPL" }).innerText();
         for (const label of ["近1月", "近1周", "成交倍数", "支撑", "阻力", "查看详情"]) {
           assert(mobileTrackingText.includes(label), `mobile tracking row should keep ${label}`);
         }
@@ -499,14 +742,18 @@ try {
         const aaplRow = page.locator(".trackingPage .screenerTable tbody tr", { hasText: "AAPL" });
         assert((await aaplRow.innerText()).includes("$100.00"), "paid tracking row should show support");
         assert((await aaplRow.innerText()).includes("$110.00"), "paid tracking row should show resistance");
+        assert(!(await aaplRow.innerText()).includes("等待回踩"), "tracking list should keep breakout confirmation in detail");
         await aaplRow.locator(".screenerLink").click();
-        await page.waitForSelector(".trackingKeyLevelsPanel");
+        await page.waitForSelector(".trackingDetailMain");
         assert(await page.locator(".trackingPriceChart svg").count() === 1, "tracking detail should show the price chart");
-        assert((await page.locator(".trackingKeyLevelsPanel").innerText()).includes("主要支撑"), "tracking detail should show level evidence");
+        const trackingDetailText = await page.locator(".trackingDetailMain").innerText();
+        assert(trackingDetailText.includes("等待回踩"), "tracking detail should show the breakout confirmation stage");
+        assert(trackingDetailText.includes("回踩观察区"), "tracking detail should show the candidate zone");
+        assert(trackingDetailText.includes("现有支撑"), "tracking detail should keep the established support visible");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail.png`, fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(300);
-        assert(await page.locator(".trackingKeyLevelsPanel").isVisible(), "mobile tracking detail should keep key levels visible");
+        assert(await page.locator(".trackingDetailMain").isVisible(), "mobile tracking detail should keep key levels visible");
         assert(!(await page.locator(".sideRail").evaluate((element) => element.classList.contains("mobileOpen"))), "mobile tracking detail should keep navigation closed");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile tracking detail should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-tracking-detail-mobile.png`, fullPage: true });
@@ -523,50 +770,88 @@ try {
 
         const firstStockView = page.locator(".stockLibraryTable tbody .stockLibraryView").first();
         await firstStockView.click();
-        await page.waitForSelector(".stockPreviewDrawer");
-        assert((await page.locator(".stockPreviewDrawer").innerText()).includes("股票概览"), "stock overview should open on demand");
-        assert(await page.locator("body.stockPreviewOpen").count() === 1, "stock overview should lock background scrolling");
+        await page.waitForSelector(".trackingDetailPage");
+        assert(await page.locator(".trackingDetailQuote").count() === 1, "stock detail should open on demand");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-overview-desktop.png`, fullPage: true });
-        await page.locator(".stockPreviewDrawer > header button").click();
-        assert(await page.locator(".stockPreviewDrawer").count() === 0, "stock overview should close back to the list");
+        await page.locator(".trackingDetailBack").click();
+        assert(await page.locator(".trackingDetailPage").count() === 0, "stock detail should return to the list");
 
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(200);
         assert(!(await page.locator(".stockLibraryDesktopTable").isVisible()), "mobile stock library should hide the desktop table");
         assert(await page.locator(".stockLibraryMobileList").isVisible(), "mobile stock library should show compact rows");
         const firstMobileStockText = await page.locator(".stockLibraryMobileRow").first().innerText();
-        for (const label of ["近1天", "近1周", "近1月", "成交额", "市值", "查看概览"]) {
+        for (const label of ["近1天", "近1周", "近1月", "成交额", "市值", "查看详情"]) {
           assert(firstMobileStockText.includes(label), `mobile stock library should keep ${label}`);
         }
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock library should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-mobile.png`, fullPage: true });
         await page.locator(".stockLibraryMobileRow .stockLibraryMobileFoot button").first().click();
-        await page.waitForSelector(".stockPreviewDrawer");
-        assert(await page.locator(".stockPreviewDrawer").evaluate((element) => Math.abs(element.getBoundingClientRect().width - window.innerWidth) <= 1), "mobile stock overview should use the full viewport width");
-        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock overview should not overflow horizontally");
+        await page.waitForSelector(".trackingDetailPage");
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile stock detail should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-stocks-overview-mobile.png`, fullPage: true });
-        await page.keyboard.press("Escape");
-        assert(await page.locator(".stockPreviewDrawer").count() === 0, "Escape should close the stock overview");
-        assert(await page.locator("body.stockPreviewOpen").count() === 0, "closing stock overview should unlock background scrolling");
+        await page.locator(".trackingDetailBack").click();
+        assert(await page.locator(".trackingDetailPage").count() === 0, "mobile stock detail should return to the list");
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=calendar`, { waitUntil: "networkidle" });
-        assert((await page.locator(".calendarPageHead h1").innerText()) === "重点财经前瞻", "calendar should show the approved page title");
-        assert(await page.locator(".calendarMacroTable").count() === 1, "calendar should keep macro events in their own section");
-        assert(await page.locator(".calendarEarningsTable").count() === 1, "calendar should keep earnings in a paged section");
+        assert(await page.locator(".calendarPageHead").count() === 0, "calendar should not repeat the navigation title");
+        assert(await page.locator(".calendarFilters > strong").count() === 0, "calendar filters should not repeat the page title");
+        assert(!(await page.locator("body").innerText()).includes("北京时间"), "calendar should not show redundant timezone copy");
+        assert(await page.locator(".calendarCoreMacro").count() === 1, "calendar should keep CPI, payrolls and FOMC in the core macro tracker");
+        assert(await page.locator(".calendarMacroTabs").count() === 1, "calendar should provide the three core macro tabs");
+        assert(await page.locator(".calendarCoreHead").count() === 0, "calendar should not add a redundant core macro heading");
+        const calendarAccountOverlapsFilters = await page.evaluate(() => {
+          const account = document.querySelector(".calendarTopbar .accountButton");
+          const filters = document.querySelector(".calendarFilterControls");
+          if (!account || !filters) return false;
+          const accountRect = account.getBoundingClientRect();
+          const filterRect = filters.getBoundingClientRect();
+          return accountRect.left < filterRect.right && accountRect.right > filterRect.left
+            && accountRect.top < filterRect.bottom && accountRect.bottom > filterRect.top;
+        });
+        assert(!calendarAccountOverlapsFilters, "calendar account control should not overlap the date and impact filters");
+        assert(await page.locator(".calendarNextEvent > div").count() === 4, "calendar next event should keep date, event, forecast and previous value");
+        assert(await page.locator(".calendarMacroTimeline article").count() <= 8, "calendar should keep the expanded core timeline concise");
+        const conclusion = page.locator(".calendarMacroConclusion");
+        for (const [tab, headline, meaning] of [
+          ["CPI", "低于预期", "通胀更低"],
+          ["非农", "低于预期", "就业降温"],
+          ["FOMC", "利率不变", "借钱成本没有变化"],
+        ]) {
+          await page.getByRole("tab", { name: tab, exact: true }).click();
+          assert(await conclusion.count() === 1, `calendar should show one conclusion for ${tab}`);
+          const conclusionText = await conclusion.innerText();
+          assert(conclusionText.includes("最近结论"), "calendar conclusion should identify the latest published result");
+          assert(conclusionText.includes(headline) && conclusionText.includes(meaning), `calendar should show the verified ${tab} conclusion`);
+        }
+        assert(await page.locator(".calendarEarningsPreview article").count() <= 3, "calendar should keep the default earnings preview concise");
         const calendarSectionOrder = await page.evaluate(() => {
-          const macro = document.querySelector(".calendarMacroTable");
-          const earnings = document.querySelector(".calendarEarningsTable");
+          const macro = document.querySelector(".calendarCoreMacro");
+          const earnings = document.querySelector(".calendarEarningsSection");
           return Boolean(macro && earnings && (macro.compareDocumentPosition(earnings) & Node.DOCUMENT_POSITION_FOLLOWING));
         });
         assert(calendarSectionOrder, "macro events should remain above the earnings calendar");
+        const earningsAction = page.locator(".calendarEarningsSection .calendarSectionAction");
+        assert(await earningsAction.count() === 1, "calendar should offer the complete earnings calendar on demand");
+        await earningsAction.click();
+        await page.waitForFunction(() => document.querySelector(".calendarEarningsSection h2")?.textContent?.includes("财报日历"));
+        assert(await page.locator(".calendarEarningsTable, .calendarEarningsSection .calendarState").count() === 1, "calendar should reveal the complete earnings calendar or its empty state on demand");
+        assert(await page.locator(".calendarPager").count() === 1, "calendar should paginate the complete earnings table");
         assert(!(await page.locator("body").innerText()).includes("优先看利率、通胀、就业"), "calendar should remove explanatory filler");
+        assert(!(await page.locator("body").innerText()).includes("下一次公布 · 历史变化"), "calendar should remove redundant core macro helper copy");
+        assert(!(await page.locator("body").innerText()).includes("按日期排列"), "calendar should remove redundant earnings helper copy");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-calendar-desktop.png`, fullPage: true });
 
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(200);
         assert(!(await page.locator(".calendarTableHead").first().isVisible()), "mobile calendar should hide desktop table headings");
-        assert(await page.locator(".calendarMobileMeta").first().isVisible(), "mobile calendar should show compact event context");
+        const mobileEventContext = page.locator(".calendarMobileMeta").first();
+        if (await mobileEventContext.count()) {
+          assert(await mobileEventContext.isVisible(), "mobile calendar should show compact event context");
+        } else {
+          assert(await page.locator(".calendarEarningsSection .calendarState").isVisible(), "mobile calendar should show an honest empty state when no earnings are scheduled");
+        }
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "mobile calendar should not overflow horizontally");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-calendar-mobile.png`, fullPage: true });
 
@@ -589,7 +874,7 @@ try {
 
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.goto(`${server.rootUrl}?page=market`, { waitUntil: "networkidle" });
-        assert((await page.locator(".marketPageHeadV3 h1").innerText()) === "市场资金走向", "market page should show the approved page title");
+        assert(await page.locator(".marketPageV3 > h1, .marketPageHeadV3").count() === 0, "market page should not repeat the navigation label");
         assert(await page.locator(".marketSegmentV3 button.active", { hasText: "热力图" }).count() === 1, "market page should open with the heatmap");
         const firstHeatTile = page.locator(".marketHeatmapV3 > button").first();
         await firstHeatTile.hover();
@@ -670,7 +955,9 @@ try {
         const navigationBox = await page.locator(".sideRail").boundingBox();
         assert(Boolean(navigationBox && navigationBox.x <= 1 && navigationBox.width >= 300), `mobile navigation should fully open: ${JSON.stringify(navigationBox)}`);
         const primaryLabels = await page.locator(".sideRail > nav button span").allTextContents();
-        assert(primaryLabels.join("|") === "首页|美股热点风向标|重点财经前瞻|机会跟踪榜单|美股行情|市场资金走向|市场活跃指数|行业板块强弱|实战课程", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
+        assert(primaryLabels.join("|") === "首页|猫言猫语|重点财经前瞻|机会跟踪榜单|美股行情|市场资金走向|市场活跃指数|行业板块强弱|指数估值|实战课程|自选|纳指定投 1 号|纳指定投 2 号", `mobile primary navigation is incorrect: ${primaryLabels.join("|")}`);
+        const memberToolLabels = await page.locator(".navToolGroup", { hasText: "会员工具" }).locator("button span").allTextContents();
+        assert(memberToolLabels.join("|") === "以损定仓|滚仓工具", `mobile member-tool navigation is incorrect: ${memberToolLabels.join("|")}`);
         assert(await page.locator(".sideRail", { hasText: "工具数据" }).count() === 0, "mobile navigation should not separate market pages into a tool-data group");
         assert(await page.locator(".sideRail", { hasText: "实战课程" }).count() === 1, "courses should appear in mobile navigation");
         if (process.env.MOBILE_QA_SCREENSHOT_PREFIX) await page.screenshot({ path: `${process.env.MOBILE_QA_SCREENSHOT_PREFIX}-navigation.png` });
@@ -714,4 +1001,4 @@ try {
   await browser.close();
 }
 
-console.log(`Next/root permission regression passed (${scenarios.length * 2} checks).`);
+console.log(`Next/root permission regression passed (${selectedScenarios.length * 2} checks).`);

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import math
@@ -61,6 +62,27 @@ def load_existing_dataset_payload(name: str) -> tuple[dict[str, Any], Path]:
     return parse_json_text(row[0], {}), Path(f"db:{path.name}:{name}")
 
 
+def merge_bottom_strategy_history(
+    baseline: dict[str, Any], fallback: dict[str, Any]
+) -> dict[str, Any]:
+    """Keep verified early chart history when a newer DB starts later."""
+    merged = copy.deepcopy(baseline or fallback)
+    for symbol, fallback_market in (fallback.get("markets") or {}).items():
+        market = (merged.get("markets") or {}).get(symbol)
+        if not isinstance(market, dict):
+            continue
+        points: dict[str, dict[str, Any]] = {}
+        for item in [
+            *(fallback_market.get("priceSeries") or []),
+            *(market.get("priceSeries") or []),
+        ]:
+            trade_date = str(item.get("date") or "")
+            if trade_date:
+                points[trade_date] = item
+        market["priceSeries"] = [points[key] for key in sorted(points)]
+    return merged
+
+
 def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
     global PRODUCT_DATA_PAYLOADS
     if PRODUCT_DATA_PAYLOADS is None:
@@ -74,9 +96,10 @@ def load_product_data_payload(name: str) -> tuple[dict[str, Any], Path]:
             )
 
             events = build_event_opportunities()
+            previous_calendar, _ = load_existing_dataset_payload("events-calendar")
             PRODUCT_DATA_PAYLOADS = {
                 "market-temperature": build_market_temperature(),
-                "events-calendar": build_events_calendar(),
+                "events-calendar": build_events_calendar(previous_calendar),
                 "event-opportunities": events,
                 "validation-center": build_validation_center(events),
             }
@@ -97,6 +120,28 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
         return load_strength_review_payload()
     if name == "crypto-etf-flows":
         return load_crypto_etf_flows_payload()
+    if name == "retail-sentiment":
+        return load_retail_sentiment_payload()
+    if name == "bottom-strategy":
+        fallback_path = ROOT / "server" / "bottom_strategy.json"
+        fallback = parse_json_text(fallback_path.read_text(encoding="utf-8"), {})
+        baseline, baseline_path = load_existing_dataset_payload(name)
+        if not baseline:
+            baseline_path = fallback_path
+        baseline = merge_bottom_strategy_history(baseline, fallback)
+        data_root = Path(os.environ.get("MARKET_DATA_ROOT", "/Volumes/Extreme SSD/market-data-lab/data"))
+        if not data_root.exists():
+            return baseline, baseline_path
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from build_bottom_strategy import build_market_data_payload
+
+            return build_market_data_payload(data_root, baseline), Path("direct:bottom-strategy")
+        except Exception as exc:
+            from build_bottom_strategy import stale_payload
+
+            print(f"WARN: bottom strategy refresh skipped: {exc}")
+            return stale_payload(baseline, os.environ.get("TRACKING_ASOF"), str(exc)), baseline_path
     try:
         sys.path.insert(0, str(ROOT / "scripts"))
         if name == "macro-series":
@@ -115,12 +160,14 @@ def load_raw_payload(name: str) -> tuple[dict[str, Any], Path]:
             )
 
             market_root = Path(os.environ.get("MARKET_DATA_ROOT", DEFAULT_MARKET_DATA_ROOT))
+            previous_payload, _ = load_existing_dataset_payload(name)
             return build_payload(
                 market_root,
                 DEFAULT_QQQ_HOLDINGS_URL,
                 DEFAULT_QQQ_FACT_SHEET_URL,
                 DEFAULT_SPY_HOLDINGS_URL,
                 DEFAULT_SPY_FACT_SHEET_URL,
+                previous_payload=previous_payload,
             ), Path("direct:index-valuation")
         if name == "core-signals":
             from build_core_signals import DEFAULT_DATA_ROOT, build_signals
@@ -194,6 +241,20 @@ def load_crypto_etf_flows_payload() -> tuple[dict[str, Any], Path]:
     if cached.get("assets"):
         return cached, cache_path
     raise RuntimeError("crypto-etf-flows has no valid live, database, or cached payload")
+
+
+def load_retail_sentiment_payload() -> tuple[dict[str, Any], Path]:
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from build_retail_sentiment import fetch_payload
+
+        return fetch_payload(), Path("direct:retail-sentiment")
+    except Exception as exc:
+        print(f"WARN: retail-sentiment direct import skipped: {exc}")
+    payload, path = load_existing_dataset_payload("retail-sentiment")
+    if payload.get("options") and payload.get("survey") and payload.get("margin"):
+        return payload, path
+    raise RuntimeError("retail-sentiment has no valid live or database payload")
 
 
 def json_text(value: Any) -> str:
@@ -1168,7 +1229,7 @@ def build_database(output: Path) -> dict[str, int]:
                 "options_flow_rows": import_options_flow(conn),
                 "market_opinion_items": import_market_opinion(conn, output if output.exists() else None),
             }
-            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review", "crypto-etf-flows"])
+            import_raw_only(conn, ["site-data-index", "validation-center", "core-signals", "macro-series", "index-valuation", "strength-review", "crypto-etf-flows", "retail-sentiment", "bottom-strategy"])
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('generated_at', ?)", (now_iso(),))
             conn.execute("INSERT OR REPLACE INTO product_db_info (key, value) VALUES ('source_data_dir', ?)", (str(DATA_DIR),))

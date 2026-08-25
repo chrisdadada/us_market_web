@@ -205,6 +205,7 @@ const productApiJson = (path) => fetchOptionalJson(`${PRODUCT_API_BASE}${path}`)
 
 const MARKET_OPINION_SECTION_LABELS = {
   weekly: "周度前瞻",
+  crypto: "加密相关",
   daily: "每日个股行情观点",
   research: "研报解析",
   premarket: "盘前前瞻",
@@ -212,7 +213,7 @@ const MARKET_OPINION_SECTION_LABELS = {
   journal: "交易日记",
 };
 
-const MARKET_OPINION_HOME_SECTIONS = ["weekly", "premarket", "daily", "research", "postmarket", "journal"];
+const MARKET_OPINION_HOME_SECTIONS = ["weekly", "crypto", "premarket", "daily", "research", "postmarket", "journal"];
 
 const MARKET_OPINION_FALLBACK_ITEMS = {};
 
@@ -806,7 +807,7 @@ const roleLabel = (role) => {
   return "普通用户";
 };
 
-const superAdminToolPages = new Set(["valuation", "mag7", "options", "signals", "stock-events", "earnings", "watchlist"]);
+const superAdminToolPages = new Set(["mag7", "options", "signals", "stock-events", "earnings", "watchlist"]);
 
 const planLabel = (plan) => {
   if (plan === "monthly") return "月度";
@@ -940,7 +941,7 @@ const hasPaidAccess = () =>
 const pageAccessRules = {
   "market-opinion": {
     level: "monthly",
-    title: "会员可看完整美股热点风向标",
+    title: "会员可看完整猫言猫语",
     text: "免费账号可进入页面预览栏目和最新方向，完整正文、历史观点和栏目内容开通后查看。",
   },
   tracking: {
@@ -5324,6 +5325,61 @@ const valuationIndexName = (symbol, fallback = "") => {
   return fallback || symbol || "指数";
 };
 
+const renderForwardValuation = (payload) => {
+  const card = document.querySelector("#valuationForwardCard");
+  const shell = document.querySelector(".valuation-shell");
+  const data = payload?.forwardValuation || {};
+  const indicators = payload?.marketIndicators || {};
+  const momentum = indicators.shortTermMomentum || {};
+  const vix = indicators.vix || {};
+  const forwardPe = parseValuationNumber(data.forwardPe);
+  const averagePe = parseValuationNumber(data.tenYearAverageForwardPe);
+  const premium = parseValuationNumber(data.premiumToTenYearAveragePct);
+  const momentumValue = parseValuationNumber(momentum.value);
+  const vixValue = parseValuationNumber(vix.value);
+  const forwardReady = Number.isFinite(forwardPe) && Number.isFinite(averagePe) && Number.isFinite(premium);
+  const momentumReady = Number.isFinite(momentumValue);
+  const vixReady = Number.isFinite(vixValue);
+  const ready = Boolean(card && (forwardReady || momentumReady || vixReady));
+
+  shell?.classList.toggle("has-forward-card", ready);
+  if (card) card.hidden = !ready;
+  if (!ready) return false;
+
+  const forwardMetric = document.querySelector("#valuationForwardMetric");
+  const momentumMetric = document.querySelector("#valuationMomentumMetric");
+  const vixMetric = document.querySelector("#valuationVixMetric");
+  if (forwardMetric) forwardMetric.hidden = !forwardReady;
+  if (momentumMetric) momentumMetric.hidden = !momentumReady;
+  if (vixMetric) vixMetric.hidden = !vixReady;
+
+  if (forwardReady) {
+    const aboveAverage = premium > 0;
+    setText("#valuationForwardPe", `${forwardPe.toFixed(2)}倍`);
+    setText("#valuationForwardStatus", aboveAverage ? "偏高" : "不高");
+    setText("#valuationForwardMeta", `10年平均 ${averagePe.toFixed(1)}倍 · ${formatDisplayDate(data.asOf)}`);
+    document.querySelector("#valuationForwardStatus")?.classList.toggle("is-watch", aboveAverage);
+  }
+  if (momentumReady) {
+    const label = momentum.label || (momentumValue >= 70 ? "偏热" : momentumValue <= 30 ? "偏冷" : "正常");
+    setText("#valuationMomentumValue", momentumValue.toFixed(2));
+    setText("#valuationMomentumStatus", label);
+    setText("#valuationMomentumMeta", `近${momentum.periodDays || 14}个交易日 · ${formatDisplayDate(momentum.asOf)}`);
+    document.querySelector("#valuationMomentumStatus")?.classList.toggle("is-watch", label !== "正常");
+  }
+  if (vixReady) {
+    const label = vix.label || "--";
+    setText("#valuationVixValue", vixValue.toFixed(2));
+    setText("#valuationVixStatus", label);
+    setText("#valuationVixMeta", `市场波动预期 · ${formatDisplayDate(vix.asOf)}`);
+    document.querySelector("#valuationVixStatus")?.classList.toggle("is-watch", label !== "平稳");
+  }
+
+  const dates = [data.asOf, momentum.asOf, vix.asOf].filter(Boolean).sort();
+  setText("#valuationIndicatorsAsOf", `更新至 ${formatDisplayDate(dates.at(-1))}`);
+  return true;
+};
+
 const valuationReferenceMarkers = (refs, geometry, min, max, unit) => {
   const markers = [
     ["P75", refs.p75 ?? refs.p70],
@@ -5626,6 +5682,7 @@ const renderIndexValuation = (payload) => {
   const selected = metrics[selectedKey];
   const indexName = activePayload?.index?.name || activePayload?.indexName || activePayload?.name || "Nasdaq 100";
   const shortIndexName = valuationIndexName(activeSymbol, indexName);
+  const hasForwardValuation = renderForwardValuation(activePayload);
 
   document.querySelectorAll("[data-valuation-metric]").forEach((button) => {
     const active = button.dataset.valuationMetric === selectedKey;
@@ -5647,7 +5704,10 @@ const renderIndexValuation = (payload) => {
   });
 
   setText("#valuationPageTitle", `${shortIndexName} 估值`);
-  setText("#valuationPageSubtitle", `用 PE、PB、ROE、股息率和 PEG 观察 ${shortIndexName} 当前所处的位置。`);
+  setText(
+    "#valuationPageSubtitle",
+    hasForwardValuation ? "看当前估值、短期涨跌和市场情绪。" : `观察 ${shortIndexName} 当前所处的位置。`,
+  );
   setText("#valuationIndexLabel", indexName);
   setText("#valuationAsOf", ready ? formatDisplayDate(activePayload?.asOf || activePayload?.updatedAt || activePayload?.generatedAt) : "--");
   setText("#valuationCoverage", ready ? activePayload?.coverage || activePayload?.sample || "指数估值样本" : "等待指数估值样本接入");
@@ -5726,8 +5786,8 @@ const pageModules = [
   },
   {
     id: "market-opinion",
-    kicker: "美股热点风向标",
-    title: "美股热点风向标",
+    kicker: "猫言猫语",
+    title: "猫言猫语",
     nav: "观点",
     summary: "周度前瞻、每日行情观点、研报解析和交易日记。",
     status: "内容规划",
@@ -6188,7 +6248,7 @@ const renderMarketOpinionOverview = () => {
   if (columns) {
     columns.innerHTML = MARKET_OPINION_HOME_SECTIONS
       .map((section) => {
-        const label = MARKET_OPINION_SECTION_LABELS[section] || "美股热点风向标";
+        const label = MARKET_OPINION_SECTION_LABELS[section] || "猫言猫语";
         const item = marketOpinionSectionItem(section);
         if (!item) return "";
         const tags = marketOpinionTags(item).slice(0, 4);
@@ -6215,7 +6275,7 @@ const renderMarketOpinionOverview = () => {
                 <span>${escapeHtml(formatMarketOpinionDateTime(item.tradeDate))}</span>
                 <strong><a href="#market-opinion/${escapeHtml(item.section)}/${escapeHtml(encodeURIComponent(item.id))}">${escapeHtml(marketOpinionDisplayTitle(item))}</a></strong>
                 <p>${escapeHtml(item.summary || "")}</p>
-                <em>${escapeHtml(item.sectionLabel || MARKET_OPINION_SECTION_LABELS[item.section] || "美股热点风向标")}</em>
+                <em>${escapeHtml(item.sectionLabel || MARKET_OPINION_SECTION_LABELS[item.section] || "猫言猫语")}</em>
               </div>
             `,
           )
@@ -6242,10 +6302,10 @@ const renderMarketOpinionDetail = () => {
     section.innerHTML = `
       <div class="market-opinion-detail-actions">
         <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
-        <a href="#market-opinion">美股热点风向标首页</a>
+        <a href="#market-opinion">猫言猫语首页</a>
       </div>
       <article class="market-opinion-section-head">
-        <h2>${escapeHtml(MARKET_OPINION_SECTION_LABELS[sectionKey] || "美股热点风向标")}</h2>
+        <h2>${escapeHtml(MARKET_OPINION_SECTION_LABELS[sectionKey] || "猫言猫语")}</h2>
       </article>
       <div class="market-opinion-list">
         ${pagination.rows
@@ -6286,10 +6346,10 @@ const renderMarketOpinionDetail = () => {
       <article class="market-opinion-detail-main">
         <div class="market-opinion-detail-actions">
           <button class="market-opinion-back" type="button" data-market-opinion-back>返回上一页</button>
-          <a href="#market-opinion">美股热点风向标首页</a>
+          <a href="#market-opinion">猫言猫语首页</a>
         </div>
         <header class="market-opinion-detail-head">
-          <span>${escapeHtml(item.sectionLabel || MARKET_OPINION_SECTION_LABELS[item.section] || "美股热点风向标")} · ${escapeHtml(formatMarketOpinionDateTime(item.tradeDate))}</span>
+          <span>${escapeHtml(item.sectionLabel || MARKET_OPINION_SECTION_LABELS[item.section] || "猫言猫语")} · ${escapeHtml(formatMarketOpinionDateTime(item.tradeDate))}</span>
           <h2>${escapeHtml(item.title)}</h2>
           ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
           ${tags.length ? `<div class="market-opinion-tags">${tags.slice(0, 6).map((tag) => `<b>${escapeHtml(tag)}</b>`).join("")}</div>` : ""}
@@ -6343,7 +6403,7 @@ const renderMarketOpinionDetail = () => {
         ` : ""}
         ${related.length ? `
           <div class="market-opinion-side-block">
-            <span>${escapeHtml(item.sectionLabel || MARKET_OPINION_SECTION_LABELS[item.section] || "美股热点风向标")}</span>
+            <span>${escapeHtml(item.sectionLabel || MARKET_OPINION_SECTION_LABELS[item.section] || "猫言猫语")}</span>
             ${related
               .map(
                 (row) => `
@@ -6386,14 +6446,14 @@ const renderMarketOpinionPage = () => {
 
 const renderTodayWorkbench = () => {
   const latestOpinion = marketOpinionRows()[0];
-  const title = latestOpinion?.title || "美股热点风向标";
+  const title = latestOpinion?.title || "猫言猫语";
   const summary = latestOpinion?.summary || compactText(latestOpinion?.body, 96) || "等待猫言猫语更新。";
   setText("#todayOpinionTitle", title);
   setText("#todayOpinionSummary", summary);
   setText(
     "#todayOpinionMeta",
     latestOpinion
-      ? `${latestOpinion.sectionLabel || MARKET_OPINION_SECTION_LABELS[latestOpinion.section] || "美股热点风向标"} · ${formatMarketOpinionDateTime(latestOpinion.tradeDate)}`
+      ? `${latestOpinion.sectionLabel || MARKET_OPINION_SECTION_LABELS[latestOpinion.section] || "猫言猫语"} · ${formatMarketOpinionDateTime(latestOpinion.tradeDate)}`
       : "",
   );
 
@@ -6556,9 +6616,9 @@ const renderTodayWorkbench = () => {
     updatesBox.innerHTML = latestUpdate
       ? `
         <a class="today-opinion-feature" href="#market-opinion/${escapeHtml(latestUpdate.section)}/${escapeHtml(encodeURIComponent(latestUpdate.id))}">
-          <small>${escapeHtml(`${latestUpdate.sectionLabel || MARKET_OPINION_SECTION_LABELS[latestUpdate.section] || "美股热点风向标"} · ${formatMarketOpinionDateTime(latestUpdate.tradeDate)}`)}</small>
+          <small>${escapeHtml(`${latestUpdate.sectionLabel || MARKET_OPINION_SECTION_LABELS[latestUpdate.section] || "猫言猫语"} · ${formatMarketOpinionDateTime(latestUpdate.tradeDate)}`)}</small>
           <strong>${escapeHtml(latestUpdate.title)}</strong>
-          <span>${escapeHtml(marketOpinionTags(latestUpdate).slice(0, 4).join(" / ") || "美股热点风向标")}</span>
+          <span>${escapeHtml(marketOpinionTags(latestUpdate).slice(0, 4).join(" / ") || "猫言猫语")}</span>
         </a>
         <div class="today-opinion-side">
           ${sideUpdates

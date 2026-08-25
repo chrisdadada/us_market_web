@@ -12,7 +12,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import pandas as pd
 import requests
 
-from common import ROOT, data_path, env, load_env, parse_date, read_symbols
+from common import ROOT, data_path, env, load_env, parse_date, public_url, read_symbols
 
 
 BASE_URL = "https://api.polygon.io"
@@ -55,13 +55,6 @@ def with_api_key(url: str, api_key: str) -> str:
     parsed = urlparse(url)
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
     query.setdefault("apiKey", api_key)
-    return urlunparse(parsed._replace(query=urlencode(query)))
-
-
-def public_url(url: str) -> str:
-    parsed = urlparse(url)
-    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-    query.pop("apiKey", None)
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 

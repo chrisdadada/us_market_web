@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>懂币猫</title>
-    <link rel="icon" href="./assets/dongbimao-logo.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260721-market-tools1" />
+    <link rel="icon" href="./assets/dongbimao-logo.png?v=20260824" />
+    <link rel="stylesheet" href="./styles.css?v=20260807-forward-pe1" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="app-sidebar" aria-label="主导航">
         <a class="brand" href="/" aria-label="懂币猫首页">
-          <span class="brand-mark"><img src="./assets/dongbimao-logo.png" alt="" /></span>
+          <span class="brand-mark"><img src="./assets/dongbimao-logo.png?v=20260824" alt="" /></span>
           <span>
             <strong>懂币猫</strong>
             <small>美股投研</small>
@@ -27,7 +27,7 @@
           </section>
 
           <section class="nav-section">
-            <a href="#" data-page-link="market-opinion">美股热点风向标</a>
+            <a href="#" data-page-link="market-opinion">猫言猫语</a>
           </section>
 
           <section class="nav-section">
@@ -55,6 +55,10 @@
           </section>
 
           <section class="nav-section">
+            <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
+          </section>
+
+          <section class="nav-section">
             <a href="#" data-page-link="courses">实战课程</a>
           </section>
 
@@ -68,7 +72,6 @@
 
           <section class="nav-section nav-section-legacy is-hidden" data-super-admin-only>
             <p>管理员工具</p>
-            <a href="#" data-page-link="valuation" data-valuation-nav-link>指数估值</a>
             <a href="#" data-page-link="mag7">七姐妹雷达</a>
             <a href="#" data-page-link="options">期权流向</a>
             <a href="#" data-page-link="signals">趋势信号</a>
@@ -110,7 +113,7 @@
           <section class="today-hero">
             <article class="today-opinion-card desk-panel">
               <span>猫言猫语</span>
-              <h1 id="todayOpinionTitle">美股热点风向标</h1>
+              <h1 id="todayOpinionTitle">猫言猫语</h1>
               <p id="todayOpinionSummary">等待猫言猫语更新</p>
               <div class="today-tags" id="todayOpinionTags"></div>
               <div class="today-card-actions">
@@ -122,7 +125,7 @@
             <aside class="today-focus-card desk-panel">
               <span>今日看点</span>
               <div id="todayFocusList">
-                <div><strong>美股热点风向标</strong><p>交易主线</p></div>
+                <div><strong>猫言猫语</strong><p>交易主线</p></div>
                 <div><strong>机会跟踪榜单</strong><p>跟踪名单</p></div>
                 <div><strong>重点财经前瞻</strong><p>事件时间</p></div>
               </div>
@@ -173,10 +176,10 @@
             <article class="today-section desk-panel">
               <div class="today-section-head">
                 <div>
-                  <span>美股热点风向标</span>
+                  <span>猫言猫语</span>
                   <h2>最新更新</h2>
                 </div>
-                <button type="button" data-page-link="market-opinion">进入美股热点风向标</button>
+                <button type="button" data-page-link="market-opinion">进入猫言猫语</button>
               </div>
               <div class="today-updates-list" id="todayUpdatesRows">
                 <p>暂无内容更新</p>
@@ -230,6 +233,30 @@
                 <p id="valuationCoverage">等待指数估值样本接入</p>
               </div>
             </div>
+
+            <section class="valuation-forward-card" id="valuationForwardCard" hidden aria-label="纳指100关键指标">
+              <div class="valuation-forward-head">
+                <strong>关键指标</strong>
+                <span id="valuationIndicatorsAsOf">--</span>
+              </div>
+              <div class="valuation-forward-metrics">
+                <article id="valuationForwardMetric" hidden>
+                  <span>前瞻 PE <button class="info-tip" type="button" aria-label="前瞻PE解释" data-tip="未来一年预期盈利对应的市盈率。">?</button></span>
+                  <div><strong id="valuationForwardPe">--</strong><em id="valuationForwardStatus">--</em></div>
+                  <small id="valuationForwardMeta">--</small>
+                </article>
+                <article id="valuationMomentumMetric" hidden>
+                  <span>短期涨跌动能 <button class="info-tip" type="button" aria-label="短期涨跌动能解释" data-tip="根据近14个交易日涨跌变化计算，70以上通常偏热，30以下通常偏冷。">?</button></span>
+                  <div><strong id="valuationMomentumValue">--</strong><em id="valuationMomentumStatus">--</em></div>
+                  <small id="valuationMomentumMeta">--</small>
+                </article>
+                <article id="valuationVixMetric" hidden>
+                  <span>VIX 恐慌指数 <button class="info-tip" type="button" aria-label="VIX恐慌指数解释" data-tip="数值越高，市场预计未来波动越大。">?</button></span>
+                  <div><strong id="valuationVixValue">--</strong><em id="valuationVixStatus">--</em></div>
+                  <small id="valuationVixMeta">--</small>
+                </article>
+              </div>
+            </section>
 
             <section class="valuation-chart-panel">
               <div class="valuation-chart-head">
@@ -2206,16 +2233,11 @@
         </section>
 
         <section class="page-view market-opinion-page" data-view="market-opinion">
-          <span class="visually-hidden">美股热点风向标</span>
-          <div class="page-heading page-heading-simple">
-            <div>
-              <p class="eyebrow">美股热点风向标</p>
-              <h1>美股热点风向标</h1>
-            </div>
-          </div>
-          <nav class="market-opinion-column-nav" aria-label="美股热点风向标栏目">
+          <span class="visually-hidden">猫言猫语</span>
+          <nav class="market-opinion-column-nav" aria-label="猫言猫语栏目">
             <a href="#market-opinion" data-market-opinion-home>首页</a>
             <a href="#market-opinion/weekly">周度前瞻</a>
+            <a href="#market-opinion/crypto">加密相关</a>
             <a href="#market-opinion/premarket">盘前前瞻</a>
             <a href="#market-opinion/daily">每日个股行情观点</a>
             <a href="#market-opinion/research">研报解析</a>
@@ -2838,6 +2860,6 @@
       </section>
     </div>
 
-          <script src="./app.js?v=20260721-market-tools1"></script>
+          <script src="./app.js?v=20260807-forward-pe1"></script>
   </body>
 </html>

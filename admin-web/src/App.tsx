@@ -31,6 +31,7 @@ const roleLabels: Record<string, string> = {
 
 const opinionSections = [
   { value: "weekly", label: "周度前瞻" },
+  { value: "crypto", label: "加密相关" },
   { value: "premarket", label: "盘前前瞻" },
   { value: "daily", label: "每日个股行情观点" },
   { value: "research", label: "研报解析" },
@@ -359,8 +360,8 @@ function StatCard({ label, value, note, tone }: { label: string; value: string |
 const frontPageLabels: Record<string, string> = {
   dashboard: "首页",
   home: "首页",
-  "market-opinion": "美股热点风向标",
-  opinions: "美股热点风向标",
+  "market-opinion": "猫言猫语",
+  opinions: "猫言猫语",
   tracking: "股票机会跟踪榜单",
   stocks: "股票库",
   calendar: "美股重点财经前瞻",
@@ -3222,7 +3223,7 @@ function ContentPage() {
         <section className="panel editorPanel">
           <div className="editorMeta">
             <div>
-              <span>{form.sectionLabel || "美股热点风向标"}</span>
+              <span>{form.sectionLabel || "猫言猫语"}</span>
               <strong>{form.title || "未命名内容"}</strong>
             </div>
             <div className="editorBadges">
@@ -3320,7 +3321,7 @@ function ContentPage() {
 
           <div className="editorActions">
             <div className="editorActionState">
-              <span>{form.sectionLabel || "美股热点风向标"}</span>
+              <span>{form.sectionLabel || "猫言猫语"}</span>
               <strong>{hasUnsavedChanges ? "有未保存修改" : currentStatus}</strong>
             </div>
             <input
@@ -3430,6 +3431,9 @@ export function App() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [authFailed, setAuthFailed] = useState(false);
+  const [authRetry, setAuthRetry] = useState(0);
+  const [logoutPending, setLogoutPending] = useState(false);
 
   async function loadData() {
     setError("");
@@ -3456,19 +3460,41 @@ export function App() {
   }
 
   useEffect(() => {
+    let active = true;
+    setAuthFailed(false);
+    setLoading(true);
     api.authStatus()
       .then((status) => {
+        if (!active) return;
         setAuth(status);
         if (status.user?.role === "admin" || status.user?.role === "super_admin") {
           return loadData();
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        if (!active) return;
+        setAuthFailed(true);
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [authRetry]);
 
   if (loading && !auth) {
     return <main className="loadingPage">加载中</main>;
+  }
+
+  if (authFailed && !auth) {
+    return (
+      <main className="loginPage adminAuthStatusError">
+        <section className="loginPanel" role="alert">
+          <div className="brandMark">懂</div>
+          <h1>后台暂时无法连接</h1>
+          <p>请检查网络后重试。</p>
+          <button type="button" onClick={() => setAuthRetry((value) => value + 1)}>重新连接</button>
+        </section>
+      </main>
+    );
   }
 
   if (!auth?.authenticated || (auth.user?.role !== "admin" && auth.user?.role !== "super_admin")) {
@@ -3509,12 +3535,21 @@ export function App() {
             <button
               type="button"
               className="ghostButton"
+              disabled={logoutPending}
               onClick={async () => {
-                await api.logout();
-                setAuth({ authenticated: false, user: null });
+                setError("");
+                setLogoutPending(true);
+                try {
+                  await api.logout();
+                  setAuth({ authenticated: false, user: null });
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "退出失败，请重试");
+                } finally {
+                  setLogoutPending(false);
+                }
               }}
             >
-              退出
+              {logoutPending ? "退出中" : "退出"}
             </button>
           </div>
         </header>

@@ -166,7 +166,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.error || "请求失败");
+    throw new Error(response.status >= 500 ? "服务暂时不可用，请稍后重试" : payload.error || "操作失败，请重试");
   }
   return payload as T;
 }
@@ -184,10 +184,10 @@ function putToCos(file: File, ticket: CosUploadTicket, onProgress?: (percent: nu
         onProgress?.(100);
         resolve();
       } else {
-        reject(new Error(`COS 上传失败：${xhr.status}`));
+        reject(new Error("上传失败，请重试"));
       }
     };
-    xhr.onerror = () => reject(new Error("COS 上传失败"));
+    xhr.onerror = () => reject(new Error("上传失败，请重试"));
     xhr.send(file);
   });
 }

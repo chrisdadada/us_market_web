@@ -11,11 +11,14 @@ from typing import Any
 
 import pandas as pd
 
+from macro_freshness import MONTHLY_KEYS, partition_fresh_indicators
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 DEFAULT_DATA_ROOT = Path("/Volumes/Extreme SSD/market-data-lab/data")
 PREFERRED_FRED_DIR = Path("/Volumes/Extreme SSD/market-data-lab/data/raw/fred")
+DXY_PARQUET = Path(os.environ.get("DXY_PARQUET", DEFAULT_DATA_ROOT / "raw" / "dxy" / "DXY.parquet"))
 
 
 @dataclass(frozen=True)
@@ -32,7 +35,7 @@ INDICATORS = [
     IndicatorConfig("VIXCLS", "VIX 波动率", "波动率", "%", "市场波动"),
     IndicatorConfig("DGS10", "10Y 美债收益率", "利率", "%", "成长股估值"),
     IndicatorConfig("DGS30", "30Y 美债收益率", "利率", "%", "长期利率压力"),
-    IndicatorConfig("DTWEXBGS", "美元指数", "美元", "", "全球资金偏好"),
+    IndicatorConfig("DXY", "DXY 美元指数", "美元", "", "全球资金偏好"),
     IndicatorConfig("DCOILWTICO", "WTI 原油", "原油", "$", "通胀与能源成本"),
     IndicatorConfig("DCOILBRENTEU", "Brent 原油", "原油", "$", "通胀与能源成本"),
     IndicatorConfig("CPIAUCSL", "CPI 同比", "通胀", "%", "降息预期", True),
@@ -73,7 +76,7 @@ def resolve_fred_dir(data_root: Path | None = None, fred_dir: Path | None = None
 
 
 def read_series(fred_dir: Path, config: IndicatorConfig) -> pd.DataFrame:
-    path = fred_dir / f"{config.source_id}.parquet"
+    path = DXY_PARQUET if config.source_id == "DXY" else fred_dir / f"{config.source_id}.parquet"
     if not path.exists():
         raise FileNotFoundError(str(path))
     frame = pd.read_parquet(path)
@@ -145,12 +148,12 @@ def risk_for(config: IndicatorConfig, value: float, change: float) -> tuple[str,
         if value >= 4.5:
             return "neutral", "中", "30年期美债收益率仍在高位，长久期资产需要观察。"
         return "positive", "低", "30年期美债收益率压力相对温和。"
-    if sid == "DTWEXBGS":
-        if value >= 120 or change >= 0.7:
-            return "watch", "高", "美元偏强，海外收入、大宗商品和全球风险偏好都需要观察。"
-        if value >= 116:
-            return "neutral", "中", "美元处在偏强区间，可能压制部分风险资产。"
-        return "positive", "低", "美元压力相对温和。"
+    if sid == "DXY":
+        if value >= 105 or change >= 0.7:
+            return "watch", "高", "DXY 偏强，海外收入、大宗商品和全球风险偏好都需要观察。"
+        if value >= 100:
+            return "neutral", "中", "DXY 处在偏强区间，可能压制部分风险资产。"
+        return "positive", "低", "DXY 压力相对温和。"
     if sid in {"DCOILWTICO", "DCOILBRENTEU"}:
         if value >= 105 or change >= 3:
             return "watch", "高", "油价偏高，通胀和企业成本压力可能回升。"
@@ -218,12 +221,15 @@ def build_payload(fred_dir: Path) -> dict[str, Any]:
             indicators.append(build_indicator(fred_dir, config))
         except Exception as exc:
             missing.append({"sourceId": config.source_id, "reason": str(exc)})
-    as_of = max((item["asOf"] for item in indicators), default="")
+    as_of = max((item["asOf"] for item in indicators if item["key"] not in MONTHLY_KEYS), default="")
+    freshness_reference = max(as_of, datetime.now(UTC).date().isoformat())
+    indicators, stale = partition_fresh_indicators(indicators, freshness_reference)
+    missing.extend({"sourceId": item["sourceId"], "reason": "stale"} for item in stale)
     return {
         "generatedAt": now_iso(),
         "asOf": as_of,
         "source": {
-            "name": "FRED",
+            "name": "FRED + DXY",
             "directory": str(fred_dir),
         },
         "indicators": indicators,

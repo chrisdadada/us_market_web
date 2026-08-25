@@ -2,14 +2,18 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
+import re
 import urllib.request
 from zipfile import ZipFile
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
+from html import unescape
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,43 +28,55 @@ DEFAULT_QQQ_FACT_SHEET_URL = (
     "https://www.invesco.com/us-rest/contentdetail?"
     "contentId=3a48e01e98630410VgnVCM10000046f1bf0aRCRD"
 )
+DEFAULT_QQQ_CHARACTERISTICS_URL = (
+    "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46090E103"
+    "?expand=nav&idType=cusip&variationType=fundCharacteristics&productType=ETF"
+)
+DEFAULT_NDX_FORWARD_PE_URL = "https://historyofmarket.com/api/ndx/forward-pe.json"
+NASDAQ_100_TEN_YEAR_FORWARD_PE = 22.8
+NASDAQ_100_TEN_YEAR_FORWARD_PE_AS_OF = "2026-02-04"
+NASDAQ_100_TEN_YEAR_FORWARD_PE_SOURCE = (
+    "https://www.nasdaq.com/articles/global-indexes/"
+    "biweekly-investment-insights-reading-the-markets-tea-leaves"
+)
 DEFAULT_SPY_HOLDINGS_URL = "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
 DEFAULT_SPY_FACT_SHEET_URL = "https://www.ssga.com/library-content/products/factsheets/etfs/us/factsheet-us-en-spy.pdf"
+DEFAULT_SPY_CHARACTERISTICS_URL = (
+    "https://www.ssga.com/uk/en_gb/institutional/etfs/"
+    "state-street-spdr-sp-500-etf-trust-spy"
+)
 COMMON_STOCK_CODES = {"COM", "ADR", "ADRC", "DRNY", "COMMON_STOCK"}
 XLSX_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
-QQQ_OFFICIAL_FACT_SHEET_SNAPSHOT = {
-    "asOf": "2026-03-31",
-    "period": "Q1 2026",
-    "sourceName": "Invesco QQQ Trust, Series 1 Fact Sheet",
-    "sourceUrl": DEFAULT_QQQ_FACT_SHEET_URL,
-    "methodNote": "Invesco 官方季度 fact sheet。P/E 与 P/B 为加权调和平均，ROE 为加权平均。",
-    "metrics": {
-        "pe": 36.52,
-        "pb": 15.73,
-        "roe": 38.97,
-    },
-}
-SPY_OFFICIAL_FACT_SHEET_SNAPSHOT = {
-    "asOf": "2026-03-31",
-    "period": "Q1 2026",
-    "sourceName": "State Street SPDR S&P 500 ETF Trust Fact Sheet",
-    "sourceUrl": DEFAULT_SPY_FACT_SHEET_URL,
-    "methodNote": "State Street 官方季度 fact sheet。P/E 与 P/B 为加权调和平均，ROE 为加权平均。",
-    "metrics": {
-        "pe": None,
-        "pb": None,
-        "roe": None,
-    },
-}
-
-
 METRIC_DEFINITIONS = [
+    ("forwardPe", "前瞻市盈率", "x"),
     ("pe", "市盈率", "x"),
     ("pb", "市净率", "x"),
     ("roe", "ROE", "%"),
     ("dividendYield", "股息率", "%"),
     ("peg", "PEG", "x"),
 ]
+OFFICIAL_HISTORY_SOURCES = {
+    "Invesco QQQ fund characteristics",
+    "State Street SPY fund and index characteristics",
+}
+MARKET_HISTORY_SOURCE = "雪球基金指数估值"
+SUPPORTED_HISTORY_SOURCES = OFFICIAL_HISTORY_SOURCES | {MARKET_HISTORY_SOURCE}
+DANJUAN_INDEX_CODES = {"QQQ": "NDX", "SPY": "SP500"}
+DANJUAN_BASE_URL = "https://danjuanfunds.com/djapi/index_eva"
+OFFICIAL_HISTORY_SEEDS = {
+    "SPY": {
+        "forwardPe": [{"date": "2026-06-30", "value": 22.50}],
+        "pb": [{"date": "2026-06-30", "value": 5.49}],
+        "dividendYield": [{"date": "2026-06-30", "value": 1.12}],
+    },
+}
+OFFICIAL_HISTORY_SEED_SOURCE = (
+    "https://www.ssga.com/library-content/products/factsheets/etfs/us/"
+    "factsheet-us-en-spy.pdf"
+)
+OFFICIAL_HISTORY_SEED_SHA256 = "920347cf84e218ebb3fc1a962de24a0f2deb694e94b7415711ac5b7531ce9d58"
+MAX_OFFICIAL_HISTORY_POINTS = 1300
+BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 
 REQUIRED_DATASETS = [
     {
@@ -140,6 +156,26 @@ def safe_float(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return number if number == number and number not in (float("inf"), float("-inf")) else None
+
+
+def percentile(values: list[float], ratio: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * ratio
+    lower = int(position)
+    upper = min(len(ordered) - 1, lower + 1)
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+
+
+def market_valuation_level(pe_percentile: float | None, pb_percentile: float | None) -> str | None:
+    if pe_percentile is None or pb_percentile is None:
+        return None
+    if pe_percentile < 30 and pb_percentile < 30:
+        return "偏低"
+    if pe_percentile >= 70 or pb_percentile >= 70:
+        return "偏高"
+    return "适中"
 
 
 def normalize_symbol(value: Any) -> str:
@@ -263,6 +299,330 @@ def fetch_qqq_holdings(url: str) -> dict[str, Any]:
         "commonHoldings": common_holdings,
         "rawHoldingCount": len(raw_holdings or []),
     }
+
+
+def fetch_qqq_characteristics(url: str = DEFAULT_QQQ_CHARACTERISTICS_URL) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        payload = json.load(response)
+    if not isinstance(payload, dict):
+        raise ValueError("QQQ characteristics response is not an object")
+    return payload
+
+
+def qqq_official_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "asOf": snapshot.get("effectiveDate"),
+        "sourceName": "Invesco QQQ fund characteristics",
+        "sourceUrl": DEFAULT_QQQ_CHARACTERISTICS_URL,
+        "methodNote": "Invesco 官方基金特征值。PE 与 PB 为加权调和平均，ROE 为加权平均。",
+        "metrics": {
+            "forwardPe": safe_float(snapshot.get("forwardPriceToEarningsRatio")),
+            "pe": safe_float(snapshot.get("priceToEarningsRatio")),
+            "pb": safe_float(snapshot.get("priceToBookRatio")),
+            "roe": safe_float(snapshot.get("returnOnEquity")),
+        },
+    }
+
+
+def fetch_json(url: str, referer: str | None = None) -> dict[str, Any]:
+    headers = {"User-Agent": "Mozilla/5.0"}
+    if referer:
+        headers["Referer"] = referer
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        payload = json.load(response)
+    if not isinstance(payload, dict) or payload.get("result_code") not in (None, 0):
+        raise ValueError(f"Unexpected JSON response from {url}")
+    return payload
+
+
+def parse_market_valuation_snapshot(
+    symbol: str,
+    detail: dict[str, Any],
+    histories: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    source_code = DANJUAN_INDEX_CODES[symbol]
+    as_of_timestamp = safe_float(detail.get("ts"))
+    as_of = (
+        datetime.fromtimestamp(as_of_timestamp / 1000, BEIJING_TZ).date().isoformat()
+        if as_of_timestamp is not None
+        else None
+    )
+    pe_percentile = safe_float(detail.get("pe_percentile"))
+    pb_percentile = safe_float(detail.get("pb_percentile"))
+    dividend_yield = safe_float(detail.get("yeild"))
+    if pe_percentile is not None:
+        pe_percentile *= 100
+    if pb_percentile is not None:
+        pb_percentile *= 100
+
+    metric_specs = {
+        "pe": ("市盈率", "x", "index_eva_pe_growths", 1.0),
+        "pb": ("市净率", "x", "index_eva_pb_growths", 1.0),
+        "roe": ("ROE", "%", "index_eva_roe_growths", 100.0),
+    }
+    metrics = []
+    percentile_items = []
+    for key, (label, unit, series_key, multiplier) in metric_specs.items():
+        raw_series = (histories.get(key) or {}).get(series_key) or []
+        trend = []
+        for raw_point in raw_series:
+            timestamp = safe_float(raw_point.get("ts"))
+            value = safe_float(raw_point.get(key))
+            if timestamp is None or value is None:
+                continue
+            trend.append({
+                "date": datetime.fromtimestamp(timestamp / 1000, BEIJING_TZ).date().isoformat(),
+                "value": round(value * multiplier, 4),
+            })
+        trend = sorted({item["date"]: item for item in trend}.values(), key=lambda item: item["date"])
+        current = safe_float(detail.get(key))
+        current = None if current is None else current * multiplier
+        values = [item["value"] for item in trend]
+        references = {
+            "p30": percentile(values, 0.3),
+            "median": percentile(values, 0.5),
+            "p70": percentile(values, 0.7),
+        }
+        current_percentile = (
+            pe_percentile if key == "pe" else pb_percentile if key == "pb" else
+            (100 * sum(value <= current for value in values) / len(values) if current is not None and values else None)
+        )
+        metrics.append({
+            "key": key,
+            "label": label,
+            "unit": unit,
+            "status": "computed",
+            "value": None if current is None else round(current, 4),
+            "display": None if current is None else f"{current:.2f}{'%' if unit == '%' else 'x'}",
+            "asOf": as_of,
+            "note": "同口径历史估值序列",
+            "coverage": {
+                "sourceName": MARKET_HISTORY_SOURCE,
+                "sourceCode": source_code,
+                "methodNote": "PE、PB、ROE及历史序列沿用数据源公开口径。",
+            },
+            "percentile": None if current_percentile is None else round(current_percentile, 2),
+            "references": {name: None if value is None else round(value, 4) for name, value in references.items()},
+            "trend": trend,
+            "method": "同一数据源、同一指标口径的十年周度序列。",
+        })
+        percentile_items.append({
+            "key": key,
+            "percentile": None if current_percentile is None else round(current_percentile, 2),
+            **{name: None if value is None else round(value, 4) for name, value in references.items()},
+        })
+
+    return {
+        "asOf": as_of,
+        "sourceName": MARKET_HISTORY_SOURCE,
+        "sourceCode": source_code,
+        "sourceUrl": f"https://danjuanfunds.com/dj-valuation-table-detail/{source_code}",
+        "level": market_valuation_level(pe_percentile, pb_percentile),
+        "pePercentile": None if pe_percentile is None else round(pe_percentile, 2),
+        "pbPercentile": None if pb_percentile is None else round(pb_percentile, 2),
+        "dividendYield": pct(dividend_yield * 100 if dividend_yield is not None else None, 2),
+        "peg": pct(safe_float(detail.get("peg")), 2),
+        "metrics": metrics,
+        "historyPercentiles": {"lookbackYears": 10, "status": "computed", "items": percentile_items},
+    }
+
+
+def fetch_market_valuation_snapshot(symbol: str) -> dict[str, Any]:
+    source_code = DANJUAN_INDEX_CODES[symbol]
+    referer = f"https://danjuanfunds.com/dj-valuation-table-detail/{source_code}"
+    detail = (fetch_json(f"{DANJUAN_BASE_URL}/detail/{source_code}", referer).get("data") or {})
+    histories = {}
+    for metric in ("pe", "pb", "roe"):
+        histories[metric] = (
+            fetch_json(f"{DANJUAN_BASE_URL}/{metric}_history/{source_code}?day=all", referer).get("data") or {}
+        )
+    return parse_market_valuation_snapshot(symbol, detail, histories)
+
+
+def _html_text(value: str) -> str:
+    return " ".join(unescape(re.sub(r"<[^>]+>", " ", value)).split())
+
+
+def _ssga_section(html: str, title: str) -> tuple[str | None, dict[str, str]]:
+    match = re.search(
+        rf'<h2[^>]*class="[^"]*comp-title[^"]*"[^>]*>\s*{re.escape(title)}\b(.*?)</h2>(.*?)</section>',
+        html,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        raise ValueError(f"State Street section not found: {title}")
+    heading = _html_text(match.group(1))
+    date_match = re.search(r"as of\s+(\d{2}\s+[A-Za-z]{3}\s+\d{4})", heading, flags=re.IGNORECASE)
+    as_of = None
+    if date_match:
+        as_of = datetime.strptime(date_match.group(1), "%d %b %Y").date().isoformat()
+
+    values: dict[str, str] = {}
+    for row in re.findall(r"<tr\b.*?</tr>", match.group(2), flags=re.IGNORECASE | re.DOTALL):
+        cells = re.search(
+            r'<th[^>]*class="[^"]*label[^"]*"[^>]*>(.*?)</th>\s*'
+            r'<td[^>]*class="[^"]*data[^"]*"[^>]*>(.*?)</td>',
+            row,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if not cells:
+            continue
+        label = _html_text(re.split(r"<span\b", cells.group(1), maxsplit=1, flags=re.IGNORECASE)[0])
+        values[label] = _html_text(cells.group(2))
+    return as_of, values
+
+
+def fetch_spy_characteristics(url: str = DEFAULT_SPY_CHARACTERISTICS_URL) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        html = response.read().decode("utf-8", errors="replace")
+
+    fund_as_of, fund = _ssga_section(html, "Fund Characteristics")
+    index_as_of, index = _ssga_section(html, "Index Characteristics")
+    yield_as_of, yields = _ssga_section(html, "Yields")
+
+    def number(value: str | None) -> float | None:
+        if value is None:
+            return None
+        return safe_float(value.replace("%", "").replace(",", ""))
+
+    as_of = index_as_of or fund_as_of or yield_as_of
+    return {
+        "asOf": as_of,
+        "sourceName": "State Street SPY fund and index characteristics",
+        "sourceUrl": url,
+        "methodNote": "State Street 官方基金与指数特征值。",
+        "metrics": {
+            "forwardPe": number(index.get("Price/Earnings Ratio FY1")),
+            "pe": number(index.get("Price/Earnings")),
+            "pb": number(fund.get("Price/Book Ratio")),
+            "dividendYield": number(yields.get("Index Dividend Yield")),
+        },
+        "forwardPe": number(index.get("Price/Earnings Ratio FY1")),
+    }
+
+
+def build_qqq_forward_valuation(snapshot: dict[str, Any]) -> dict[str, Any]:
+    forward_pe = safe_float(snapshot.get("forwardPriceToEarningsRatio"))
+    trailing_pe = safe_float(snapshot.get("priceToEarningsRatio"))
+    if forward_pe is None or forward_pe <= 0 or trailing_pe is None or trailing_pe <= 0:
+        raise ValueError("QQQ forward and trailing P/E are required")
+
+    premium_pct = (forward_pe / NASDAQ_100_TEN_YEAR_FORWARD_PE - 1) * 100
+    implied_growth_pct = (trailing_pe / forward_pe - 1) * 100
+    return {
+        "status": "above_ten_year_average" if premium_pct > 0 else "below_ten_year_average",
+        "asOf": snapshot.get("effectiveDate"),
+        "forwardPe": pct(forward_pe, 4),
+        "trailingPe": pct(trailing_pe, 4),
+        "tenYearAverageForwardPe": NASDAQ_100_TEN_YEAR_FORWARD_PE,
+        "premiumToTenYearAveragePct": pct(premium_pct, 1),
+        "impliedEarningsGrowthPct": pct(implied_growth_pct, 1),
+        "referenceAsOf": NASDAQ_100_TEN_YEAR_FORWARD_PE_AS_OF,
+        "source": {
+            "current": DEFAULT_QQQ_CHARACTERISTICS_URL,
+            "historicalReference": NASDAQ_100_TEN_YEAR_FORWARD_PE_SOURCE,
+        },
+    }
+
+
+def linear_quantile(values: list[float], probability: float) -> float:
+    ordered = sorted(values)
+    if not ordered:
+        raise ValueError("quantile requires at least one value")
+    position = (len(ordered) - 1) * probability
+    lower = int(position)
+    upper = min(len(ordered) - 1, lower + 1)
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+
+
+def years_before(value: date, years: int) -> date:
+    try:
+        return value.replace(year=value.year - years)
+    except ValueError:
+        return value.replace(year=value.year - years, day=28)
+
+
+def build_qqq_forward_valuation_history(payload: dict[str, Any]) -> dict[str, Any]:
+    history = [
+        {"date": str(item.get("date"))[:10], "value": round(value, 4)}
+        for item in payload.get("forward") or []
+        if parse_date(item.get("date")) and (value := safe_float(item.get("value"))) is not None and value > 0
+    ]
+    history.sort(key=lambda item: item["date"])
+    if len(history) < 2:
+        raise ValueError("Nasdaq 100 forward P/E history requires at least two points")
+
+    latest = history[-1]
+    latest_date = parse_date(latest["date"])
+    if latest_date is None:
+        raise ValueError("Nasdaq 100 forward P/E latest date is invalid")
+    current_value = float(latest["value"])
+    terminal_value = safe_float((payload.get("current") or {}).get("forward"))
+    if terminal_value is not None and abs(terminal_value / current_value - 1) > 0.03:
+        raise ValueError("Nasdaq 100 forward P/E current value does not match its history")
+    ten_year_cutoff = years_before(latest_date, 10)
+    history = [item for item in history if parse_date(item["date"]) >= ten_year_cutoff]
+
+    ranges: dict[str, Any] = {}
+    for years in (3, 5, 10):
+        cutoff = years_before(latest_date, years)
+        values = [float(item["value"]) for item in history if parse_date(item["date"]) >= cutoff]
+        if len(values) < 2:
+            continue
+        ranges[f"{years}y"] = {
+            "years": years,
+            "rankPct": round(sum(value <= current_value for value in values) / len(values) * 100, 1),
+            "p30": round(linear_quantile(values, 0.30), 2),
+            "median": round(linear_quantile(values, 0.50), 2),
+            "p70": round(linear_quantile(values, 0.70), 2),
+            "min": round(min(values), 2),
+            "minDistancePct": round((current_value / min(values) - 1) * 100, 2),
+        }
+
+    if "5y" not in ranges:
+        raise ValueError("Nasdaq 100 forward P/E five-year history is incomplete")
+    five_year_rank = ranges["5y"]["rankPct"]
+    current = payload.get("current") or {}
+    return {
+        "status": "low" if five_year_rank <= 30 else "middle" if five_year_rank <= 70 else "high",
+        "asOf": latest["date"],
+        "historicalAsOf": history[-1]["date"],
+        "forwardPe": round(current_value, 4),
+        "terminalForwardPe": safe_float(current.get("forward")),
+        "trailingPe": safe_float(current.get("trailing")),
+        "history": history,
+        "ranges": ranges,
+        "source": DEFAULT_NDX_FORWARD_PE_URL,
+    }
+
+
+def fetch_qqq_forward_valuation_history(url: str = DEFAULT_NDX_FORWARD_PE_URL) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        payload = json.load(response)
+    if not isinstance(payload, dict):
+        raise ValueError("Nasdaq 100 forward P/E response is not an object")
+    return build_qqq_forward_valuation_history(payload)
+
+
+def previous_complete_forward_valuation(previous_index: dict[str, Any] | None) -> dict[str, Any] | None:
+    forward = (previous_index or {}).get("forwardValuation") or {}
+    history = forward.get("history") or []
+    if len(history) < 2 or "5y" not in (forward.get("ranges") or {}) or not forward.get("asOf"):
+        return None
+    latest = history[-1]
+    if (
+        str(forward.get("asOf") or "")[:10] != str(forward.get("historicalAsOf") or "")[:10]
+        or str(forward.get("asOf") or "")[:10] != str(latest.get("date") or "")[:10]
+        or not isinstance(forward.get("forwardPe"), (int, float))
+        or not isinstance(latest.get("value"), (int, float))
+        or abs(float(forward["forwardPe"]) - float(latest["value"])) > 0.01
+    ):
+        return None
+    return copy.deepcopy(forward)
 
 
 def read_xlsx_first_sheet(path: Path) -> list[list[str]]:
@@ -396,6 +756,75 @@ def read_price_history(market_data_root: Path, symbols: set[str], end: date | No
                 continue
             history[trade_date.isoformat()][symbol] = close
     return dict(history)
+
+
+def wilder_rsi(values: list[float], period: int = 14) -> float | None:
+    if period <= 0 or len(values) <= period:
+        return None
+    changes = [current - previous for previous, current in zip(values, values[1:])]
+    gains = [max(change, 0.0) for change in changes]
+    losses = [max(-change, 0.0) for change in changes]
+    average_gain = sum(gains[:period]) / period
+    average_loss = sum(losses[:period]) / period
+    for gain, loss in zip(gains[period:], losses[period:]):
+        average_gain = ((period - 1) * average_gain + gain) / period
+        average_loss = ((period - 1) * average_loss + loss) / period
+    if average_gain == 0 and average_loss == 0:
+        return 50.0
+    if average_loss == 0:
+        return 100.0
+    return 100.0 - (100.0 / (1.0 + average_gain / average_loss))
+
+
+def short_term_momentum(market_data_root: Path, symbol: str, as_of: date | None) -> dict[str, Any]:
+    if as_of is None:
+        as_of = parse_date(latest_stock_price_snapshot(market_data_root).get("asOf"))
+    history = read_price_history(market_data_root, {symbol}, as_of, lookback_days=180)
+    points = [
+        (trade_date, safe_float(prices.get(symbol)))
+        for trade_date, prices in sorted(history.items())
+    ]
+    points = [(trade_date, value) for trade_date, value in points if value is not None]
+    value = wilder_rsi([value for _, value in points], period=14)
+    if value is None or not points:
+        return {}
+    label = "偏热" if value >= 70 else "偏冷" if value <= 30 else "正常"
+    return {
+        "asOf": points[-1][0],
+        "value": pct(value, 2),
+        "periodDays": 14,
+        "label": label,
+    }
+
+
+def latest_vix(market_data_root: Path) -> dict[str, Any]:
+    path = market_data_root / "raw" / "fred" / "VIXCLS.parquet"
+    if not path.exists():
+        return {}
+    import pyarrow.parquet as pq  # type: ignore
+
+    rows = pq.read_table(path, columns=["date", "value"]).to_pylist()
+    points = [
+        (parse_date(row.get("date")), safe_float(row.get("value")))
+        for row in rows
+    ]
+    points = [(as_of, value) for as_of, value in points if as_of is not None and value is not None]
+    if not points:
+        return {}
+    as_of, value = max(points, key=lambda point: point[0])
+    label = "高波动" if value >= 28 else "波动升高" if value >= 18 else "平稳"
+    return {
+        "asOf": as_of.isoformat(),
+        "value": pct(value, 2),
+        "label": label,
+    }
+
+
+def build_market_indicators(market_data_root: Path, symbol: str, as_of: Any) -> dict[str, Any]:
+    return {
+        "shortTermMomentum": short_term_momentum(market_data_root, symbol, parse_date(as_of)),
+        "vix": latest_vix(market_data_root),
+    }
 
 
 def read_recent_dividends(market_data_root: Path, symbols: set[str], as_of: date) -> dict[str, float]:
@@ -889,7 +1318,7 @@ def official_snapshot_metric(
         "value": value,
         "display": None if value is None else f"{value:.2f}{unit if unit != 'x' else 'x'}",
         "asOf": snapshot.get("asOf"),
-        "note": "官方季度值",
+        "note": "官方公布值",
         "coverage": {
             "period": snapshot.get("period"),
             "sourceName": snapshot.get("sourceName"),
@@ -906,45 +1335,108 @@ def official_snapshot_metric(
     }
 
 
-def polygon_estimate_metric(
-    key: str,
-    label: str,
-    unit: str,
-    estimates: dict[str, Any],
-    fallback: dict[str, Any],
-) -> dict[str, Any]:
-    metric = (estimates.get("metrics") or {}).get(key) or {}
-    value = safe_float(metric.get("value"))
-    if value is None:
-        return fallback
-    coverage = {
-        "method": estimates.get("method"),
-        "methodNote": estimates.get("note"),
-        "weightCoveragePct": metric.get("weightCoveragePct"),
-        "componentCount": metric.get("componentCount"),
-        "latestFilingDate": estimates.get("latestFilingDate"),
-        "officialFallback": fallback.get("value"),
-        "officialFallbackAsOf": fallback.get("asOf"),
+def official_metric_or_waiting(key: str, label: str, unit: str, snapshot: dict[str, Any]) -> dict[str, Any]:
+    metric = official_snapshot_metric(key, label, unit, snapshot)
+    return metric if metric.get("value") is not None else waiting_metric(key, label, unit)
+
+
+def official_metric_source(metric: dict[str, Any] | None) -> str | None:
+    if not metric:
+        return None
+    coverage = metric.get("coverage") or {}
+    source = coverage.get("sourceName") or metric.get("historySourceName")
+    return source if source in SUPPORTED_HISTORY_SOURCES else None
+
+
+def metric_history_point(item: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not item:
+        return None
+    point_date = parse_date(item.get("date") or item.get("asOf"))
+    value = safe_float(item.get("value"))
+    if point_date is None or value is None:
+        return None
+    return {"date": point_date.isoformat(), "value": value}
+
+
+def merge_official_metric_history(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
+    previous_indices = {
+        str((item.get("index") or {}).get("symbol") or "").upper(): item
+        for item in (previous or {}).get("indices") or []
     }
-    return {
-        "key": key,
-        "label": label,
-        "unit": unit,
-        "status": "estimated",
-        "value": value,
-        "display": f"{value:.2f}{unit if unit != 'x' else 'x'}",
-        "asOf": estimates.get("asOf"),
-        "note": f"覆盖样本口径 · 权重{metric.get('weightCoveragePct')}%",
-        "coverage": coverage,
-        "percentile": {
-            "oneYear": None,
-            "threeYear": None,
-            "fiveYear": None,
-            "tenYear": None,
-        },
-        "trend": (estimates.get("series") or {}).get(key) or [],
-        "method": estimates.get("note"),
+    for current_index in current.get("indices") or []:
+        symbol = str((current_index.get("index") or {}).get("symbol") or "").upper()
+        previous_index = previous_indices.get(symbol) or {}
+        previous_metrics = {item.get("key"): item for item in previous_index.get("metrics") or []}
+        for metric in current_index.get("metrics") or []:
+            previous_metric = previous_metrics.get(metric.get("key")) or {}
+            current_source = official_metric_source(metric)
+            previous_source = official_metric_source(previous_metric)
+            source = current_source or previous_source
+            points: dict[str, dict[str, Any]] = {}
+            if source in OFFICIAL_HISTORY_SOURCES:
+                for item in (OFFICIAL_HISTORY_SEEDS.get(symbol) or {}).get(metric.get("key")) or []:
+                    point = metric_history_point(item)
+                    if point:
+                        points[point["date"]] = point
+                if points:
+                    metric["historySeedSourceUrl"] = OFFICIAL_HISTORY_SEED_SOURCE
+                    metric["historySeedSourceSha256"] = OFFICIAL_HISTORY_SEED_SHA256
+            if source and previous_source == source:
+                for item in previous_metric.get("trend") or []:
+                    point = metric_history_point(item)
+                    if point:
+                        points[point["date"]] = point
+                point = metric_history_point(previous_metric)
+                if point:
+                    points[point["date"]] = point
+            if source and current_source == source:
+                for item in metric.get("trend") or []:
+                    point = metric_history_point(item)
+                    if point:
+                        points[point["date"]] = point
+                point = metric_history_point(metric)
+                if point:
+                    points[point["date"]] = point
+            metric["trend"] = sorted(points.values(), key=lambda item: item["date"])[-MAX_OFFICIAL_HISTORY_POINTS:]
+            if source and metric["trend"]:
+                metric["historySourceName"] = source
+    return current
+
+
+def apply_market_valuation_snapshot(payload: dict[str, Any], snapshot: dict[str, Any]) -> None:
+    snapshot_metrics = {item["key"]: item for item in snapshot.get("metrics") or []}
+    payload["metrics"] = [
+        snapshot_metrics.get(metric.get("key"), metric)
+        for metric in payload.get("metrics") or []
+    ]
+    payload["asOf"] = snapshot.get("asOf") or payload.get("asOf")
+    payload["valuationSummary"] = {
+        key: snapshot.get(key)
+        for key in [
+            "asOf", "sourceName", "sourceCode", "sourceUrl", "level",
+            "pePercentile", "pbPercentile", "dividendYield", "peg",
+        ]
     }
+    payload["historyPercentiles"] = snapshot.get("historyPercentiles")
+    readiness = payload.get("dataReadiness") or {}
+    readiness["canComputeHistoricalPercentiles"] = True
+    readiness["canComputeTrendSeries"] = True
+    payload["dataReadiness"] = readiness
+
+
+def restore_previous_market_valuation(payload: dict[str, Any], previous_index: dict[str, Any] | None) -> None:
+    if not previous_index or not previous_index.get("valuationSummary"):
+        return
+    previous_metrics = {
+        item.get("key"): item
+        for item in previous_index.get("metrics") or []
+        if ((item.get("coverage") or {}).get("sourceName") == MARKET_HISTORY_SOURCE)
+    }
+    if not previous_metrics:
+        return
+    payload["metrics"] = [previous_metrics.get(metric.get("key"), metric) for metric in payload.get("metrics") or []]
+    payload["valuationSummary"] = previous_index.get("valuationSummary")
+    payload["historyPercentiles"] = previous_index.get("historyPercentiles")
 
 
 def readiness_datasets(partial_ready: bool, index_label: str = "指数") -> list[dict[str, Any]]:
@@ -1032,7 +1524,7 @@ def build_single_index_payload(
     audit = audit_local_sources(market_data_root)
     official_snapshot = {
         **official_snapshot_template,
-        "sourceUrl": fact_sheet_url,
+        "sourceUrl": official_snapshot_template.get("sourceUrl") or fact_sheet_url,
     }
     holdings_snapshot: dict[str, Any] | None = None
     holdings_error: str | None = None
@@ -1052,46 +1544,21 @@ def build_single_index_payload(
         )
     else:
         audit["holdingsFetchError"] = holdings_error
-    audit["availability"]["officialQuarterlyValuation"] = "available_q1_2026_fact_sheet"
+    audit["availability"]["officialValuation"] = (
+        "available_official_snapshot" if official_snapshot.get("asOf") else "unavailable"
+    )
 
-    dividend_metric = holdings_snapshot.get("dividendYieldMetric") if holdings_snapshot else None
-    fundamental_coverage = holdings_snapshot.get("fundamentalCoverage") if holdings_snapshot else {}
     polygon_estimates = holdings_snapshot.get("polygonValuationEstimates") if holdings_snapshot else {}
-    pe_official = official_snapshot_metric("pe", "市盈率", "x", official_snapshot)
-    pe_waiting = polygon_estimate_metric("pe", "市盈率", "x", polygon_estimates or {}, pe_official)
-    pe_waiting["coverage"] = {
-        **(pe_waiting.get("coverage") or {}),
-        "annualFinancialsWeightPct": fundamental_coverage.get("holdingsWithAnnualFinancialsWeightPct"),
-        "fourQuarterTtmWeightPct": fundamental_coverage.get("holdingsWithFourQuarterTtmWeightPct"),
-    }
-    pb_official = official_snapshot_metric("pb", "市净率", "x", official_snapshot)
-    pb_waiting = polygon_estimate_metric("pb", "市净率", "x", polygon_estimates or {}, pb_official)
-    pb_waiting["coverage"] = {
-        **(pb_waiting.get("coverage") or {}),
-        "equityFieldHoldings": fundamental_coverage.get("holdingsWithEquityField"),
-    }
-    roe_official = official_snapshot_metric("roe", "ROE", "%", official_snapshot)
-    roe_waiting = polygon_estimate_metric("roe", "ROE", "%", polygon_estimates or {}, roe_official)
-    roe_waiting["coverage"] = {
-        **(roe_waiting.get("coverage") or {}),
-        "netIncomeFieldHoldings": fundamental_coverage.get("holdingsWithNetIncomeField"),
-        "equityFieldHoldings": fundamental_coverage.get("holdingsWithEquityField"),
-        "fourQuarterTtmWeightPct": fundamental_coverage.get("holdingsWithFourQuarterTtmWeightPct"),
-    }
+    pe_waiting = official_metric_or_waiting("pe", "市盈率", "x", official_snapshot)
+    forward_pe_waiting = official_metric_or_waiting("forwardPe", "前瞻市盈率", "x", official_snapshot)
+    pb_waiting = official_metric_or_waiting("pb", "市净率", "x", official_snapshot)
+    roe_waiting = official_metric_or_waiting("roe", "ROE", "%", official_snapshot)
     peg_waiting = waiting_metric("peg", "PEG", "x")
     peg_waiting["coverage"] = {"forwardGrowthEstimates": "not_found"}
     peg_waiting["method"] = "需要统一周期的 forward EPS growth。"
     dividend_waiting = waiting_metric("dividendYield", "股息率", "%")
-    metrics = [pe_waiting, pb_waiting, roe_waiting, dividend_waiting, peg_waiting]
-    if dividend_metric and dividend_metric.get("value") is not None:
-        metrics[3] = computed_metric(
-            "dividendYield",
-            "股息率",
-            "%",
-            dividend_metric.get("value"),
-            dividend_metric.get("coverage") or {},
-            f"按 {index_symbol} 当前成分权重聚合近 365 天普通现金分红与最新收盘价。",
-        )
+    metrics = [forward_pe_waiting, pe_waiting, pb_waiting, roe_waiting, dividend_waiting, peg_waiting]
+    metrics[4] = official_metric_or_waiting("dividendYield", "股息率", "%", official_snapshot)
 
     partial_ready = bool(holdings_snapshot)
     computed_metrics = [metric["key"] for metric in metrics if metric.get("status") in {"computed", "estimated"}]
@@ -1103,7 +1570,7 @@ def build_single_index_payload(
         "title": f"{index_symbol} 估值观察",
         "status": "partial_data" if partial_ready else "waiting_for_data",
         "summary": (
-            f"已接入 {index_symbol} 当前持仓权重、最新本地价格和可覆盖财务样本；历史分位和 PEG 仍等待完整财务口径。"
+            f"已接入 {index_symbol} 官方估值、当前持仓权重和最新本地价格；历史分位和 PEG 仍等待完整财务口径。"
             if partial_ready
             else f"当前数据还不足以可靠计算 {index_symbol} 的 PE、PB、ROE、股息率、PEG 和历史分位。"
         ),
@@ -1116,8 +1583,8 @@ def build_single_index_payload(
         "weightAsOf": holdings_snapshot.get("weightAsOf") if holdings_snapshot else None,
         "priceAsOf": holdings_snapshot.get("priceAsOf") if holdings_snapshot else None,
         "coverage": (
-            f"{index_symbol} 权重 {holdings_snapshot.get('weightAsOf')}；价格 {holdings_snapshot.get('priceAsOf')}；"
-            f"估值样本覆盖约 {((polygon_estimates or {}).get('metrics') or {}).get('pe', {}).get('weightCoveragePct') or '--'}%；"
+            f"{index_symbol} 官方估值 {official_snapshot.get('asOf') or '--'}；"
+            f"权重 {holdings_snapshot.get('weightAsOf')}；价格 {holdings_snapshot.get('priceAsOf')}；"
             f"当前权重价格覆盖 {holdings_snapshot.get('priceCoveragePctOfValuationWeight')}%。"
             if holdings_snapshot
             else None
@@ -1177,6 +1644,7 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "fundamentalCoverage",
     ]
     holdings_summary = {key: holdings.get(key) for key in holdings_summary_keys if key in holdings}
+    forward_valuation = payload.get("forwardValuation") or {}
     return {
         "schemaVersion": payload.get("schemaVersion"),
         "generatedAt": payload.get("generatedAt"),
@@ -1190,6 +1658,25 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "priceAsOf": payload.get("priceAsOf"),
         "coverage": payload.get("coverage"),
         "officialValuationSnapshot": payload.get("officialValuationSnapshot"),
+        "forwardValuation": {
+            key: forward_valuation.get(key)
+            for key in [
+                "status",
+                "asOf",
+                "historicalAsOf",
+                "forwardPe",
+                "terminalForwardPe",
+                "trailingPe",
+                "tenYearAverageForwardPe",
+                "premiumToTenYearAveragePct",
+                "impliedEarningsGrowthPct",
+                "history",
+                "ranges",
+            ]
+            if key in forward_valuation
+        },
+        "marketIndicators": payload.get("marketIndicators") or {},
+        "valuationSummary": payload.get("valuationSummary") or {},
         "holdingsCoverage": holdings_summary,
         "topHoldings": payload.get("topHoldings") or [],
         "dataReadiness": {
@@ -1208,7 +1695,31 @@ def frontend_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_url: str, spy_holdings_url: str, spy_fact_sheet_url: str) -> dict[str, Any]:
+def build_payload(
+    market_data_root: Path,
+    qqq_holdings_url: str,
+    qqq_fact_sheet_url: str,
+    spy_holdings_url: str,
+    spy_fact_sheet_url: str,
+    spy_characteristics_url: str = DEFAULT_SPY_CHARACTERISTICS_URL,
+    previous_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    previous_indices = {
+        str((item.get("index") or {}).get("symbol") or "").upper(): item
+        for item in (previous_payload or {}).get("indices") or []
+    }
+    qqq_characteristics: dict[str, Any] | None = None
+    try:
+        qqq_characteristics = fetch_qqq_characteristics()
+        qqq_snapshot = qqq_official_snapshot(qqq_characteristics)
+    except Exception:
+        qqq_snapshot = {
+            "asOf": None,
+            "sourceName": "Invesco QQQ fund characteristics",
+            "sourceUrl": DEFAULT_QQQ_CHARACTERISTICS_URL,
+            "methodNote": "官方数据读取失败时不展示估值数字。",
+            "metrics": {},
+        }
     qqq_payload = build_single_index_payload(
         market_data_root,
         "QQQ",
@@ -1216,8 +1727,33 @@ def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_
         qqq_holdings_url,
         qqq_fact_sheet_url,
         fetch_qqq_holdings,
-        QQQ_OFFICIAL_FACT_SHEET_SNAPSHOT,
+        qqq_snapshot,
     )
+    try:
+        qqq_payload["forwardValuation"] = fetch_qqq_forward_valuation_history()
+    except Exception as history_exc:
+        qqq_payload["audit"]["forwardValuationHistoryError"] = f"{type(history_exc).__name__}: {history_exc}"
+        previous_forward = previous_complete_forward_valuation(previous_indices.get("QQQ"))
+        if previous_forward:
+            qqq_payload["forwardValuation"] = previous_forward
+        elif qqq_characteristics:
+            qqq_payload["forwardValuation"] = build_qqq_forward_valuation(qqq_characteristics)
+    qqq_payload["marketIndicators"] = build_market_indicators(market_data_root, "QQQ", qqq_payload.get("priceAsOf"))
+    try:
+        apply_market_valuation_snapshot(qqq_payload, fetch_market_valuation_snapshot("QQQ"))
+    except Exception:
+        restore_previous_market_valuation(qqq_payload, previous_indices.get("QQQ"))
+
+    try:
+        spy_snapshot = fetch_spy_characteristics(spy_characteristics_url)
+    except Exception:
+        spy_snapshot = {
+            "asOf": None,
+            "sourceName": "State Street SPY fund and index characteristics",
+            "sourceUrl": spy_characteristics_url,
+            "methodNote": "官方数据读取失败时不展示估值数字。",
+            "metrics": {},
+        }
     spy_payload = build_single_index_payload(
         market_data_root,
         "SPY",
@@ -1225,18 +1761,28 @@ def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_
         spy_holdings_url,
         spy_fact_sheet_url,
         fetch_spy_holdings,
-        SPY_OFFICIAL_FACT_SHEET_SNAPSHOT,
+        spy_snapshot,
     )
+    spy_forward_pe = safe_float((spy_snapshot.get("metrics") or {}).get("forwardPe"))
+    if spy_forward_pe is not None:
+        spy_payload["forwardValuation"] = {
+            "asOf": spy_snapshot.get("asOf"),
+            "forwardPe": spy_forward_pe,
+        }
+    try:
+        apply_market_valuation_snapshot(spy_payload, fetch_market_valuation_snapshot("SPY"))
+    except Exception:
+        restore_previous_market_valuation(spy_payload, previous_indices.get("SPY"))
     qqq_frontend = frontend_index_payload(qqq_payload)
     spy_frontend = frontend_index_payload(spy_payload)
-    return {
-        "schemaVersion": 2,
+    payload = {
+        "schemaVersion": 3,
         "generatedAt": now_iso(),
         "asOf": qqq_frontend.get("asOf"),
         "module": "index-valuation",
         "title": "指数估值观察",
         "status": qqq_frontend.get("status"),
-        "summary": "已接入 QQQ 与 SPY 当前持仓权重、最新本地价格和可覆盖财务样本；历史分位和 PEG 仍等待完整财务口径。",
+        "summary": "已接入 QQQ 与 SPY 当前估值及同口径历史估值序列。",
         "index": qqq_frontend.get("index"),
         "frontendHints": qqq_frontend.get("frontendHints"),
         "availableIndices": [
@@ -1245,6 +1791,7 @@ def build_payload(market_data_root: Path, qqq_holdings_url: str, qqq_fact_sheet_
         ],
         "indices": [qqq_frontend, spy_frontend],
     }
+    return merge_official_metric_history(payload, previous_payload)
 
 
 def parse_args() -> argparse.Namespace:

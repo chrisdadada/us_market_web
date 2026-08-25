@@ -53,6 +53,8 @@ KEY_LEVEL_MIN_BARS = 90
 KEY_LEVEL_HISTORY_BARS = 180
 KEY_LEVEL_LOOKBACK_BARS = 120
 KEY_LEVEL_PIVOT_SIDE_BARS = 3
+KEY_LEVEL_BREAKOUT_CONFIRM_BARS = 2
+KEY_LEVEL_RETEST_WINDOW_BARS = 20
 
 
 def now_iso() -> str:
@@ -161,7 +163,7 @@ def ytd_return(series: pd.Series, as_of: str) -> float | None:
     return clean_number((latest / first - 1) * 100, 2)
 
 
-def _level_strength(touches: int, converting: bool) -> tuple[str, str]:
+def _level_strength(touches: int, converting: bool = False) -> tuple[str, str]:
     if converting:
         return "converting", "转换中"
     if touches >= 3:
@@ -171,12 +173,15 @@ def _level_strength(touches: int, converting: bool) -> tuple[str, str]:
     return "weak", "弱"
 
 
-def _level_payload(cluster: dict[str, Any], atr: float, role: str) -> dict[str, Any]:
+def _level_payload(
+    cluster: dict[str, Any], atr: float, role: str, converted: bool = False
+) -> dict[str, Any]:
     center = float(cluster["center"])
     points = cluster["points"]
     point_types = {point["type"] for point in points}
-    converting = (role == "support" and point_types == {"high"}) or (
-        role == "resistance" and point_types == {"low"}
+    converting = not converted and (
+        (role == "support" and point_types == {"high"})
+        or (role == "resistance" and point_types == {"low"})
     )
     strength, strength_text = _level_strength(len(points), converting)
     if converting:
@@ -194,6 +199,101 @@ def _level_payload(cluster: dict[str, Any], atr: float, role: str) -> dict[str, 
         "basis": basis,
         "lastConfirmedAt": max(point["date"] for point in points),
         "sourceTypes": sorted(point_types),
+    }
+
+
+def _breakout_confirmation(
+    cluster: dict[str, Any], bars: pd.DataFrame, atr: float
+) -> dict[str, Any] | None:
+    if {point["type"] for point in cluster["points"]} != {"high"}:
+        return None
+
+    level = _level_payload(cluster, atr, "resistance")
+    lower = float(level["lower"])
+    upper = float(level["upper"])
+    last_pivot_date = max(point["date"] for point in cluster["points"])
+    positions = bars.index[bars["trade_date"].astype(str) > last_pivot_date]
+    if positions.empty:
+        return None
+
+    status = ""
+    breakout_at = ""
+    breakout_confirmed_at = ""
+    retest_at = ""
+    failed_at = ""
+    above_streak = 0
+    below_streak = 0
+    confirmed_position: int | None = None
+
+    for position in positions:
+        row = bars.loc[position]
+        close = float(row["adj_close"])
+        date = str(row["trade_date"])
+
+        if (
+            status == "awaiting_retest"
+            and confirmed_position is not None
+            and position - confirmed_position > KEY_LEVEL_RETEST_WINDOW_BARS
+        ):
+            status = "expired"
+            above_streak = 0
+
+        if status == "expired":
+            if close <= upper:
+                status = ""
+            continue
+
+        if status in {"awaiting_retest", "confirmed_support"}:
+            if close < lower:
+                below_streak += 1
+                if below_streak >= 2:
+                    status = "breakout_failed"
+                    failed_at = date
+                    above_streak = 0
+                continue
+            below_streak = 0
+            if (
+                status == "awaiting_retest"
+                and confirmed_position is not None
+                and position > confirmed_position
+                and position - confirmed_position <= KEY_LEVEL_RETEST_WINDOW_BARS
+                and float(row["adj_low"]) <= upper
+                and float(row["adj_high"]) >= lower
+                and close > upper
+            ):
+                status = "confirmed_support"
+                retest_at = date
+            continue
+
+        if close > upper:
+            if above_streak == 0:
+                breakout_at = date
+                breakout_confirmed_at = ""
+                retest_at = ""
+                failed_at = ""
+            above_streak += 1
+            status = "breakout_watch"
+            if above_streak >= KEY_LEVEL_BREAKOUT_CONFIRM_BARS:
+                status = "awaiting_retest"
+                breakout_confirmed_at = date
+                confirmed_position = int(position)
+                below_streak = 0
+        else:
+            above_streak = 0
+            if status == "breakout_watch":
+                status = ""
+
+    if not status or status == "expired":
+        return None
+    event_at = failed_at or retest_at or breakout_confirmed_at or breakout_at
+    return {
+        "status": status,
+        "level": level,
+        "eventAt": event_at or None,
+        "breakoutAt": breakout_at or None,
+        "confirmedAt": breakout_confirmed_at or None,
+        "retestAt": retest_at or None,
+        "failedAt": failed_at or None,
     }
 
 
@@ -283,14 +383,67 @@ def build_key_levels(bars: pd.DataFrame, as_of: str) -> tuple[dict[str, Any], li
             clusters[-1]["points"]
         )
 
+    confirmations = [
+        confirmation
+        for cluster in clusters
+        if (confirmation := _breakout_confirmation(cluster, bars, atr)) is not None
+    ]
+    confirmed_centers = {
+        float(item["level"]["center"])
+        for item in confirmations
+        if item["status"] == "confirmed_support"
+    }
     below = [cluster for cluster in clusters if cluster["center"] < current]
     above = [cluster for cluster in clusters if cluster["center"] > current]
-    support_cluster = max(below, key=lambda item: item["center"]) if below else None
+    support_clusters = [
+        cluster
+        for cluster in below
+        if {point["type"] for point in cluster["points"]} != {"high"}
+        or round(float(cluster["center"]), 2) in confirmed_centers
+    ]
+    support_cluster = max(support_clusters, key=lambda item: item["center"]) if support_clusters else None
     resistance_cluster = min(above, key=lambda item: item["center"]) if above else None
-    secondary_cluster = below[-2] if len(below) > 1 else None
-    support = _level_payload(support_cluster, atr, "support") if support_cluster else None
+    secondary_cluster = sorted(support_clusters, key=lambda item: item["center"])[-2] if len(support_clusters) > 1 else None
+    support = (
+        _level_payload(
+            support_cluster,
+            atr,
+            "support",
+            round(float(support_cluster["center"]), 2) in confirmed_centers,
+        )
+        if support_cluster
+        else None
+    )
     resistance = _level_payload(resistance_cluster, atr, "resistance") if resistance_cluster else None
-    secondary_support = _level_payload(secondary_cluster, atr, "support") if secondary_cluster else None
+    secondary_support = (
+        _level_payload(
+            secondary_cluster,
+            atr,
+            "support",
+            round(float(secondary_cluster["center"]), 2) in confirmed_centers,
+        )
+        if secondary_cluster
+        else None
+    )
+    relevant_confirmations = []
+    for confirmation in confirmations:
+        level = confirmation["level"]
+        level_center = float(level["center"])
+        status = confirmation["status"]
+        if status in {"breakout_watch", "awaiting_retest"}:
+            if not support or level_center >= float(support["center"]):
+                relevant_confirmations.append(confirmation)
+        elif status == "confirmed_support":
+            if support and abs(level_center - float(support["center"])) < 0.01:
+                relevant_confirmations.append(confirmation)
+        elif status == "breakout_failed":
+            if resistance and abs(level_center - float(resistance["center"])) < 0.01:
+                relevant_confirmations.append(confirmation)
+    breakout_confirmation = (
+        max(relevant_confirmations, key=lambda item: str(item.get("eventAt") or ""))
+        if relevant_confirmations
+        else None
+    )
     position, position_text, support_distance, resistance_distance = _position_payload(
         current, support, resistance, atr
     )
@@ -311,6 +464,7 @@ def build_key_levels(bars: pd.DataFrame, as_of: str) -> tuple[dict[str, Any], li
         "support": support,
         "secondarySupport": secondary_support,
         "resistance": resistance,
+        "breakoutConfirmation": breakout_confirmation,
         "position": position,
         "positionText": position_text,
         "supportDistancePct": clean_number(support_distance, 1),

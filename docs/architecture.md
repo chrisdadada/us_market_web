@@ -15,11 +15,13 @@
 - `scripts/`：离线数据下载、清洗、构建、发布脚本。
 - `data/product.db` 与运行态 `app.db`：SQLite 数据库。
 
-历史遗留：
+前端唯一基线：
 
-- `index.html`、`app.js`、`styles.css`、`admin.html` 仍存在 legacy 页面。
-- 新功能优先进入 `main-web/` 或 `admin-web/`。
-- legacy 只做兼容或紧急修复，不继续扩大。
+- `main-web/` 和 `admin-web/` 是唯一允许继续开发、修复和发布的前端源码。
+- `index.html`、`app.js`、`styles.css`、`admin.html` 仅为待删除的 legacy 迁移壳，不再修样式、不加功能。
+- legacy 当前只保留 4 个待迁移能力：期权流向、趋势信号历史、股票事件榜单、财报质量筛选。
+- `tests/test_frontend_architecture.py` 限定上述迁移白名单；禁止新增 `/legacy` 依赖。
+- 待迁移清单清零后，必须同批删除 legacy 文件、`/legacy` 部署步骤和旧版路由测试。
 
 ## 2. 数据库边界
 
@@ -34,7 +36,7 @@
 
 - 默认文件：`data/product.db`
 - 由离线脚本生成。
-- 存股票、市场、板块、重点财经前瞻、美股热点风向标等产品数据。
+- 存股票、市场、板块、重点财经前瞻、猫言猫语等产品数据。
 - 属于可重建数据。
 
 原则：
@@ -153,7 +155,9 @@ React 标准：
 - `scripts/build_product_db.py`：构建产品 DB。
 - `scripts/update_product_data.sh`：更新产品数据。
 - `scripts/automated_refresh.sh`：完整自动刷新入口。
-- `scripts/deploy_dev.sh`：部署 dev 代码和静态构建，默认不重建产品 DB。
+- `scripts/release_dev.sh`：唯一完整 dev 代码发布入口，完成检查后调用受保护的部署脚本。
+- `scripts/release_dev_fast.sh`：仅允许累计的前端改动走快速 dev 发布。
+- `scripts/deploy_dev.sh`：底层 dev 代码切换脚本，不作为日常直接入口。
 - `scripts/prepare_prod_release.sh`：构建、测试并生成 commit 对应的不可变代码发版包。
 - `scripts/promote_prod.sh`：仅校验并切换已验收的 production 代码发版包。
 - `scripts/rollback_prod.sh`：按当次明确授权回滚到服务器保留的历史代码发版包。
@@ -181,7 +185,7 @@ React 标准：
 ```bash
 npm run build
 python3 -m py_compile server/auth_api.py
-./scripts/deploy_dev.sh
+./scripts/release_dev.sh
 ```
 
 发布细节见 `docs/release-flow.md`。

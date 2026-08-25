@@ -2940,6 +2940,117 @@ body :where(.is-negative) {
   gap: 12px;
 }
 
+.valuation-forward-card[hidden] {
+  display: none;
+}
+
+.valuation-forward-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: #fff;
+}
+
+.valuation-forward-head {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #e7edf4;
+}
+
+.valuation-forward-head strong {
+  color: #172033;
+  font-size: 14px;
+}
+
+.valuation-forward-head span,
+.valuation-forward-metrics article > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.valuation-forward-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.valuation-forward-metrics article {
+  min-width: 0;
+  padding: 22px 20px 20px;
+}
+
+.valuation-forward-metrics article[hidden] {
+  display: none;
+}
+
+.valuation-forward-metrics article + article {
+  border-left: 1px solid #e7edf4;
+}
+
+.valuation-forward-metrics article > div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 11px;
+}
+
+.valuation-forward-metrics strong {
+  color: #172033;
+  font-size: 29px;
+  font-weight: 680;
+  letter-spacing: -0.025em;
+}
+
+.valuation-forward-metrics em {
+  border-radius: 5px;
+  background: #e9f8f1;
+  color: #128055;
+  padding: 4px 7px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 620;
+}
+
+.valuation-forward-metrics em.is-watch {
+  background: #fff4d7;
+  color: #8a5b00;
+}
+
+.valuation-forward-metrics small {
+  display: block;
+  margin-top: 12px;
+  color: #7f8ca0;
+  font-size: 12px;
+}
+
+.valuation-shell.has-forward-card > .valuation-hero,
+.valuation-shell.has-forward-card > .valuation-metrics,
+.valuation-shell.has-forward-card > .valuation-holdings-panel {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .valuation-forward-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .valuation-forward-metrics article {
+    padding: 18px;
+  }
+
+  .valuation-forward-metrics article + article {
+    border-top: 1px solid #e7edf4;
+    border-left: 0;
+  }
+
+  .valuation-forward-metrics strong {
+    font-size: 25px;
+  }
+}
+
 .valuation-hero,
 .valuation-holdings-panel,
 .valuation-chart-panel {

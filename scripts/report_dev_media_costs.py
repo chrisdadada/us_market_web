@@ -251,6 +251,7 @@ def build_report(
             "totals": usage["totals"],
             "rows": usage["rows"],
         },
+        "playbackHealth": usage["playbackHealth"],
         "externalCosts": {
             "tencentBilling": {"status": "not-connected"},
             "networkEgress": {"status": "not-connected"},

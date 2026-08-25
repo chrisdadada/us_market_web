@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "product": {
+    "id": "rolling-pro",
+    "name": "ROLLING PRO",
+    "type": "local_desktop_executor",
+    "spec": "product_v1_spec.md"
+  },
+  "deployment_boundary": {
+    "website_owns": [
+      "user_account",
+      "purchase_and_license",
+      "client_download",
+      "product_pages",
+      "rolling_plan_simulation",
+      "plan_export"
+    ],
+    "desktop_client_owns": [
+      "exchange_api_key",
+      "plan_import_and_revalidation",
+      "order_execution",
+      "risk_monitoring",
+      "local_records"
+    ]
+  },
+  "exchange_connection": {
+    "status": "placeholder",
+    "live_orders_enabled": false,
+    "implementation_source": "provided_later_by_user"
+  },
+  "website_runtime_access": {
+    "enabled_in_v1": false,
+    "reason": "Trading state and credentials remain on the local device."
+  },
+  "simulation": {
+    "module": "web-simulator/rolling-simulator.mjs",
+    "runs_in_browser": true,
+    "uses_real_orders": false,
+    "exchange_liquidation_price": "unavailable_without_exchange_model"
+  },
+  "plan_transfer": {
+    "format": "normalized_json",
+    "schema_version": 1,
+    "import_auto_starts_trading": false
+  },
+  "public_capabilities": [
+    "web_plan_simulation",
+    "user_defined_entry",
+    "fixed_amount_rolling_adds",
+    "cross_margin_risk_display",
+    "exchange_side_protection",
+    "pause_and_full_close",
+    "local_execution_records"
+  ],
+  "private_fields": [
+    "api_key",
+    "api_secret",
+    "exchange_credentials",
+    "raw_order_payloads"
+  ],
+  "plan_states": [
+    "draft",
+    "waiting_entry",
+    "running",
+    "paused",
+    "holding_protection",
+    "recovering",
+    "ending",
+    "ended"
+  ]
+}

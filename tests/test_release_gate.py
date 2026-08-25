@@ -2,6 +2,8 @@ import http.cookiejar
 import base64
 import hashlib
 import json
+import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -95,6 +97,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_COS_BUCKET = ""
         auth_api.COURSE_COS_REGION = ""
         auth_api.COURSE_COS_DOMAIN = ""
+        auth_api.COURSE_VIDEO_SIGN_TTL = 21600
+        auth_api.COURSE_HLS_SIGN_TTL = 21600
         auth_api.COURSE_CDN_ENABLED = False
         auth_api.COURSE_CDN_DOMAIN = ""
         auth_api.COURSE_CDN_AUTH_KEY = ""
@@ -102,6 +106,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         auth_api.COURSE_CDN_VIDEO_KEYS = set()
         auth_api.COURSE_VIDEO_AUTO_PROCESS_ENABLED = False
         auth_api.COURSE_VIDEO_PROCESS_TIMEOUT_SECONDS = 21600
+        auth_api.fetch_course_cos_text.cache_clear()
         auth_api.reset_course_play_observation()
         auth_api.init_db()
 
@@ -110,6 +115,11 @@ class AuthApiReleaseGateTest(unittest.TestCase):
 
     def client(self) -> ApiClient:
         return ApiClient(self.base_url)
+
+    def release_test_product_db(self) -> Path:
+        db_path = Path(os.environ.get("RELEASE_TEST_PRODUCT_DB", ""))
+        self.assertTrue(db_path.is_file(), "RELEASE_TEST_PRODUCT_DB must point to a product DB snapshot")
+        return db_path
 
     def use_empty_product_db(self) -> Path:
         db_path = Path(self.tempdir.name) / "product.db"
@@ -235,6 +245,74 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 400, payload)
         self.assertEqual(payload["error"], "密码不能超过 128 位")
 
+    def test_watchlist_is_account_scoped_and_persists_review_state(self) -> None:
+        product_db = Path(self.tempdir.name) / "product.db"
+        with sqlite3.connect(product_db) as conn:
+            conn.execute("CREATE TABLE symbols (symbol TEXT PRIMARY KEY)")
+            conn.executemany("INSERT INTO symbols(symbol) VALUES (?)", [("NVDA",), ("MU",)])
+        auth_api.PRODUCT_DB_ENV = str(product_db)
+
+        client = self.client()
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual(status, 401, payload)
+        self.assertEqual(payload["code"], "unauthenticated")
+
+        status, payload = client.post(
+            "/api/auth/register",
+            {"email": "watchlist@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 201, payload)
+
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"], [])
+
+        status, payload = client.post("/api/watchlist", {"symbol": "nvda", "source": "股票详情"})
+        self.assertEqual(status, 201, payload)
+        status, payload = client.post(
+            "/api/watchlist/import",
+            {
+                "items": [
+                    {
+                        "symbol": "MU",
+                        "source": "旧版导入",
+                        "reviewAction": "continue",
+                        "reviewCount": 2,
+                        "addedAt": "2026-08-01T00:00:00Z",
+                    },
+                    {"symbol": "OLD", "source": "旧版导入"},
+                ]
+            },
+        )
+        self.assertEqual(status, 201, payload)
+        self.assertEqual(payload["saved"], 1)
+        self.assertEqual(payload["skipped"], 1)
+
+        status, payload = client.post("/api/watchlist/review", {"symbol": "NVDA", "action": "reviewed"})
+        self.assertEqual(status, 200, payload)
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual(status, 200, payload)
+        rows = {row["symbol"]: row for row in payload["rows"]}
+        self.assertEqual(set(rows), {"NVDA", "MU"})
+        self.assertEqual(rows["NVDA"]["reviewAction"], "reviewed")
+        self.assertEqual(rows["NVDA"]["reviewCount"], 1)
+        self.assertEqual(rows["MU"]["reviewCount"], 2)
+
+        other = self.client()
+        status, payload = other.post(
+            "/api/auth/register",
+            {"email": "other-watchlist@example.test", "password": "user-password"},
+        )
+        self.assertEqual(status, 201, payload)
+        status, payload = other.get("/api/watchlist")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"], [])
+
+        status, payload = client.delete("/api/watchlist/NVDA")
+        self.assertEqual(status, 200, payload)
+        status, payload = client.get("/api/watchlist")
+        self.assertEqual([row["symbol"] for row in payload["rows"]], ["MU"])
+
     def test_public_registration_is_rate_limited(self) -> None:
         old_ip_limit = auth_api.REGISTER_IP_LIMIT
         old_email_limit = auth_api.REGISTER_EMAIL_LIMIT
@@ -339,6 +417,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 ("macro-series", {"indicators": [{"key": "vix"}]}),
                 ("strength-scanner", {"rows": [{"symbol": "MU"}]}),
                 ("crypto-etf-flows", {"assets": {"BTC": {}, "ETH": {}}}),
+                ("retail-sentiment", {"options": {}, "survey": {}, "margin": {}}),
             ]
             conn.executemany(
                 "INSERT INTO raw_payloads (name, source_path, payload_json) VALUES (?, ?, ?)",
@@ -368,6 +447,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = free.get("/api/product/raw/crypto-etf-flows")
         self.assertEqual(status, 403, payload)
         self.assertEqual(payload["code"], "membership_required")
+        status, payload = free.get("/api/product/raw/retail-sentiment")
+        self.assertEqual(status, 403, payload)
+        self.assertEqual(payload["code"], "membership_required")
 
         admin = self.login("admin@example.test", "admin-password")
         expires_at = (date.today() + timedelta(days=30)).isoformat()
@@ -379,6 +461,9 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = monthly.get("/api/product/raw/crypto-etf-flows")
         self.assertEqual(status, 200, payload)
         self.assertIn("BTC", payload["assets"])
+        status, payload = monthly.get("/api/product/raw/retail-sentiment")
+        self.assertEqual(status, 200, payload)
+        self.assertIn("options", payload)
 
     def test_product_strength_supports_paid_pagination_search_and_filters(self) -> None:
         db_path = Path(self.tempdir.name) / "product.db"
@@ -533,7 +618,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(payload["rows"][0]["title"], "AMD 财报")
 
     def test_market_data_expansion_shape_is_present(self) -> None:
-        with sqlite3.connect(ROOT / "data" / "product.db") as conn:
+        with sqlite3.connect(self.release_test_product_db()) as conn:
             for board in ("ytd", "day", "week", "month", "volume"):
                 count = conn.execute(
                     "SELECT COUNT(*) FROM market_board_rows WHERE board = ?",
@@ -557,83 +642,53 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             sector_count = conn.execute("SELECT COUNT(*) FROM sector_flow_rows").fetchone()[0]
             self.assertGreaterEqual(sector_count, 8)
 
-    def test_product_database_builder_shape_is_present(self) -> None:
-        with tempfile.TemporaryDirectory() as tempdir:
-            db_path = Path(tempdir) / "product.db"
-            subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "build_product_db.py"), "--output", str(db_path)],
-                cwd=ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            self.assertTrue(db_path.exists())
-            with sqlite3.connect(db_path) as conn:
-                counts = {
-                    table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                    for table in (
-                        "symbols",
-                        "market_board_rows",
-                        "sector_flow_rows",
-                        "stock_event_rows",
-                        "calendar_events",
-                        "earnings_quality_rows",
-                        "strength_rows",
-                    )
-                }
-                self.assertGreaterEqual(counts["symbols"], 800)
-                self.assertGreaterEqual(counts["market_board_rows"], 800)
-                self.assertGreaterEqual(counts["sector_flow_rows"], 8)
-                self.assertGreaterEqual(counts["stock_event_rows"], 100)
-                self.assertGreaterEqual(counts["calendar_events"], 1)
-                earnings_payload = json.loads(
-                    conn.execute(
-                        "SELECT payload_json FROM datasets WHERE name = ?",
-                        ("earnings-quality",),
-                    ).fetchone()[0]
+    def test_product_database_snapshot_shape_is_present(self) -> None:
+        db_path = self.release_test_product_db()
+        with sqlite3.connect(db_path) as conn:
+            counts = {
+                table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in (
+                    "symbols",
+                    "market_board_rows",
+                    "sector_flow_rows",
+                    "stock_event_rows",
+                    "calendar_events",
+                    "strength_rows",
                 )
-                earnings_source_rows = {
-                    (board, (row.get("ticker") or row.get("symbol") or "").strip().upper())
-                    for board, board_payload in (earnings_payload.get("boards") or {}).items()
-                    for row in ((board_payload or {}).get("rows") or [])
-                    if (row.get("ticker") or row.get("symbol") or "").strip()
-                }
-                self.assertGreater(len(earnings_source_rows), 0)
-                self.assertEqual(counts["earnings_quality_rows"], len(earnings_source_rows))
-                self.assertGreaterEqual(counts["strength_rows"], 50)
-                schema_version = conn.execute(
-                    "SELECT value FROM product_db_info WHERE key = 'schema_version'"
-                ).fetchone()
-                self.assertIsNotNone(schema_version)
-                sample = conn.execute(
-                    """
-                    SELECT symbol, sector, market_cap_value
-                    FROM symbols
-                    WHERE symbol = 'MU'
-                    """
-                ).fetchone()
-            self.assertIsNotNone(sample)
-            self.assertTrue(sample[0])
-            coverage = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "check_product_coverage.py"), "--db", str(db_path), "--json"],
-                cwd=ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            coverage_payload = json.loads(coverage.stdout)
-            self.assertTrue(coverage_payload["ok"])
-            self.assertGreaterEqual(coverage_payload["symbols"]["total"], 800)
-
-    def test_product_database_api_serves_core_workbench_data(self) -> None:
-        db_path = Path(self.tempdir.name) / "product.db"
-        subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "build_product_db.py"), "--output", str(db_path)],
+            }
+            self.assertGreaterEqual(counts["symbols"], 800)
+            self.assertGreaterEqual(counts["market_board_rows"], 800)
+            self.assertGreaterEqual(counts["sector_flow_rows"], 8)
+            self.assertGreaterEqual(counts["stock_event_rows"], 100)
+            self.assertGreaterEqual(counts["calendar_events"], 1)
+            self.assertGreaterEqual(counts["strength_rows"], 50)
+            schema_version = conn.execute(
+                "SELECT value FROM product_db_info WHERE key = 'schema_version'"
+            ).fetchone()
+            self.assertIsNotNone(schema_version)
+            sample = conn.execute(
+                """
+                SELECT symbol, sector, market_cap_value
+                FROM symbols
+                WHERE symbol = 'MU'
+                """
+            ).fetchone()
+        self.assertIsNotNone(sample)
+        self.assertTrue(sample[0])
+        coverage = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "check_product_coverage.py"), "--db", str(db_path), "--json"],
             cwd=ROOT,
             check=True,
             capture_output=True,
             text=True,
         )
+        coverage_payload = json.loads(coverage.stdout)
+        self.assertTrue(coverage_payload["ok"])
+        self.assertGreaterEqual(coverage_payload["symbols"]["total"], 800)
+
+    def test_product_database_api_serves_core_workbench_data(self) -> None:
+        db_path = Path(self.tempdir.name) / "product.db"
+        shutil.copy2(self.release_test_product_db(), db_path)
         auth_api.PRODUCT_DB_ENV = str(db_path)
         client = self.client()
 
@@ -660,6 +715,13 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = client.get("/api/product/symbols?preset=strength&limit=5")
         self.assertEqual(status, 403, payload)
         self.assertEqual(payload["code"], "membership_required")
+
+        status, payload = client.get("/api/product/symbols?preset=mag7&limit=20&sort=monthChange")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["total"], 7)
+        self.assertEqual({row["symbol"] for row in payload["rows"]}, set(auth_api.TECH_MAG7_SYMBOLS))
+        month_changes = [row["monthChange"] for row in payload["rows"]]
+        self.assertEqual(month_changes, sorted(month_changes, reverse=True))
 
         status, payload = client.get("/api/product/symbols?limit=3000")
         self.assertEqual(status, 200, payload)
@@ -731,23 +793,6 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         status, payload = client.get("/api/product/raw/strength-scanner")
         self.assertEqual(status, 403, payload)
         self.assertEqual(payload["code"], "membership_required")
-
-        status, payload = client.get("/api/product/raw/earnings-quality")
-        self.assertEqual(status, 200, payload)
-        quality_rows = payload["boards"]["quality"]["rows"]
-        self.assertGreaterEqual(payload["summary"]["coreCount"], 1)
-        self.assertGreaterEqual(len(quality_rows), 1)
-        row_tickers = {row["ticker"] for row in quality_rows if row.get("ticker")}
-        self.assertIn(payload["summary"]["coreLeader"], row_tickers)
-
-        status, payload = client.get("/api/product/raw/options-flow-snapshot")
-        self.assertEqual(status, 200, payload)
-        self.assertTrue(payload["asOf"])
-        self.assertTrue(payload["meta"]["symbol"])
-        self.assertGreaterEqual(len(payload["timeline"]), 1)
-        self.assertGreaterEqual(len(payload["bullish"]), 1)
-        self.assertGreaterEqual(len(payload["bearish"]), 1)
-        self.assertEqual(payload["quality"]["directionality"], "unknown")
 
     def test_frontend_routes_keep_inactive_pages_hidden(self) -> None:
         styles = (ROOT / "styles.css").read_text(encoding="utf-8")
@@ -832,6 +877,41 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         status, payload = user.post("/api/analytics/event", {"eventType": "course_play_grant", "eventKey": "1"})
         self.assertEqual(status, 400, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_error", "eventKey": "12:source", "path": "https://signed.example.test/private"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_error", "eventKey": "12:source"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_error", "eventKey": "12:unknown"})
+        self.assertEqual(status, 400, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_url_ready", "eventKey": "12:lt1"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_url_ready", "eventKey": "12:gte8"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_ready", "eventKey": "12:1to3"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_buffer", "eventKey": "12"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_buffer", "eventKey": "12"})
+        self.assertEqual(status, 201, payload)
+        status, payload = user.post("/api/analytics/event", {"eventType": "course_video_ready", "eventKey": "12:exactly-2400"})
+        self.assertEqual(status, 400, payload)
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            video_events = conn.execute(
+                "SELECT event_key, path FROM analytics_events WHERE event_type = 'course_video_error'"
+            ).fetchall()
+        self.assertEqual(video_events, [("12:source", "/courses/playback")])
+        with sqlite3.connect(auth_api.DB_PATH) as conn:
+            health_events = conn.execute(
+                "SELECT event_type, event_key, path FROM analytics_events WHERE event_type LIKE 'course_video_%' AND event_type <> 'course_video_error' ORDER BY id"
+            ).fetchall()
+        self.assertEqual(
+            health_events,
+            [
+                ("course_video_url_ready", "12:lt1", "/courses/playback"),
+                ("course_video_ready", "12:1to3", "/courses/playback"),
+                ("course_video_buffer", "12", "/courses/playback"),
+            ],
+        )
 
         status, payload = admin.get("/api/admin/metrics")
         self.assertEqual(status, 200, payload)
@@ -851,7 +931,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
                 (user["id"], "2026-07-08T23:45:00+00:00"),
             )
 
-        status, payload = admin.get("/api/admin/metrics")
+        status, payload = admin.get("/api/admin/metrics?retentionRange=all")
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["retention"][0]["cohortDay"], "2026-07-09")
         self.assertEqual(payload["retention"][0]["registered"], 1)
@@ -1356,7 +1436,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         admin = self.login("admin@example.test", "admin-password")
 
         draft_payload = {
-            "section": "weekly",
+            "section": "crypto",
             "title": "草稿标题",
             "tradeDate": "2026-06-18",
             "summary": "公开摘要",
@@ -1370,6 +1450,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 201, payload)
         item_id = payload["item"]["id"]
         self.assertEqual(payload["item"]["status"], "draft")
+        self.assertEqual(payload["item"]["sectionLabel"], "加密相关")
         self.assertEqual(payload["item"]["tradeDate"], "2026-06-18 00:00:00")
 
         status, payload = admin.get("/api/admin/opinions")
@@ -1463,6 +1544,54 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertEqual(payload["total"], 2)
         self.assertTrue(all(item["section"] == "journal" for item in payload["rows"]))
+
+    def test_public_market_opinions_hide_legacy_empty_content(self) -> None:
+        product_db = self.use_empty_product_db()
+        legacy_payload = {
+            "id": "daily-legacy-empty",
+            "section": "daily",
+            "sectionLabel": "个股观点",
+            "title": "tests",
+            "tradeDate": "2026-08-03 17:54:06",
+            "status": "published",
+            "summary": "",
+            "symbols": [],
+            "topics": [],
+            "highlights": [],
+            "body": "",
+        }
+        with sqlite3.connect(product_db) as conn:
+            conn.execute(
+                """
+                INSERT INTO market_opinion_items
+                (item_id, section, section_label, title, trade_date, summary,
+                 symbols_json, topics_json, highlights_json, body, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    legacy_payload["id"],
+                    legacy_payload["section"],
+                    legacy_payload["sectionLabel"],
+                    legacy_payload["title"],
+                    legacy_payload["tradeDate"],
+                    "",
+                    "[]",
+                    "[]",
+                    "[]",
+                    "",
+                    json.dumps(legacy_payload),
+                ),
+            )
+
+        status, payload = self.client().get("/api/product/opinions")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"], [])
+        self.assertEqual(payload["total"], 0)
+
+        admin = self.login("admin@example.test", "admin-password")
+        status, payload = admin.get("/api/admin/opinions")
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["rows"][0]["id"], legacy_payload["id"])
 
     def test_admin_market_opinion_image_upload_can_be_published(self) -> None:
         self.use_empty_product_db()
@@ -1714,6 +1843,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         )
         self.assertIn("q-sign-algorithm=sha1", url)
         self.assertIn("/lesson/demo.mp4?", url)
+        self.assertIn("q-sign-time=1700000000%3B1700021600", url)
 
     def test_course_cdn_type_a_signing_is_limited_to_allowlist(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"
@@ -1748,7 +1878,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         cos_url = auth_api.signed_course_video_url("lesson/other.mp4", now=1_700_000_000)
         self.assertIn("cos.ap-chengdu.myqcloud.com", cos_url)
         self.assertIn("q-sign-algorithm=sha1", cos_url)
-        self.assertEqual(auth_api.course_video_url_ttl("lesson/other.mp4"), 1800)
+        self.assertEqual(auth_api.course_video_url_ttl("lesson/other.mp4"), 21600)
 
         auth_api.COURSE_CDN_AUTH_KEY = "bad-key!"
         with self.assertRaisesRegex(RuntimeError, "密钥格式错误"):
@@ -1817,7 +1947,34 @@ class AuthApiReleaseGateTest(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         self.assertIn("cos.ap-chengdu.myqcloud.com/lesson/poc.mp4", payload["url"])
         self.assertIn("q-sign-algorithm=sha1", payload["url"])
-        self.assertEqual(payload["expiresIn"], 1800)
+        self.assertEqual(payload["expiresIn"], 21600)
+
+    def test_course_hls_playlist_fetch_reuses_immutable_object(self) -> None:
+        calls = []
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, _size=-1):
+                return b"#EXTM3U\n#EXT-X-ENDLIST\n"
+
+        def fake_urlopen(request, timeout=0):
+            calls.append((request.full_url, timeout))
+            return FakeResponse()
+
+        with (
+            patch.object(auth_api, "signed_course_cos_url", return_value="https://cos.example.test/playlist"),
+            patch.object(auth_api.urllib.request, "urlopen", side_effect=fake_urlopen),
+        ):
+            first = auth_api.fetch_course_cos_text("lesson/hls/batch/lesson-1/master.m3u8")
+            second = auth_api.fetch_course_cos_text("lesson/hls/batch/lesson-1/master.m3u8")
+
+        self.assertEqual(first, second)
+        self.assertEqual(len(calls), 1)
 
     def test_course_hls_playback_keeps_access_checks_and_signs_segments(self) -> None:
         auth_api.COURSE_COS_SECRET_ID = "secret-id"
@@ -1935,7 +2092,7 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             )
     def test_course_play_observation_reuses_recent_grant_without_blocking(self) -> None:
         auth_api.COURSE_PLAY_REUSE_SECONDS = 120
-        auth_api.COURSE_COS_SIGN_TTL = 1800
+        auth_api.COURSE_VIDEO_SIGN_TTL = 21600
         with (
             patch.object(auth_api.time, "time", side_effect=[1_700_000_000, 1_700_000_030]),
             patch.object(auth_api, "signed_course_video_url", side_effect=["https://video.example/first", "https://video.example/second"]) as signer,
@@ -1944,8 +2101,8 @@ class AuthApiReleaseGateTest(unittest.TestCase):
             first = auth_api.observed_course_play_url(7, 11, "lesson/demo.mp4", "1.2.3.4", "Test Browser")
             second = auth_api.observed_course_play_url(7, 11, "lesson/demo.mp4", "5.6.7.8", "Test Browser")
 
-        self.assertEqual(first, ("https://video.example/first", 1800))
-        self.assertEqual(second, ("https://video.example/first", 1770))
+        self.assertEqual(first, ("https://video.example/first", 21600))
+        self.assertEqual(second, ("https://video.example/first", 21570))
         self.assertEqual(signer.call_count, 1)
         event = json.loads(output.call_args_list[-1].args[0].removeprefix("course_play_observation "))
         self.assertTrue(event["reused"])

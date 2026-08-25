@@ -8,6 +8,9 @@ import {
   CourseSeries,
   FundingScannerRow,
   KeyLevel,
+  IndexValuationIndex,
+  IndexValuationMetric,
+  IndexValuationPayload,
   MacroSeriesIndicator,
   MacroSeriesPayload,
   MarketRow,
@@ -22,10 +25,27 @@ import {
   TemperatureIndicator,
   TrackingKeyLevels,
   SymbolDetailPayload,
-  SymbolRow
+  SymbolRow,
+  WatchlistItem
 } from "./api";
 import { calculatePositionSizing, type PositionDirection, type PositionSizingResult } from "./positionSizing";
 import type { CryptoEtfAssetKey, CryptoEtfInterval } from "./CryptoEtfChart";
+import { ReversalDcaPage, ValueDcaPage } from "./DcaStrategyPages";
+import RollingToolPage from "./RollingToolPage";
+import RetailSentimentView from "./RetailSentimentView";
+import {
+  legacyMigrationNavItems,
+  memberToolNavItems,
+  pageAccessRules,
+  pageLabels,
+  primaryNavItems,
+  secondaryNavItems,
+  toolDataPageNavItems,
+  validPageKeys,
+  type AccessLevel,
+  type NavItem,
+  type PageKey
+} from "./productConfig";
 import {
   LockedStockName,
   SignalDirectionBadge,
@@ -49,71 +69,15 @@ import {
   trackingDirectionClass
 } from "./shared";
 
-type PageKey = "home" | "opinions" | "tracking" | "market" | "risk" | "strength" | "stocks" | "calendar" | "open" | "position" | "funding" | "forum" | "courses";
-type AccessLevel = "free" | "registered" | "monthly" | "yearly";
 type AuthMode = "login" | "register" | "forgot" | "reset";
+type StockSource = "stocks" | "tracking" | "watchlist" | "search";
+type SharedDataSource = "bootstrap" | "opinions" | "calendar" | "signals";
 
 const CryptoEtfChart = lazy(() => import("./CryptoEtfChart"));
-
-type NavItem = { key: PageKey; label: string; status?: string; disabled?: boolean };
-
-const pageLabels: Record<PageKey, string> = {
-  home: "首页",
-  opinions: "美股热点风向标",
-  calendar: "重点财经前瞻",
-  tracking: "机会跟踪榜单",
-  stocks: "美股行情",
-  market: "市场资金走向",
-  risk: "市场活跃指数",
-  strength: "行业板块强弱",
-  courses: "实战课程",
-  open: "Open 持仓参考",
-  forum: "论坛讨论区",
-  position: "以损定仓",
-  funding: "资金费套利扫描"
-};
-
-const primaryNavItems: NavItem[] = [
-  { key: "home", label: pageLabels.home },
-  { key: "opinions", label: pageLabels.opinions },
-  { key: "calendar", label: pageLabels.calendar },
-  { key: "tracking", label: pageLabels.tracking },
-  { key: "stocks", label: pageLabels.stocks },
-  { key: "market", label: pageLabels.market },
-  { key: "risk", label: pageLabels.risk },
-  { key: "strength", label: pageLabels.strength },
-  { key: "courses", label: pageLabels.courses }
-];
-
-const secondaryNavItems: NavItem[] = [
-  { key: "open", label: pageLabels.open },
-  { key: "forum", label: pageLabels.forum, status: "待开放", disabled: true }
-];
-
-const adminToolDataNavItems: Array<{ href: string; label: string }> = [
-  { href: "/legacy/#valuation", label: "指数估值" },
-  { href: "/legacy/#options", label: "期权流向" },
-  { href: "/legacy/#signals", label: "趋势信号" },
-  { href: "/legacy/#stock-events", label: "股票事件" },
-  { href: "/legacy/#earnings", label: "财报观察" },
-  { href: "/legacy/#watchlist", label: "自选" }
-];
-
-const memberToolNavItems: Array<{ key: PageKey; label: string }> = [
-  { key: "position", label: pageLabels.position }
-];
-
-const toolDataPageNavItems: Array<{ key: PageKey; label: string }> = [
-  { key: "funding", label: pageLabels.funding }
-];
-
-const allPageNavItems = [...primaryNavItems, ...secondaryNavItems, ...memberToolNavItems, ...toolDataPageNavItems];
-const validPageKeys = new Set<PageKey>(allPageNavItems.map((item) => item.key));
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const superAdminLoginName = "admin";
 const volumeRatioHelp = "当前成交额相对近20日平均成交额的倍数，越高代表成交越活跃。";
 const keyLevelsHelp = "根据近120个交易日的价格拐点、波动区间和均线自动计算，仅作观察参考。";
-const trackingGuideHelp = "先看近1月和近1周谁更强，再看趋势方向有没有信号，最后看支撑和阻力。榜单只用于缩小观察范围，不代表可以买入。";
 const marketTemperatureHelp = "市场温度怎么看\n分数越高，市场整体越强；分数越低，市场风险越高。\n70–100 偏强：市场较强，可以积极找机会，但不要盲目追高\n50–69 中性：方向不清，等走势更明确再操作\n0–49 防守：风险较高，少追涨、控制仓位\n根据恐慌指数、利率、通胀、美元、原油及标普和纳指趋势综合计算，仅用于判断市场环境，不代表未来一定上涨或下跌。";
 const marketTemperatureAdvice: Record<string, string> = {
   偏强: "市场较强，可重点观察强势股",
@@ -126,6 +90,7 @@ type RouteState = {
   page: PageKey;
   opinionId: string;
   symbol: string;
+  stockSource: StockSource;
   courseId: string;
   resetToken: string;
 };
@@ -146,10 +111,12 @@ function VolumeRatioLabel() {
 function readRouteState(): RouteState {
   const params = new URLSearchParams(window.location.search);
   const pageParam = params.get("page") as PageKey | null;
+  const sourceParam = params.get("source");
   return {
-    page: pageParam && validPageKeys.has(pageParam) ? pageParam : "home",
+    page: params.get("page") === "bottom" ? "dca2" : pageParam && validPageKeys.has(pageParam) ? pageParam : "home",
     opinionId: params.get("opinion") || "",
     symbol: (params.get("symbol") || "").trim().toUpperCase(),
+    stockSource: sourceParam === "tracking" || sourceParam === "watchlist" || sourceParam === "search" ? sourceParam : "stocks",
     courseId: params.get("course") || "",
     resetToken: params.get("resetToken") || ""
   };
@@ -160,7 +127,10 @@ function pushRouteState(route: Partial<RouteState> & { page: PageKey }) {
   url.search = "";
   if (route.page !== "home") url.searchParams.set("page", route.page);
   if (route.page === "opinions" && route.opinionId) url.searchParams.set("opinion", route.opinionId);
-  if (route.page === "stocks" && route.symbol) url.searchParams.set("symbol", route.symbol);
+  if (route.page === "stocks" && route.symbol) {
+    url.searchParams.set("symbol", route.symbol);
+    if (route.stockSource && route.stockSource !== "stocks") url.searchParams.set("source", route.stockSource);
+  }
   if (route.page === "courses" && route.courseId) url.searchParams.set("course", route.courseId);
   window.history.pushState(null, "", url);
 }
@@ -195,8 +165,6 @@ const trackingSymbols = [
   "005930"
 ];
 
-const trackingAddedSymbols = ["SOXL", "DRAM", "MRVL", "SPCX", "DELL", "AMAT", "000660", "005930"];
-
 const trackingSymbolNames: Record<string, string> = {
   AAPL: "Apple Inc.",
   AMD: "Advanced Micro Devices",
@@ -229,10 +197,11 @@ const trackingSymbolNames: Record<string, string> = {
 
 const sectionLabels: Record<string, string> = {
   weekly: "周度前瞻",
+  crypto: "加密相关",
   premarket: "盘前前瞻",
-  daily: "每日个股行情观点",
+  daily: "个股观点",
   research: "研报解析",
-  postmarket: "盘后复盘延展",
+  postmarket: "盘后复盘",
   journal: "交易日记"
 };
 
@@ -246,44 +215,6 @@ function isHomepageOpinion(item: Opinion) {
   if ((item.title || "").trim().length < 2) return false;
   return item.status === "published";
 }
-
-const pageAccessRules: Partial<Record<PageKey, { level: AccessLevel; title: string; text: string }>> = {
-  opinions: {
-    level: "monthly",
-    title: `会员可看完整${pageLabels.opinions}`,
-    text: "免费账号可预览最新方向，完整正文、历史观点和栏目内容开通后查看。"
-  },
-  tracking: {
-    level: "monthly",
-    title: `会员可看完整${pageLabels.tracking}`,
-    text: "免费账号可看到涨幅和强弱线索，标的名称开通后查看。"
-  },
-  market: {
-    level: "monthly",
-    title: `会员可看${pageLabels.market}`,
-    text: "开通后查看板块排行、资金方向和热门股票板块。"
-  },
-  open: {
-    level: "yearly",
-    title: "年度会员可看 Open 持仓参考",
-    text: "开通后查看完整持仓、收益分布和交割记录。"
-  },
-  position: {
-    level: "monthly",
-    title: "会员可用以损定仓",
-    text: "开通后按买入价、止损价和单笔最大亏损计算建议仓位。"
-  },
-  risk: {
-    level: "registered",
-    title: `注册后查看${pageLabels.risk}`,
-    text: "登录后查看完整市场温度与指标走势。"
-  },
-  strength: {
-    level: "monthly",
-    title: `会员可看${pageLabels.strength}`,
-    text: "月度和年度会员可查看完整榜单。"
-  }
-};
 
 function dayDistanceLabel(value?: string | null) {
   if (isBlankValue(value)) return "--";
@@ -422,6 +353,55 @@ function calendarValue(label?: string | number | null, value?: string | number |
   return Number.isFinite(n) ? String(value).trim() : "";
 }
 
+function macroResultValue(event: CalendarEvent, label?: string | number | null, value?: string | number | null) {
+  const display = calendarValue(label, value);
+  if (!display || event.resultKind !== "jobs") return display;
+  const numeric = Number(String(value ?? display).replace(/[^\d.-]/g, ""));
+  if (!Number.isFinite(numeric)) return display;
+  const wan = numeric / 10;
+  return `${Number.isInteger(wan) ? wan.toFixed(0) : wan.toFixed(1)}万`;
+}
+
+type CoreMacroKind = "cpi" | "jobs" | "rate";
+
+const coreMacroTabs: Array<{ key: CoreMacroKind; label: string }> = [
+  { key: "cpi", label: "CPI" },
+  { key: "jobs", label: "非农" },
+  { key: "rate", label: "FOMC" }
+];
+
+function coreMacroKind(event?: CalendarEvent | null): CoreMacroKind | null {
+  if (!event) return null;
+  if (event.resultKind === "cpi" || event.resultKind === "jobs" || event.resultKind === "rate") return event.resultKind;
+  const title = String(event.title || "").toLowerCase();
+  if (title.includes("cpi") || title.includes("consumer price")) return "cpi";
+  if (title.includes("非农") || title.includes("employment situation") || title.includes("nonfarm") || title.includes("payroll")) return "jobs";
+  if (title.includes("fomc") || title.includes("利率决议")) return "rate";
+  return null;
+}
+
+function macroChangeText(event?: CalendarEvent | null, kind?: CoreMacroKind | null) {
+  if (!event || event.actualValue == null || event.previousValue == null || !kind) return "--";
+  const actual = kind === "cpi" ? Number(Number(event.actualValue).toFixed(1)) : Number(event.actualValue);
+  const previous = kind === "cpi" ? Number(Number(event.previousValue).toFixed(1)) : Number(event.previousValue);
+  const change = actual - previous;
+  if (!Number.isFinite(change)) return "--";
+  if (Math.abs(change) < 1e-9) return "不变";
+  if (kind === "jobs") {
+    const wan = Math.abs(change) / 10;
+    const value = Number.isInteger(wan) ? wan.toFixed(0) : wan.toFixed(1);
+    return `${change > 0 ? "增加" : "减少"} ${value}万`;
+  }
+  const value = Math.abs(change).toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return `${change > 0 ? "上升" : "下降"} ${value}个百分点`;
+}
+
+function macroDateTime(event?: CalendarEvent | null, short = false) {
+  if (!event) return "--";
+  const day = formatDate(event.date);
+  return `${short ? day.slice(5) : day} ${calendarTime24(event.time)}`;
+}
+
 function compactText(value?: string | null, max = 88) {
   if (isBlankValue(value)) return "";
   const text = String(value || "")
@@ -440,12 +420,6 @@ function formatOpinionTime(value?: string | null) {
   if (!text) return "--";
   if (/\b00:00(?::00)?$/.test(text)) return formatDate(text);
   return /\d{2}:\d{2}/.test(text) ? formatDateTime(text) : formatDate(text);
-}
-
-function formatOpinionClock(value?: string | null) {
-  const date = formatDate(value);
-  const dateTime = formatOpinionTime(value);
-  return dateTime.startsWith(`${date} `) ? dateTime.slice(date.length + 1) : "";
 }
 
 function normalizeImageUrl(url: string) {
@@ -590,12 +564,8 @@ function latestSignalStates(states: SignalState[]) {
   return latest ? states.filter((item) => signalBatchDate(item) === latest) : [];
 }
 
-function signalForSymbol(states: SignalState[], symbol?: string | null) {
-  return latestSignalStates(states).find((item) => item.symbol === symbol) || null;
-}
-
 type TrackingSortKey = "symbol" | "currentPrice" | "oneMonth" | "oneDay" | "oneWeek" | "volume" | "marketCap" | "signal" | "signalFirstSeen";
-type StockSortKey = "symbol" | "dayChange" | "weekChange" | "monthChange" | "dollarVolume" | "marketCap";
+type StockSortKey = "symbol" | "dayChange" | "weekChange" | "monthChange" | "ytdChange" | "dollarVolume" | "marketCap";
 type SortDir = "asc" | "desc";
 
 function trackingSortValue(row: ReturnType<typeof mergedTrackingRows>[number], key: TrackingSortKey) {
@@ -670,12 +640,6 @@ function numericPercent(value?: number | string | null) {
   return Number(String(value).replace("%", "").replace("+", ""));
 }
 
-function barWidth(value?: number | string | null, max = 100) {
-  const n = Math.abs(numericPercent(value));
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(6, Math.min(100, (n / max) * 100));
-}
-
 function stockCompany(row?: SymbolRow | null) {
   if (!row) return "--";
   return !isBlankValue(row.company) ? row.company! : !isBlankValue(row.chineseName) ? row.chineseName! : row.symbol;
@@ -716,6 +680,10 @@ function hasPageAccess(auth: AuthStatus | null, page: PageKey) {
 
 function pageNeedsBootstrap(page: PageKey) {
   return page === "home" || page === "tracking" || page === "market";
+}
+
+function bootstrapLimitForPage(page: PageKey) {
+  return page === "market" ? 500 : 4;
 }
 
 function pageNeedsOpinions(page: PageKey) {
@@ -791,7 +759,9 @@ function App() {
   const initialRoute = useMemo(() => readRouteState(), []);
   const [page, setPage] = useState<PageKey>(initialRoute.page);
   const [auth, setAuth] = useState<AuthStatus | null>(null);
+  const [authFailed, setAuthFailed] = useState(false);
   const [bootstrap, setBootstrap] = useState<BootstrapPayload | null>(null);
+  const [bootstrapLimit, setBootstrapLimit] = useState(0);
   const [opinions, setOpinions] = useState<Opinion[]>([]);
   const [calendar, setCalendar] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -803,10 +773,11 @@ function App() {
   const [signalStates, setSignalStates] = useState<SignalState[]>([]);
   const [signalsLoading, setSignalsLoading] = useState(pageNeedsSignals(initialRoute.page));
   const [signalsLoaded, setSignalsLoaded] = useState(false);
+  const [sharedDataFailures, setSharedDataFailures] = useState<Partial<Record<SharedDataSource, boolean>>>({});
   const [selectedOpinion, setSelectedOpinion] = useState<string>(initialRoute.opinionId);
   const [selectedSymbol, setSelectedSymbol] = useState<string>(initialRoute.symbol);
   const [selectedCourse, setSelectedCourse] = useState<string>(initialRoute.courseId);
-  const [selectedSymbolSource, setSelectedSymbolSource] = useState<"stocks" | "tracking" | "search">("stocks");
+  const [selectedSymbolSource, setSelectedSymbolSource] = useState<StockSource>(initialRoute.stockSource);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [unlockModalOpen, setUnlockModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(initialRoute.resetToken ? "reset" : "login");
@@ -817,47 +788,75 @@ function App() {
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileNavCloseRef = useRef<HTMLButtonElement>(null);
 
-  const refreshAuth = () => api.auth().then((payload) => {
-    setAuth(payload);
-    return payload;
-  });
-
-  const refreshBootstrap = useCallback(() => {
-    setBootstrapLoading(true);
-    return api.bootstrap(500, trackingSymbols)
-      .then((payload) => setBootstrap(payload))
-      .finally(() => setBootstrapLoading(false));
+  const refreshAuth = useCallback(() => {
+    setAuthFailed(false);
+    return api.auth()
+      .then((payload) => {
+        setAuth(payload);
+        return payload;
+      })
+      .catch((error) => {
+        setAuthFailed(true);
+        throw error;
+      });
   }, []);
+
+  const setSharedDataFailure = useCallback((source: SharedDataSource, failed: boolean) => {
+    setSharedDataFailures((current) => current[source] === failed ? current : { ...current, [source]: failed });
+  }, []);
+
+  const refreshBootstrap = useCallback((limit: number) => {
+    setBootstrapLoading(true);
+    setSharedDataFailure("bootstrap", false);
+    return api.bootstrap(limit, trackingSymbols)
+      .then((payload) => {
+        setBootstrap(payload);
+        setBootstrapLimit(limit);
+      })
+      .catch(() => setSharedDataFailure("bootstrap", true))
+      .finally(() => setBootstrapLoading(false));
+  }, [setSharedDataFailure]);
 
   const refreshOpinions = useCallback(() => {
     setOpinionsLoading(true);
+    setSharedDataFailure("opinions", false);
     return api.opinions(12)
       .then((payload) => {
         setOpinions(payload.rows || []);
         setOpinionsLoaded(true);
       })
+      .catch(() => setSharedDataFailure("opinions", true))
       .finally(() => setOpinionsLoading(false));
-  }, []);
+  }, [setSharedDataFailure]);
 
   const refreshCalendar = useCallback(() => {
     setCalendarLoading(true);
-    return api.calendar({ limit: 8, windowDays: "45" })
-      .then((payload) => {
-        setCalendar(payload.rows || []);
+    setSharedDataFailure("calendar", false);
+    return Promise.allSettled([
+      api.calendar({ limit: 4, windowDays: "45", type: "macro" }),
+      api.calendar({ limit: 4, windowDays: "45", type: "earnings" })
+    ])
+      .then(([macro, earnings]) => {
+        const rows = [macro, earnings].flatMap((result) => result.status === "fulfilled" ? result.value.rows || [] : []);
+        if (!rows.length && macro.status === "rejected" && earnings.status === "rejected") throw macro.reason;
+        setCalendar(rows);
         setCalendarLoaded(true);
       })
+      .catch(() => setSharedDataFailure("calendar", true))
       .finally(() => setCalendarLoading(false));
-  }, []);
+  }, [setSharedDataFailure]);
 
   const refreshSignals = useCallback(() => {
     setSignalsLoading(true);
+    setSharedDataFailure("signals", false);
     return api.signals()
       .then((payload) => {
         setSignalStates(payload.states || []);
         setSignalsLoaded(true);
       })
+      .catch(() => setSharedDataFailure("signals", true))
       .finally(() => setSignalsLoading(false));
-  }, []);
+  }, [setSharedDataFailure]);
 
   const openAuth = useCallback((mode: AuthMode = "login") => {
     setAuthMode(mode);
@@ -884,44 +883,37 @@ function App() {
   }, [auth?.authenticated, openAuth]);
 
   useEffect(() => {
-    const tasks: Array<Promise<unknown>> = [
-      api.auth().then((authPayload) => setAuth(authPayload))
-    ];
-    if (pageNeedsBootstrap(initialRoute.page)) tasks.push(refreshBootstrap());
+    void refreshAuth()
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+    if (pageNeedsBootstrap(initialRoute.page)) void refreshBootstrap(bootstrapLimitForPage(initialRoute.page));
     if (pageNeedsOpinions(initialRoute.page)) {
-      tasks.push(refreshOpinions().then(() => setSelectedOpinion((current) => current || initialRoute.opinionId || "")));
+      void refreshOpinions().then(() => setSelectedOpinion((current) => current || initialRoute.opinionId || ""));
     }
-    if (pageNeedsCalendar(initialRoute.page)) tasks.push(refreshCalendar());
-    if (pageNeedsSignals(initialRoute.page)) tasks.push(refreshSignals());
-    Promise.all(tasks)
-      .finally(() => {
-        setBootstrapLoading(false);
-        setOpinionsLoading(false);
-        setCalendarLoading(false);
-        setSignalsLoading(false);
-        setLoading(false);
-      });
-  }, [initialRoute.opinionId, initialRoute.page, refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals]);
+    if (pageNeedsCalendar(initialRoute.page)) void refreshCalendar();
+    if (pageNeedsSignals(initialRoute.page)) void refreshSignals();
+  }, [initialRoute.opinionId, initialRoute.page, refreshAuth, refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals]);
 
   useEffect(() => {
-    if (!pageNeedsBootstrap(page) || bootstrap || bootstrapLoading) return;
-    void refreshBootstrap();
-  }, [bootstrap, bootstrapLoading, page, refreshBootstrap]);
+    const requiredLimit = bootstrapLimitForPage(page);
+    if (!pageNeedsBootstrap(page) || bootstrapLimit >= requiredLimit || bootstrapLoading || sharedDataFailures.bootstrap) return;
+    void refreshBootstrap(requiredLimit);
+  }, [bootstrapLimit, bootstrapLoading, page, refreshBootstrap, sharedDataFailures.bootstrap]);
 
   useEffect(() => {
-    if (!pageNeedsOpinions(page) || opinionsLoaded || opinionsLoading) return;
+    if (!pageNeedsOpinions(page) || opinionsLoaded || opinionsLoading || sharedDataFailures.opinions) return;
     void refreshOpinions();
-  }, [opinionsLoaded, opinionsLoading, page, refreshOpinions]);
+  }, [opinionsLoaded, opinionsLoading, page, refreshOpinions, sharedDataFailures.opinions]);
 
   useEffect(() => {
-    if (!pageNeedsCalendar(page) || calendarLoaded || calendarLoading) return;
+    if (!pageNeedsCalendar(page) || calendarLoaded || calendarLoading || sharedDataFailures.calendar) return;
     void refreshCalendar();
-  }, [calendarLoaded, calendarLoading, page, refreshCalendar]);
+  }, [calendarLoaded, calendarLoading, page, refreshCalendar, sharedDataFailures.calendar]);
 
   useEffect(() => {
-    if (!pageNeedsSignals(page) || signalsLoaded || signalsLoading) return;
+    if (!pageNeedsSignals(page) || signalsLoaded || signalsLoading || sharedDataFailures.signals) return;
     void refreshSignals();
-  }, [page, refreshSignals, signalsLoaded, signalsLoading]);
+  }, [page, refreshSignals, sharedDataFailures.signals, signalsLoaded, signalsLoading]);
 
   useEffect(() => {
     const onPopState = () => {
@@ -930,7 +922,7 @@ function App() {
       setSelectedOpinion(route.opinionId);
       setSelectedSymbol(route.symbol);
       setSelectedCourse(route.courseId);
-      setSelectedSymbolSource("stocks");
+      setSelectedSymbolSource(route.stockSource);
       setMobileNavOpen(false);
       setMobileSearchOpen(false);
     };
@@ -964,11 +956,10 @@ function App() {
     setSelectedSymbolSource("stocks");
     pushRouteState({ page: nextPage });
     void api.analyticsEvent("nav_click", nextPage).catch(() => {});
-    if (pageNeedsBootstrap(nextPage)) void refreshBootstrap();
     if (pageNeedsOpinions(nextPage)) void refreshOpinions();
     if (pageNeedsCalendar(nextPage)) void refreshCalendar();
     if (pageNeedsSignals(nextPage)) void refreshSignals();
-  }, [refreshBootstrap, refreshCalendar, refreshOpinions, refreshSignals, requireLogin]);
+  }, [refreshCalendar, refreshOpinions, refreshSignals, requireLogin]);
 
   const clearOpinion = useCallback(() => {
     if (!requireLogin()) return;
@@ -991,13 +982,13 @@ function App() {
     selectOpinion(item.id);
   }, [requireLogin, selectOpinion]);
 
-  const selectSymbol = useCallback((symbol: string, source: "stocks" | "tracking" | "search" = "stocks") => {
+  const selectSymbol = useCallback((symbol: string, source: StockSource = "stocks") => {
     if (!requireLogin()) return;
     const nextSymbol = symbol.trim().toUpperCase();
     setSelectedSymbol(nextSymbol);
     setSelectedSymbolSource(source);
     setPage("stocks");
-    pushRouteState({ page: "stocks", symbol: nextSymbol });
+    pushRouteState({ page: "stocks", symbol: nextSymbol, stockSource: source });
   }, [requireLogin]);
 
   const selectCourse = useCallback((courseId: string) => {
@@ -1023,13 +1014,13 @@ function App() {
     setPage("stocks");
     setMobileNavOpen(false);
     setMobileSearchOpen(false);
-    pushRouteState({ page: "stocks", symbol: nextSymbol });
+    pushRouteState({ page: "stocks", symbol: nextSymbol, stockSource: "search" });
   };
 
   const trackingRows = useMemo(() => mergedTrackingRows(bootstrap, signalStates), [bootstrap, signalStates]);
   const latestOpinion = opinions[0];
   const selected = opinions.find((item) => item.id === selectedOpinion) || latestOpinion;
-  const gatedRule = page === "opinions" || page === "tracking" ? undefined : pageAccessRules[page];
+  const gatedRule = page === "opinions" || page === "tracking" || page === "dca1" || page === "dca2" ? undefined : pageAccessRules[page];
   const pageUnlocked = hasPageAccess(auth, page);
   const onboardingOpen = Boolean(
     auth?.authenticated &&
@@ -1039,11 +1030,13 @@ function App() {
   const opinionsLocked = page === "opinions" && !pageUnlocked;
   const homeOpinionsLocked = !hasPageAccess(auth, "opinions");
   const homeTrackingLocked = !hasPageAccess(auth, "tracking");
-  const activeNavPage = page === "stocks" && selectedSymbolSource === "tracking" ? "tracking" : page;
+  const activeNavPage = page === "stocks" && selectedSymbol
+    ? selectedSymbolSource === "tracking" ? "tracking" : selectedSymbolSource === "watchlist" ? "watchlist" : "stocks"
+    : page;
   const gateGuestClick = useCallback((event: MouseEvent<HTMLElement>) => {
     if (auth?.authenticated) return;
     const target = event.target as HTMLElement | null;
-    if (!target || target.closest(".authOverlay, .accountButton, .mobileNavigationControl")) return;
+    if (!target || target.closest(".authOverlay, .accountButton, .mobileNavigationControl, .appDataError, .requestRetry")) return;
     const interactive = target.closest("button, a, input, select, textarea, tr, [role='button']");
     if (!interactive) return;
     event.preventDefault();
@@ -1052,11 +1045,24 @@ function App() {
   }, [auth?.authenticated, openAuth]);
   const pageDataLoading =
     page !== "home" && (
-      (pageNeedsBootstrap(page) && !bootstrap) ||
-      (pageNeedsOpinions(page) && !opinionsLoaded) ||
-      (pageNeedsCalendar(page) && !calendarLoaded) ||
-      (pageNeedsSignals(page) && !signalsLoaded)
+      (pageNeedsBootstrap(page) && bootstrapLimit < bootstrapLimitForPage(page) && !sharedDataFailures.bootstrap) ||
+      (pageNeedsOpinions(page) && !opinionsLoaded && !sharedDataFailures.opinions) ||
+      (pageNeedsCalendar(page) && !calendarLoaded && !sharedDataFailures.calendar) ||
+      (pageNeedsSignals(page) && !signalsLoaded && !sharedDataFailures.signals)
     );
+  const pageDataFailed =
+    (pageNeedsBootstrap(page) && bootstrapLimit < bootstrapLimitForPage(page) && sharedDataFailures.bootstrap) ||
+    (pageNeedsOpinions(page) && sharedDataFailures.opinions) ||
+    (pageNeedsCalendar(page) && sharedDataFailures.calendar) ||
+    (pageNeedsSignals(page) && sharedDataFailures.signals);
+  const retryPageData = () => {
+    if (pageNeedsBootstrap(page) && bootstrapLimit < bootstrapLimitForPage(page) && sharedDataFailures.bootstrap) {
+      void refreshBootstrap(bootstrapLimitForPage(page));
+    }
+    if (pageNeedsOpinions(page) && sharedDataFailures.opinions) void refreshOpinions();
+    if (pageNeedsCalendar(page) && sharedDataFailures.calendar) void refreshCalendar();
+    if (pageNeedsSignals(page) && sharedDataFailures.signals) void refreshSignals();
+  };
   const renderNavItems = (items: NavItem[]) => items.map((item) => (
     <button
       type="button"
@@ -1075,7 +1081,7 @@ function App() {
       <aside className={`sideRail ${mobileNavOpen ? "mobileOpen" : ""}`} aria-label="网站导航">
         <div className="sideRailHeader">
           <a className="brand" href="/" onClick={() => setMobileNavOpen(false)}>
-            <img src="/assets/dongbimao-logo.png" alt="" width="38" height="38" />
+            <img src="/assets/dongbimao-logo.png?v=20260824" alt="" width="38" height="38" />
             <span>
               <strong>懂币猫</strong>
               <small>美股投研</small>
@@ -1096,7 +1102,7 @@ function App() {
           <div className="navToolGroup">
             <p className="navGroupTitle">管理员工具</p>
               {renderNavItems(toolDataPageNavItems)}
-              {adminToolDataNavItems.map((item) => (
+              {legacyMigrationNavItems.map((item) => (
                 <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)}>{item.label}</a>
               ))}
           </div>
@@ -1121,7 +1127,7 @@ function App() {
       <section className="workspace" inert={mobileNavOpen}>
         <header className="mobileShellBar">
           <a className="mobileShellBrand" href="/">
-            <img src="/assets/dongbimao-logo.png" alt="" width="34" height="34" />
+            <img src="/assets/dongbimao-logo.png?v=20260824" alt="" width="34" height="34" />
             <span><strong>懂币猫</strong><small>美股投研</small></span>
           </a>
           <div>
@@ -1137,7 +1143,7 @@ function App() {
         <header className={`topbar ${page === "home" ? "homeTopbar" : ""} ${page === "calendar" ? "calendarTopbar" : ""}`}>
           {page !== "calendar" ? (
             <form className="globalSearch" onSubmit={submitGlobalSearch}>
-              <input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="搜索股票、观点、财报、页面" />
+              <input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="搜索股票代码" aria-label="搜索股票代码" />
             </form>
           ) : null}
           {auth?.authenticated && auth.user ? (
@@ -1157,6 +1163,18 @@ function App() {
         </header>
 
         {loading || (!loading && pageDataLoading) ? <div className="loading" /> : null}
+        {!loading && authFailed ? (
+          <div className="marketToolError compact appDataError authStatusError" role="alert">
+            <span>登录状态加载失败</span>
+            <button type="button" className="requestRetry" onClick={() => void refreshAuth().catch(() => undefined)}>重新加载</button>
+          </div>
+        ) : null}
+        {!loading && pageDataFailed ? (
+          <div className="marketToolError compact appDataError" role="alert">
+            <span>页面数据加载失败</span>
+            <button type="button" className="requestRetry" onClick={retryPageData}>重新加载</button>
+          </div>
+        ) : null}
         {!loading && !pageDataLoading ? (
           <GatedPage rule={gatedRule} unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={openAuth} onUnlock={requestUnlock}>
             {page === "home" ? (
@@ -1169,7 +1187,6 @@ function App() {
                 selectedId={selectedOpinion}
                 onSelect={selectOpinionItem}
                 onBack={clearOpinion}
-                onPage={navigatePage}
                 locked={opinionsLocked}
                 authenticated={Boolean(auth?.authenticated)}
                 onAuth={openAuth}
@@ -1180,14 +1197,27 @@ function App() {
             {page === "market" ? <MarketPage bootstrap={bootstrap} onPage={navigatePage} /> : null}
             {page === "risk" ? <MarketTemperaturePage enabled={pageUnlocked} /> : null}
             {page === "strength" ? <MarketStrengthPage enabled={pageUnlocked} onOpenStock={selectSymbol} /> : null}
-            {page === "stocks" && selectedSymbolSource === "tracking" ? <TrackingStockDetailPage symbol={selectedSymbol} rows={trackingRows} onBack={() => navigatePage("tracking")} onStocks={() => navigatePage("stocks")} onOpenStock={selectSymbol} /> : null}
-            {page === "stocks" && selectedSymbolSource !== "tracking" ? <StocksPage selectedSymbol={selectedSymbol} signalStates={signalStates} bootstrap={bootstrap} onSelectSymbol={selectSymbol} /> : null}
+            {page === "valuation" ? <IndexValuationPage enabled={pageUnlocked} /> : null}
+            {page === "stocks" && selectedSymbol ? (
+              <StockDetailPage
+                symbol={selectedSymbol}
+                rows={trackingRows}
+                backLabel={selectedSymbolSource === "tracking" ? pageLabels.tracking : selectedSymbolSource === "watchlist" ? pageLabels.watchlist : pageLabels.stocks}
+                onBack={() => navigatePage(selectedSymbolSource === "tracking" ? "tracking" : selectedSymbolSource === "watchlist" ? "watchlist" : "stocks")}
+                onOpenStock={(nextSymbol) => selectSymbol(nextSymbol, selectedSymbolSource)}
+              />
+            ) : null}
+            {page === "stocks" && !selectedSymbol ? <StocksPage signalStates={signalStates} onSelectSymbol={(nextSymbol) => selectSymbol(nextSymbol, "stocks")} /> : null}
             {page === "calendar" ? <CalendarPage initialEvents={calendar} /> : null}
-            {page === "open" ? <OpenPortfolioPage /> : null}
+            {page === "open" ? <OpenPortfolioPage enabled={pageUnlocked} /> : null}
+            {page === "watchlist" ? <WatchlistPage enabled={pageUnlocked} onOpenStock={selectSymbol} /> : null}
+            {page === "dca1" ? <ValueDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
+            {page === "dca2" ? <ReversalDcaPage unlocked={pageUnlocked} authenticated={Boolean(auth?.authenticated)} onAuth={() => openAuth("login")} onUnlock={requestUnlock} /> : null}
             {page === "position" ? <PositionSizingPage /> : null}
+            {page === "rolling" && pageUnlocked ? <RollingToolPage /> : null}
             {page === "funding" ? <FundingArbitragePage isAdmin={Boolean(auth?.entitlements?.admin)} /> : null}
             {page === "forum" ? <ComingSoonPage title="论坛讨论区" /> : null}
-            {page === "courses" ? <CoursesPage viewerKey={auth?.user?.id || 0} courseId={selectedCourse} onCourse={selectCourse} onBack={clearCourse} onUnlock={requestUnlock} /> : null}
+            {page === "courses" ? <CoursesPage enabled={pageUnlocked} viewerKey={auth?.user?.id || 0} courseId={selectedCourse} onCourse={selectCourse} onBack={clearCourse} onUnlock={requestUnlock} /> : null}
           </GatedPage>
         ) : null}
         <AuthModal
@@ -1200,7 +1230,7 @@ function App() {
             setResetToken("");
             window.history.replaceState(null, "", window.location.pathname);
           }}
-          onDone={() => refreshAuth().finally(() => setAuthModalOpen(false))}
+          onDone={() => void refreshAuth().catch(() => undefined).finally(() => setAuthModalOpen(false))}
         />
         <UnlockContactModal open={unlockModalOpen} onClose={() => setUnlockModalOpen(false)} />
         <OnboardingModal
@@ -1406,7 +1436,11 @@ function AuthModal({
       })
       .catch((err) => {
         setSuccess("");
-        setError(err?.message || (isRegister ? "注册失败" : isReset ? "重置失败" : isForgot ? "发送失败" : "登录失败"));
+        const message = err instanceof Error ? err.message.trim() : "";
+        const technicalFailure = !message || /failed to fetch|load failed|networkerror|请求失败/i.test(message);
+        setError(technicalFailure
+          ? isRegister ? "暂时无法注册，请稍后重试" : isReset ? "暂时无法重置，请稍后重试" : isForgot ? "暂时无法发送，请稍后重试" : "暂时无法登录，请稍后重试"
+          : message);
       })
       .finally(() => setSubmitting(false));
   };
@@ -1465,6 +1499,20 @@ function HomePage({
   onUnlock: () => void;
   onPage: (page: PageKey) => void;
 }) {
+  const [temperature, setTemperature] = useState<MarketTemperaturePayload | null>(null);
+
+  useEffect(() => {
+    if (!authenticated) {
+      setTemperature(null);
+      return;
+    }
+    let active = true;
+    api.marketTemperature()
+      .then((payload) => { if (active) setTemperature(payload); })
+      .catch(() => { if (active) setTemperature(null); });
+    return () => { active = false; };
+  }, [authenticated]);
+
   const opinionRows = opinions.filter(isHomepageOpinion);
   const latest = opinionRows.find((item) => item.featured) || opinionRows.find((item) => (item.summary || item.body || "").length > 40) || opinionRows[0];
   const focusRows = trackingRows
@@ -1481,19 +1529,57 @@ function HomePage({
     .filter((row) => row.symbol)
     .sort((a, b) => Number(b.change ?? b.changeYtd ?? -Infinity) - Number(a.change ?? a.changeYtd ?? -Infinity))
     .slice(0, 4);
-  const eventRows = [...calendar]
+  const eventRows = calendar
+    .filter((item) => isFutureOrToday(item.date))
     .sort((a, b) => {
       const aHigh = a.impact === "high" ? 0 : 1;
       const bHigh = b.impact === "high" ? 0 : 1;
       const dateCompare = String(a.date || "").localeCompare(String(b.date || ""));
       return dateCompare || aHigh - bHigh || String(a.time || "").localeCompare(String(b.time || ""));
-    })
-    .slice(0, 3);
+    });
+  const macroEvent = eventRows.find((item) => item.type === "macro");
+  const earningsRows = eventRows.filter((item) => item.type === "earnings").slice(0, 2);
+  const pressureIndicator = temperature?.indicators?.find((item) => item.status === "watch") || null;
+  const hasMacroSignal = Boolean(macroEvent && !isBlankValue(macroEvent.title) && !isBlankValue(macroEvent.date));
+  const hasPressureSignal = Boolean(pressureIndicator && !isBlankValue(pressureIndicator.name) && !isBlankValue(pressureIndicator.value));
+  const leadSector = sectorRows.find((row) => !isBlankValue(row.sector) && Number.isFinite(Number(row.netFlowProxy)) && Number(row.netFlowProxy) !== 0);
+  const hasSectorSignal = Boolean(leadSector);
+  const marketSignalCount = Number(hasMacroSignal) + Number(hasPressureSignal) + Number(hasSectorSignal);
   const trackingUpdatedAt = bootstrap?.strength?.asOf || bootstrap?.meta?.generatedAt;
   const sectorUpdatedAt = bootstrap?.sectorFlow?.asOf;
   const stocksUpdatedAt = bootstrap?.movers?.updatedAt;
   return (
     <div className="frontHomePage">
+      {marketSignalCount ? (
+        <section
+          className="frontHomeMarketStrip"
+          aria-label="今日市场"
+          style={{ "--front-home-market-count": marketSignalCount } as CSSProperties}
+        >
+          {hasMacroSignal && macroEvent ? (
+            <button type="button" onClick={() => onPage("calendar")}>
+              <span>下个重点</span>
+              <strong>{calendarTitle(macroEvent.title)}</strong>
+              <small>{dayDistanceLabel(macroEvent.date)} · {calendarTime24(macroEvent.time)}</small>
+            </button>
+          ) : null}
+          {hasPressureSignal && pressureIndicator ? (
+            <button type="button" onClick={() => onPage("risk")}>
+              <span>主要压力</span>
+              <strong>{pressureIndicator.name}</strong>
+              <small>{pressureIndicator.value}</small>
+            </button>
+          ) : null}
+          {hasSectorSignal && leadSector ? (
+            <button type="button" onClick={() => onPage("market")}>
+              <span>资金领先</span>
+              <strong>{leadSector.sector}</strong>
+              <small className={signedClass(leadSector.netFlowProxy)}>{money(leadSector.netFlowProxy)}</small>
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="frontHomeBoard">
         <article className="frontLeadPanel">
           <div className="frontLeadMeta">
@@ -1515,11 +1601,18 @@ function HomePage({
             <strong>{pageLabels.calendar}</strong>
             <button type="button" onClick={() => onPage("calendar")}>查看日历</button>
           </div>
-          {eventRows.map((item) => (
+          {macroEvent ? (
+            <button type="button" className="frontCalendarFeature" onClick={() => onPage("calendar")}>
+              <span>宏观重点</span>
+              <strong>{calendarTitle(macroEvent.title)}</strong>
+              <small>{dayDistanceLabel(macroEvent.date)} {calendarTime24(macroEvent.time)}</small>
+            </button>
+          ) : null}
+          {earningsRows.length ? <div className="frontCalendarSectionLabel">近期财报</div> : null}
+          {earningsRows.map((item) => (
             <button type="button" key={item.id} className={`frontCalendarEvent ${item.impact === "high" ? "highImpact" : ""}`} onClick={() => onPage("calendar")}>
               <span>{dayDistanceLabel(item.date)} {calendarTime24(item.time)}</span>
-              <strong>{calendarTitle(item.title)}</strong>
-              <small>{(item.relatedAssets || []).slice(0, 3).join(" / ") || eventTypeLabel(item.type)}</small>
+              <strong>{calendarTitle(item.title).replace(/\s*财报$/, "")}</strong>
               <em className={impactClass(item.impact)}>{impactLabel(item.impact)}</em>
             </button>
           ))}
@@ -1663,7 +1756,6 @@ function OpinionsPage({
   selectedId,
   onSelect,
   onBack,
-  onPage,
   locked,
   authenticated,
   onAuth,
@@ -1674,7 +1766,6 @@ function OpinionsPage({
   selectedId: string;
   onSelect: (item: Opinion) => void;
   onBack: () => void;
-  onPage: (page: PageKey) => void;
   locked: boolean;
   authenticated: boolean;
   onAuth: (mode: AuthMode) => void;
@@ -1729,10 +1820,6 @@ function OpinionsPage({
   if (!selectedId) {
     return (
       <div className="opinionProductPage">
-        <header className="opinionProductHeading">
-          <h1>{pageLabels.opinions}</h1>
-          <span>{displayRows[0]?.tradeDate ? `更新 ${formatOpinionTime(displayRows[0].tradeDate)}` : ""}</span>
-        </header>
         <div className="opinionProductTabs">
           {sectionOptions.map((item) => (
             <button key={item.key} type="button" className={item.key === section ? "active" : ""} onClick={() => changeSection(item.key)}>
@@ -1743,15 +1830,15 @@ function OpinionsPage({
 
         <section className="opinionProductLayout single">
           <article className="opinionProductFeed">
-            {!loading && !displayRows.length ? <div className="opinionLoading">--</div> : null}
-            {!loading ? groupedRows.map((group, groupIndex) => (
+            {loading ? <div className="opinionLoading">正在加载</div> : null}
+            {!loading && !displayRows.length ? <div className="opinionEmpty">该栏目暂时没有内容</div> : null}
+            {!loading ? groupedRows.map((group) => (
               <Fragment key={group.date}>
                 <div className="opinionProductDay">{group.date}</div>
-                {group.rows.map((item, itemIndex) => (
+                {group.rows.map((item) => (
                   <button
                     type="button"
                     key={item.id}
-                    className={pageIndex === 0 && groupIndex === 0 && itemIndex === 0 ? "featured" : ""}
                     onClick={() => onSelect(item)}
                   >
                     <div className="opinionProductItem">
@@ -1759,24 +1846,25 @@ function OpinionsPage({
                         <b>{opinionSectionLabel(item)}</b>
                         <strong>{opinionDisplayTitle(item)}</strong>
                       </div>
-                      <div className={locked ? "opinionLockedExcerpt opinionListPreview" : "opinionListPreview"}>
+                      <div className="opinionListPreview">
                         <p>{compactText(item.summary || item.body, 96)}</p>
                       </div>
                       <div className="opinionProductTags compact">
                         {[...(item.symbols || []), ...(item.topics || [])].slice(0, 5).map((tag) => <b key={tag}>{tag}</b>)}
                       </div>
                     </div>
-                    <time>{formatOpinionClock(item.tradeDate)}</time>
-                    {locked ? <span className="opinionMemberLabel">会员可见</span> : null}
+                    <span className="opinionRowChevron" aria-hidden="true">›</span>
                   </button>
                 ))}
               </Fragment>
             )) : null}
-            <div className="opinionPager">
-              <button type="button" disabled={pageIndex <= 0 || loading} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>
-              <span>{pageIndex + 1} / {pageCount}</span>
-              <button type="button" disabled={pageIndex >= pageCount - 1 || loading} onClick={() => setPageIndex((value) => Math.min(pageCount - 1, value + 1))}>下一页</button>
-            </div>
+            {pageCount > 1 ? (
+              <div className="opinionPager">
+                <button type="button" disabled={pageIndex <= 0 || loading} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>
+                <span>{pageIndex + 1} / {pageCount}</span>
+                <button type="button" disabled={pageIndex >= pageCount - 1 || loading} onClick={() => setPageIndex((value) => Math.min(pageCount - 1, value + 1))}>下一页</button>
+              </div>
+            ) : null}
           </article>
 
         </section>
@@ -1788,8 +1876,7 @@ function OpinionsPage({
     <div className="opinionReaderPage">
       <article className="readerPanel articleReaderPanel">
         <div className="readerTop">
-          <button type="button" onClick={onBack}>返回{pageLabels.opinions}</button>
-          <button type="button" onClick={() => onPage("home")}>返回首页</button>
+          <button type="button" onClick={onBack}>返回列表</button>
         </div>
         <div className="readerShell opinionReaderSingle">
           <main className="readerMain">
@@ -1817,8 +1904,8 @@ function OpinionsPage({
               )}
               {locked ? (
                 <div className="readerMemberPreview">
-                  <span>完整观点会员可见</span>
-                  <button type="button" onClick={() => authenticated ? onUnlock() : onAuth("register")}>查看完整观点</button>
+                  <span>查看完整观点</span>
+                  <button type="button" onClick={() => authenticated ? onUnlock() : onAuth("register")}>开通会员</button>
                 </div>
               ) : null}
             </div>
@@ -1864,19 +1951,75 @@ function keyLevelDistance(levels?: TrackingKeyLevels) {
   return "";
 }
 
-function keyLevelObservation(direction: string, levels?: TrackingKeyLevels) {
-  if (!levels || levels.status !== "ready") return "";
-  const prefix = direction && direction !== "--" ? `趋势策略方向为${direction}。` : "";
+function keyLevelPositionSummary(levels?: TrackingKeyLevels) {
   const messages: Record<string, string> = {
-    at_support: "价格进入支撑区，先观察该区域能否守住。",
-    near_support: "价格靠近支撑区，先观察回落时是否出现承接。",
-    at_resistance: "价格进入阻力区，先观察能否有效突破。",
-    near_resistance: "价格靠近阻力区，先观察突破力度和回踩表现。",
-    above_resistance: "价格已越过近期阻力，关注回踩后能否站稳。",
-    below_support: "价格已跌破近期支撑，先观察能否收回失守区域。",
-    middle: "价格位于支撑与阻力之间，等待接近关键区域后再观察。"
+    at_support: "先看支撑区能否守住",
+    near_support: "先看支撑区能否守住",
+    at_resistance: "先看阻力区能否突破",
+    near_resistance: "先看阻力区能否突破",
+    above_resistance: "关注突破后能否站稳",
+    below_support: "先看能否收回支撑区",
+    middle: "价格位于支撑与阻力之间"
   };
-  return `${prefix}${messages[levels.position || "middle"] || messages.middle}`;
+  return messages[levels?.position || "middle"] || messages.middle;
+}
+
+function keyLevelNextFocus(levels?: TrackingKeyLevels) {
+  const support = levels?.support;
+  const resistance = levels?.resistance;
+  if (levels?.position === "at_support" || levels?.position === "near_support") {
+    return support?.lower ? `守住 ${priceDisplay(support.lower)}，再看反弹力度` : "观察支撑区能否守住";
+  }
+  if (levels?.position === "at_resistance" || levels?.position === "near_resistance") {
+    return resistance?.upper ? `突破 ${priceDisplay(resistance.upper)}，再看能否站稳` : "观察阻力区能否突破";
+  }
+  if (levels?.position === "above_resistance") {
+    return resistance?.upper ? `回踩 ${priceDisplay(resistance.upper)} 附近，关注能否站稳` : "关注突破后的回踩表现";
+  }
+  if (levels?.position === "below_support") {
+    return support?.lower ? `先看能否收回 ${priceDisplay(support.lower)}` : "先看能否收回支撑区";
+  }
+  if (support?.center && resistance?.center) {
+    return `关注 ${priceDisplay(support.center)} 支撑与 ${priceDisplay(resistance.center)} 阻力`;
+  }
+  return "等待接近关键位置";
+}
+
+function sameKeyLevel(left?: KeyLevel | null, right?: KeyLevel | null) {
+  return Number.isFinite(left?.center) && Number.isFinite(right?.center)
+    && Math.abs(Number(left?.center) - Number(right?.center)) < 0.01;
+}
+
+function breakoutDecision(levels?: TrackingKeyLevels) {
+  const confirmation = levels?.breakoutConfirmation;
+  if (!confirmation?.level) return null;
+  const copy = {
+    breakout_watch: {
+      title: "突破观察",
+      summary: "价格刚越过阻力区，先看能否站稳。",
+      focusLabel: "回踩观察区",
+      focusNote: "回到这里时，重点看能否守住。"
+    },
+    awaiting_retest: {
+      title: "等待回踩",
+      summary: "价格已站上阻力区，等回踩确认。",
+      focusLabel: "回踩观察区",
+      focusNote: "回到这里时，重点看能否守住。"
+    },
+    confirmed_support: {
+      title: "支撑已确认",
+      summary: "回踩后守住该区域，现作为支撑观察。",
+      focusLabel: "确认支撑",
+      focusNote: "后续跌回区域下方，需重新评估。"
+    },
+    breakout_failed: {
+      title: "突破失效",
+      summary: "价格重新回到原阻力区下方，暂不按突破处理。",
+      focusLabel: "重新站上",
+      focusNote: "重新站上该区域后再观察。"
+    }
+  }[confirmation.status || ""];
+  return copy ? { ...copy, confirmation } : null;
 }
 
 function TrackingKeyLevelsCell({
@@ -1892,8 +2035,7 @@ function TrackingKeyLevelsCell({
   if (levels?.status === "insufficient") {
     return (
       <div className="trackingKeyLevelsCell unavailable">
-        <strong>历史数据不足</strong>
-        <small>{levels.availableBars || 0} / {levels.requiredBars || 90} 个交易日</small>
+        <strong>暂时无法计算</strong>
       </div>
     );
   }
@@ -1925,13 +2067,23 @@ function TrackingPriceChart({
   levels: TrackingKeyLevels;
 }) {
   const visible = points.filter((point) => Number.isFinite(point.close)).slice(-60);
-  if (visible.length < 2) return <div className="trackingLevelEmpty compact">暂无走势数据</div>;
+  if (visible.length < 2) return <div className="trackingDetailEmpty compact">暂无走势数据</div>;
   const width = 760;
   const height = 280;
-  const margin = { top: 18, right: 70, bottom: 34, left: 18 };
+  const margin = { top: 18, right: 76, bottom: 34, left: 52 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
-  const levelValues = [levels.support?.lower, levels.support?.upper, levels.resistance?.lower, levels.resistance?.upper]
+  const candidate = levels.breakoutConfirmation?.level;
+  const candidateIsSupport = sameKeyLevel(candidate, levels.support);
+  const candidateIsResistance = sameKeyLevel(candidate, levels.resistance);
+  const levelValues = [
+    levels.support?.lower,
+    levels.support?.upper,
+    levels.resistance?.lower,
+    levels.resistance?.upper,
+    candidate?.lower,
+    candidate?.upper
+  ]
     .filter((value): value is number => Number.isFinite(value));
   const values = [...visible.map((point) => point.close), ...levelValues];
   const rawMin = Math.min(...values);
@@ -1954,16 +2106,26 @@ function TrackingPriceChart({
     );
   };
   const dateIndexes = [0, Math.floor((visible.length - 1) / 2), visible.length - 1];
+  const priceTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => max - (max - min) * ratio);
   const last = visible.at(-1)!;
 
   return (
     <div className="trackingPriceChart">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="近60个交易日价格走势与关键点位">
-        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+        {priceTicks.map((value, index) => {
+          const ratio = index / (priceTicks.length - 1);
           const gridY = margin.top + ratio * plotHeight;
-          return <line key={ratio} className="chartGridLine" x1={margin.left} x2={width - margin.right} y1={gridY} y2={gridY} />;
+          return (
+            <g key={value}>
+              <line className="chartGridLine" x1={margin.left} x2={width - margin.right} y1={gridY} y2={gridY} />
+              <text className="chartPriceLabel" x={margin.left - 8} y={gridY + 4} textAnchor="end">{priceDisplay(value)}</text>
+            </g>
+          );
         })}
-        {zone(levels.resistance, "resistanceZone", "阻力区")}
+        {!candidateIsResistance ? zone(levels.resistance, "resistanceZone", "阻力区") : null}
+        {candidate && !candidateIsSupport
+          ? zone(candidate, "candidateZone", levels.breakoutConfirmation?.status === "breakout_failed" ? "原阻力区" : "观察区")
+          : null}
         {zone(levels.support, "supportZone", "支撑区")}
         <path className="trackingPriceLine" d={path} />
         <line className="currentPriceLine" x1={margin.left} x2={width - margin.right} y1={y(last.close)} y2={y(last.close)} />
@@ -2007,7 +2169,7 @@ function TrackingPage({
   authenticated: boolean;
   onAuth: (mode: AuthMode) => void;
   onUnlock: () => void;
-  onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void;
+  onOpenStock: (symbol: string, source?: StockSource) => void;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [sortKey, setSortKey] = useState<TrackingSortKey>("oneMonth");
@@ -2050,20 +2212,8 @@ function TrackingPage({
 
   return (
     <div className="trackingPage">
-      <header className="trackingHeading">
-        <h1>{pageLabels.tracking}</h1>
-        <InfoTip text={trackingGuideHelp} focusable />
-      </header>
       <section className="screenerCard">
-        <div className="trackingAddStrip">
-          <span>本次新增</span>
-          <div>
-            {locked ? (
-              <span className="trackingAddLocked">会员可见</span>
-            ) : trackingAddedSymbols.map((symbol) => (
-              <b key={symbol}>{symbol}</b>
-            ))}
-          </div>
+        <div className="trackingDataAsOf">
           <time>更新 {formatStoredDateTime(asOf)}</time>
         </div>
         <div className={locked ? "screenerTableWrap trackingLockedTable trackingDesktopTable" : "screenerTableWrap trackingDesktopTable"}>
@@ -2162,54 +2312,65 @@ function TrackingPage({
   );
 }
 
-function TrackingStockDetailPage({
+function StockDetailPage({
   symbol,
   rows,
+  backLabel,
   onBack,
-  onStocks,
   onOpenStock
 }: {
   symbol: string;
   rows: ReturnType<typeof mergedTrackingRows>;
+  backLabel: string;
   onBack: () => void;
-  onStocks: () => void;
-  onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void;
+  onOpenStock: (symbol: string) => void;
 }) {
   const [detail, setDetail] = useState<SymbolDetailPayload | null>(null);
   const [loading, setLoading] = useState(false);
-  const activeSymbol = symbol || rows[0]?.symbol || "";
-  const row = rows.find((item) => item.symbol === activeSymbol) || rows[0] || null;
+  const [reload, setReload] = useState(0);
+  const activeSymbol = symbol.trim().toUpperCase();
+  const row = rows.find((item) => item.symbol === activeSymbol) || null;
   const profile = detail?.profile;
-  const displayName = profile?.company || profile?.chineseName || row?.name || row?.symbol || "--";
-  const direction = trackingDirection(row || undefined);
-  const detailDay = detail?.marketRows.find((item) => item.board === "day");
-  const keyLevels = detailDay?.keyLevels || row?.keyLevels;
-  const priceHistory = detailDay?.priceHistory || row?.priceHistory || [];
-  const levelRows: Array<[string, KeyLevel | null | undefined]> = [
-    ["主要支撑", keyLevels?.support],
-    ["次级支撑", keyLevels?.secondarySupport],
-    ["主要阻力", keyLevels?.resistance]
-  ];
-  const sameList = rows
-    .filter((item) => item.symbol !== activeSymbol)
-    .slice(0, 5);
-  const rankBy = (score: (item: typeof rows[number]) => number) => {
-    const ranked = rows
-      .map((item) => ({ symbol: item.symbol, value: score(item) }))
-      .filter((item) => Number.isFinite(item.value))
-      .sort((a, b) => b.value - a.value);
-    const index = ranked.findIndex((item) => item.symbol === activeSymbol);
-    return index >= 0 ? index + 1 : null;
-  };
-  const rankRows: Array<[string, string | null | undefined, number | null]> = [
-    ["近1月强度", row?.oneMonth, rankBy((item) => numericPercent(item.oneMonth))],
-    ["近1周表现", row?.oneWeek, rankBy((item) => numericPercent(item.oneWeek))],
-    ["成交额", row?.liquidity, rankBy((item) => moneyNumber(item.liquidity))]
-  ];
+  const dayRow = detail?.marketRows.find((item) => item.board === "day");
+  const weekRow = detail?.marketRows.find((item) => item.board === "week");
+  const monthRow = detail?.marketRows.find((item) => item.board === "month");
+  const ytdRow = detail?.marketRows.find((item) => item.board === "ytd");
+  const keyLevels = dayRow?.keyLevels || row?.keyLevels;
+  const priceHistory = dayRow?.priceHistory || row?.priceHistory || [];
+  const displayName = profile?.company || profile?.chineseName || row?.name || activeSymbol || "--";
+  const currentPrice = row?.currentPrice ?? keyLevels?.currentPrice ?? dayRow?.price ?? profile?.price;
+  const oneDay = row?.oneDay ?? dayRow?.changePct ?? dayRow?.change ?? profile?.dayChange;
+  const oneWeek = row?.oneWeek ?? weekRow?.changePct ?? weekRow?.change ?? profile?.weekChange;
+  const oneMonth = row?.oneMonth ?? monthRow?.changePct ?? monthRow?.change ?? profile?.monthChange;
+  const yearChange = ytdRow?.changePct ?? ytdRow?.change ?? dayRow?.changeYtd ?? profile?.ytdChange;
+  const detailDollarVolume = compactMoney(dayRow?.dollarVolume ?? profile?.dollarVolume);
+  const dollarVolume = detailDollarVolume !== "--" ? detailDollarVolume : row?.liquidity || "--";
+  const detailVolumeRatio = ratioDisplay(dayRow?.volumeRatio ?? profile?.volumeRatio);
+  const volumeRatio = detailVolumeRatio !== "--" ? detailVolumeRatio : row?.volume || "--";
+  const breakout = breakoutDecision(keyLevels);
+  const candidate = breakout?.confirmation.level;
+  const resistanceIsCandidate = sameKeyLevel(candidate, keyLevels?.resistance);
+  const existingSupport = breakout?.confirmation.status === "confirmed_support"
+    ? keyLevels?.secondarySupport
+    : keyLevels?.support;
+  const peers = detail?.peers?.length
+    ? detail.peers.slice(0, 3).map((item) => ({
+        symbol: item.symbol,
+        name: stockCompany(item),
+        oneMonth: item.monthChange,
+        direction: item.strengthLabel || "--"
+      }))
+    : rows.filter((item) => item.symbol !== activeSymbol).slice(0, 3).map((item) => ({
+        symbol: item.symbol,
+        name: item.name && item.name !== item.symbol ? item.name : trackingSymbolNames[item.symbol] || item.symbol,
+        oneMonth: item.oneMonth,
+        direction: trackingDirection(item)
+      }));
 
   useEffect(() => {
     if (!activeSymbol) return;
     let cancelled = false;
+    setDetail(null);
     setLoading(true);
     api.symbolDetail(activeSymbol)
       .then((payload) => {
@@ -2224,126 +2385,102 @@ function TrackingStockDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [activeSymbol]);
+  }, [activeSymbol, reload]);
 
-  if (!row && loading) return <div className="trackingStockDetailPage"><div className="loading" /></div>;
-  if (!row) return <div className="trackingStockDetailPage"><div className="loading">--</div></div>;
+  if (!profile && !row && loading) return <div className="trackingDetailPage"><div className="loading" /></div>;
+  if (!profile && !row) return <div className="trackingDetailPage"><button type="button" className="trackingDetailBack" onClick={onBack}>返回{backLabel}</button><div className="trackingDetailEmpty"><strong>股票详情加载失败</strong><button type="button" className="trackingDetailBack requestRetry" onClick={() => setReload((value) => value + 1)}>重新加载</button></div></div>;
 
   return (
-    <div className="trackingStockDetailPage">
-      <section className="trackingStockHero">
-        <button type="button" className="detailBackLink" onClick={onBack}>返回{pageLabels.tracking}</button>
-        <div className="trackingStockHead">
-          <div>
-            <h1>{row.symbol}</h1>
-            <p>{displayName}</p>
-          </div>
-          <div className="trackingStockBadges">
-            <SignalDirectionBadge label={direction} />
-            <span>信号发出 {row.signalFirstSeen ? formatStoredDateTime(row.signalFirstSeen) : "未发出"}</span>
-          </div>
+    <div className="trackingDetailPage">
+      <button type="button" className="trackingDetailBack" onClick={onBack}>返回{backLabel}</button>
+
+      <section className="trackingDetailQuote">
+        <div className="trackingDetailIdentity">
+          <h1>{activeSymbol}</h1>
+          <p>{displayName}</p>
         </div>
-        <div className="trackingStockMetrics">
-          <div><span>近1天</span><strong className={signedClass(row.oneDay)}>{signed(row.oneDay)}</strong></div>
-          <div><span>近1周</span><strong className={signedClass(row.oneWeek)}>{signed(row.oneWeek)}</strong></div>
-          <div><span>近1月</span><strong className={signedClass(row.oneMonth)}>{signed(row.oneMonth)}</strong></div>
-          <div><span>成交额</span><strong>{row.liquidity || compactMoney(profile?.dollarVolume)}</strong></div>
-          <div><span>市值</span><strong>{marketCapDisplay(profile || row)}</strong></div>
-        </div>
-        <div className="trackingStockActions">
-          <button type="button" onClick={onStocks}>查看{pageLabels.stocks}</button>
-        </div>
+        <div className="trackingDetailPrice"><span>现价</span><strong>{priceDisplay(currentPrice)}</strong></div>
+        <div><span>近1天</span><strong className={signedClass(oneDay)}>{signed(oneDay)}</strong></div>
+        <div><span>近1周</span><strong className={signedClass(oneWeek)}>{signed(oneWeek)}</strong></div>
+        <div><span>近1月</span><strong className={signedClass(oneMonth)}>{signed(oneMonth)}</strong></div>
+        <div><span>成交额</span><strong>{dollarVolume || "--"}</strong></div>
+        <div><span>成交倍数</span><strong>{volumeRatio || "--"}</strong></div>
+        <AddToWatchlistButton symbol={activeSymbol} />
       </section>
 
-      <section className="trackingKeyLevelsPanel">
-        <div className="trackingLevelPanelHead">
-          <div>
-            <h2>关键点位 <InfoTip text={keyLevelsHelp} focusable /></h2>
-            <span>{keyLevels?.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</span>
-          </div>
-          {keyLevels?.status === "ready" ? (
-            <strong className={`trackingPositionTag ${keyLevels.position || "middle"}`}>
-              {keyLevels.positionText || "区间中部"}{keyLevelDistance(keyLevels)}
-            </strong>
-          ) : null}
-        </div>
-        {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance) ? (
-          <>
-            <div className="trackingLevelWorkspace">
-              <div className="trackingChartColumn">
-                <TrackingPriceChart points={priceHistory} levels={keyLevels} />
-                <div className="trackingObservation">
-                  <span>观察提示</span>
-                  <strong>{keyLevelObservation(direction, keyLevels)}</strong>
-                </div>
-              </div>
-              <aside className="trackingLevelFacts">
-                <section>
-                  <h3>点位依据</h3>
-                  {levelRows.map(([label, level]) => (
-                    <div className="trackingLevelFact" key={label}>
-                      <span>{label}</span>
-                      {level ? (
-                        <>
-                          <strong>{keyLevelZone(level)}</strong>
-                          <em className={keyLevelStrengthClass(level)}>{level.strengthText || "--"}</em>
-                          <small>{level.basis || "--"}{level.lastConfirmedAt ? ` · ${formatDate(level.lastConfirmedAt)}` : ""}</small>
-                        </>
-                      ) : <strong>--</strong>}
-                    </div>
-                  ))}
-                </section>
-                <section>
-                  <h3>趋势参考</h3>
-                  <dl>
-                    <div><dt>趋势状态</dt><dd>{keyLevels.trendText || "--"}</dd></div>
-                    <div><dt>MA20</dt><dd>{priceDisplay(keyLevels.ma20)}</dd></div>
-                    <div><dt>MA60</dt><dd>{priceDisplay(keyLevels.ma60)}</dd></div>
-                    <div><dt>ATR14</dt><dd>{priceDisplay(keyLevels.atr14)}{Number.isFinite(keyLevels.atrPct) ? ` · ${keyLevels.atrPct}%` : ""}</dd></div>
-                  </dl>
-                </section>
-              </aside>
+      {keyLevels?.status === "ready" && (keyLevels.support || keyLevels.resistance || keyLevels.breakoutConfirmation?.level) ? (
+        <section className="trackingDetailMain">
+          <article className="trackingDetailChartPanel">
+            <header><strong>价格与关键点位</strong><time>{keyLevels.asOf ? `更新 ${formatDate(keyLevels.asOf)}` : ""}</time></header>
+            <TrackingPriceChart points={priceHistory} levels={keyLevels} />
+            <div className="trackingDetailLegend">
+              <span><i className="price" />价格</span>
+              {keyLevels.support ? <span><i className="support" />支撑区</span> : null}
+              {keyLevels.resistance && !resistanceIsCandidate ? <span><i className="resistance" />阻力区</span> : null}
+              {candidate && !sameKeyLevel(candidate, keyLevels.support) ? (
+                <span><i className="candidate" />{breakout?.confirmation.status === "breakout_failed" ? "原阻力区" : "观察区"}</span>
+              ) : null}
             </div>
-          </>
-        ) : (
-          <div className="trackingLevelEmpty">
-            <strong>{keyLevels?.status === "insufficient" ? "历史数据不足" : "关键点位暂不可用"}</strong>
-            {keyLevels?.status === "insufficient" ? (
-              <span>当前 {keyLevels.availableBars || 0} 个交易日，满 {keyLevels.requiredBars || 90} 个交易日后自动计算。</span>
-            ) : null}
-          </div>
-        )}
-      </section>
-
-      <div className="trackingStockGrid">
-        <section className="trackingStockPanel">
-          <h2>榜单位置</h2>
-          <table>
-            <thead><tr><th>维度</th><th>位置</th><th>当前值</th></tr></thead>
-            <tbody>
-              {rankRows.map(([label, value, rank]) => (
-                <tr key={label}>
-                  <td>{label}</td>
-                  <td><b>{rank ? `第 ${rank}` : "--"}</b><span><i style={{ width: `${rank ? Math.max(10, 100 - (rank - 1) * 6) : 0}%` }} /></span></td>
-                  <td className={label === "成交额" ? "" : signedClass(value)}>{label === "成交额" ? value || "--" : signed(value)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          </article>
+          <aside className={`trackingDetailDecision ${keyLevels.position || "middle"} ${breakout?.confirmation.status || ""}`}>
+            <div className="trackingDetailPosition">
+              <span>当前位置</span>
+              <h2>{breakout?.title || keyLevels.positionText || "区间中部"}</h2>
+              <p>{breakout?.summary || keyLevelPositionSummary(keyLevels)}</p>
+            </div>
+            {breakout ? (
+              <>
+                <div className="trackingDetailFocus">
+                  <span>{breakout.focusLabel}</span>
+                  <strong>{keyLevelZone(candidate)}</strong>
+                  <small>{breakout.focusNote}</small>
+                </div>
+                {!resistanceIsCandidate && keyLevels.resistance ? (
+                  <div className="trackingDetailLevel"><span>下一阻力</span><strong>{keyLevelZone(keyLevels.resistance)}</strong><em className={keyLevelStrengthClass(keyLevels.resistance)}>{keyLevels.resistance.strengthText || "--"}</em></div>
+                ) : null}
+                {existingSupport ? (
+                  <div className="trackingDetailLevel"><span>现有支撑</span><strong>{keyLevelZone(existingSupport)}</strong><em className={keyLevelStrengthClass(existingSupport)}>{existingSupport.strengthText || "--"}</em></div>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <div className="trackingDetailLevel"><span>支撑区</span><strong>{keyLevelZone(keyLevels.support)}</strong><em className={keyLevelStrengthClass(keyLevels.support)}>{keyLevels.support?.strengthText || "--"}</em></div>
+                <div className="trackingDetailLevel"><span>阻力区</span><strong>{keyLevelZone(keyLevels.resistance)}</strong><em className={keyLevelStrengthClass(keyLevels.resistance)}>{keyLevels.resistance?.strengthText || "--"}</em></div>
+                <div className="trackingDetailNext"><span>接下来关注</span><strong>{keyLevelNextFocus(keyLevels)}</strong></div>
+              </>
+            )}
+          </aside>
         </section>
-        <section className="trackingStockPanel">
-          <h2>同榜对比</h2>
-          <div className="trackingPeerList">
-            {sameList.map((item) => (
-                <button type="button" key={item.symbol} onClick={() => onOpenStock(item.symbol, "tracking")}>
+      ) : (
+        <section className="trackingDetailEmpty">
+          <strong>{keyLevels?.status === "insufficient" ? "暂时无法计算" : "关键点位暂不可用"}</strong>
+        </section>
+      )}
+
+      <section className="trackingDetailBottom">
+        <article className="trackingDetailPanel">
+          <header><strong>当前表现</strong><span>趋势：{keyLevels?.trendText || "--"}</span></header>
+          <div className="trackingDetailFacts">
+            <div><span>MA20</span><strong>{priceDisplay(keyLevels?.ma20)}</strong></div>
+            <div><span>MA60</span><strong>{priceDisplay(keyLevels?.ma60)}</strong></div>
+            <div><span>ATR14</span><strong>{priceDisplay(keyLevels?.atr14)}</strong></div>
+            <div><span>今年以来</span><strong className={signedClass(yearChange)}>{signed(yearChange)}</strong></div>
+          </div>
+        </article>
+        <article className="trackingDetailPanel">
+          <header><strong>同榜对比</strong><span>近1月</span></header>
+          <div className="trackingDetailPeers">
+            {peers.map((item) => (
+              <button type="button" key={item.symbol} onClick={() => onOpenStock(item.symbol)}>
                 <strong>{item.symbol}</strong>
-                <small>{item.name && item.name !== item.symbol ? item.name : trackingSymbolNames[item.symbol] || item.symbol}</small>
-                <span className={signedClass(item.oneMonth)}>{signed(item.oneMonth)}</span>
+                <small>{item.name}</small>
+                <b className={signedClass(item.oneMonth)}>{signed(item.oneMonth)}</b>
+                <span>{item.direction}</span>
               </button>
             ))}
           </div>
-        </section>
-      </div>
+        </article>
+      </section>
     </div>
   );
 }
@@ -2367,7 +2504,7 @@ const marketPressureThresholds: Record<string, number> = {
   vixcls: 28,
   dgs10: 4.8,
   dgs30: 5,
-  dtwexbgs: 120,
+  dxy: 105,
   dcoilwtico: 105,
   dcoilbrenteu: 105,
   cpiaucsl: 3.2
@@ -2383,19 +2520,94 @@ function marketSectorName(value?: string) {
   return (value || "").replace(/^[A-Z]{2,6}\s+/, "") || "--";
 }
 
-function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 }) {
+const monthlyIndicatorKeys = new Set(["fedfunds", "cpiaucsl", "unrate"]);
+
+function indicatorFrequency(item: Pick<TemperatureIndicator, "key" | "frequency">) {
+  return item.frequency || (monthlyIndicatorKeys.has(item.key.toLowerCase()) ? "monthly" : "daily");
+}
+
+function businessDayLag(value?: string, reference?: string) {
+  if (!value || !reference) return null;
+  const start = new Date(`${value.slice(0, 10)}T00:00:00`);
+  const end = new Date(`${reference.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) return 0;
+  let lag = 0;
+  const cursor = new Date(start);
+  while (cursor < end) {
+    cursor.setDate(cursor.getDate() + 1);
+    if (cursor.getDay() !== 0 && cursor.getDay() !== 6) lag += 1;
+  }
+  return lag;
+}
+
+function indicatorIsStale(item: TemperatureIndicator, reference?: string) {
+  if (typeof item.stale === "boolean") return item.stale;
+  if (indicatorFrequency(item) === "monthly") return false;
+  return (businessDayLag(item.asOf, reference) ?? 0) > 2;
+}
+
+function indicatorPeriodLabel(item: TemperatureIndicator) {
+  if (!item.asOf) return "--";
+  if (indicatorFrequency(item) === "monthly") {
+    const month = Number(item.asOf.slice(5, 7));
+    return Number.isFinite(month) && month ? `${month}月数据` : formatDate(item.asOf);
+  }
+  return formatDate(item.asOf);
+}
+
+function valuationValue(value?: number | null, unit?: string) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "--";
+  return `${value.toFixed(2)}${unit === "x" ? "倍" : unit || ""}`;
+}
+
+function valuationQuantile(values: number[], ratio: number) {
+  if (!values.length) return null;
+  const ordered = [...values].sort((a, b) => a - b);
+  const position = (ordered.length - 1) * ratio;
+  const lower = Math.floor(position);
+  const upper = Math.min(ordered.length - 1, lower + 1);
+  return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower);
+}
+
+type ValuationRange = 5 | 10 | "all";
+
+function valuationRangePoints(metric: IndexValuationMetric | undefined, range: ValuationRange) {
+  const points = (metric?.trend || []).filter((point) => Number.isFinite(point.value));
+  if (range === "all" || !points.length) return points;
+  const cutoff = new Date(`${points.at(-1)!.date}T00:00:00`);
+  cutoff.setFullYear(cutoff.getFullYear() - range);
+  return points.filter((point) => new Date(`${point.date}T00:00:00`) >= cutoff);
+}
+
+function valuationRangePercentile(metric: IndexValuationMetric | undefined, range: ValuationRange) {
+  if (metric?.value === null || metric?.value === undefined) return null;
+  const points = valuationRangePoints(metric, range);
+  return points.length ? 100 * points.filter((point) => point.value <= metric.value!).length / points.length : null;
+}
+
+function valuationRangeLevel(pePercentile: number | null, pbPercentile: number | null, fallback?: string) {
+  if (pePercentile === null || pbPercentile === null) return fallback;
+  if (pePercentile < 30 && pbPercentile < 30) return "偏低";
+  if (pePercentile >= 70 || pbPercentile >= 70) return "偏高";
+  return "适中";
+}
+
+type MarketChartReference = { label: string; value: number; tone: "low" | "middle" | "high" };
+
+function MarketLineChart({ item, years, references = [], showStats = true, fillArea = false }: { item: MacroSeriesIndicator; years: 1 | 3 | 5 | 10 | "all"; references?: MarketChartReference[]; showStats?: boolean; fillArea?: boolean }) {
   const points = (item.points || []).filter((point) => Number.isFinite(point.value));
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   useEffect(() => setHoverIndex(null), [item.key, years]);
   if (points.length < 2) return <div className="marketToolEmpty compact">暂无走势数据</div>;
   const lastDate = new Date(`${points.at(-1)?.date || ""}T00:00:00`);
   const cutoff = new Date(lastDate);
-  cutoff.setFullYear(cutoff.getFullYear() - years);
-  const visible = points.filter((point) => new Date(`${point.date}T00:00:00`) >= cutoff);
+  if (years !== "all") cutoff.setFullYear(cutoff.getFullYear() - years);
+  const visible = years === "all" ? points : points.filter((point) => new Date(`${point.date}T00:00:00`) >= cutoff);
   const values = visible.map((point) => point.value);
+  const referenceValues = references.map((reference) => reference.value).filter(Number.isFinite);
   const threshold = marketPressureThresholds[item.key.toLowerCase()];
-  const dataMin = Math.min(...values, Number.isFinite(threshold) ? threshold : Infinity);
-  const dataMax = Math.max(...values, Number.isFinite(threshold) ? threshold : -Infinity);
+  const dataMin = Math.min(...values, ...referenceValues, Number.isFinite(threshold) ? threshold : Infinity);
+  const dataMax = Math.max(...values, ...referenceValues, Number.isFinite(threshold) ? threshold : -Infinity);
   const dataSpan = Math.max(0.1, dataMax - dataMin);
   const min = dataMin - dataSpan * 0.08;
   const max = dataMax + dataSpan * 0.12;
@@ -2433,7 +2645,9 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
       >
         {thresholdY !== null ? <g className="marketPressureZone"><rect x={plot.left} y={plot.top} width={plotWidth} height={Math.max(0, thresholdY - plot.top)} /><line x1={plot.left} y1={thresholdY} x2={width - plot.right} y2={thresholdY} /><text x={plot.left + 8} y={Math.max(plot.top + 13, thresholdY - 6)}>压力区</text></g> : null}
         {yTicks.map((tick) => <g className="marketChartGrid" key={tick}><line x1={plot.left} y1={yFor(tick)} x2={width - plot.right} y2={yFor(tick)} /><text x={plot.left - 8} y={yFor(tick) + 4}>{formatSeriesValue(tick, item.unit)}</text></g>)}
+        {references.map((reference) => <line className={`marketChartReference ${reference.tone}`} key={reference.label} x1={plot.left} y1={yFor(reference.value)} x2={width - plot.right} y2={yFor(reference.value)} />)}
         {dateIndexes.map((index) => <text className="marketChartDate" key={visible[index].date} x={xFor(index)} y={height - 12} style={{ textAnchor: index === 0 ? "start" : index === visible.length - 1 ? "end" : "middle" }}>{visible[index].date.slice(0, 7)}</text>)}
+        {fillArea ? <polygon className="marketChartArea" points={`${plot.left},${height - plot.bottom} ${coordinates} ${width - plot.right},${height - plot.bottom}`} /> : null}
         <polyline className="marketChartPath" points={coordinates} />
         <line className="marketChartCrosshair" x1={activeX} y1={plot.top} x2={activeX} y2={height - plot.bottom} />
         <circle className="marketChartPoint" cx={activeX} cy={activeY} r="4" />
@@ -2443,12 +2657,12 @@ function MarketLineChart({ item, years }: { item: MacroSeriesIndicator; years: 1
           <text x="9" y="31">{formatSeriesValue(active.value, item.unit)}</text>
         </g>
       </svg>
-      <div className="marketChartStats">
+      {showStats ? <div className="marketChartStats">
         <span>区间最低<strong>{formatSeriesValue(Math.min(...values), item.unit)}</strong></span>
         <span>区间最高<strong>{formatSeriesValue(Math.max(...values), item.unit)}</strong></span>
         <span>区间变化<strong className={signedClass(periodChange)}>{periodChange > 0 ? "+" : ""}{formatSeriesValue(periodChange, item.unit)}</strong></span>
         <span>最新日期<strong>{visible.at(-1)?.date}</strong></span>
-      </div>
+      </div> : null}
     </div>
   );
 }
@@ -2476,12 +2690,12 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
     return () => { active = false; };
   }, [enabled, reload]);
 
-  const indicators = payload?.indicators || [];
+  const indicators = (payload?.indicators || []).filter((item) => !indicatorIsStale(item, payload?.asOf));
   const priority = [...indicators].sort((a, b) => {
     const order: Record<string, number> = { watch: 0, neutral: 1, positive: 2 };
     return (order[a.status || "neutral"] ?? 1) - (order[b.status || "neutral"] ?? 1);
   });
-  const seriesItems = series?.indicators || [];
+  const seriesItems = (series?.indicators || []).filter((item) => !indicatorIsStale(item, payload?.asOf || series?.asOf));
   const selectedSeries = seriesItems.find((item) => item.key === selectedKey) || seriesItems[0];
   useEffect(() => {
     if (!seriesItems.length || seriesItems.some((item) => item.key === selectedKey)) return;
@@ -2492,10 +2706,14 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
   const score = hasScore ? Math.max(0, Math.min(100, payload.overall?.score ?? 0)) : 0;
   const scoreTone = temperatureTone(payload?.overall?.label === "偏强" ? "positive" : payload?.overall?.label === "防守" ? "watch" : "neutral");
   const temperatureAdvice = marketTemperatureAdvice[payload?.overall?.label || ""] || (hasScore ? "" : marketTemperatureAdvice.待更新);
+  const freshness = indicators.reduce((result, item) => {
+    if (indicatorFrequency(item) === "monthly") result.monthly += 1;
+    else result.current += 1;
+    return result;
+  }, { current: 0, monthly: 0 });
 
   return (
     <div className="marketToolPage marketTemperaturePage" data-testid="market-temperature-page">
-      <header className="marketToolHeading"><div><h1>{pageLabels.risk}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载市场数据...</div> : state === "error" ? (
         <div className="marketToolError"><span>市场数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无市场温度数据</div> : (
@@ -2506,23 +2724,153 @@ function MarketTemperaturePage({ enabled }: { enabled: boolean }) {
               <div className="temperatureScale"><i /><i /><i />{hasScore ? <em style={{ left: `${score}%` }} /> : null}</div>
               {temperatureAdvice ? <small className="temperatureAdvice">{temperatureAdvice}</small> : null}
             </article>
-            <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{formatDate(item.asOf)}</small></button>)}</div>
-            <article className="temperatureFreshness"><span>数据日期</span><strong>{formatDate(payload.asOf)}</strong><small>{indicators.length} 项指标</small></article>
+            <div className="temperaturePressureList"><span>主要压力</span>{priority.slice(0, 3).map((item) => <button type="button" key={item.key} onClick={() => setSelectedKey(item.key)}><i className={temperatureTone(item.status)} /><strong>{item.name}</strong><em>{item.value || "--"}</em><small>{indicatorPeriodLabel(item)}</small></button>)}</div>
+            <article className="temperatureFreshness"><span>数据状态</span><strong>{freshness.current} 项正常</strong><small>{freshness.monthly} 项月度</small></article>
           </section>
           <section className="marketToolPanel temperatureChartPanel">
             <div className="marketToolPanelHead"><div><h2>指标走势</h2><span>{selectedSeries?.name || "--"}</span></div><div className="marketToolRange">{([1, 3, 5] as const).map((range) => <button key={range} className={years === range ? "active" : ""} onClick={() => setYears(range)}>{range}年</button>)}</div></div>
             <div className="temperatureChartLayout">
-              <nav className="temperatureIndicatorNav" aria-label="市场指标">{seriesItems.map((item) => <button type="button" key={item.key} className={selectedSeries?.key === item.key ? "active" : ""} onClick={() => setSelectedKey(item.key)}><span>{item.name}</span><strong>{item.value || item.current || "--"}</strong><small>{formatDate(item.asOf)}</small></button>)}</nav>
+              <nav className="temperatureIndicatorNav" aria-label="市场指标">{seriesItems.map((item) => <button type="button" key={item.key} className={selectedSeries?.key === item.key ? "active" : ""} onClick={() => setSelectedKey(item.key)}><span>{item.name}</span><strong>{item.value || item.current || "--"}</strong><small>{indicatorPeriodLabel(item)}</small></button>)}</nav>
               <div className="temperatureChartStage">{selectedSeries ? <MarketLineChart item={selectedSeries} years={years} /> : <div className="marketToolEmpty compact">暂无走势数据</div>}</div>
             </div>
           </section>
           <section className="marketToolPanel temperatureTablePanel">
             <div className="marketToolPanelHead"><h2>全部指标</h2><span>{indicators.length} 项</span></div>
-            <div className="marketToolTable"><table><thead><tr><th>因子</th><th>数据日期</th><th>当前读数</th><th>变化</th><th>压力</th><th>主要影响</th></tr></thead><tbody>
-              {indicators.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong></td><td>{formatDate(item.asOf)}</td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
+            <div className="marketToolTable"><table><thead><tr><th>因子</th><th>数据周期</th><th>当前读数</th><th>变化</th><th>压力</th><th>主要影响</th></tr></thead><tbody>
+              {indicators.map((item: TemperatureIndicator) => <tr key={item.key}><td><strong>{item.name}</strong></td><td>{indicatorPeriodLabel(item)}</td><td>{item.value || "--"}</td><td className={signedClass(item.change)}>{item.change || "--"}</td><td><b className={`toolStatus ${temperatureTone(item.status)}`}>{item.level || "--"}</b></td><td>{item.impact || item.explain || "--"}</td></tr>)}
             </tbody></table></div>
           </section>
         </>
+      )}
+    </div>
+  );
+}
+
+function IndexValuationPage({ enabled }: { enabled: boolean }) {
+  const [payload, setPayload] = useState<IndexValuationPayload | null>(null);
+  const [symbol, setSymbol] = useState("QQQ");
+  const [metricKey, setMetricKey] = useState("pe");
+  const [years, setYears] = useState<ValuationRange>(5);
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    setState("loading");
+    api.indexValuation()
+      .then((value) => { if (active) { setPayload(value); setState("idle"); } })
+      .catch(() => active && setState("error"));
+    return () => { active = false; };
+  }, [enabled, reload]);
+
+  const indices = payload?.indices || [];
+  const selected = indices.find((item) => item.index?.symbol === symbol) || indices[0];
+  const currentMetrics = (selected?.metrics || []).filter((item) => ["pe", "pb", "roe"].includes(item.key) && item.value !== null && item.value !== undefined);
+  const selectedMetric = currentMetrics.find((item) => item.key === metricKey) || currentMetrics[0];
+  const peMetric = currentMetrics.find((item) => item.key === "pe");
+  const pbMetric = currentMetrics.find((item) => item.key === "pb");
+  const roeMetric = currentMetrics.find((item) => item.key === "roe");
+  const summary = selected?.valuationSummary;
+
+  useEffect(() => {
+    if (selectedMetric || !currentMetrics.length) return;
+    setMetricKey(currentMetrics[0].key);
+  }, [currentMetrics, selectedMetric]);
+
+  const chartItem: MacroSeriesIndicator | null = selectedMetric ? {
+    key: `valuation-${selected?.index?.symbol || "index"}-${selectedMetric.key}`,
+    name: `${selected?.index?.symbol || ""} ${selectedMetric.label || selectedMetric.key}`.trim(),
+    current: selectedMetric.value ?? undefined,
+    value: valuationValue(selectedMetric.value, selectedMetric.unit),
+    unit: selectedMetric.unit === "x" ? "倍" : selectedMetric.unit,
+    asOf: selected?.asOf,
+    points: selectedMetric.trend
+  } : null;
+  const historyReady = (selectedMetric?.trend?.length || 0) > 1;
+  const rangePoints = valuationRangePoints(selectedMetric, years);
+  const rangeValues = rangePoints.map((point) => point.value).filter(Number.isFinite);
+  const p30 = valuationQuantile(rangeValues, 0.3);
+  const median = valuationQuantile(rangeValues, 0.5);
+  const p70 = valuationQuantile(rangeValues, 0.7);
+  const rangePercentile = valuationRangePercentile(selectedMetric, years);
+  const chartReferences: MarketChartReference[] = [
+    { label: "30分位", value: p30, tone: "low" },
+    { label: "中位值", value: median, tone: "middle" },
+    { label: "70分位", value: p70, tone: "high" }
+  ].filter((item): item is MarketChartReference => item.value !== null);
+  const pePercentile = valuationRangePercentile(peMetric, years);
+  const pbPercentile = valuationRangePercentile(pbMetric, years);
+  const valuationLevel = valuationRangeLevel(pePercentile, pbPercentile, summary?.level);
+  const rangeLabel = years === "all" ? "全部历史" : `近${years}年`;
+  const indexLabel = selected?.index?.symbol === "QQQ" ? "纳指100" : selected?.index?.symbol === "SPY" ? "标普500" : selected?.index?.name || "指数";
+  const peRangePoints = valuationRangePoints(peMetric, years);
+  const sampleStart = peRangePoints[0]?.date.slice(0, 7);
+  const sampleEnd = peRangePoints.at(-1)?.date.slice(0, 7);
+  const valuationConclusion = pePercentile === null || pbPercentile === null
+    ? "历史位置暂不可用"
+    : `PE位于${rangeLabel}${pePercentile.toFixed(2)}%分位，PB位于${pbPercentile.toFixed(2)}%分位。`;
+  const valuationAction = valuationLevel === "偏高"
+    ? "估值安全边际偏低，不宜仅凭估值追高，新增资金更适合分批。"
+    : valuationLevel === "偏低"
+      ? "估值进入相对低位，可作为分批关注区间。"
+      : valuationLevel === "适中"
+        ? "估值处于中间区域，可结合趋势和盈利变化分批观察。"
+        : "";
+  const headlineStats = [
+    { label: "PE", value: valuationValue(peMetric?.value, peMetric?.unit) },
+    { label: "PE 历史分位", value: pePercentile === null ? "--" : `${pePercentile.toFixed(2)}%` },
+    { label: "PB", value: valuationValue(pbMetric?.value, pbMetric?.unit) },
+    { label: "PB 历史分位", value: pbPercentile === null ? "--" : `${pbPercentile.toFixed(2)}%` }
+  ];
+  const overviewStats = [
+    { label: "ROE", value: valuationValue(roeMetric?.value, roeMetric?.unit) },
+    ...(summary?.dividendYield === null || summary?.dividendYield === undefined ? [] : [{ label: "股息率", value: valuationValue(summary.dividendYield, "%") }]),
+    ...(summary?.peg === null || summary?.peg === undefined ? [] : [{ label: "预测 PEG", value: valuationValue(summary.peg, "x") }]),
+    { label: "样本区间", value: sampleStart && sampleEnd ? `${sampleStart} 至 ${sampleEnd}` : "--" },
+    { label: "估值状态", value: valuationLevel ? `${valuationLevel}区间` : "--" }
+  ];
+
+  return (
+    <div className="marketToolPage indexValuationPage" data-testid="index-valuation-page">
+      {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载估值数据...</div> : state === "error" ? (
+        <div className="marketToolError"><span>估值数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
+      ) : !selected ? <div className="marketToolEmpty">暂无指数估值数据</div> : (
+        <section className="marketToolPanel valuationPanel">
+          <div className="valuationPanelHead">
+            <div><h2>{indexLabel}估值观察</h2><span>{formatDate(summary?.asOf || selected?.asOf)}</span></div>
+            <div className="valuationRange" role="tablist" aria-label="选择历史区间">
+              {([5, 10, "all"] as const).map((range) => <button type="button" key={range} className={years === range ? "active" : ""} onClick={() => setYears(range)}>{range === "all" ? "全部历史" : `近${range}年`}</button>)}
+            </div>
+          </div>
+          <div className="valuationIndexBar">
+            <div className="valuationIndexTabs" role="tablist" aria-label="选择指数">
+              {indices.map((item: IndexValuationIndex) => <button type="button" key={item.index?.symbol} className={selected?.index?.symbol === item.index?.symbol ? "active" : ""} onClick={() => { setSymbol(item.index?.symbol || "QQQ"); setMetricKey("pe"); setYears(5); }}>{item.index?.symbol === "QQQ" ? "纳指100" : item.index?.symbol === "SPY" ? "标普500" : item.index?.name}</button>)}
+            </div>
+          </div>
+          <div className="valuationOverview">
+            <article className="valuationLead">
+              <span>当前结论</span>
+              <strong className={`valuationLevel ${valuationLevel === "偏低" ? "low" : valuationLevel === "适中" ? "middle" : "high"}`}>估值{valuationLevel || "--"}</strong>
+              <p>{valuationConclusion}{valuationAction ? ` ${valuationAction}` : ""}</p>
+            </article>
+            <div className="valuationHeadlineStats">{headlineStats.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong></article>)}</div>
+          </div>
+          <div className="valuationOverviewStats">{overviewStats.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong></article>)}</div>
+          <div className="valuationMetricTabs" role="tablist" aria-label="选择估值指标">
+            {currentMetrics.map((item: IndexValuationMetric) => <button type="button" key={item.key} className={selectedMetric?.key === item.key ? "active" : ""} onClick={() => setMetricKey(item.key)}>{item.label || item.key.toUpperCase()}走势</button>)}
+          </div>
+          <div className="valuationChartStage">
+            <div className="valuationChartTitle"><div><h2>{selectedMetric?.label || "估值"}历史走势</h2><span>{rangePercentile === null ? "--" : `当前处于${rangeLabel}${rangePercentile.toFixed(2)}%分位`}</span></div></div>
+            <div className="valuationChartLayout">
+              {historyReady && chartItem ? <MarketLineChart item={chartItem} years={years} references={chartReferences} showStats={false} fillArea /> : <div className="marketToolEmpty compact">暂无历史估值数据</div>}
+              <aside className="valuationReferenceCards">
+                {[...chartReferences].reverse().map((item) => <span className={item.tone} key={item.label}>{item.label}<b>{valuationValue(item.value, selectedMetric?.unit)}</b></span>)}
+                <span className="current">当前{selectedMetric?.label}<b>{valuationValue(selectedMetric?.value, selectedMetric?.unit)}</b></span>
+              </aside>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );
@@ -2577,7 +2925,7 @@ function StrengthFilterFields({
   );
 }
 
-function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: "stocks" | "tracking" | "search") => void }) {
+function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: StockSource) => void }) {
   const [payload, setPayload] = useState<StrengthScannerPayload | null>(null);
   const [view, setView] = useState<StrengthView>("watch");
   const [query, setQuery] = useState("");
@@ -2668,7 +3016,6 @@ function MarketStrengthPage({ enabled, onOpenStock }: { enabled: boolean; onOpen
 
   return (
     <div className="marketToolPage marketStrengthPage" data-testid="market-strength-page">
-      <header className="marketToolHeading"><div><h1>{pageLabels.strength}</h1><span>{formatDate(payload?.asOf)}</span></div></header>
       {!enabled ? <div className="marketToolSkeleton" /> : state === "loading" ? <div className="marketToolLoading">正在加载强弱数据...</div> : state === "error" && !payload ? (
         <div className="marketToolError"><span>强弱数据加载失败</span><button type="button" onClick={() => setReload((value) => value + 1)}>重新加载</button></div>
       ) : !payload ? <div className="marketToolEmpty">暂无行业板块强弱数据</div> : (
@@ -2771,8 +3118,8 @@ function CryptoEtfFlowView() {
       .then((data) => {
         if (alive) setPayload(data);
       })
-      .catch((reason) => {
-        if (alive) setError(reason instanceof Error ? reason.message : "加载失败");
+      .catch(() => {
+        if (alive) setError("加密 ETF 数据加载失败");
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -2785,7 +3132,7 @@ function CryptoEtfFlowView() {
 
   if (loading) return <div className="cryptoEtfState">加载中</div>;
   if (error || !payload?.assets?.BTC || !payload?.assets?.ETH) {
-    return <div className="cryptoEtfState"><span>{error || "暂无数据"}</span><button type="button" onClick={() => setRequestId((value) => value + 1)}>重新加载</button></div>;
+    return <div className="cryptoEtfState"><span>{error || "加密 ETF 数据暂不可用"}</span><button type="button" className="requestRetry" onClick={() => setRequestId((value) => value + 1)}>重新加载</button></div>;
   }
 
   const rangeInvalid = Boolean(startDate && endDate && startDate > endDate);
@@ -2826,10 +3173,10 @@ function CryptoEtfFlowView() {
 
       <section className="cryptoEtfChartPanel">
         <header className="cryptoEtfPanelHead">
-          <div className="cryptoEtfPanelTitle"><strong>资金趋势</strong><div className="marketSegment"><button type="button" className={asset === "BTC" ? "active" : ""} onClick={() => setAsset("BTC")}>BTC</button><button type="button" className={asset === "ETH" ? "active" : ""} onClick={() => setAsset("ETH")}>ETH</button></div></div>
+          <div className="cryptoEtfPanelTitle"><strong>资金趋势</strong><div className="marketSegment" role="group" aria-label="图表资产"><button type="button" className={asset === "BTC" ? "active" : ""} aria-pressed={asset === "BTC"} onClick={() => setAsset("BTC")}>BTC</button><button type="button" className={asset === "ETH" ? "active" : ""} aria-pressed={asset === "ETH"} onClick={() => setAsset("ETH")}>ETH</button></div></div>
           <div className="cryptoEtfChartTools">
-            <div className="marketSegment">
-              {([['day', '单日'], ['week', '单周'], ['month', '单月']] as const).map(([value, label]) => <button type="button" key={value} className={interval === value ? "active" : ""} onClick={() => setInterval(value)}>{label}</button>)}
+            <div className="marketSegment" role="group" aria-label="时间粒度">
+              {([['day', '单日'], ['week', '单周'], ['month', '单月']] as const).map(([value, label]) => <button type="button" key={value} className={interval === value ? "active" : ""} aria-pressed={interval === value} onClick={() => setInterval(value)}>{label}</button>)}
             </div>
             <details ref={dateRangeRef} className="cryptoEtfDateRange">
               <summary className={startDate || endDate ? "active" : ""}>日期范围</summary>
@@ -2848,7 +3195,7 @@ function CryptoEtfFlowView() {
       </section>
 
       <section className="cryptoEtfHistory">
-        <div className="cryptoEtfPanelHead"><strong>资金明细</strong><div className="marketSegment"><button type="button" className={tableAsset === "BTC" ? "active" : ""} onClick={() => setTableAsset("BTC")}>BTC</button><button type="button" className={tableAsset === "ETH" ? "active" : ""} onClick={() => setTableAsset("ETH")}>ETH</button><button type="button" className={tableAsset === "all" ? "active" : ""} onClick={() => setTableAsset("all")}>全部</button></div></div>
+        <div className="cryptoEtfPanelHead"><strong>资金明细</strong><div className="marketSegment" role="group" aria-label="明细资产"><button type="button" className={tableAsset === "BTC" ? "active" : ""} aria-pressed={tableAsset === "BTC"} onClick={() => setTableAsset("BTC")}>BTC</button><button type="button" className={tableAsset === "ETH" ? "active" : ""} aria-pressed={tableAsset === "ETH"} onClick={() => setTableAsset("ETH")}>ETH</button><button type="button" className={tableAsset === "all" ? "active" : ""} aria-pressed={tableAsset === "all"} onClick={() => setTableAsset("all")}>全部</button></div></div>
         <div className="cryptoEtfTableScroll"><table>
           <thead><tr><th>日期</th>{tableAsset === "all" || tableAsset === "BTC" ? <th>BTC净流量</th> : null}{tableAsset === "all" || tableAsset === "ETH" ? <th>ETH净流量</th> : null}{tableAsset === "all" ? <th>合计</th> : null}<th>资金方向</th></tr></thead>
           <tbody>{tableRows.map((row) => {
@@ -2871,7 +3218,7 @@ function CryptoEtfFlowView() {
 }
 
 function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null; onPage: (page: PageKey) => void }) {
-  const [marketView, setMarketView] = useState<"sectors" | "crypto">("sectors");
+  const [marketView, setMarketView] = useState<"sectors" | "crypto" | "sentiment">("sectors");
   const [sectorRange, setSectorRange] = useState<"day" | "week" | "month">("day");
   const [sectorPayload, setSectorPayload] = useState<SectorFlowPayload | null>(null);
   const [sectorState, setSectorState] = useState<"loading" | "idle" | "error">("loading");
@@ -2924,7 +3271,6 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors, selectedSector]);
   const selected = sectors.find((item) => item.sector === selectedSector) || sectors[0];
   const volumeRows = (bootstrap?.movers?.boards?.volume?.rows || []).slice(0, 8);
-  const sectorDate = formatDate(activeSectorPayload?.asOf || (sectorRange === "day" ? bootstrap?.movers?.updatedAt || bootstrap?.sectorFlow?.asOf : ""));
   const sectorChange = (sector?: typeof sectors[number]) => Number(sector?.avgChangePct ?? sector?.avgChange ?? 0);
   const sectorFlowTone = (sector?: typeof sectors[number]) => sectorChange(sector) >= 0 ? "up" : "down";
   const sectorFlowLabel = (sector?: typeof sectors[number]) => Number(sector?.netFlowProxy || 0) >= 0 ? "资金流入" : "资金流出";
@@ -2974,13 +3320,10 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
   }, [sectors]);
   return (
     <div className="marketPageV3">
-      <header className="marketPageHeadV3">
-        <h1>{pageLabels.market}</h1>
-        <span>{sectorDate}</span>
-      </header>
       <div className="marketViewTabs" role="tablist" aria-label={`${pageLabels.market}分类`}>
         <button type="button" role="tab" aria-selected={marketView === "sectors"} className={marketView === "sectors" ? "active" : ""} onClick={() => setMarketView("sectors")}>板块资金</button>
         <button type="button" role="tab" aria-selected={marketView === "crypto"} className={marketView === "crypto" ? "active" : ""} onClick={() => setMarketView("crypto")}>加密 ETF</button>
+        <button type="button" role="tab" aria-selected={marketView === "sentiment"} className={marketView === "sentiment" ? "active" : ""} onClick={() => setMarketView("sentiment")}>散户情绪</button>
       </div>
       {marketView === "sectors" ? (
       <>
@@ -3168,20 +3511,66 @@ function MarketPage({ bootstrap, onPage }: { bootstrap: BootstrapPayload | null;
         </div>
       </section>
       </>
-      ) : <CryptoEtfFlowView />}
+      ) : marketView === "crypto" ? <CryptoEtfFlowView /> : <RetailSentimentView />}
     </div>
   );
 }
 
+function AddToWatchlistButton({ symbol }: { symbol: string }) {
+  const [active, setActive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setActive(false);
+    setLoading(true);
+    setError("");
+    api.watchlist()
+      .then((payload) => {
+        if (!cancelled) setActive(payload.rows.some((item) => item.symbol === symbol));
+      })
+      .catch(() => {
+        if (!cancelled) setError("自选状态加载失败");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [symbol, reload]);
+
+  const add = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.addWatchlist(symbol, "股票详情");
+      setActive(true);
+    } catch {
+      setError("添加失败，请重试");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <span className="stockPreviewWatchlist">
+      {error ? (
+        <button type="button" className="requestRetry" onClick={() => setReload((value) => value + 1)}>重新加载</button>
+      ) : (
+        <button type="button" disabled={active || busy || loading} onClick={() => void add()}>{active ? "已在自选" : busy ? "添加中" : loading ? "读取中" : "加入自选"}</button>
+      )}
+      {error ? <em role="alert">{error}</em> : null}
+    </span>
+  );
+}
+
 function StocksPage({
-  selectedSymbol,
   signalStates,
-  bootstrap,
   onSelectSymbol
 }: {
-  selectedSymbol: string;
   signalStates: SignalState[];
-  bootstrap: BootstrapPayload | null;
   onSelectSymbol: (symbol: string) => void;
 }) {
   const pageSize = 20;
@@ -3195,15 +3584,10 @@ function StocksPage({
   const [sort, setSort] = useState<StockSortKey>("dollarVolume");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [loadingRows, setLoadingRows] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [sectorOptions, setSectorOptions] = useState<Array<{ sector: string; count: number }>>([]);
-  const [detail, setDetail] = useState<SymbolDetailPayload | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState("");
-  const [detailAttempt, setDetailAttempt] = useState(0);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const selectedRow = rows.find((row) => row.symbol === selectedSymbol) || null;
-  const activeSymbol = selectedSymbol.trim().toUpperCase();
   const latestSignals = useMemo(() => latestSignalStates(signalStates), [signalStates]);
   const signalMap = useMemo(() => new Map(latestSignals.map((item) => [item.symbol, item])), [latestSignals]);
   const stockSortHeader = (key: StockSortKey, label: string) => (
@@ -3226,6 +3610,10 @@ function StocksPage({
     setSort(key);
     setSortDir(key === "symbol" ? "asc" : "desc");
   };
+  const changeStockPreset = (value: string) => {
+    setPreset(value);
+    if (value === "mag7") changeStockSort("monthChange");
+  };
   const resetStockFilters = () => {
     setQuery("");
     setPreset("all");
@@ -3242,9 +3630,10 @@ function StocksPage({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const timer = window.setTimeout(() => {
       setLoadingRows(true);
-      setError("");
+      setError(false);
       const params = new URLSearchParams({
         limit: String(pageSize),
         offset: String(pageIndex * pageSize),
@@ -3257,70 +3646,38 @@ function StocksPage({
       if (cap !== "all") params.set("cap", cap);
       api.symbols(params)
         .then((payload) => {
+          if (cancelled) return;
           setRows(payload.rows || []);
           setTotal(payload.total || 0);
         })
-        .catch((err) => setError(err?.message || `${pageLabels.stocks}加载失败`))
-        .finally(() => setLoadingRows(false));
+        .catch(() => {
+          if (cancelled) return;
+          setRows([]);
+          setTotal(0);
+          setError(true);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingRows(false);
+        });
     }, query.trim() ? 260 : 0);
-    return () => window.clearTimeout(timer);
-  }, [cap, pageIndex, preset, query, sector, sort, sortDir]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [cap, pageIndex, preset, query, retry, sector, sort, sortDir]);
 
   useEffect(() => {
     setPageIndex(0);
   }, [cap, preset, query, sector, sort, sortDir]);
 
-  useEffect(() => {
-    if (!activeSymbol) {
-      setDetail(null);
-      setDetailError("");
-      setDetailLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setDetail(null);
-    setDetailLoading(true);
-    setDetailError("");
-    api.symbolDetail(activeSymbol)
-      .then((payload) => {
-        if (!cancelled) setDetail(payload);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setDetail(null);
-        setDetailError("股票概览加载失败，请稍后重试");
-      })
-      .finally(() => {
-        if (!cancelled) setDetailLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSymbol, detailAttempt]);
-
-  useEffect(() => {
-    if (!activeSymbol) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onSelectSymbol("");
-    };
-    document.body.classList.add("stockPreviewOpen");
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.classList.remove("stockPreviewOpen");
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [activeSymbol, onSelectSymbol]);
-
   return (
     <div className="stocksPage">
-      <div className="stockLibraryHead">
-        <h1>{pageLabels.stocks}</h1>
-      </div>
       <section className="stockLibraryWorkbench" aria-busy={loadingRows}>
         <div className="stockLibraryPresetRow">
           <div className="stockLibraryTabs">
           {[
             ["all", "全部"],
+            ["mag7", "科技七姐妹"],
             ["liquid", "高成交"],
             ["strength", "强趋势"],
             ["event", "有事件"],
@@ -3330,7 +3687,7 @@ function StocksPage({
               key={value}
               type="button"
               className={preset === value ? "active" : ""}
-              onClick={() => setPreset(value)}
+              onClick={() => changeStockPreset(value)}
             >
               {label}
             </button>
@@ -3356,13 +3713,19 @@ function StocksPage({
             <option value="dayChange">按1天</option>
             <option value="weekChange">按1周</option>
             <option value="monthChange">按1月</option>
+            <option value="ytdChange">按年初至今</option>
             <option value="symbol">按代码</option>
           </select>
           <button type="button" className="stockLibraryReset" onClick={resetStockFilters}>重置</button>
         </div>
 
         <article className="stockLibraryTablePanel">
-          {error ? <div className="tableError">{error}</div> : null}
+          {error ? (
+            <div className="marketToolError compact stockLibraryError" role="alert">
+              <span>股票数据加载失败</span>
+              <button type="button" className="requestRetry" onClick={() => setRetry((value) => value + 1)}>重新加载</button>
+            </div>
+          ) : null}
           <div className="stockLibraryDesktopTable">
             <table className="stockLibraryTable">
               <thead>
@@ -3374,6 +3737,7 @@ function StocksPage({
                   <th>{stockSortHeader("dayChange", "近1天")}</th>
                   <th>{stockSortHeader("weekChange", "近1周")}</th>
                   <th>{stockSortHeader("monthChange", "近1月")}</th>
+                  <th>{stockSortHeader("ytdChange", "年初至今")}</th>
                   <th>{stockSortHeader("dollarVolume", "成交")}</th>
                   <th>{stockSortHeader("marketCap", "市值")}</th>
                   <th>趋势</th>
@@ -3386,7 +3750,7 @@ function StocksPage({
                   const direction = trackingDirection({ signalDirection: signal?.direction, signalDirectionText: signal?.directionText });
                   const volumeRatio = ratioDisplay(row.volumeRatio);
                   return (
-                    <tr key={row.symbol} className={row.symbol === activeSymbol ? "selectedRow" : ""} onClick={() => onSelectSymbol(row.symbol)}>
+                    <tr key={row.symbol} onClick={() => onSelectSymbol(row.symbol)}>
                       <td>{pageIndex * pageSize + index + 1}</td>
                       <td><strong>{row.symbol}</strong><span>{stockCompany(row)}</span></td>
                       <td>{row.sector || "--"}</td>
@@ -3394,6 +3758,7 @@ function StocksPage({
                       <td className={signedClass(row.dayChange)}>{signed(row.dayChange)}</td>
                       <td className={signedClass(row.weekChange)}>{signed(row.weekChange)}</td>
                       <td className={signedClass(row.monthChange)}>{signed(row.monthChange)}</td>
+                      <td className={signedClass(row.ytdChange)}>{signed(row.ytdChange)}</td>
                       <td>{compactMoney(row.dollarVolume)}{volumeRatio !== "--" ? <span>{volumeRatio}</span> : null}</td>
                       <td>{marketCapDisplay(row)}</td>
                       <td><SignalDirectionBadge label={direction} /></td>
@@ -3401,8 +3766,8 @@ function StocksPage({
                     </tr>
                   );
                 })}
-                {loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={11}>正在加载股票...</td></tr> : null}
-                {!loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={11}>没有符合条件的股票</td></tr> : null}
+                {loadingRows && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={12}>正在加载股票...</td></tr> : null}
+                {!loadingRows && !error && !rows.length ? <tr><td className="stockLibraryEmpty" colSpan={12}>没有符合条件的股票</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -3423,13 +3788,13 @@ function StocksPage({
                   </div>
                   <div className="stockLibraryMobileFoot">
                     <span>成交额 {compactMoney(row.dollarVolume)} · 市值 {marketCapDisplay(row)}</span>
-                    <button type="button" onClick={() => onSelectSymbol(row.symbol)}>查看概览</button>
+                    <button type="button" onClick={() => onSelectSymbol(row.symbol)}>查看详情</button>
                   </div>
                 </article>
               );
             })}
             {loadingRows && !rows.length ? <div className="stockLibraryEmpty">正在加载股票...</div> : null}
-            {!loadingRows && !rows.length ? <div className="stockLibraryEmpty">没有符合条件的股票</div> : null}
+            {!loadingRows && !error && !rows.length ? <div className="stockLibraryEmpty">没有符合条件的股票</div> : null}
           </div>
           <div className="pager">
             <button disabled={pageIndex <= 0 || loadingRows} onClick={() => setPageIndex((value) => Math.max(0, value - 1))}>上一页</button>
@@ -3438,129 +3803,19 @@ function StocksPage({
           </div>
         </article>
       </section>
-      {activeSymbol ? (
-        <div className="stockPreviewOverlay" role="dialog" aria-modal="true" aria-label={`${activeSymbol} 股票概览`} onMouseDown={() => onSelectSymbol("")}>
-          <section className="stockPreviewDrawer" onMouseDown={(event) => event.stopPropagation()}>
-            <header>
-              <strong>股票概览</strong>
-              <button type="button" aria-label="关闭股票概览" autoFocus onClick={() => onSelectSymbol("")}>×</button>
-            </header>
-            {detailError ? (
-              <div className="stockPreviewError">
-                <strong>{detailError}</strong>
-                <button type="button" onClick={() => setDetailAttempt((value) => value + 1)}>重新加载</button>
-              </div>
-            ) : (
-              <StockPreviewPanel row={selectedRow} detail={detail} loading={detailLoading || !detail} signal={signalForSymbol(signalStates, activeSymbol)} />
-            )}
-          </section>
-        </div>
-      ) : null}
     </div>
-  );
-}
-
-function StockPreviewPanel({ row, detail, loading, signal }: { row: SymbolRow | null; detail: SymbolDetailPayload | null; loading: boolean; signal: SignalState | null }) {
-  const profile = detail?.profile || row;
-  const marketRows = detail?.marketRows || [];
-  const peers = detail?.peers || [];
-  const events = detail?.events || [];
-  const dayRow = marketRows.find((item) => item.board === "day");
-  const weekRow = marketRows.find((item) => item.board === "week");
-  const monthRow = marketRows.find((item) => item.board === "month");
-  const ytdRow = marketRows.find((item) => item.board === "ytd");
-  const dayChange = dayRow?.changePct ?? dayRow?.change ?? row?.dayChange;
-  const weekChange = weekRow?.changePct ?? weekRow?.change ?? row?.weekChange;
-  const monthChange = monthRow?.changePct ?? monthRow?.change ?? row?.monthChange;
-  const ytdChange = ytdRow?.changePct ?? ytdRow?.change ?? row?.ytdChange;
-  const dollarVolume = profile?.dollarVolume ?? marketRows.find((item) => item.dollarVolume)?.dollarVolume;
-  const volumeRatio = profile?.volumeRatio ?? marketRows.find((item) => item.volumeRatio)?.volumeRatio;
-  const signalLabel = trackingDirection({ signalDirection: signal?.direction, signalDirectionText: signal?.directionText });
-
-  if (loading && !profile) {
-    return <aside className="stocksPreviewPanel"><section className="stockPreviewCard"><div className="loading" /></section></aside>;
-  }
-
-  if (!profile) {
-    return <aside className="stocksPreviewPanel"><section className="stockPreviewCard"><div className="loading">--</div></section></aside>;
-  }
-
-  return (
-    <aside className="stocksPreviewPanel">
-      <section className="stockPreviewCard profile">
-        <div className="stockPreviewTop">
-          <div>
-            <span>{profile.sector || "--"}</span>
-            <h2>{profile.symbol}</h2>
-            <p>{stockCompany(profile)}</p>
-          </div>
-          <div>
-            <strong>{Number.isFinite(Number(profile.price)) ? `$${Number(profile.price).toFixed(2)}` : "--"}</strong>
-            <em className={signedClass(dayChange)}>{signed(dayChange)}</em>
-          </div>
-        </div>
-        <dl className="stockPreviewMetrics">
-          <div><dt>市值</dt><dd>{marketCapDisplay(profile)}</dd></div>
-          <div><dt>成交额</dt><dd>{compactMoney(dollarVolume)}</dd></div>
-          <div><dt><VolumeRatioLabel /></dt><dd>{ratioDisplay(volumeRatio)}</dd></div>
-          <div><dt>趋势信号</dt><dd><SignalDirectionBadge label={signalLabel} /></dd></div>
-        </dl>
-      </section>
-
-      <section className="stockPreviewCard">
-        <h3>区间表现</h3>
-        {[
-          ["1天", dayChange],
-          ["1周", weekChange],
-          ["1月", monthChange],
-          ["今年", ytdChange]
-        ].map(([label, value]) => (
-          <div className="previewBarRow" key={label}>
-            <span>{label}</span>
-            <div><b style={{ width: `${barWidth(value as number | string | null, 120)}%` }} /></div>
-            <strong className={signedClass(value as number | string | null)}>{signed(value as number | string | null)}</strong>
-          </div>
-        ))}
-      </section>
-
-      <section className="stockPreviewCard">
-        <h3>近期事件</h3>
-        {events.slice(0, 2).map((event) => (
-          <div className="previewFact" key={`${event.eventDate}-${event.eventLabel}`}>
-            <span>{formatStoredDateTime(event.eventDate)}</span>
-            <strong>{event.eventLabel || event.eventType || "--"}</strong>
-          </div>
-        ))}
-        {!events.length ? <div className="stockPreviewEmpty">暂无近期事件</div> : null}
-      </section>
-
-      <section className="stockPreviewCard">
-        <h3>同板块</h3>
-        <table className="previewPeerTable">
-          <thead><tr><th>股票</th><th>市值</th><th>成交额</th></tr></thead>
-          <tbody>
-            {peers.slice(0, 4).map((peer) => (
-              <tr key={peer.symbol}>
-                <td>{peer.symbol}</td>
-                <td>{marketCapDisplay(peer)}</td>
-                <td>{compactMoney(peer.dollarVolume)}</td>
-              </tr>
-            ))}
-            {!peers.length ? <tr><td className="stockPreviewEmpty" colSpan={3}>暂无同板块数据</td></tr> : null}
-          </tbody>
-        </table>
-      </section>
-    </aside>
   );
 }
 
 function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const pageSize = 30;
-  const [windowDays, setWindowDays] = useState("30");
+  const [windowDays, setWindowDays] = useState("7");
   const [impact, setImpact] = useState("all");
   const [pageIndex, setPageIndex] = useState(0);
+  const [showAllEarnings, setShowAllEarnings] = useState(false);
   const [macroRows, setMacroRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "macro"));
   const [earningsRows, setEarningsRows] = useState<CalendarEvent[]>(initialEvents.filter((event) => event.type === "earnings"));
+  const [resultRows, setResultRows] = useState<CalendarEvent[]>([]);
   const [total, setTotal] = useState(initialEvents.filter((event) => event.type === "earnings").length);
   const [macroLoading, setMacroLoading] = useState(false);
   const [earningsLoading, setEarningsLoading] = useState(false);
@@ -3568,11 +3823,32 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
   const [earningsError, setEarningsError] = useState(false);
   const [macroRetry, setMacroRetry] = useState(0);
   const [earningsRetry, setEarningsRetry] = useState(0);
+  const [resultLoading, setResultLoading] = useState(true);
+  const [resultError, setResultError] = useState(false);
+  const [resultRetry, setResultRetry] = useState(0);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const featuredEarnings = earningsRows.filter((event) => event.impact === "high").slice(0, 3);
+  const showEarningsTable = showAllEarnings || impact !== "all";
 
   useEffect(() => {
     setPageIndex(0);
   }, [impact, windowDays]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setResultLoading(true);
+    setResultError(false);
+    api.calendar({ limit: 200, type: "macro", resultsOnly: true }).then((payload) => {
+      if (!cancelled) setResultRows(payload.rows || []);
+    }).catch(() => {
+      if (!cancelled) setResultError(true);
+    }).finally(() => {
+      if (!cancelled) setResultLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [resultRetry]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3581,7 +3857,6 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
     api.calendar({
       limit: 50,
       windowDays,
-      impact,
       type: "macro"
     }).then((payload) => {
       if (!cancelled) setMacroRows(payload.rows || []);
@@ -3593,7 +3868,7 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
     return () => {
       cancelled = true;
     };
-  }, [impact, macroRetry, windowDays]);
+  }, [macroRetry, windowDays]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3619,67 +3894,230 @@ function CalendarPage({ initialEvents }: { initialEvents: CalendarEvent[] }) {
     };
   }, [earningsRetry, impact, pageIndex, windowDays]);
 
+  const otherMacroRows = macroRows.filter((event) => !coreMacroKind(event) && (impact === "all" || event.impact === impact));
+
   return (
     <div className="calendarPage calendarV3">
-      <header className="calendarPageHead">
-        <h1>{pageLabels.calendar}</h1>
-        <span>北京时间</span>
-      </header>
       <section className="calendarWorkbench">
-        <div className="calendarFilters">
+        <CoreMacroTracker
+          upcomingRows={macroRows}
+          resultRows={resultRows}
+          windowDays={windowDays}
+          impact={impact}
+          loading={macroLoading || resultLoading}
+          error={macroError || resultError}
+          onWindowDaysChange={setWindowDays}
+          onImpactChange={setImpact}
+          onRetry={() => {
+            setMacroRetry((value) => value + 1);
+            setResultRetry((value) => value + 1);
+          }}
+        />
+        {macroLoading || macroError || otherMacroRows.length ? (
+          <section className="calendarSection calendarOtherMacroSection">
+            <div className="calendarSectionHead">
+              <h2>其它宏观</h2>
+            </div>
+            <CalendarEventsTable
+              kind="macro"
+              rows={otherMacroRows}
+              loading={macroLoading}
+              error={macroError}
+              onRetry={() => setMacroRetry((value) => value + 1)}
+            />
+          </section>
+        ) : null}
+        <section className="calendarSection calendarEarningsSection">
+          <div className="calendarSectionHead">
+            <h2>{showEarningsTable ? "财报日历" : "近期高影响财报"}</h2>
+            {impact === "all" ? (
+              <button type="button" className="calendarSectionAction" onClick={() => setShowAllEarnings((value) => !value)}>
+                {showAllEarnings ? "收起" : "查看全部"}
+              </button>
+            ) : null}
+          </div>
+          {showEarningsTable ? (
+            <>
+              <CalendarEventsTable
+                kind="earnings"
+                rows={earningsRows}
+                loading={earningsLoading}
+                error={earningsError}
+                onRetry={() => setEarningsRetry((value) => value + 1)}
+              />
+              <div className="calendarPager">
+                <span>第 {pageIndex + 1} 页</span>
+                <div>
+                  <button type="button" disabled={pageIndex <= 0 || earningsLoading} onClick={() => setPageIndex((page) => Math.max(0, page - 1))}>上一页</button>
+                  <button type="button" disabled={pageIndex >= pageCount - 1 || earningsLoading} onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}>下一页</button>
+                </div>
+              </div>
+            </>
+          ) : earningsLoading && !featuredEarnings.length ? (
+            <div className="calendarState calendarStateLoading" aria-label="正在加载" />
+          ) : earningsError && !featuredEarnings.length ? (
+            <div className="calendarState">
+              <span>加载失败</span>
+              <button type="button" onClick={() => setEarningsRetry((value) => value + 1)}>重新加载</button>
+            </div>
+          ) : featuredEarnings.length ? (
+            <div className={`calendarEarningsPreview ${earningsLoading ? "isLoading" : ""}`}>
+              {featuredEarnings.map((event) => {
+                const summary = calendarSummaryParts(event).lead;
+                const [company, detail] = summary.split("：", 2);
+                return (
+                  <article key={event.id}>
+                    <strong>{calendarTitle(event.title).replace(/\s*财报$/, "")}</strong>
+                    <div><b>{company || calendarTitle(event.title)}</b><small>{detail || calendarDataText(event)}</small></div>
+                    <time>{formatDate(event.date).slice(5)} {calendarTime24(event.time).slice(0, 5)}</time>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="calendarState">这段时间暂无高影响财报</div>
+          )}
+        </section>
+      </section>
+    </div>
+  );
+}
+
+function CoreMacroTracker({
+  upcomingRows,
+  resultRows,
+  windowDays,
+  impact,
+  loading,
+  error,
+  onWindowDaysChange,
+  onImpactChange,
+  onRetry
+}: {
+  upcomingRows: CalendarEvent[];
+  resultRows: CalendarEvent[];
+  windowDays: string;
+  impact: string;
+  loading: boolean;
+  error: boolean;
+  onWindowDaysChange: (value: string) => void;
+  onImpactChange: (value: string) => void;
+  onRetry: () => void;
+}) {
+  const coreResults = resultRows.filter((event) => coreMacroKind(event));
+  const publishedIds = new Set(coreResults.map((event) => event.id));
+  const coreUpcoming = upcomingRows.filter((event) => coreMacroKind(event) && !publishedIds.has(event.id) && (impact === "all" || event.impact === impact));
+  const nextCore = coreUpcoming[0] || null;
+  const [selectedKind, setSelectedKind] = useState<CoreMacroKind | null>(null);
+  const activeKind = selectedKind || coreMacroKind(nextCore) || coreMacroKind(coreResults[0]) || "cpi";
+  const selectedUpcoming = coreUpcoming.filter((event) => coreMacroKind(event) === activeKind);
+  const selectedResults = coreResults.filter((event) => coreMacroKind(event) === activeKind);
+  const nextSelected = selectedUpcoming[0] || null;
+  const latestResult = selectedResults[0] || null;
+  const latestConclusion = latestResult?.resultHeadline && latestResult?.resultMeaning ? latestResult : null;
+  const timeline = [...selectedUpcoming, ...selectedResults]
+    .filter((event, index, rows) => rows.findIndex((candidate) => candidate.id === event.id) === index)
+    .slice(0, 8);
+
+  return (
+    <section className="calendarCoreMacro">
+      <div className="calendarCoreToolbar">
+        <div className="calendarFilterControls">
           <div className="calendarWindowTabs">
             {[
               ["7", "未来7天"],
               ["30", "未来30天"],
               ["45", "未来45天"]
             ].map(([value, label]) => (
-              <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => setWindowDays(value)}>
+              <button key={value} type="button" className={windowDays === value ? "active" : ""} onClick={() => onWindowDaysChange(value)}>
                 {label}
               </button>
             ))}
           </div>
-          <select value={impact} onChange={(event) => setImpact(event.target.value)}>
+          <select value={impact} aria-label="影响级别" onChange={(event) => onImpactChange(event.target.value)}>
             <option value="all">全部影响</option>
-            <option value="high">高</option>
-            <option value="medium">中</option>
-            <option value="low">低</option>
+            <option value="high">高影响</option>
+            <option value="medium">中影响</option>
+            <option value="low">低影响</option>
           </select>
         </div>
-        <section className="calendarSection">
-          <div className="calendarSectionHead">
-            <h2>宏观重点</h2>
-            {!macroError ? <span>{macroRows.length} 项</span> : null}
+      </div>
+      <div className="calendarNextEvent">
+        <div>
+          <span>下一项重点</span>
+          <strong>{nextCore ? macroDateTime(nextCore, true) : "近期暂无"}</strong>
+        </div>
+        <div>
+          <strong>{nextCore ? calendarTitle(nextCore.title) : "暂无核心宏观事件"}</strong>
+          <span>{nextCore ? "等待公布" : ""}</span>
+        </div>
+        <div>
+          <span>市场预期</span>
+          <strong>{nextCore ? macroResultValue(nextCore, nextCore.forecastLabel, nextCore.forecastValue) || "--" : "--"}</strong>
+        </div>
+        <div>
+          <span>前值</span>
+          <strong>{nextCore ? macroResultValue(nextCore, nextCore.previousLabel, nextCore.previousValue) || "--" : "--"}</strong>
+        </div>
+        {nextCore ? <em className={impactClass(nextCore.impact)}>{impactLabel(nextCore.impact)}影响</em> : null}
+      </div>
+      <div className="calendarMacroTabs" role="tablist" aria-label="核心宏观指标">
+        {coreMacroTabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeKind === tab.key}
+            className={activeKind === tab.key ? "active" : ""}
+            onClick={() => setSelectedKind(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+        <span>最近结果与历史变化</span>
+      </div>
+      {error ? (
+        <div className="calendarInlineError">
+          <span>核心宏观数据加载失败</span>
+          <button type="button" onClick={onRetry}>重新加载</button>
+        </div>
+      ) : null}
+      {loading && timeline.length === 0 ? <div className="calendarState calendarStateLoading" aria-label="正在加载" /> : null}
+      {!loading && !error && timeline.length === 0 ? <div className="calendarState">暂无可展示数据</div> : null}
+      {timeline.length ? (
+        <>
+          <div className="calendarMacroSummary">
+            <div><span>下一次公布</span><strong className={nextSelected ? "pending" : ""}>{nextSelected ? macroDateTime(nextSelected) : "--"}</strong></div>
+            <div><span>最近结果</span><strong>{latestResult ? macroResultValue(latestResult, latestResult.actualLabel, latestResult.actualValue) || "--" : "--"}</strong></div>
+            <div><span>较前次</span><strong>{macroChangeText(latestResult, activeKind)}</strong></div>
           </div>
-          <CalendarEventsTable
-            kind="macro"
-            rows={macroRows}
-            loading={macroLoading}
-            error={macroError}
-            onRetry={() => setMacroRetry((value) => value + 1)}
-          />
-        </section>
-        <section className="calendarSection calendarEarningsSection">
-          <div className="calendarSectionHead">
-            <h2>财报日历</h2>
-            <span>按日期排列</span>
-          </div>
-          <CalendarEventsTable
-            kind="earnings"
-            rows={earningsRows}
-            loading={earningsLoading}
-            error={earningsError}
-            onRetry={() => setEarningsRetry((value) => value + 1)}
-          />
-          <div className="calendarPager">
-            <span>第 {pageIndex + 1} 页</span>
-            <div>
-              <button type="button" disabled={pageIndex <= 0 || earningsLoading} onClick={() => setPageIndex((page) => Math.max(0, page - 1))}>上一页</button>
-              <button type="button" disabled={pageIndex >= pageCount - 1 || earningsLoading} onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}>下一页</button>
+          {latestConclusion ? (
+            <div className={`calendarMacroConclusion ${latestConclusion.resultTone || "neutral"}`}>
+              <span>最近结论</span>
+              <strong>{latestConclusion.resultHeadline}</strong>
+              <p>{latestConclusion.resultMeaning}</p>
             </div>
+          ) : null}
+          <div className="calendarMacroTimelineHead">
+            <span>公布时间</span><span>实际值</span><span>市场预期</span><span>前值</span><span>变化</span>
           </div>
-        </section>
-      </section>
-    </div>
+          <div className={`calendarMacroTimeline ${loading ? "isLoading" : ""}`}>
+            {timeline.map((event) => {
+              const actual = publishedIds.has(event.id) ? macroResultValue(event, event.actualLabel, event.actualValue) : "";
+              return (
+                <article key={event.id} className={!actual ? "isFuture" : ""}>
+                  <span data-label="公布时间">{macroDateTime(event)}</span>
+                  <strong data-label="实际值" className={!actual ? "pending" : ""}>{actual || "待公布"}</strong>
+                  <span data-label="市场预期">{macroResultValue(event, event.forecastLabel, event.forecastValue) || "--"}</span>
+                  <span data-label="前值">{macroResultValue(event, event.previousLabel, event.previousValue) || "--"}</span>
+                  <span data-label="变化"><em>{actual ? macroChangeText(event, activeKind) : "等待公布"}</em></span>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+    </section>
   );
 }
 
@@ -3769,6 +4207,9 @@ function CalendarEventsTable({
   );
 }
 
+type PositionMarket = "stock" | "crypto";
+type CryptoTradeKind = "spot" | "perp";
+
 type PositionHistoryItem = {
   id: string;
   symbol: string;
@@ -3781,13 +4222,304 @@ type PositionHistoryItem = {
   actualRisk: number;
   positionAmount: number;
   createdAt: string;
+  market?: PositionMarket;
+  cryptoKind?: CryptoTradeKind;
+  leverage?: number;
+  requiredMargin?: number;
 };
 
 const positionHistoryKey = "dongbimao_position_sizing_history_v2";
 const positionAccountKey = "dongbimao_position_sizing_account";
 const positionRiskKey = "dongbimao_position_sizing_risk";
 
+function positionQuantity(value: number, market: PositionMarket) {
+  return value.toLocaleString("en-US", { maximumFractionDigits: market === "crypto" ? 8 : 0 });
+}
+
+function positionCurrency(value: number | undefined | null, market: PositionMarket, price = false) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "--";
+  if (market === "stock") return exactMoney(value);
+  const number = Number(value);
+  return `${number.toLocaleString("en-US", {
+    minimumFractionDigits: price && Math.abs(number) < 1 ? 4 : 2,
+    maximumFractionDigits: price ? 8 : 2
+  })} USDT`;
+}
+
+function cryptoQuantityUnit(symbol: string) {
+  const compact = symbol.replace(/[^A-Z0-9]/g, "");
+  return compact.endsWith("USDT") ? compact.slice(0, -4) || "币" : compact || "币";
+}
+
+const legacyWatchlistStorageKey = "meigu_strategy_watchlist_v1";
+const watchlistImportDismissedKey = "watchlist_import_dismissed_v1";
+
+function watchlistIsDue(item: WatchlistItem) {
+  if (!item.nextReviewAt) return false;
+  const timestamp = new Date(item.nextReviewAt).getTime();
+  return Number.isFinite(timestamp) && timestamp <= Date.now();
+}
+
+function watchlistTrend(row?: SymbolRow) {
+  const month = Number(row?.monthChange);
+  const week = Number(row?.weekChange);
+  if (Number.isFinite(month) && month >= 5 && (!Number.isFinite(week) || week >= 0)) return { label: "偏强", className: "positive" };
+  if (Number.isFinite(month) && month <= -5) return { label: "转弱", className: "negative" };
+  return { label: "无明确信号", className: "neutral" };
+}
+
+function WatchlistPage({ enabled, onOpenStock }: { enabled: boolean; onOpenStock: (symbol: string, source?: StockSource) => void }) {
+  const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, SymbolRow>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [newSymbol, setNewSymbol] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [removeSymbol, setRemoveSymbol] = useState("");
+  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [legacyItems, setLegacyItems] = useState<Array<Record<string, unknown>>>([]);
+
+  const refresh = useCallback(async () => {
+    const payload = await api.watchlist();
+    setItems(payload.rows);
+    if (!payload.rows.length) {
+      setProfiles({});
+      return;
+    }
+    const params = new URLSearchParams({
+      preset: "watchlist",
+      watchlist: payload.rows.map((item) => item.symbol).join(","),
+      limit: "200",
+      sort: "dollarVolume",
+      dir: "desc"
+    });
+    const symbols = await api.symbols(params);
+    setProfiles(Object.fromEntries(symbols.rows.map((row) => [row.symbol, row])));
+  }, []);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadFailed(false);
+    return refresh()
+      .catch(() => setLoadFailed(true))
+      .finally(() => setLoading(false));
+  }, [refresh]);
+
+  const refreshAfterSave = async (successText: string) => {
+    setMessage({ tone: "ok", text: successText });
+    try {
+      await refresh();
+    } catch {
+      setLoadFailed(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+    void load();
+    if (localStorage.getItem(watchlistImportDismissedKey)) return;
+    try {
+      const parsed = JSON.parse(localStorage.getItem(legacyWatchlistStorageKey) || "[]");
+      if (Array.isArray(parsed)) {
+        setLegacyItems(parsed.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object" && "symbol" in item)));
+      }
+    } catch {
+      localStorage.removeItem(legacyWatchlistStorageKey);
+    }
+  }, [enabled, load]);
+
+  const stats = useMemo(() => ({
+    due: items.filter(watchlistIsDue).length,
+    following: items.filter((item) => item.reviewAction === "continue").length,
+    lower: items.filter((item) => item.reviewAction === "lower").length
+  }), [items]);
+
+  const rows = useMemo(() => items.filter((item) => {
+    const profile = profiles[item.symbol];
+    const needle = query.trim().toLowerCase();
+    if (needle && ![item.symbol, profile?.company, profile?.chineseName].some((value) => String(value || "").toLowerCase().includes(needle))) return false;
+    if (filter === "due") return watchlistIsDue(item);
+    if (filter === "continue") return item.reviewAction === "continue";
+    if (filter === "lower") return item.reviewAction === "lower";
+    return true;
+  }), [filter, items, profiles, query]);
+
+  const add = async (event: FormEvent) => {
+    event.preventDefault();
+    const symbol = newSymbol.trim().toUpperCase();
+    if (!symbol) return;
+    setBusy(symbol);
+    setMessage(null);
+    try {
+      await api.addWatchlist(symbol);
+      setNewSymbol("");
+      setAdding(false);
+      await refreshAfterSave(`${symbol} 已加入自选`);
+    } catch {
+      setMessage({ tone: "error", text: "添加失败，请重试" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const review = async (symbol: string, action: "reviewed" | "continue" | "lower") => {
+    setBusy(symbol);
+    setMessage(null);
+    try {
+      await api.reviewWatchlist(symbol, action);
+      await refreshAfterSave(`${symbol} 复盘状态已更新`);
+    } catch {
+      setMessage({ tone: "error", text: "更新失败，请重试" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const remove = async (symbol: string) => {
+    setBusy(symbol);
+    setMessage(null);
+    try {
+      await api.removeWatchlist(symbol);
+      setRemoveSymbol("");
+      await refreshAfterSave(`${symbol} 已移除`);
+    } catch {
+      setMessage({ tone: "error", text: "移除失败，请重试" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const importLegacy = async () => {
+    setBusy("import");
+    setMessage(null);
+    try {
+      const payload = legacyItems.map((item) => ({ ...item, source: String(item.source || "旧版导入") }));
+      const result = await api.importWatchlist(payload);
+      localStorage.setItem(watchlistImportDismissedKey, "1");
+      setLegacyItems([]);
+      await refreshAfterSave(`已导入 ${result.saved} 只旧版自选${result.skipped ? `，${result.skipped} 只代码已失效` : ""}`);
+    } catch {
+      setMessage({ tone: "error", text: "导入失败，请重试" });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const dismissImport = () => {
+    localStorage.setItem(watchlistImportDismissedKey, "1");
+    setLegacyItems([]);
+  };
+
+  if (loading) {
+    return <section className="watchlistPage compactProductPage"><div className="marketToolLoading compact">加载中</div></section>;
+  }
+  if (loadFailed) {
+    return (
+      <section className="watchlistPage compactProductPage">
+        <div className="marketToolError compact watchlistDataError" role="alert">
+          <span>{message?.tone === "ok" ? `${message.text}，请重新加载列表` : "自选数据加载失败"}</span>
+          <button type="button" className="requestRetry" onClick={() => void load()}>重新加载</button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="watchlistPage compactProductPage">
+      <div className="watchlistToolbar">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索股票代码或公司" aria-label="搜索自选" />
+        <select value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="筛选自选状态">
+          <option value="all">全部状态</option>
+          <option value="due">待复盘</option>
+          <option value="continue">继续跟踪</option>
+          <option value="lower">降低关注</option>
+        </select>
+        <button type="button" className="primaryButton" onClick={() => setAdding((value) => !value)}>添加股票</button>
+      </div>
+
+      {adding ? (
+        <form className="watchlistAddForm" onSubmit={add}>
+          <input autoFocus value={newSymbol} onChange={(event) => setNewSymbol(event.target.value.toUpperCase())} placeholder="输入股票代码，如 NVDA" />
+          <button type="submit" className="primaryButton" disabled={!newSymbol.trim() || Boolean(busy)}>确认添加</button>
+          <button type="button" onClick={() => setAdding(false)}>取消</button>
+        </form>
+      ) : null}
+
+      {legacyItems.length ? (
+        <div className="watchlistImport" role="status">
+          <span>发现本机有 {legacyItems.length} 只旧版自选，导入后会同步到当前账号。</span>
+          <div><button type="button" className="primaryButton" disabled={busy === "import"} onClick={() => void importLegacy()}>导入账号</button><button type="button" onClick={dismissImport}>暂不导入</button></div>
+        </div>
+      ) : null}
+
+      {message ? <div className={`watchlistMessage ${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>{message.text}</div> : null}
+
+      <div className="watchlistStats" aria-label="自选概况">
+        <article><span>全部自选</span><strong>{items.length}</strong><small>已同步账号</small></article>
+        <article><span>待复盘</span><strong>{stats.due}</strong><small>需要重新检查</small></article>
+        <article><span>继续跟踪</span><strong>{stats.following}</strong><small>保持观察</small></article>
+        <article><span>降低关注</span><strong>{stats.lower}</strong><small>等待新变化</small></article>
+      </div>
+
+      <div className="watchlistTablePanel">
+        <div className="watchlistTableHeader"><strong>复盘队列</strong><span>按复盘日期排序</span></div>
+        {rows.length ? (
+          <div className="tableScroll">
+            <table className="productTable watchlistTable">
+              <thead><tr><th>#</th><th>股票</th><th>当前状态</th><th>趋势</th><th>主要线索</th><th>下次复盘</th><th>操作</th></tr></thead>
+              <tbody>
+                {rows.map((item, index) => {
+                  const profile = profiles[item.symbol];
+                  const trend = watchlistTrend(profile);
+                  const due = watchlistIsDue(item);
+                  const status = due ? "待复盘" : item.reviewAction === "lower" ? "降低关注" : item.reviewAction === "continue" ? "继续跟踪" : item.reviewAction === "reviewed" ? "已复盘" : "待设置";
+                  const clue = profile?.eventLabel || profile?.strengthLabel || item.source;
+                  return (
+                    <tr key={item.symbol}>
+                      <td>{String(index + 1).padStart(2, "0")}</td>
+                      <td><button type="button" className="stockLink" onClick={() => onOpenStock(item.symbol, "watchlist")}><strong>{item.symbol}</strong><span>{profile?.chineseName || profile?.company || "--"}</span></button></td>
+                      <td><span className={`watchlistStatus ${due ? "due" : item.reviewAction || "unset"}`}>{status}</span></td>
+                      <td><span className={trend.className}>{trend.label}</span></td>
+                      <td>{clue || "--"}</td>
+                      <td>{formatDate(item.nextReviewAt)}</td>
+                      <td>
+                        <div className="watchlistActions">
+                          <button type="button" disabled={busy === item.symbol} onClick={() => void review(item.symbol, "reviewed")}>已复盘</button>
+                          <button type="button" disabled={busy === item.symbol} onClick={() => void review(item.symbol, "continue")}>继续</button>
+                          <button type="button" className="iconButton" aria-label={`移除 ${item.symbol}`} disabled={busy === item.symbol} onClick={() => setRemoveSymbol(item.symbol)}>×</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="watchlistEmpty"><strong>{items.length ? "没有符合条件的股票" : "还没有自选"}</strong><span>{items.length ? "调整搜索或筛选条件" : "添加股票后会同步到当前账号"}</span></div>}
+      </div>
+      {removeSymbol ? (
+        <div className="watchlistConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="watchlistRemoveTitle" onMouseDown={() => setRemoveSymbol("")}>
+          <section onMouseDown={(event) => event.stopPropagation()}>
+            <strong id="watchlistRemoveTitle">移出自选</strong>
+            <p>确定移出 {removeSymbol}？该股票的复盘记录也会删除。</p>
+            <div><button type="button" onClick={() => setRemoveSymbol("")}>取消</button><button type="button" className="dangerButton" disabled={busy === removeSymbol} onClick={() => void remove(removeSymbol)}>确认移出</button></div>
+          </section>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function PositionSizingPage() {
+  const [market, setMarket] = useState<PositionMarket>("stock");
+  const [cryptoKind, setCryptoKind] = useState<CryptoTradeKind>("perp");
+  const [leverage, setLeverage] = useState(10);
   const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<PositionDirection>("long");
   const [accountSize, setAccountSize] = useState(() => window.localStorage.getItem(positionAccountKey) || "100,000");
@@ -3807,6 +4539,9 @@ function PositionSizingPage() {
     }
   });
   const normalizedSymbol = symbol.trim().toUpperCase();
+  const isCrypto = market === "crypto";
+  const effectiveLeverage = isCrypto && cryptoKind === "perp" ? leverage : 1;
+  const quantityUnit = isCrypto ? cryptoQuantityUnit(normalizedSymbol) : "股";
   const accountNumber = inputMoneyNumber(accountSize);
   const riskPercentNumber = inputMoneyNumber(riskPercent);
   const riskAmount = accountNumber * riskPercentNumber / 100;
@@ -3820,20 +4555,22 @@ function PositionSizingPage() {
           accountSize: accountNumber,
           riskAmount,
           entryPrice: inputMoneyNumber(entryPrice),
-          stopPrice: inputMoneyNumber(stopPrice)
+          stopPrice: inputMoneyNumber(stopPrice),
+          quantityStep: isCrypto ? 0.00000001 : 1,
+          leverage: effectiveLeverage
         }),
         error: ""
       };
     } catch (err) {
       return { result: null, error: err instanceof Error ? err.message : "请检查输入。" };
     }
-  }, [accountNumber, direction, entryPrice, hasCoreInput, riskAmount, stopPrice]);
+  }, [accountNumber, direction, effectiveLeverage, entryPrice, hasCoreInput, isCrypto, riskAmount, stopPrice]);
   const result = calculation.result;
 
   useEffect(() => {
     setCopyStatus("复制");
     setSaveStatus("保存计划");
-  }, [accountSize, direction, entryPrice, normalizedSymbol, riskPercent, stopPrice]);
+  }, [accountSize, cryptoKind, direction, entryPrice, leverage, market, normalizedSymbol, riskPercent, stopPrice]);
 
   useEffect(() => {
     if (accountNumber > 0) window.localStorage.setItem(positionAccountKey, accountSize);
@@ -3841,7 +4578,7 @@ function PositionSizingPage() {
   }, [accountNumber, accountSize, riskPercent, riskPercentNumber]);
 
   useEffect(() => {
-    if (!normalizedSymbol) {
+    if (isCrypto || !normalizedSymbol) {
       setLatestPrice(null);
       setPriceStatus("");
       return;
@@ -3862,14 +4599,32 @@ function PositionSizingPage() {
           }
         })
         .catch(() => {
-          if (!cancelled) setPriceStatus("未找到最新价");
+          if (!cancelled) setPriceStatus("行情暂时不可用");
         });
     }, 320);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [normalizedSymbol]);
+  }, [isCrypto, normalizedSymbol]);
+
+  function changeMarket(next: PositionMarket) {
+    if (next === market) return;
+    setMarket(next);
+    setSymbol("");
+    setDirection("long");
+    setEntryPrice("");
+    setStopPrice("");
+    setLatestPrice(null);
+    setPriceStatus("");
+    setFormError("");
+  }
+
+  function changeCryptoKind(next: CryptoTradeKind) {
+    setCryptoKind(next);
+    if (next === "spot") setDirection("long");
+    setFormError("");
+  }
 
   function applyRiskPreset(percent: number) {
     setFormError("");
@@ -3893,7 +4648,11 @@ function PositionSizingPage() {
       stopPrice: inputMoneyNumber(stopPrice),
       actualRisk: result.actualRisk,
       positionAmount: result.positionAmount,
-      createdAt: formatDateTime(new Date().toISOString())
+      createdAt: formatDateTime(new Date().toISOString()),
+      market,
+      cryptoKind: isCrypto ? cryptoKind : undefined,
+      leverage: isCrypto && cryptoKind === "perp" ? leverage : undefined,
+      requiredMargin: isCrypto ? result.requiredMargin : undefined
     };
     const next = [item, ...history].slice(0, 5);
     setHistory(next);
@@ -3908,6 +4667,10 @@ function PositionSizingPage() {
   }
 
   function restoreCalculation(item: PositionHistoryItem) {
+    const itemMarket = item.market || "stock";
+    setMarket(itemMarket);
+    setCryptoKind(item.cryptoKind || "perp");
+    setLeverage(item.leverage || 10);
     setSymbol(item.symbol === "--" ? "" : item.symbol);
     setDirection(item.direction);
     setAccountSize(item.accountSize.toLocaleString("en-US", { maximumFractionDigits: 2 }));
@@ -3919,7 +4682,7 @@ function PositionSizingPage() {
 
   function copyPlan() {
     if (!result) return;
-    const plan = `${normalizedSymbol || "交易计划"} ${direction === "long" ? "做多" : "做空"} · 入场 ${exactMoney(inputMoneyNumber(entryPrice))} · 止损 ${exactMoney(inputMoneyNumber(stopPrice))} · ${result.shares.toLocaleString("en-US")} 股 · 最大亏损 ${exactMoney(result.actualRisk)}`;
+    const plan = `${normalizedSymbol || "交易计划"} ${direction === "long" ? (isCrypto && cryptoKind === "spot" ? "买入" : "做多") : "做空"} · 入场 ${positionCurrency(inputMoneyNumber(entryPrice), market, true)} · 止损 ${positionCurrency(inputMoneyNumber(stopPrice), market, true)} · ${positionQuantity(result.shares, market)} ${quantityUnit} · 最大亏损 ${positionCurrency(result.actualRisk, market)}`;
     if (!navigator.clipboard) {
       setCopyStatus("复制失败");
       return;
@@ -3940,14 +4703,31 @@ function PositionSizingPage() {
     setCopyStatus("复制");
   }
 
+  const directionControl = (
+    <span className="positionSegment">
+      <button type="button" className={`long ${direction === "long" ? "active" : ""}`} onClick={() => setDirection("long")}>{isCrypto && cryptoKind === "spot" ? "买入" : "做多"}</button>
+      {isCrypto && cryptoKind === "spot" ? null : <button type="button" className={`short ${direction === "short" ? "active" : ""}`} onClick={() => setDirection("short")}>做空</button>}
+    </span>
+  );
+  const riskControl = (
+    <span className="positionRiskInput">
+      <span className="positionInput"><input data-testid="position-risk" inputMode="decimal" value={riskPercent} onChange={(event) => setRiskPercent(event.target.value)} placeholder="1" /><i>%</i></span>
+      <span className="positionPresetRow">
+        {[0.5, 1, 2].map((percent) => (
+          <button type="button" className={riskPercentNumber === percent ? "active" : ""} key={percent} onClick={() => applyRiskPreset(percent)}>{percent}%</button>
+        ))}
+      </span>
+    </span>
+  );
+
   return (
     <div className="positionSizingPage" data-testid="position-sizing-page">
       <header className="positionSizingHead">
-        <div>
-          <h1>以损定仓</h1>
-          <p>先定能亏多少，再算该买多少。</p>
+        <h1>以损定仓</h1>
+        <div className="positionMarketTabs" role="tablist" aria-label="市场">
+          <button type="button" role="tab" aria-selected={market === "stock"} className={market === "stock" ? "active" : ""} onClick={() => changeMarket("stock")}>美股</button>
+          <button type="button" role="tab" aria-selected={market === "crypto"} className={market === "crypto" ? "active" : ""} onClick={() => changeMarket("crypto")}>加密</button>
         </div>
-        <span>美股 · 整股 · 默认无杠杆</span>
       </header>
 
       <section className="positionSizingGrid">
@@ -3958,56 +4738,71 @@ function PositionSizingPage() {
           </div>
           <div className="positionFormBody">
             <div className="positionFieldGrid">
+              {isCrypto ? (
+                <label>
+                  <span>交易类型</span>
+                  <span className="positionSegment">
+                    <button type="button" className={cryptoKind === "spot" ? "active" : ""} onClick={() => changeCryptoKind("spot")}>现货</button>
+                    <button type="button" className={cryptoKind === "perp" ? "active" : ""} onClick={() => changeCryptoKind("perp")}>USDT 合约</button>
+                  </span>
+                </label>
+              ) : (
+                <label>
+                  <span>股票代码 <em>可选</em></span>
+                  <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 NVDA" />
+                  <small>
+                    {priceStatus}
+                    {latestPrice ? <button type="button" onClick={() => setEntryPrice(String(latestPrice))}>设为入场价</button> : null}
+                  </small>
+                </label>
+              )}
               <label>
-                <span>股票代码 <em>可选</em></span>
-                <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 NVDA" />
-                <small>
-                  {priceStatus}
-                  {latestPrice ? <button type="button" onClick={() => setEntryPrice(String(latestPrice))}>设为入场价</button> : null}
-                </small>
-              </label>
-              <label>
-                <span>交易方向</span>
-                <span className="positionSegment">
-                  <button type="button" className={`long ${direction === "long" ? "active" : ""}`} onClick={() => setDirection("long")}>做多</button>
-                  <button type="button" className={`short ${direction === "short" ? "active" : ""}`} onClick={() => setDirection("short")}>做空</button>
-                </span>
+                <span>{isCrypto ? "交易对" : "交易方向"}{isCrypto ? <em>可选</em> : null}</span>
+                {isCrypto ? <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="例如 BTCUSDT" /> : directionControl}
               </label>
             </div>
 
             <div className="positionFieldGrid">
+              {isCrypto ? <label><span>交易方向</span>{directionControl}</label> : null}
               <label>
                 <span>账户资金</span>
-                <span className="positionInput"><i>$</i><input data-testid="position-account" inputMode="decimal" value={accountSize} onChange={(event) => setAccountSize(event.target.value)} placeholder="例如 100,000" /></span>
+                <span className="positionInput">{isCrypto ? null : <i>$</i>}<input data-testid="position-account" inputMode="decimal" value={accountSize} onChange={(event) => setAccountSize(event.target.value)} placeholder={isCrypto ? "例如 20,000" : "例如 100,000"} />{isCrypto ? <i>USDT</i> : null}</span>
               </label>
-              <label>
+              {!isCrypto ? <label>
                 <span>单笔风险</span>
-                <span className="positionRiskInput">
-                  <span className="positionInput"><input data-testid="position-risk" inputMode="decimal" value={riskPercent} onChange={(event) => setRiskPercent(event.target.value)} placeholder="1" /><i>%</i></span>
-                  <span className="positionPresetRow">
-                    {[0.5, 1, 2].map((percent) => (
-                      <button type="button" className={riskPercentNumber === percent ? "active" : ""} key={percent} onClick={() => applyRiskPreset(percent)}>{percent}%</button>
-                    ))}
-                  </span>
-                </span>
-              </label>
+                {riskControl}
+              </label> : null}
             </div>
-            <p className="positionDerivedRisk">本次最多亏损 <strong>{accountNumber > 0 && riskPercentNumber > 0 ? exactMoney(riskAmount) : "--"}</strong></p>
+            {isCrypto ? (
+              <div className="positionFieldGrid positionRiskRow">
+                <label><span>单笔风险</span>{riskControl}</label>
+                <p className="positionDerivedRisk">本次最多亏损 <strong>{accountNumber > 0 && riskPercentNumber > 0 ? positionCurrency(riskAmount, market) : "--"}</strong></p>
+              </div>
+            ) : <p className="positionDerivedRisk">本次最多亏损 <strong>{accountNumber > 0 && riskPercentNumber > 0 ? exactMoney(riskAmount) : "--"}</strong></p>}
 
             <div className="positionFieldGrid">
               <label>
-                <span>{direction === "long" ? "计划买入价" : "计划卖出价"}</span>
-                <span className="positionInput"><i>$</i><input data-testid="position-entry" inputMode="decimal" value={entryPrice} onChange={(event) => setEntryPrice(event.target.value)} placeholder="例如 100.00" /></span>
+                <span>{isCrypto ? "计划入场价" : direction === "long" ? "计划买入价" : "计划卖出价"}</span>
+                <span className="positionInput">{isCrypto ? null : <i>$</i>}<input data-testid="position-entry" inputMode="decimal" value={entryPrice} onChange={(event) => setEntryPrice(event.target.value)} placeholder={isCrypto ? "例如 68,000" : "例如 100.00"} />{isCrypto ? <i>USDT</i> : null}</span>
               </label>
               <label>
                 <span>止损价</span>
-                <span className="positionInput"><i>$</i><input data-testid="position-stop" inputMode="decimal" value={stopPrice} onChange={(event) => setStopPrice(event.target.value)} placeholder={direction === "long" ? "低于买入价" : "高于卖出价"} /></span>
+                <span className="positionInput">{isCrypto ? null : <i>$</i>}<input data-testid="position-stop" inputMode="decimal" value={stopPrice} onChange={(event) => setStopPrice(event.target.value)} placeholder={direction === "long" ? "低于入场价" : "高于入场价"} />{isCrypto ? <i>USDT</i> : null}</span>
               </label>
             </div>
 
+            {isCrypto && cryptoKind === "perp" ? (
+              <div className="positionLeverageField">
+                <span>杠杆</span>
+                <div className="positionLeverageRow">
+                  {[3, 5, 10, 20].map((value) => <button type="button" key={value} className={leverage === value ? "active" : ""} onClick={() => setLeverage(value)}>{value}x</button>)}
+                </div>
+                <small>杠杆只影响保证金，不改变按止损计算的亏损。</small>
+              </div>
+            ) : null}
+
             {calculation.error || formError ? <p className="positionError">{formError || calculation.error}</p> : null}
             <div className="positionFormFoot">
-              <span>止损应设在交易逻辑失效的位置，再由系统反推仓位。</span>
               <button type="button" onClick={clearTrade}>清空</button>
             </div>
           </div>
@@ -4016,35 +4811,41 @@ function PositionSizingPage() {
         <aside className="positionSizingPanel positionResultPanel">
           <div className="panelHead">
             <strong>结果</strong>
-            <span>{direction === "long" ? "做多" : "做空"}</span>
+            <span>{isCrypto ? cryptoKind === "spot" ? "现货" : `USDT 合约 · ${leverage}x` : direction === "long" ? "做多" : "做空"}</span>
           </div>
           <div className="positionResultHero">
-            <span>{direction === "long" ? "建议买入" : "建议卖出"}</span>
-            <strong data-testid="position-result-shares">{result ? result.shares.toLocaleString("en-US") : "--"} <i>股</i></strong>
-            <em>{result ? <>预计占用资金 <b>{exactMoney(result.positionAmount)}</b></> : "填入账户、风险和价格后自动计算"}</em>
+            <span>{isCrypto ? "建议下单" : direction === "long" ? "建议买入" : "建议卖出"}</span>
+            <strong data-testid="position-result-shares">{result ? positionQuantity(result.shares, market) : "--"} <i>{quantityUnit}</i></strong>
+            <em>{result ? <>{isCrypto ? "名义仓位" : "预计占用资金"} <b>{positionCurrency(result.positionAmount, market)}</b></> : "填入账户、风险和价格后自动计算"}</em>
           </div>
+          {isCrypto ? (
+            <div className="positionResultHighlights">
+              <div><span>{cryptoKind === "perp" ? "预计保证金" : "预计占用资金"}</span><strong>{positionCurrency(result?.requiredMargin, market)}</strong></div>
+              <div><span>止损最大亏损</span><strong className="negative">{result ? `-${positionCurrency(result.actualRisk, market)}` : "--"}</strong></div>
+            </div>
+          ) : null}
           {result && (result.cashLimited || riskPercentNumber > 2 || result.stopDistancePct < 0.5) ? (
             <div className="positionWarnings" data-testid="position-warnings">
-              {result.cashLimited ? <p>风险公式得出 {result.riskBasedShares.toLocaleString("en-US")} 股，已按账户资金下调。</p> : null}
+              {result.cashLimited ? <p>风险公式得出 {positionQuantity(result.riskBasedShares, market)} {quantityUnit}，已按{isCrypto && cryptoKind === "perp" ? "可用保证金" : "账户资金"}下调。</p> : null}
               {riskPercentNumber > 2 ? <p>单笔风险超过账户资金的 2%，请确认风险预算。</p> : null}
               {result.stopDistancePct < 0.5 ? <p>止损距离较小，请确认止损位置不是误填。</p> : null}
             </div>
           ) : null}
           <div className="positionMetricList">
-            <div><span>仓位占比</span><strong>{exactPercent(result?.positionPct)}</strong></div>
-            <div><span>止损最大亏损</span><strong className="negative">{result ? `-${exactMoney(result.actualRisk)}` : "--"}</strong></div>
+            <div><span>{isCrypto ? "名义仓位占账户" : "仓位占比"}</span><strong>{exactPercent(result?.positionPct)}</strong></div>
+            {!isCrypto ? <div><span>止损最大亏损</span><strong className="negative">{result ? `-${exactMoney(result.actualRisk)}` : "--"}</strong></div> : null}
             <div><span>实际账户风险</span><strong>{exactPercent(result?.riskPct)}</strong></div>
-            <div><span>每股风险 / 止损距离</span><strong>{result ? `${exactMoney(result.perShareRisk)} / ${exactPercent(result.stopDistancePct)}` : "--"}</strong></div>
-            <div><span>1R / 2R 参考价</span><strong className="positive">{result ? `${exactMoney(result.oneRPrice)} / ${exactMoney(result.twoRPrice)}` : "--"}</strong></div>
+            <div><span>{isCrypto ? "每币风险" : "每股风险"} / 止损距离</span><strong>{result ? `${positionCurrency(result.perShareRisk, market, true)} / ${exactPercent(result.stopDistancePct)}` : "--"}</strong></div>
+            <div><span>1R / 2R 参考价</span><strong className="positive">{result ? `${positionCurrency(result.oneRPrice, market, true)} / ${positionCurrency(result.twoRPrice, market, true)}` : "--"}</strong></div>
           </div>
           <p className="positionPlanSummary">
-            {result ? `${normalizedSymbol || "交易计划"} ${direction === "long" ? "做多" : "做空"} · 入场 ${exactMoney(inputMoneyNumber(entryPrice))} · 止损 ${exactMoney(inputMoneyNumber(stopPrice))} · ${result.shares.toLocaleString("en-US")} 股 · 最大亏损 ${exactMoney(result.actualRisk)}` : "--"}
+            {result ? `${normalizedSymbol || "交易计划"} ${direction === "long" ? (isCrypto && cryptoKind === "spot" ? "买入" : "做多") : "做空"} · 入场 ${positionCurrency(inputMoneyNumber(entryPrice), market, true)} · 止损 ${positionCurrency(inputMoneyNumber(stopPrice), market, true)} · ${positionQuantity(result.shares, market)} ${quantityUnit} · 最大亏损 ${positionCurrency(result.actualRisk, market)}` : "--"}
           </p>
           <div className="positionResultActions">
             <button className="positionPrimaryButton" data-testid="position-save" type="button" disabled={!result} onClick={() => saveCalculation()}>{saveStatus}</button>
             <button type="button" disabled={!result} onClick={copyPlan}>{copyStatus}</button>
           </div>
-          <p className="positionDisclaimer">按止损价成交测算；跳空、滑点和费用可能使实际亏损高于计划值。做空未计算券商保证金和借券限制。</p>
+          <p className="positionDisclaimer">{isCrypto ? "不含手续费、资金费和滑点；实际数量以交易所下单精度为准。" : "按止损价成交测算；跳空、滑点和费用可能使实际亏损高于计划值。做空未计算券商保证金和借券限制。"}</p>
         </aside>
       </section>
 
@@ -4059,33 +4860,42 @@ function PositionSizingPage() {
               <tr>
                 <th>时间</th>
                 <th>标的</th>
+                <th>类型</th>
                 <th>方向</th>
-                <th>股数</th>
+                <th>数量</th>
                 <th>价格</th>
                 <th>风险</th>
-                <th>仓位</th>
+                <th>名义仓位</th>
+                <th>保证金</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {history.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.createdAt}</td>
-                  <td><button className="positionHistorySymbol" type="button" onClick={() => restoreCalculation(item)}>{item.symbol}</button></td>
-                  <td>{item.direction === "long" ? "做多" : "做空"}</td>
-                  <td>{item.shares.toLocaleString("en-US")}</td>
-                  <td>{exactMoney(item.entryPrice)} / {exactMoney(item.stopPrice)}</td>
-                  <td>{exactMoney(item.actualRisk)}</td>
-                  <td>{exactMoney(item.positionAmount)}</td>
-                  <td><button className="positionHistoryDelete" type="button" onClick={() => updateHistory(history.filter((row) => row.id !== item.id))}>删除</button></td>
-                </tr>
-              ))}
-              {!history.length ? <tr><td className="positionHistoryEmpty" colSpan={8}>暂无最近计算</td></tr> : null}
+              {history.map((item) => {
+                const itemMarket = item.market || "stock";
+                const itemUnit = itemMarket === "crypto" ? cryptoQuantityUnit(item.symbol) : "股";
+                const itemType = itemMarket === "stock" ? "美股" : item.cryptoKind === "spot" ? "现货" : `USDT 合约 · ${item.leverage || 10}x`;
+                return (
+                  <tr key={item.id}>
+                    <td>{item.createdAt}</td>
+                    <td><button className="positionHistorySymbol" type="button" onClick={() => restoreCalculation(item)}>{item.symbol}</button></td>
+                    <td>{itemType}</td>
+                    <td>{item.direction === "long" ? itemMarket === "crypto" && item.cryptoKind === "spot" ? "买入" : "做多" : "做空"}</td>
+                    <td>{positionQuantity(item.shares, itemMarket)} {itemUnit}</td>
+                    <td>{positionCurrency(item.entryPrice, itemMarket, true)} / {positionCurrency(item.stopPrice, itemMarket, true)}</td>
+                    <td>{positionCurrency(item.actualRisk, itemMarket)}</td>
+                    <td>{positionCurrency(item.positionAmount, itemMarket)}</td>
+                    <td>{itemMarket === "crypto" ? positionCurrency(item.requiredMargin ?? item.positionAmount, itemMarket) : "--"}</td>
+                    <td><button className="positionHistoryDelete" type="button" onClick={() => updateHistory(history.filter((row) => row.id !== item.id))}>删除</button></td>
+                  </tr>
+                );
+              })}
+              {!history.length ? <tr><td className="positionHistoryEmpty" colSpan={10}>暂无最近计算</td></tr> : null}
             </tbody>
           </table>
         </div>
       </section>
-      {result ? <div className="positionMobileResult"><span>建议 {result.shares.toLocaleString("en-US")} 股</span><strong>{exactMoney(result.positionAmount)}</strong></div> : null}
+      {result ? <div className="positionMobileResult"><span>建议 {positionQuantity(result.shares, market)} {quantityUnit}</span><strong>{positionCurrency(result.positionAmount, market)}</strong></div> : null}
     </div>
   );
 }
@@ -4128,10 +4938,11 @@ function openCurvePath(points: OpenPortfolioPayload["curve"]) {
   return { line, area: `${line} L${width},${height} L0,${height} Z` };
 }
 
-function OpenPortfolioPage() {
+function OpenPortfolioPage({ enabled }: { enabled: boolean }) {
   const [data, setData] = useState<OpenPortfolioPayload | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadVersion, setLoadVersion] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
   const curve = useMemo(() => showOpenPortfolioDetails ? openCurvePath(data?.curve || []) : { line: "", area: "" }, [data?.curve]);
   const holdings = data?.holdings || [];
@@ -4167,6 +4978,10 @@ function OpenPortfolioPage() {
   const historyRows = (data?.trades || []).slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     api.openPortfolio()
       .then((payload) => {
@@ -4174,15 +4989,26 @@ function OpenPortfolioPage() {
         setError("");
         setHistoryPage(1);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "读取失败"))
+      .catch(() => setError("Open 持仓加载失败"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [enabled, loadVersion]);
+
+  if (loading) {
+    return <div className="openPortfolioPage"><div className="marketToolLoading compact">加载中</div></div>;
+  }
+  if (error) {
+    return (
+      <div className="openPortfolioPage">
+        <div className="marketToolError compact openPortfolioError" role="alert">
+          <span>{error}</span>
+          <button type="button" className="requestRetry" onClick={() => setLoadVersion((value) => value + 1)}>重新加载</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="openPortfolioPage">
-      {error ? <p className="openNotice">{error}</p> : null}
-      {loading ? <p className="openNotice">读取中</p> : null}
-
       {showOpenPortfolioDetails ? (
         <>
           <section className="openMetricGrid">
@@ -4290,13 +5116,14 @@ function OpenPortfolioPage() {
   );
 }
 
-function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { viewerKey: number; courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
+function CoursesPage({ enabled, viewerKey, courseId, onCourse, onBack, onUnlock }: { enabled: boolean; viewerKey: number; courseId: string; onCourse: (courseId: string) => void; onBack: () => void; onUnlock: () => void }) {
   const [series, setSeries] = useState<CourseSeries[]>([]);
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [courseView, setCourseView] = useState<"mine" | "more">("mine");
   const [loadVersion, setLoadVersion] = useState(0);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoType, setVideoType] = useState<"file" | "hls">("file");
+  const [videoExpiresAt, setVideoExpiresAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [playLoading, setPlayLoading] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -4308,13 +5135,43 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   const playRequestRef = useRef(0);
   const playAbortRef = useRef<AbortController | null>(null);
   const pendingLessonRef = useRef<number | null>(null);
+  const playbackResumeRef = useRef<{ lessonId: number; currentTime: number; shouldPlay: boolean } | null>(null);
+  const autoRenewAttemptedRef = useRef(false);
+  const reportedPlaybackErrorsRef = useRef(new Set<string>());
+  const reportedPlaybackMetricsRef = useRef(new Set<string>());
+  const playbackObservationRef = useRef<{ lessonId: number; startedAt: number; ready: boolean; hasPlayed: boolean } | null>(null);
   const selected = courseId ? series.find((item) => String(item.id) === courseId || item.slug === courseId) || null : null;
   const activeLesson = selected?.unlocked ? selected.lessons.find((lesson) => lesson.id === activeLessonId) || selected.lessons[0] || null : null;
   const unlockedSeries = useMemo(() => series.filter((item) => item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
   const lockedSeries = useMemo(() => series.filter((item) => !item.unlocked).sort((left, right) => right.sortOrder - left.sortOrder), [series]);
   const visibleSeries = courseView === "mine" ? unlockedSeries : lockedSeries;
 
+  const reportPlaybackError = useCallback((lessonId: number, reason: "url" | "renew" | "source" | "play" | "unsupported") => {
+    const eventKey = `${lessonId}:${reason}`;
+    if (reportedPlaybackErrorsRef.current.has(eventKey)) return;
+    reportedPlaybackErrorsRef.current.add(eventKey);
+    void api.analyticsEvent("course_video_error", eventKey, "/courses/playback").catch(() => {});
+  }, []);
+
+  const reportPlaybackMetric = useCallback((eventType: "course_video_url_ready" | "course_video_ready" | "course_video_buffer", eventKey: string) => {
+    const dedupeKey = `${eventType}:${eventKey.split(":", 1)[0]}`;
+    if (reportedPlaybackMetricsRef.current.has(dedupeKey)) return;
+    reportedPlaybackMetricsRef.current.add(dedupeKey);
+    void api.analyticsEvent(eventType, eventKey, "/courses/playback").catch(() => {});
+  }, []);
+
+  function playbackLatencyBucket(elapsedMs: number) {
+    if (elapsedMs < 1000) return "lt1";
+    if (elapsedMs < 3000) return "1to3";
+    if (elapsedMs < 8000) return "3to8";
+    return "gte8";
+  }
+
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError("");
@@ -4334,7 +5191,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     return () => {
       cancelled = true;
     };
-  }, [loadVersion, viewerKey]);
+  }, [enabled, loadVersion, viewerKey]);
 
   const stopCurrentVideo = useCallback(() => {
     hlsRef.current?.destroy();
@@ -4347,6 +5204,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     }
     setVideoUrl("");
     setVideoType("file");
+    setVideoExpiresAt(0);
     setIsVideoPlaying(false);
     setManualPlayRequired(false);
   }, []);
@@ -4360,6 +5218,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     }
     setManualPlayRequired(false);
     setPlayError("播放失败，请重试");
+    if (activeLessonId) reportPlaybackError(activeLessonId, "play");
   }
 
   async function resumeCurrentVideo() {
@@ -4375,7 +5234,20 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     }
   }
 
-  async function playLesson(lessonId: number, forceRefresh = false) {
+  function recoverPlaybackSource() {
+    setIsVideoPlaying(false);
+    setManualPlayRequired(false);
+    if (activeLesson && pendingLessonRef.current === activeLesson.id) return;
+    if (activeLesson && !autoRenewAttemptedRef.current) {
+      autoRenewAttemptedRef.current = true;
+      void playLesson(activeLesson.id, true);
+      return;
+    }
+    setPlayError("播放失败，请重试");
+    if (activeLesson) reportPlaybackError(activeLesson.id, "source");
+  }
+
+  async function playLesson(lessonId: number, forceRefresh = false, preservePaused = false) {
     if (!forceRefresh && pendingLessonRef.current === lessonId) return;
     if (!forceRefresh && activeLessonId === lessonId && videoUrl) {
       await resumeCurrentVideo();
@@ -4389,18 +5261,36 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     playAbortRef.current = controller;
     pendingLessonRef.current = lessonId;
 
-    stopCurrentVideo();
+    const currentVideo = videoRef.current;
+    const refreshingCurrentVideo = Boolean(forceRefresh && activeLessonId === lessonId && videoUrl && currentVideo);
+    playbackResumeRef.current = refreshingCurrentVideo && currentVideo
+      ? {
+          lessonId,
+          currentTime: Number.isFinite(currentVideo.currentTime) ? currentVideo.currentTime : 0,
+          shouldPlay: preservePaused ? !currentVideo.paused && !currentVideo.ended : true
+        }
+      : null;
+    if (!refreshingCurrentVideo) stopCurrentVideo();
+    playbackObservationRef.current = { lessonId, startedAt: performance.now(), ready: false, hasPlayed: false };
     setActiveLessonId(lessonId);
     setPlayLoading(true);
     setPlayError("");
     try {
       const payload = await api.coursePlayUrl(lessonId, controller.signal);
       if (playRequestRef.current !== requestId) return;
+      const observation = playbackObservationRef.current;
+      if (observation?.lessonId === lessonId) {
+        reportPlaybackMetric("course_video_url_ready", `${lessonId}:${playbackLatencyBucket(performance.now() - observation.startedAt)}`);
+      }
+      if (refreshingCurrentVideo) stopCurrentVideo();
       setVideoType(payload.type);
+      setVideoExpiresAt(Date.now() + Math.max(60, payload.expiresIn) * 1000);
       setVideoUrl(payload.url);
     } catch (err) {
       if (controller.signal.aborted || playRequestRef.current !== requestId) return;
-      setPlayError("播放失败，请重试");
+      playbackResumeRef.current = null;
+      reportPlaybackError(lessonId, forceRefresh ? "renew" : "url");
+      if (!preservePaused) setPlayError("播放失败，请重试");
     } finally {
       if (playRequestRef.current === requestId) {
         playAbortRef.current = null;
@@ -4418,6 +5308,9 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     stopCurrentVideo();
     setPlayLoading(false);
     setPlayError("");
+    autoRenewAttemptedRef.current = false;
+    playbackResumeRef.current = null;
+    playbackObservationRef.current = null;
     setActiveLessonId(selected?.unlocked ? selected.lessons?.[0]?.id || null : null);
   }, [selected?.id, selected?.unlocked, selected?.lessons, stopCurrentVideo]);
 
@@ -4425,7 +5318,19 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     if (!videoUrl || !videoRef.current) return;
     const video = videoRef.current;
     const startPlayback = () => {
-      void video.play().catch((err) => handlePlayFailure(video, err));
+      const resume = playbackResumeRef.current;
+      const finish = () => {
+        if (resume?.lessonId === activeLessonId && resume.currentTime > 0) {
+          video.currentTime = Math.min(resume.currentTime, Number.isFinite(video.duration) ? video.duration : resume.currentTime);
+        }
+        playbackResumeRef.current = null;
+        if (!resume || resume.shouldPlay) void video.play().catch((err) => handlePlayFailure(video, err));
+      };
+      if (resume?.lessonId === activeLessonId && video.readyState < 1) {
+        video.addEventListener("loadedmetadata", finish, { once: true });
+      } else {
+        finish();
+      }
     };
 
     if (videoType === "hls") {
@@ -4441,22 +5346,24 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
           if (cancelled) return;
           if (!Hls.isSupported()) {
             setPlayError("当前浏览器暂不支持播放");
+            if (activeLessonId) reportPlaybackError(activeLessonId, "unsupported");
             return;
           }
-          const hls = new Hls({ enableWorker: true });
+          const hls = new Hls({ enableWorker: true, capLevelToPlayerSize: true, maxDevicePixelRatio: 2 });
           hlsRef.current = hls;
           hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(videoUrl));
           hls.on(Hls.Events.MANIFEST_PARSED, startPlayback);
           hls.on(Hls.Events.ERROR, (_, data) => {
             if (!data.fatal || hlsRef.current !== hls) return;
-            setIsVideoPlaying(false);
-            setManualPlayRequired(false);
-            setPlayError("播放失败，请重试");
+            recoverPlaybackSource();
           });
           hls.attachMedia(video);
         })
         .catch(() => {
-          if (!cancelled) setPlayError("播放失败，请重试");
+          if (!cancelled) {
+            setPlayError("播放失败，请重试");
+            if (activeLessonId) reportPlaybackError(activeLessonId, "source");
+          }
         });
       return () => {
         cancelled = true;
@@ -4469,6 +5376,15 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
     video.load();
     startPlayback();
   }, [videoType, videoUrl]);
+
+  useEffect(() => {
+    if (!videoUrl || !videoExpiresAt || !activeLessonId) return;
+    const delay = Math.max(1000, videoExpiresAt - Date.now() - 120_000);
+    const timer = window.setTimeout(() => {
+      void playLesson(activeLessonId, true, true);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [activeLessonId, videoExpiresAt, videoUrl]);
 
   useEffect(() => () => {
     playRequestRef.current += 1;
@@ -4486,6 +5402,14 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
   if (loading) return <div className="coursesPage"><div className="loading" /></div>;
 
   if (courseId) {
+    if (error) {
+      return (
+        <div className="coursesPage">
+          <button type="button" className="courseBackButton" onClick={onBack}>返回课程</button>
+          <div className="courseError" role="alert"><span>{error}</span><button type="button" onClick={() => setLoadVersion((version) => version + 1)}>重新加载</button></div>
+        </div>
+      );
+    }
     if (!selected) {
       return (
         <div className="coursesPage">
@@ -4520,18 +5444,31 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                         controlsList="nodownload"
                         preload="metadata"
                         playsInline
-                        onPlay={() => { setIsVideoPlaying(true); setManualPlayRequired(false); setPlayError(""); }}
+                        onPlay={() => { autoRenewAttemptedRef.current = false; setIsVideoPlaying(true); setManualPlayRequired(false); setPlayError(""); }}
+                        onCanPlay={() => {
+                          const observation = playbackObservationRef.current;
+                          if (!observation || observation.lessonId !== activeLessonId || observation.ready) return;
+                          observation.ready = true;
+                          reportPlaybackMetric("course_video_ready", `${observation.lessonId}:${playbackLatencyBucket(performance.now() - observation.startedAt)}`);
+                        }}
+                        onPlaying={() => {
+                          const observation = playbackObservationRef.current;
+                          if (observation?.lessonId === activeLessonId) observation.hasPlayed = true;
+                        }}
+                        onWaiting={(event) => {
+                          const observation = playbackObservationRef.current;
+                          if (!observation?.hasPlayed || observation.lessonId !== activeLessonId || event.currentTarget.seeking) return;
+                          reportPlaybackMetric("course_video_buffer", String(observation.lessonId));
+                        }}
                         onPause={() => setIsVideoPlaying(false)}
                         onEnded={() => setIsVideoPlaying(false)}
                         onError={(event) => {
                           if (!event.currentTarget.currentSrc) return;
-                          setIsVideoPlaying(false);
-                          setManualPlayRequired(false);
-                          setPlayError("播放失败，请重试");
+                          recoverPlaybackSource();
                         }}
                       />
                       {playError ? (
-                        <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
+                        <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => { autoRenewAttemptedRef.current = false; if (activeLesson) void playLesson(activeLesson.id, true); }}>重试</button></div>
                       ) : manualPlayRequired ? (
                         <button type="button" className="courseVideoResume" onClick={resumeCurrentVideo}>继续播放</button>
                       ) : null}
@@ -4539,7 +5476,7 @@ function CoursesPage({ viewerKey, courseId, onCourse, onBack, onUnlock }: { view
                   ) : playLoading ? (
                     <div className="courseVideoState"><i aria-hidden="true" /><span>正在加载</span></div>
                   ) : playError ? (
-                    <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => activeLesson && playLesson(activeLesson.id, true)}>重试</button></div>
+                    <div className="courseVideoState" role="alert"><span>播放失败</span><button type="button" onClick={() => { autoRenewAttemptedRef.current = false; if (activeLesson) void playLesson(activeLesson.id, true); }}>重试</button></div>
                   ) : (
                     <button type="button" className="courseVideoPlayButton" disabled={!activeLesson} onClick={() => activeLesson && playLesson(activeLesson.id)} aria-label="播放当前课时">
                       <span />
@@ -4756,12 +5693,12 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
       .then((payload) => {
         applyScannerPayload(payload);
       })
-      .catch((err) => setError(err?.message || "扫描失败"))
+      .catch(() => setError("扫描暂时不可用，请稍后重试"))
       .finally(() => setLoading(false));
   }, [isAdmin, scannerQuery]);
 
   useEffect(() => {
-    if (loadedOnce) return;
+    if (!isAdmin || loadedOnce) return;
     setLoadedOnce(true);
     const query = scannerQuery(true);
     if (query) {
@@ -4877,7 +5814,7 @@ function FundingArbitragePage({ isAdmin }: { isAdmin: boolean }) {
                 </tr>
               ))}
               {!visibleRows.length ? (
-                <tr><td colSpan={12} className="fundingScannerEmpty">没有符合条件的结果</td></tr>
+                <tr><td colSpan={12} className="fundingScannerEmpty">{loading ? "正在扫描..." : error ? "扫描未完成" : "没有符合条件的结果"}</td></tr>
               ) : null}
             </tbody>
           </table>

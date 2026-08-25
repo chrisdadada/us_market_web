@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+require_refresh_workspace() {
+  local root="$1"
+  local expected_branch="$2"
+  local required_sync_branch="${3:-}"
+  local actual_root actual_branch dirty
+
+  actual_root="$(git -C "${root}" rev-parse --show-toplevel 2>/dev/null || true)"
+  if [[ -z "${actual_root}" || "$(cd "${actual_root}" && pwd -P)" != "$(cd "${root}" && pwd -P)" ]]; then
+    echo "ERROR: refresh root is not the expected Git worktree: ${root}"
+    return 2
+  fi
+
+  actual_branch="$(git -C "${root}" branch --show-current)"
+  if [[ "${actual_branch}" != "${expected_branch}" ]]; then
+    echo "ERROR: refresh requires branch ${expected_branch}; current branch is ${actual_branch:-detached}."
+    return 2
+  fi
+
+  dirty="$(git -C "${root}" status --porcelain --untracked-files=no)"
+  if [[ -n "${dirty}" ]]; then
+    echo "ERROR: refresh worktree has uncommitted tracked changes."
+    echo "${dirty}"
+    return 2
+  fi
+
+  if ! grep -Eq '^SCHEMA_VERSION[[:space:]]*=[[:space:]]*2[[:space:]]*$' "${root}/scripts/build_product_db.py"; then
+    echo "ERROR: refresh code does not declare product schema version 2."
+    return 2
+  fi
+
+  if [[ -n "${required_sync_branch}" && "${required_sync_branch}" != "${actual_branch}" ]]; then
+    if ! git -C "${root}" show-ref --verify --quiet "refs/heads/${required_sync_branch}"; then
+      echo "ERROR: required sync branch does not exist: ${required_sync_branch}."
+      return 2
+    fi
+    if ! git -C "${root}" merge-base --is-ancestor "${required_sync_branch}" HEAD; then
+      echo "ERROR: ${actual_branch} is behind ${required_sync_branch}; merge it before running refresh."
+      return 2
+    fi
+  fi
+}
+
+require_product_db_baseline() {
+  local db_path="$1"
+  local python_bin="$2"
+
+  "${python_bin}" - "${db_path}" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.is_file():
+    raise SystemExit(f"Product DB baseline not found: {path}")
+
+required_tables = ("sector_overrides", "earnings_quality_rows", "options_flow_rows")
+with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+    integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+    counts = {name: conn.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0] for name in required_tables}
+
+if integrity != "ok":
+    raise SystemExit(f"Product DB baseline integrity check failed: {integrity}")
+
+missing = [name for name, count in counts.items() if count < 1]
+if missing:
+    raise SystemExit(f"Product DB baseline is incomplete: {', '.join(missing)}")
+
+print("Product DB baseline verified: " + ", ".join(f"{name}={count}" for name, count in counts.items()))
+PY
+}
+
+verify_product_db_schema() {
+  local db_path="$1"
+  local python_bin="$2"
+
+  "${python_bin}" - "${db_path}" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.is_file():
+    raise SystemExit(f"Product DB not found: {path}")
+
+with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+    integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+    row = conn.execute(
+        "SELECT value FROM product_db_info WHERE key = 'schema_version'"
+    ).fetchone()
+
+if integrity != "ok":
+    raise SystemExit(f"Product DB integrity check failed: {integrity}")
+
+version = str(row[0]) if row else ""
+if version != "2":
+    raise SystemExit(f"Product DB schema must be 2, got {version or 'missing'}")
+
+print(f"Product DB schema verified: {version}")
+PY
+}

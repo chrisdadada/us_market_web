@@ -16,22 +16,30 @@ import mimetypes
 import urllib.request
 import urllib.error
 import xml.etree.ElementTree as ET
+from bisect import bisect_right
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
+from functools import lru_cache
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from statistics import median
 from typing import Any, Iterator
 from urllib.parse import parse_qs, quote, urlencode, unquote, urlparse
+from zoneinfo import ZoneInfo
 
 import funding_scanner
 import open_portfolio
+import rolling_tool
 
 
 DB_PATH = Path(os.environ.get("APP_DB", "/var/lib/ytd-gainers/app.db"))
 STATIC_ROOT = Path(os.environ.get("APP_STATIC_ROOT", str(Path(__file__).resolve().parents[1]))).resolve()
 API_DATA_ROOT = Path(os.environ.get("APP_API_DATA_ROOT", str(STATIC_ROOT / "data" / "api"))).resolve()
+BOTTOM_STRATEGY_PATH = Path(
+    os.environ.get("BOTTOM_STRATEGY_DATA", str(Path(__file__).with_name("bottom_strategy.json")))
+).resolve()
 PRODUCT_DB_ENV = os.environ.get("PRODUCT_DB") or os.environ.get("APP_PRODUCT_DB")
 UPLOAD_ROOT = Path(os.environ.get("APP_UPLOAD_ROOT", "/var/lib/ytd-gainers/uploads")).resolve()
 UPLOAD_MAX_BYTES = int(os.environ.get("APP_UPLOAD_MAX_BYTES", str(8 * 1024 * 1024)))
@@ -61,10 +69,11 @@ SUPER_ADMIN_PASSWORD = os.environ.get("SUPER_ADMIN_PASSWORD", "")
 SIGNALS_API_TOKEN = os.environ.get("SIGNALS_API_TOKEN", "")
 MARKET_OPINION_SECTIONS = {
     "weekly": "周度前瞻",
+    "crypto": "加密相关",
     "premarket": "盘前前瞻",
-    "daily": "每日个股行情观点",
+    "daily": "个股观点",
     "research": "研报解析",
-    "postmarket": "盘后复盘延展",
+    "postmarket": "盘后复盘",
     "journal": "交易日记",
 }
 ALLOWED_UPLOAD_MIMES = {
@@ -78,7 +87,14 @@ PLANS = {"free", "paid", "monthly", "yearly"}
 ROLES = {"user", "admin", "super_admin"}
 LEGACY_PAID_PLANS = {"paid", "pro", "pro_plus", "monthly", "yearly"}
 REGISTERED_DATASETS = {"market-temperature", "macro-series"}
-PAID_DATASETS = {"strength-scanner", "strength-review", "crypto-etf-flows"}
+PAID_DATASETS = {"strength-scanner", "strength-review", "crypto-etf-flows", "retail-sentiment"}
+TECH_MAG7_SYMBOLS = ("AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA")
+DCA1_LOW_THRESHOLD = 23.5
+DCA1_NEAR_THRESHOLD = 24.5
+DCA1_DRAWDOWN_THRESHOLD = 0.08
+DCA1_MAX_SOURCE_LAG_SESSIONS = 10
+DCA1_MAX_PRICE_ANCHOR_LAG_DAYS = 4
+DCA_MAX_MARKET_LAG_SESSIONS = 1
 US_STOCK_COURSE_TITLES = ("美股定投课程", "美股投资框架课")
 MARKET_OPINION_STATUSES = {"published", "draft"}
 COURSE_STATUSES = {"published", "draft"}
@@ -90,7 +106,8 @@ COURSE_COS_BUCKET = os.environ.get("COURSE_COS_BUCKET") or os.environ.get("TENCE
 COURSE_COS_REGION = os.environ.get("COURSE_COS_REGION") or os.environ.get("TENCENT_COS_REGION") or ""
 COURSE_COS_DOMAIN = os.environ.get("COURSE_COS_DOMAIN", "").strip().rstrip("/")
 COURSE_COS_SIGN_TTL = int(os.environ.get("COURSE_COS_SIGN_TTL_SECONDS", "1800"))
-COURSE_HLS_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 7200)
+COURSE_VIDEO_SIGN_TTL = max(60, int(os.environ.get("COURSE_VIDEO_SIGN_TTL_SECONDS", "21600")))
+COURSE_HLS_SIGN_TTL = max(COURSE_VIDEO_SIGN_TTL, 7200)
 COURSE_IMAGE_SIGN_TTL = max(COURSE_COS_SIGN_TTL, 3600)
 COURSE_CDN_ENABLED = os.environ.get("COURSE_CDN_ENABLED", "0") == "1"
 COURSE_CDN_DOMAIN = os.environ.get("COURSE_CDN_DOMAIN", "").strip().rstrip("/")
@@ -119,6 +136,7 @@ PASSWORD_RESET_LOCK = threading.Lock()
 COURSE_PLAY_GRANTS: dict[tuple[int, int, str, str, str], dict[str, Any]] = {}
 COURSE_PLAY_EVENTS: list[dict[str, Any]] = []
 COURSE_PLAY_LOCK = threading.Lock()
+ROLLING_RUNTIME: rolling_tool.RollingRuntime | None = None
 
 
 def now_iso() -> str:
@@ -614,7 +632,13 @@ def query_market_opinions(
         ).fetchall()
     items = [product_market_opinion_payload(row) for row in rows]
     if not include_drafts:
-        items = [item for item in items if item.get("status") == "published"]
+        items = [
+            item
+            for item in items
+            if item.get("status") == "published"
+            and str(item.get("title") or "").strip()
+            and (str(item.get("summary") or "").strip() or str(item.get("body") or "").strip())
+        ]
     if status in MARKET_OPINION_STATUSES:
         items = [item for item in items if item.get("status") == status]
     needle = query.strip().lower()
@@ -706,6 +730,43 @@ def row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
     if row is None:
         return None
     return {key: row[key] for key in row.keys()}
+
+
+WATCHLIST_SYMBOL_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9.^-]{0,15}$")
+WATCHLIST_REVIEW_ACTIONS = {"reviewed", "continue", "lower"}
+
+
+def normalize_watchlist_symbol(value: Any) -> str:
+    symbol = str(value or "").strip().upper()
+    if not WATCHLIST_SYMBOL_PATTERN.fullmatch(symbol):
+        raise ValueError("股票代码格式不正确")
+    return symbol
+
+
+def normalize_watchlist_time(value: Any, fallback: str | None = None) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return fallback
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("自选时间格式不正确") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
+def watchlist_item_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "symbol": row["symbol"],
+        "source": row["source"],
+        "reviewAction": row["review_action"],
+        "reviewCount": row["review_count"],
+        "lastReviewedAt": row["last_reviewed_at"],
+        "nextReviewAt": row["next_review_at"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
 
 
 def parse_json_field(value: Any, fallback: Any) -> Any:
@@ -1262,12 +1323,52 @@ def product_earnings_payload(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def macro_result_interpretation(
+    title: str,
+    actual: float | None,
+    forecast: float | None,
+    previous: float | None,
+) -> dict[str, str]:
+    text = (title or "").lower()
+    if actual is None:
+        return {}
+    if "fomc" in text or "利率决议" in title:
+        if previous is None:
+            return {}
+        change = actual - previous
+        if abs(change) < 1e-9:
+            meaning = "借钱成本没有变化，美股影响偏中性"
+            if forecast is not None and abs(actual - forecast) < 1e-9:
+                meaning = "符合预期，美股影响偏中性"
+            return {"resultKind": "rate", "resultHeadline": "利率不变", "resultMeaning": meaning, "resultTone": "neutral"}
+        amount = f"{abs(change):.2f}".rstrip("0").rstrip(".")
+        if change > 0:
+            return {"resultKind": "rate", "resultHeadline": f"加息 {amount}%", "resultMeaning": "借钱更贵，美股短线通常偏利空", "resultTone": "watch"}
+        return {"resultKind": "rate", "resultHeadline": f"降息 {amount}%", "resultMeaning": "借钱更便宜，美股短线通常偏利好", "resultTone": "positive"}
+    if forecast is None:
+        return {}
+    comparison = 0 if abs(actual - forecast) < 1e-9 else (1 if actual > forecast else -1)
+    if "cpi" in text or "consumer price" in text:
+        if comparison > 0:
+            return {"resultKind": "cpi", "resultHeadline": "高于预期", "resultMeaning": "通胀更高，美股短线通常偏利空", "resultTone": "watch"}
+        if comparison < 0:
+            return {"resultKind": "cpi", "resultHeadline": "低于预期", "resultMeaning": "通胀更低，美股短线通常偏利好", "resultTone": "positive"}
+        return {"resultKind": "cpi", "resultHeadline": "符合预期", "resultMeaning": "通胀变化不大，美股影响偏中性", "resultTone": "neutral"}
+    if "非农" in title or "employment situation" in text or "nonfarm" in text:
+        if comparison > 0:
+            return {"resultKind": "jobs", "resultHeadline": "高于预期", "resultMeaning": "就业更强，降息可能推迟", "resultTone": "neutral"}
+        if comparison < 0:
+            return {"resultKind": "jobs", "resultHeadline": "低于预期", "resultMeaning": "就业降温，降息预期可能升温", "resultTone": "watch"}
+        return {"resultKind": "jobs", "resultHeadline": "符合预期", "resultMeaning": "就业变化不大，美股影响偏中性", "resultTone": "neutral"}
+    return {}
+
+
 def product_calendar_payload(row: sqlite3.Row) -> dict[str, Any]:
     def clean_label(value):
         text = "" if value is None else str(value).strip()
         return None if text.lower() in {"", "null", "undefined"} else text
 
-    return {
+    payload = {
         "id": row["event_id"],
         "date": row["event_date"],
         "time": row["event_time"],
@@ -1286,6 +1387,8 @@ def product_calendar_payload(row: sqlite3.Row) -> dict[str, Any]:
         "relatedAssets": parse_json_field(row["related_assets_json"], []),
         "summary": row["summary"],
     }
+    payload.update(macro_result_interpretation(row["title"], row["actual_value"], row["forecast_value"], row["previous_value"]))
+    return payload
 
 
 def product_strength_payload(row: sqlite3.Row) -> dict[str, Any]:
@@ -1429,6 +1532,24 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_analytics_events_user_time ON analytics_events(user_id, created_at);
             CREATE INDEX IF NOT EXISTS idx_analytics_events_type_time ON analytics_events(event_type, created_at);
 
+            CREATE TABLE IF NOT EXISTS user_watchlist_items (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              symbol TEXT NOT NULL,
+              source TEXT NOT NULL DEFAULT '手动加入',
+              review_action TEXT,
+              review_count INTEGER NOT NULL DEFAULT 0,
+              last_reviewed_at TEXT,
+              next_review_at TEXT,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(user_id, symbol),
+              FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_user_watchlist_user_updated
+              ON user_watchlist_items(user_id, updated_at DESC);
+
             CREATE TABLE IF NOT EXISTS password_reset_tokens (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
@@ -1497,6 +1618,7 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_course_grants_series ON course_grants(series_id, user_id);
             """
         )
+        rolling_tool.init_schema(conn)
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
         if "created_by_user_id" not in columns:
             conn.execute("ALTER TABLE users ADD COLUMN created_by_user_id INTEGER")
@@ -1600,6 +1722,486 @@ def entitlements(row: sqlite3.Row | None) -> dict[str, bool]:
 
 def has_yearly_access(row: sqlite3.Row | None) -> bool:
     return bool(row and entitlements(row)["yearly"])
+
+
+def bottom_strategy_payload(include_details: bool) -> dict[str, Any]:
+    payload: dict[str, Any] | None = None
+    try:
+        with product_db() as conn:
+            payload = product_raw_payload(conn, "bottom-strategy")
+    except (FileNotFoundError, sqlite3.Error):
+        payload = None
+    if payload is None:
+        payload = json.loads(BOTTOM_STRATEGY_PATH.read_text(encoding="utf-8"))
+
+    markets: dict[str, Any] = {}
+    for key, source in payload.get("markets", {}).items():
+        item = {field: value for field, value in source.items() if field not in {"machineState", "dailyStates", "dailyPrices"}}
+        records = source.get("records") or []
+        item["opportunityDates"] = [
+            str(record.get("signalDate"))[:10]
+            for record in records
+            if record.get("signalDate")
+        ]
+        if not include_details:
+            item["status"] = None
+            item["summary"] = {"totalSignals": len(item["opportunityDates"])}
+            item["lastSignal"] = None
+            item["medianPath"] = []
+            item["recentRecords"] = []
+            item["records"] = []
+        markets[key] = item
+    freshness = {
+        field: value
+        for field, value in (payload.get("freshness") or {}).items()
+        if field != "reason"
+    }
+    return {
+        **payload,
+        "freshness": freshness,
+        "markets": markets,
+        "preview": not include_details,
+    }
+
+
+def _index_valuation_qqq(payload: dict[str, Any]) -> dict[str, Any]:
+    for item in payload.get("indices") or []:
+        if (item.get("index") or {}).get("symbol") == "QQQ":
+            return item
+    return payload
+
+
+def _latest_completed_us_market_weekday(now: datetime | None = None) -> date:
+    market_tz = ZoneInfo("America/New_York")
+    current = datetime.now(market_tz) if now is None else (
+        now.replace(tzinfo=market_tz) if now.tzinfo is None else now.astimezone(market_tz)
+    )
+    candidate = current.date() if (current.hour, current.minute) >= (17, 30) else current.date() - timedelta(days=1)
+    while candidate.weekday() >= 5:
+        candidate -= timedelta(days=1)
+    return candidate
+
+
+def _bottom_strategy_current(
+    payload: dict[str, Any],
+    market: dict[str, Any],
+    now: datetime | None = None,
+) -> bool:
+    freshness = payload.get("freshness") or {}
+    as_of = str(market.get("asOf") or "")[:10]
+    if (
+        freshness.get("status") != "current"
+        or str(payload.get("asOf") or "")[:10] != as_of
+        or str(freshness.get("asOf") or "")[:10] != as_of
+    ):
+        return False
+    try:
+        actual = datetime.fromisoformat(as_of).date()
+    except ValueError:
+        return False
+    expected = _latest_completed_us_market_weekday(now)
+    if actual > expected:
+        return False
+    lag = sum(
+        1
+        for offset in range(1, (expected - actual).days + 1)
+        if (actual + timedelta(days=offset)).weekday() < 5
+    )
+    return lag <= DCA_MAX_MARKET_LAG_SESSIONS
+
+
+def _fixed_low_valuation_cycles(
+    history: list[dict[str, Any]],
+    price_series: list[dict[str, Any]],
+    threshold: float = DCA1_LOW_THRESHOLD,
+    drawdown_threshold: float = DCA1_DRAWDOWN_THRESHOLD,
+    window_gap_days: int = 21,
+    cycle_gap_days: int = 180,
+) -> dict[str, Any]:
+    points: list[tuple[date, float]] = []
+    for item in history:
+        if not item.get("date") or not isinstance(item.get("value"), (int, float)):
+            continue
+        try:
+            points.append((datetime.fromisoformat(str(item["date"])[:10]).date(), float(item["value"])))
+        except ValueError:
+            continue
+    points.sort(key=lambda point: point[0])
+    prices: list[tuple[date, float]] = []
+    for item in price_series:
+        if not item.get("date") or not isinstance(item.get("value"), (int, float)):
+            continue
+        try:
+            prices.append((datetime.fromisoformat(str(item["date"])[:10]).date(), float(item["value"])))
+        except ValueError:
+            continue
+    prices.sort(key=lambda point: point[0])
+    price_dates = [item_date for item_date, _ in prices]
+    drawdowns: list[float] = []
+    window_start = 0
+    for index, (item_date, value) in enumerate(prices):
+        cutoff = item_date - timedelta(days=365)
+        while window_start < index and prices[window_start][0] < cutoff:
+            window_start += 1
+        trailing_high = max(price for _, price in prices[window_start:index + 1])
+        drawdowns.append(value / trailing_high - 1 if trailing_high else 0.0)
+
+    def drawdown_on(item_date: date) -> float | None:
+        index = bisect_right(price_dates, item_date) - 1
+        return drawdowns[index] if index >= 0 else None
+
+    raw_windows: list[dict[str, str]] = []
+    current_window: dict[str, str] | None = None
+    for item_date, value in points:
+        if item_date < date(2020, 1, 1):
+            continue
+        drawdown = drawdown_on(item_date)
+        if value <= threshold and drawdown is not None and drawdown <= -drawdown_threshold:
+            if current_window is None:
+                current_window = {"startDate": item_date.isoformat(), "endDate": item_date.isoformat()}
+            else:
+                current_window["endDate"] = item_date.isoformat()
+        elif current_window is not None:
+            raw_windows.append(current_window)
+            current_window = None
+    if current_window is not None:
+        raw_windows.append(current_window)
+
+    windows: list[dict[str, str]] = []
+    for window in raw_windows:
+        gap = (
+            datetime.fromisoformat(window["startDate"]) - datetime.fromisoformat(windows[-1]["endDate"])
+        ).days if windows else None
+        if gap is not None and gap <= window_gap_days:
+            windows[-1]["endDate"] = window["endDate"]
+        else:
+            windows.append(window)
+
+    cycles: list[list[dict[str, str]]] = []
+    for window in windows:
+        gap = (
+            datetime.fromisoformat(window["startDate"]) - datetime.fromisoformat(cycles[-1][-1]["endDate"])
+        ).days if cycles else None
+        if gap is not None and gap <= cycle_gap_days:
+            cycles[-1].append(window)
+        else:
+            cycles.append([window])
+
+    latest_date = points[-1][0].isoformat() if points else None
+    latest_value = points[-1][1] if points else None
+    latest_drawdown = drawdown_on(points[-1][0]) if points else None
+    active_cycle = (
+        cycles[-1]
+        if cycles
+        and latest_value is not None
+        and latest_value <= threshold
+        and latest_drawdown is not None
+        and latest_drawdown <= -drawdown_threshold
+        else None
+    )
+    signal_dates = [cycle[0]["startDate"] for cycle in cycles]
+
+    return {
+        "windows": windows,
+        "historicalDates": signal_dates,
+        "activeStartDate": active_cycle[0]["startDate"] if active_cycle else None,
+        "latestDate": latest_date,
+        "latestValue": latest_value,
+        "latestDrawdown": latest_drawdown,
+    }
+
+
+def _normalized_location_series(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    points = [
+        (str(item.get("date"))[:10], float(item["value"]))
+        for item in history
+        if item.get("date") and isinstance(item.get("value"), (int, float))
+    ]
+    if len(points) < 2:
+        return []
+    values = [value for _, value in points]
+    low, high = min(values), max(values)
+    span = high - low or 1.0
+    return [
+        {"date": item_date, "position": round((value - low) / span * 100, 2)}
+        for item_date, value in points
+    ]
+
+
+def _estimate_daily_forward_pe_history(
+    forward: dict[str, Any],
+    history: list[dict[str, Any]],
+    price_series: list[dict[str, Any]],
+) -> list[dict[str, Any]] | None:
+    source_value = forward.get("forwardPe")
+    try:
+        source_date = datetime.fromisoformat(str(forward.get("asOf") or "")[:10]).date()
+        source_value = float(source_value)
+    except (TypeError, ValueError):
+        return None
+    if source_value <= 0:
+        return None
+
+    prices: list[tuple[date, float]] = []
+    for item in price_series:
+        try:
+            item_date = datetime.fromisoformat(str(item.get("date") or "")[:10]).date()
+            value = float(item.get("value"))
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            prices.append((item_date, value))
+    prices.sort(key=lambda item: item[0])
+    anchor_date, anchor_price = min(
+        prices,
+        key=lambda item: (abs((item[0] - source_date).days), item[0] > source_date),
+    )
+    if abs((source_date - anchor_date).days) > DCA1_MAX_PRICE_ANCHOR_LAG_DAYS:
+        return None
+
+    estimated = {
+        str(item.get("date"))[:10]: {"date": str(item.get("date"))[:10], "value": round(float(item["value"]), 4)}
+        for item in history
+        if item.get("date") and isinstance(item.get("value"), (int, float)) and float(item["value"]) > 0
+    }
+    estimated_sessions = 0
+    for item_date, price in prices:
+        if item_date <= source_date:
+            continue
+        estimated_sessions += 1
+        if estimated_sessions > DCA1_MAX_SOURCE_LAG_SESSIONS:
+            return None
+        estimated[item_date.isoformat()] = {
+            "date": item_date.isoformat(),
+            "value": round(source_value * price / anchor_price, 4),
+        }
+    return [estimated[item_date] for item_date in sorted(estimated)]
+
+
+def _dca1_valuation_usable(
+    forward: dict[str, Any],
+    history: list[dict[str, Any]],
+    price_series: list[dict[str, Any]],
+) -> bool:
+    if len(history) < 100 or "5y" not in (forward.get("ranges") or {}) or not price_series:
+        return False
+    latest = history[-1]
+    if not isinstance(latest.get("value"), (int, float)) or not isinstance(forward.get("forwardPe"), (int, float)):
+        return False
+    as_of = str(forward.get("asOf") or "")[:10]
+    if as_of != str(forward.get("historicalAsOf") or "")[:10] or as_of != str(latest.get("date") or "")[:10]:
+        return False
+    if abs(float(forward["forwardPe"]) - float(latest["value"])) > 0.01:
+        return False
+    try:
+        source_date = datetime.fromisoformat(as_of).date()
+        price_date = datetime.fromisoformat(str(price_series[-1].get("date") or "")[:10]).date()
+    except ValueError:
+        return False
+    if price_date < source_date:
+        return False
+    estimated_sessions = sum(
+        1
+        for item in price_series
+        if str(item.get("date") or "")[:10] > as_of
+    )
+    return estimated_sessions <= DCA1_MAX_SOURCE_LAG_SESSIONS
+
+
+def _dca_price_history_records(
+    opportunity_dates: list[str],
+    daily_prices: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "date": str(item.get("date") or "")[:10],
+            "open": float(item["open"]),
+            "high": float(item["high"]),
+            "close": float(item["close"]),
+        }
+        for item in daily_prices
+        if item.get("date")
+        and all(isinstance(item.get(field), (int, float)) for field in ("open", "high", "close"))
+    ]
+    rows.sort(key=lambda item: item["date"])
+    if not rows:
+        return []
+    row_dates = [item["date"] for item in rows]
+    records: list[dict[str, Any]] = []
+    for signal_date in reversed(sorted({str(item)[:10] for item in opportunity_dates if item})):
+        entry_index = bisect_right(row_dates, signal_date)
+        if entry_index >= len(rows) or rows[entry_index]["open"] <= 0:
+            continue
+        entry = rows[entry_index]["open"]
+        record: dict[str, Any] = {"opportunityDate": signal_date}
+        for horizon, target_key in ((30, "max30Pct"), (60, "max60Pct")):
+            final_index = entry_index + horizon
+            if final_index < len(rows):
+                highest = max(item["high"] for item in rows[entry_index : final_index + 1])
+                record[target_key] = round((highest / entry - 1) * 100, 2)
+        final_index = entry_index + 180
+        if final_index < len(rows):
+            record["end180Pct"] = round((rows[final_index]["close"] / entry - 1) * 100, 2)
+        records.append(record)
+    return records[:5]
+
+
+def _dca_history_payload(
+    opportunity_dates: list[str],
+    market: dict[str, Any] | None = None,
+    daily_prices: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    dates = sorted({str(item)[:10] for item in opportunity_dates if item})
+    summary = (market or {}).get("summary") or {}
+    source_records = (market or {}).get("recentRecords") or []
+    records = _dca_price_history_records(dates, daily_prices or [])
+    if not records:
+        for source in source_records[:5]:
+            signal_date = str(source.get("signalDate") or "")[:10]
+            if not signal_date:
+                continue
+            performance = source.get("performance") or {}
+            record: dict[str, Any] = {"opportunityDate": signal_date}
+            for horizon, source_key, target_key in (
+                ("30", "maxPct", "max30Pct"),
+                ("60", "maxPct", "max60Pct"),
+                ("180", "endPct", "end180Pct"),
+            ):
+                value = (performance.get(horizon) or {}).get(source_key)
+                if isinstance(value, (int, float)):
+                    record[target_key] = float(value)
+            records.append(record)
+    if not records:
+        records = [{"opportunityDate": item} for item in reversed(dates[-5:])]
+    max60_values = [float(item["max60Pct"]) for item in records if isinstance(item.get("max60Pct"), (int, float))]
+    end180_values = [float(item["end180Pct"]) for item in records if isinstance(item.get("end180Pct"), (int, float))]
+    max60 = median(max60_values) if daily_prices and max60_values else (summary.get("stageMaxMedianPct") or {}).get("60")
+    end180 = median(end180_values) if daily_prices and end180_values else summary.get("end180MedianPct")
+    return {
+        "sinceYear": int(dates[0][:4]) if dates else None,
+        "totalOpportunities": int(summary.get("totalSignals") or len(dates)),
+        "recentCount": len(records),
+        "max60MedianPct": float(max60) if isinstance(max60, (int, float)) else None,
+        "end180MedianPct": float(end180) if isinstance(end180, (int, float)) else None,
+        "records": records,
+    }
+
+
+def dca_strategies_payload(include_details: bool) -> dict[str, Any]:
+    with product_db() as conn:
+        index_payload = product_raw_payload(conn, "index-valuation") or {}
+        bottom_payload = product_raw_payload(conn, "bottom-strategy") or {}
+    if not bottom_payload:
+        bottom_payload = json.loads(BOTTOM_STRATEGY_PATH.read_text(encoding="utf-8"))
+
+    qqq_index = _index_valuation_qqq(index_payload)
+    forward = qqq_index.get("forwardValuation") or {}
+    history = [
+        item
+        for item in forward.get("history") or []
+        if item.get("date") and isinstance(item.get("value"), (int, float))
+    ]
+    latest_date = str(forward.get("asOf") or "")[:10]
+    latest_value = forward.get("forwardPe")
+    if latest_date and isinstance(latest_value, (int, float)) and (not history or latest_date > str(history[-1].get("date") or "")[:10]):
+        history.append({"date": latest_date, "value": float(latest_value)})
+    qqq_market = (bottom_payload.get("markets") or {}).get("QQQ") or {}
+    market_data_current = _bottom_strategy_current(bottom_payload, qqq_market)
+    price_series = [
+        item
+        for item in qqq_market.get("priceSeries") or []
+        if str(item.get("date") or "")[:10] >= "2020-01-01"
+    ]
+    dca1_available = market_data_current and _dca1_valuation_usable(forward, history, price_series)
+    effective_history = _estimate_daily_forward_pe_history(forward, history, price_series) if dca1_available else None
+    dca1_available = effective_history is not None
+    visible_history = [
+        item
+        for item in effective_history or []
+        if str(item.get("date") or "")[:10] >= "2020-01-01"
+    ]
+    ranges = forward.get("ranges") or {}
+    five_year = ranges.get("5y") or {}
+    threshold = five_year.get("p30")
+    location_series = _normalized_location_series(visible_history)
+    if location_series and isinstance(threshold, (int, float)):
+        raw_values = [float(item["value"]) for item in visible_history]
+        low, high = min(raw_values), max(raw_values)
+        boundary_position = round((float(threshold) - low) / (high - low or 1.0) * 100, 2)
+    else:
+        boundary_position = None
+
+    valuation_cycles = _fixed_low_valuation_cycles(effective_history or [], price_series) if dca1_available else {
+        "windows": [],
+        "historicalDates": [],
+        "activeStartDate": None,
+        "latestDate": None,
+        "latestValue": None,
+        "latestDrawdown": None,
+    }
+    opportunity_windows_1 = valuation_cycles["windows"]
+    opportunity_dates_1 = valuation_cycles["historicalDates"]
+    current_cycle_start_1 = valuation_cycles["activeStartDate"]
+    opportunity_dates_2 = [
+        str(record.get("signalDate"))[:10]
+        for record in qqq_market.get("records") or []
+        if record.get("signalDate")
+    ]
+    opportunity_dates_2.sort()
+    opportunity_windows_2 = [{"startDate": item, "endDate": item} for item in opportunity_dates_2]
+    current_forward_pe = valuation_cycles["latestValue"]
+    current_drawdown = valuation_cycles["latestDrawdown"]
+    if (
+        isinstance(current_forward_pe, (int, float))
+        and current_forward_pe <= DCA1_LOW_THRESHOLD
+        and isinstance(current_drawdown, (int, float))
+        and current_drawdown <= -DCA1_DRAWDOWN_THRESHOLD
+    ):
+        value_status = {"key": "action", "position": 2, "headline": "已触发", "action": "分批执行"}
+    elif isinstance(current_forward_pe, (int, float)) and current_forward_pe <= DCA1_NEAR_THRESHOLD:
+        value_status = {"key": "near", "position": 1, "headline": "接近触发", "action": "继续观察"}
+    else:
+        value_status = {"key": "waiting", "position": 0, "headline": "暂未触发", "action": "暂不执行"}
+    reversal_status = (qqq_market.get("status") or {}).get("key")
+    reversal_status_map = {
+        "normal": {"key": "waiting", "position": 0, "headline": "暂未触发", "action": "暂不执行"},
+        "near": {"key": "near", "position": 1, "headline": "接近触发", "action": "继续观察"},
+        "action": {"key": "action", "position": 2, "headline": "已触发", "action": "分批执行"},
+    }
+    dca2_available = market_data_current and reversal_status in reversal_status_map
+    return {
+        "generatedAt": bottom_payload.get("generatedAt") or index_payload.get("generatedAt"),
+        "preview": not include_details,
+        "products": {
+            "dca1": {
+                "available": dca1_available,
+                "asOf": valuation_cycles["latestDate"] or forward.get("asOf") or qqq_index.get("asOf"),
+                "status": value_status if include_details and dca1_available else None,
+                "opportunityDates": opportunity_dates_1,
+                "opportunityWindows": opportunity_windows_1,
+                "currentCycleStart": current_cycle_start_1,
+                "locationSeries": location_series,
+                "lowBoundaryPosition": boundary_position,
+                "priceSeries": price_series,
+                "history": _dca_history_payload(
+                    opportunity_dates_1,
+                    daily_prices=qqq_market.get("dailyPrices") or [],
+                ) if include_details else None,
+            },
+            "dca2": {
+                "available": dca2_available,
+                "asOf": qqq_market.get("asOf"),
+                "status": reversal_status_map.get(reversal_status) if include_details and dca2_available else None,
+                "opportunityDates": opportunity_dates_2,
+                "opportunityWindows": opportunity_windows_2,
+                "currentCycleStart": opportunity_dates_2[-1] if opportunity_dates_2 else None,
+                "locationSeries": [],
+                "lowBoundaryPosition": None,
+                "priceSeries": price_series,
+                "history": _dca_history_payload(opportunity_dates_2, qqq_market) if include_details else None,
+            },
+        },
+    }
 
 
 def find_user_by_id(user_id: int) -> sqlite3.Row | None:
@@ -1881,9 +2483,62 @@ def insert_analytics_event(
 def write_analytics_event(conn: sqlite3.Connection, user: sqlite3.Row | None, payload: dict[str, Any]) -> None:
     event_type = analytics_text(payload.get("eventType"), 40)
     event_key = analytics_text(payload.get("eventKey"), 80)
-    if event_type != "nav_click" or not event_key:
-        raise ValueError("埋点参数不正确")
-    insert_analytics_event(conn, user, event_type, event_key, str(payload.get("path") or ""))
+    if event_type == "nav_click" and event_key:
+        insert_analytics_event(conn, user, event_type, event_key, str(payload.get("path") or ""))
+        return
+    if event_type == "course_video_error" and re.fullmatch(
+        r"[1-9][0-9]{0,9}:(?:url|renew|source|play|unsupported)", event_key
+    ):
+        if not user:
+            return
+        duplicate = conn.execute(
+            """
+            SELECT 1 FROM analytics_events
+            WHERE user_id = ? AND event_type = ? AND event_key = ?
+              AND datetime(created_at) >= datetime('now', '-1 hour')
+            LIMIT 1
+            """,
+            (user["id"], event_type, event_key),
+        ).fetchone()
+        if duplicate:
+            return
+        insert_analytics_event(conn, user, event_type, event_key, "/courses/playback")
+        return
+    timing_event = event_type in {"course_video_url_ready", "course_video_ready"}
+    if timing_event and re.fullmatch(r"[1-9][0-9]{0,9}:(?:lt1|1to3|3to8|gte8)", event_key):
+        if not user:
+            return
+        lesson_id = event_key.split(":", 1)[0]
+        duplicate = conn.execute(
+            """
+            SELECT 1 FROM analytics_events
+            WHERE user_id = ? AND event_type = ? AND event_key LIKE ?
+              AND datetime(created_at) >= datetime('now', '-1 hour')
+            LIMIT 1
+            """,
+            (user["id"], event_type, f"{lesson_id}:%"),
+        ).fetchone()
+        if duplicate:
+            return
+        insert_analytics_event(conn, user, event_type, event_key, "/courses/playback")
+        return
+    if event_type == "course_video_buffer" and re.fullmatch(r"[1-9][0-9]{0,9}", event_key):
+        if not user:
+            return
+        duplicate = conn.execute(
+            """
+            SELECT 1 FROM analytics_events
+            WHERE user_id = ? AND event_type = ? AND event_key = ?
+              AND datetime(created_at) >= datetime('now', '-1 hour')
+            LIMIT 1
+            """,
+            (user["id"], event_type, event_key),
+        ).fetchone()
+        if duplicate:
+            return
+        insert_analytics_event(conn, user, event_type, event_key, "/courses/playback")
+        return
+    raise ValueError("埋点参数不正确")
 
 
 def write_course_play_grant(user: sqlite3.Row, lesson_id: int) -> None:
@@ -2638,7 +3293,7 @@ def signed_course_video_url(video_key: str, now: int | None = None) -> str:
         return raw
     if course_video_uses_cdn(raw):
         return signed_course_cdn_url(raw, now=now)
-    return signed_course_cos_url(raw, method="get", now=now)
+    return signed_course_cos_url(raw, method="get", now=now, ttl=COURSE_VIDEO_SIGN_TTL)
 
 
 def signed_course_hls_segment_url(video_key: str) -> str:
@@ -2656,6 +3311,8 @@ def course_hls_playlist_url(lesson_id: int, video_key: str) -> str:
     return f"/api/courses/lessons/{lesson_id}/hls?{urlencode({'playlist': course_video_key(video_key)})}"
 
 
+# HLS batches use immutable keys; segment URLs are still signed per request below.
+@lru_cache(maxsize=256)
 def fetch_course_cos_text(key: str) -> str:
     request = urllib.request.Request(
         signed_course_cos_url(key, method="get", ttl=120),
@@ -2720,7 +3377,7 @@ def course_video_url_ttl(video_key: str) -> int:
     raw = course_video_key(str(video_key or "").strip())
     if course_video_is_hls(raw):
         return COURSE_HLS_SIGN_TTL
-    return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_COS_SIGN_TTL)
+    return max(60, COURSE_CDN_SIGN_TTL if course_video_uses_cdn(raw) else COURSE_VIDEO_SIGN_TTL)
 
 
 def safe_course_video_filename(value: str) -> str:
@@ -3726,6 +4383,9 @@ class Handler(BaseHTTPRequestHandler):
         elif preset == "etf":
             where.append("UPPER(COALESCE(s.sector, '')) LIKE ?")
             values.append("%ETF%")
+        elif preset == "mag7":
+            where.append(f"s.symbol IN ({','.join('?' for _ in TECH_MAG7_SYMBOLS)})")
+            values.extend(TECH_MAG7_SYMBOLS)
         elif preset == "watchlist":
             symbols = [
                 str(item).strip().upper()
@@ -4002,6 +4662,8 @@ class Handler(BaseHTTPRequestHandler):
             values.extend([today, end])
         if results_only:
             where.append("(actual_label IS NOT NULL AND actual_label != '' OR actual_value IS NOT NULL)")
+            where.append("event_date <= ?")
+            values.append(datetime.now(timezone(timedelta(hours=8))).date().isoformat())
         if query:
             like = f"%{query}%"
             where.append(
@@ -4136,6 +4798,71 @@ class Handler(BaseHTTPRequestHandler):
                 return None
         return lesson
 
+    def send_watchlist(self, user: sqlite3.Row) -> None:
+        with db() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM user_watchlist_items
+                WHERE user_id = ?
+                ORDER BY COALESCE(next_review_at, updated_at) ASC, updated_at DESC
+                """,
+                (user["id"],),
+            ).fetchall()
+        self.send_json({"rows": [watchlist_item_payload(row) for row in rows]})
+
+    def save_watchlist_items(self, user: sqlite3.Row, items: list[dict[str, Any]], *, skip_missing: bool = False) -> tuple[int, int]:
+        if not items or len(items) > 200:
+            raise ValueError("请选择 1 至 200 只股票")
+        timestamp = now_iso()
+        saved = 0
+        normalized: list[dict[str, Any]] = []
+        for item in items:
+            symbol = normalize_watchlist_symbol(item.get("symbol"))
+            source = str(item.get("source") or "手动加入").strip()[:40] or "手动加入"
+            review_action = str(item.get("reviewAction") or "").strip()
+            if review_action and review_action not in WATCHLIST_REVIEW_ACTIONS:
+                raise ValueError("复盘状态不正确")
+            normalized.append(
+                {
+                    "symbol": symbol,
+                    "source": source,
+                    "review_action": review_action or None,
+                    "review_count": max(0, min(10000, int(item.get("reviewCount") or 0))),
+                    "last_reviewed_at": normalize_watchlist_time(item.get("lastReviewedAt")),
+                    "next_review_at": normalize_watchlist_time(item.get("nextReviewAt")),
+                    "created_at": normalize_watchlist_time(item.get("addedAt") or item.get("createdAt"), timestamp),
+                    "updated_at": normalize_watchlist_time(item.get("updatedAt"), timestamp),
+                }
+            )
+        symbols = {item["symbol"] for item in normalized}
+        placeholders = ",".join("?" for _ in symbols)
+        with product_db() as conn:
+            existing = {
+                row["symbol"]
+                for row in conn.execute(f"SELECT symbol FROM symbols WHERE symbol IN ({placeholders})", tuple(symbols)).fetchall()
+            }
+        missing = sorted(symbols - existing)
+        if missing and not skip_missing:
+            raise ValueError(f"股票代码不存在：{missing[0]}")
+        normalized = [item for item in normalized if item["symbol"] in existing]
+        with db() as conn:
+            for item in normalized:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO user_watchlist_items
+                    (user_id, symbol, source, review_action, review_count, last_reviewed_at, next_review_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, symbol) DO NOTHING
+                    """,
+                    (
+                        user["id"], item["symbol"], item["source"], item["review_action"], item["review_count"],
+                        item["last_reviewed_at"], item["next_review_at"], item["created_at"], item["updated_at"],
+                    ),
+                )
+                saved += cursor.rowcount
+        return saved, len(missing)
+
     def do_GET(self) -> None:
         if self.path == "/api/health":
             self.send_json({"ok": True, "time": now_iso()})
@@ -4154,6 +4881,13 @@ class Handler(BaseHTTPRequestHandler):
                     "entitlements": entitlements(user),
                 }
             )
+            return
+
+        if self.path == "/api/watchlist":
+            user = self.require_user()
+            if not user:
+                return
+            self.send_watchlist(user)
             return
 
         if self.path == "/api/pro/trade-records":
@@ -4190,6 +4924,38 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         parsed = urlparse(self.path)
+        if parsed.path == "/api/rolling/plans":
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            self.send_json(ROLLING_RUNTIME.snapshot(int(user["id"])))
+            return
+
+        if parsed.path == "/api/rolling/quote":
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            symbol = parse_qs(parsed.query).get("symbol", [""])[0]
+            try:
+                self.send_json(ROLLING_RUNTIME.quote(symbol))
+            except rolling_tool.RollingError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except rolling_tool.MarketUnavailable as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
         if parsed.path.startswith("/api/courses/lessons/") and parsed.path.endswith("/hls"):
             user = self.require_user()
             if not user:
@@ -4248,6 +5014,24 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"url": play_url, "expiresIn": play_ttl, "type": "hls" if is_hls else "file"})
             return
 
+        if parsed.path == "/api/tools/bottom-strategy":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                self.send_json(bottom_strategy_payload(entitlements(user)["paid"]))
+            except FileNotFoundError:
+                self.send_json(
+                    {"error": "策略数据暂不可用", "code": "bottom_strategy_missing"},
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
+            except (OSError, ValueError, json.JSONDecodeError):
+                self.send_json(
+                    {"error": "策略数据读取失败", "code": "bottom_strategy_invalid"},
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
+            return
+
         if parsed.path == "/api/tools/funding-arbitrage":
             user = self.require_admin()
             if not user:
@@ -4261,6 +5045,15 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": f"扫描失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
+        if parsed.path == "/api/tools/dca-strategies":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                self.send_json(dca_strategies_payload(entitlements(user)["paid"]))
+            except (OSError, ValueError, sqlite3.Error):
+                self.send_json({"error": "定投产品数据暂不可用", "code": "dca_strategy_missing"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
         if parsed.path == "/api/admin/open-portfolio":
             user = self.require_admin()
             if not user:
@@ -4427,6 +5220,100 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/rolling/plans":
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            try:
+                plan_id = ROLLING_RUNTIME.create(int(user["id"]), self.read_json())
+                self.send_json({"ok": True, "id": plan_id}, HTTPStatus.CREATED)
+            except rolling_tool.RollingError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except rolling_tool.MarketUnavailable as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        rolling_action = re.fullmatch(r"/api/rolling/plans/([a-f0-9]{32})/(pause|resume|end)", parsed.path)
+        if rolling_action:
+            user = self.require_user()
+            if not user:
+                return
+            if not has_yearly_access(user):
+                self.send_json({"error": "滚仓工具需要年度会员权限", "code": "yearly_required"}, HTTPStatus.FORBIDDEN)
+                return
+            if not ROLLING_RUNTIME:
+                self.send_json({"error": "滚仓服务暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            try:
+                ROLLING_RUNTIME.action(int(user["id"]), rolling_action.group(1), rolling_action.group(2))
+                self.send_json({"ok": True})
+            except rolling_tool.RollingError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if parsed.path in {"/api/watchlist", "/api/watchlist/import"}:
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                payload = self.read_json()
+                items = payload.get("items") if parsed.path.endswith("/import") else [payload]
+                if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+                    raise ValueError("自选数据格式不正确")
+                saved, skipped = self.save_watchlist_items(user, items, skip_missing=parsed.path.endswith("/import"))
+            except (TypeError, ValueError) as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except FileNotFoundError:
+                self.send_json({"error": "产品数据暂时不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            self.send_json({"ok": True, "saved": saved, "skipped": skipped}, HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/watchlist/review":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                payload = self.read_json()
+                symbol = normalize_watchlist_symbol(payload.get("symbol"))
+                action = str(payload.get("action") or "").strip()
+                if action not in WATCHLIST_REVIEW_ACTIONS:
+                    raise ValueError("复盘状态不正确")
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            timestamp = datetime.now(timezone.utc)
+            next_days = 10 if action == "lower" else 3 if action == "continue" else 5
+            with db() as conn:
+                cursor = conn.execute(
+                    """
+                    UPDATE user_watchlist_items
+                    SET review_action = ?, review_count = review_count + 1,
+                        last_reviewed_at = ?, next_review_at = ?, updated_at = ?
+                    WHERE user_id = ? AND symbol = ?
+                    """,
+                    (
+                        action,
+                        timestamp.isoformat(),
+                        (timestamp + timedelta(days=next_days)).isoformat(),
+                        timestamp.isoformat(),
+                        user["id"],
+                        symbol,
+                    ),
+                )
+            if cursor.rowcount == 0:
+                self.send_json({"error": "自选不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
         if self.path == "/api/auth/login":
             try:
                 payload = self.read_json()
@@ -4891,6 +5778,26 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/watchlist/"):
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                symbol = normalize_watchlist_symbol(unquote(parsed.path.removeprefix("/api/watchlist/")))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            with db() as conn:
+                cursor = conn.execute(
+                    "DELETE FROM user_watchlist_items WHERE user_id = ? AND symbol = ?",
+                    (user["id"], symbol),
+                )
+            if cursor.rowcount == 0:
+                self.send_json({"error": "自选不存在"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+
         if parsed.path.startswith("/api/admin/open-portfolio/trades/"):
             admin = self.require_admin()
             if not admin:
@@ -5020,11 +5927,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    global ROLLING_RUNTIME
     validate_course_cdn_config()
     init_db()
+    ROLLING_RUNTIME = rolling_tool.RollingRuntime(DB_PATH)
+    ROLLING_RUNTIME.start()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"auth api listening on http://{HOST}:{PORT}, db={DB_PATH}")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    finally:
+        ROLLING_RUNTIME.stop()
 
 
 if __name__ == "__main__":

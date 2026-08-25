@@ -13,35 +13,69 @@ Dev and production frontend files are separated:
 ## Branches
 
 - `master` is the stable production baseline.
+- `codex/dev-integration` is the only branch allowed to publish dev code.
 - New work starts from a `codex/...` branch.
-- Deploy code only after `npm run check` passes and the branch has a commit.
-- Deploy to dev first. Merge back to `master` only after dev is confirmed.
+- Merge confirmed dev work into `codex/dev-integration`, run `npm run check`, commit, then deploy dev from that clean branch.
+- Merge the confirmed dev release back to `master` only after dev is accepted.
 - Deploy production code from `master` only after the user explicitly asks for that prod deploy.
 - Tag important production releases as `prod-YYYY-MM-DD-short-name`.
 
+Use each long-lived branch only from its dedicated worktree:
+
+- Feature work: a temporary `codex/...` worktree created from `codex/dev-integration`.
+- Dev release: the clean worktree currently attached to `codex/dev-integration`; locate it with `git worktree list` before releasing.
+- Data refresh: `/Users/linlifu/Documents/New project-automation-refresh` on `codex/automation-refresh`.
+
+The original project directory may contain unfinished feature work. It is not a
+release or automation workspace and must not be used as one. The old partial
+entry points now delegate to the cumulative release and cannot publish only the
+main site or admin site.
+
 ## Deploy To Test
 
-Code deploy does not rebuild `data/product.db` by default. Data refresh is owned
-by the automated refresh jobs.
+For frontend-only dev changes, use the fast entry point. It runs the project
+check plus the relevant browser regression, then deploys without rebuilding or
+replacing product data:
 
 ```bash
-./scripts/deploy_dev.sh
+git switch codex/dev-integration
+./scripts/release_dev_fast.sh
 ```
+
+The fast path accepts only React view, CSS, HTML, and static asset changes.
+Backend, API contracts, business logic, admin, data, dependency, configuration,
+test, or release-script changes fail closed and must use the complete entry
+point:
+
+```bash
+git switch codex/dev-integration
+./scripts/release_dev.sh
+```
+
+Code releases reuse the current `data/product.db` test snapshot and do not
+rebuild or deploy product data. When the release includes product-data changes,
+build, enrich, verify, and deploy one DB snapshot with:
+
+```bash
+INCLUDE_PRODUCT_DATA=1 ./scripts/release_dev.sh
+```
+
+The release script rejects other branches and uncommitted changes. It also reads
+the commit recorded by the current dev site and requires that commit to be an
+ancestor of the new release. A partial or older branch therefore cannot replace
+the cumulative dev baseline. The deployed commit is available at
+`https://dev.dongbimao.org/release.json` for verification.
 
 Check `https://dev.dongbimao.org` first.
-
-To force a product DB rebuild during a manual deploy:
-
-```bash
-BUILD_PRODUCT_DB=1 ./scripts/deploy_dev.sh
-```
 
 ## Automated Refresh Deploy
 
 The market data refresh now deploys automatically after product DB validation
-and release gate tests pass:
+and release gate tests pass. Run it only from the dedicated refresh worktree:
 
 ```bash
+cd "/Users/linlifu/Documents/New project-automation-refresh"
+test "$(git branch --show-current)" = "codex/automation-refresh"
 ./scripts/automated_refresh.sh
 ```
 
@@ -88,11 +122,12 @@ After dev is confirmed and the code is committed, build and verify one immutable
 release artifact:
 
 ```bash
-./scripts/prepare_prod_release.sh
+RELEASE_TEST_PRODUCT_DB=/path/to/read-only-product.db ./scripts/prepare_prod_release.sh
 ```
 
 The artifact is stored under `.release-artifacts/` and is bound to the exact Git
 commit. Re-running this command for the same verified commit reuses the artifact.
+The snapshot is used only by the release gate and is never packaged or deployed.
 
 ## Promote To Production
 

@@ -9,6 +9,11 @@ CPIAUCSL,CPI All Urban Consumers
 UNRATE,Unemployment Rate
 VIXCLS,CBOE Volatility Index
 BAMLH0A0HYM2,ICE BofA US High Yield Option-Adjusted Spread
-DTWEXBGS,Trade Weighted U.S. Dollar Index Broad Goods and Services
+DEXUSEU,U.S. Dollars to One Euro
+DEXJPUS,Japanese Yen to One U.S. Dollar
+DEXUSUK,U.S. Dollars to One British Pound
+DEXCAUS,Canadian Dollars to One U.S. Dollar
+DEXSDUS,Swedish Kronor to One U.S. Dollar
+DEXSZUS,Swiss Francs to One U.S. Dollar
 DCOILWTICO,WTI Crude Oil Spot Price
 DCOILBRENTEU,Brent Crude Oil Spot Price

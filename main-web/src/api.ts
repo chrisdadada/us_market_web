@@ -29,6 +29,16 @@ export type KeyLevel = {
   lastConfirmedAt?: string;
 };
 
+export type BreakoutConfirmation = {
+  status?: "breakout_watch" | "awaiting_retest" | "confirmed_support" | "breakout_failed" | string;
+  level?: KeyLevel | null;
+  eventAt?: string | null;
+  breakoutAt?: string | null;
+  confirmedAt?: string | null;
+  retestAt?: string | null;
+  failedAt?: string | null;
+};
+
 export type TrackingKeyLevels = {
   status?: "ready" | "insufficient" | "unavailable" | string;
   asOf?: string;
@@ -38,6 +48,7 @@ export type TrackingKeyLevels = {
   support?: KeyLevel | null;
   secondarySupport?: KeyLevel | null;
   resistance?: KeyLevel | null;
+  breakoutConfirmation?: BreakoutConfirmation | null;
   position?: string;
   positionText?: string;
   supportDistancePct?: number | null;
@@ -109,12 +120,19 @@ export type TemperatureIndicator = {
   impact?: string;
   explain?: string;
   asOf?: string;
+  frequency?: "daily" | "monthly";
+  displayPeriod?: string;
+  sourceLagBusinessDays?: number;
+  sourceLagMonths?: number;
+  stale?: boolean;
+  includedInScore?: boolean;
 };
 
 export type MarketTemperaturePayload = {
   asOf?: string;
   overall?: { score?: number | null; label?: string; summary?: string; action?: string };
   indicators?: TemperatureIndicator[];
+  freshness?: { current?: number; monthly?: number; delayed?: number };
 };
 
 export type MacroSeriesIndicator = TemperatureIndicator & {
@@ -126,6 +144,49 @@ export type MacroSeriesIndicator = TemperatureIndicator & {
 export type MacroSeriesPayload = {
   asOf?: string;
   indicators?: MacroSeriesIndicator[];
+};
+
+export type IndexValuationMetric = {
+  key: string;
+  label?: string;
+  asOf?: string;
+  value?: number | null;
+  unit?: string;
+  status?: string;
+  percentile?: number | null;
+  references?: { p30?: number | null; median?: number | null; p70?: number | null };
+  trend?: Array<{ date: string; value: number }>;
+};
+
+export type IndexValuationIndex = {
+  asOf?: string;
+  index?: { symbol?: string; name?: string };
+  forwardValuation?: {
+    asOf?: string;
+    forwardPe?: number;
+    trailingPe?: number;
+    tenYearAverageForwardPe?: number;
+    premiumToTenYearAveragePct?: number;
+    impliedEarningsGrowthPct?: number;
+  };
+  marketIndicators?: {
+    shortTermMomentum?: { asOf?: string; label?: string; value?: number; periodDays?: number };
+    vix?: { asOf?: string; label?: string; value?: number };
+  };
+  valuationSummary?: {
+    asOf?: string;
+    level?: "偏低" | "适中" | "偏高" | string;
+    pePercentile?: number | null;
+    pbPercentile?: number | null;
+    dividendYield?: number | null;
+    peg?: number | null;
+  };
+  metrics?: IndexValuationMetric[];
+};
+
+export type IndexValuationPayload = {
+  asOf?: string;
+  indices?: IndexValuationIndex[];
 };
 
 export type StrengthTheme = {
@@ -241,6 +302,10 @@ export type CalendarEvent = {
   previousValue?: number | null;
   previousLabel?: string | null;
   resultUpdatedAt?: string | null;
+  resultKind?: "cpi" | "rate" | "jobs";
+  resultHeadline?: string;
+  resultMeaning?: string;
+  resultTone?: "positive" | "neutral" | "watch";
   relatedModules?: string[];
   relatedAssets?: string[];
   summary?: string;
@@ -345,6 +410,32 @@ export type CryptoEtfFlowPayload = {
     ethFlowUsd: number | null;
     totalFlowUsd: number;
   }>;
+};
+
+export type RetailSentimentPayload = {
+  asOf: string;
+  generatedAt?: string;
+  options: {
+    date: string;
+    putCallRatio: number;
+    callSharePct: number;
+    changePp: number;
+    history: Array<{ date: string; putCallRatio: number; callSharePct: number }>;
+  };
+  survey: {
+    date: string;
+    bullishPct: number;
+    neutralPct: number;
+    bearishPct: number;
+    spreadPp: number;
+    history: Array<{ date: string; bullishPct: number; neutralPct: number; bearishPct: number }>;
+  };
+  margin: {
+    date: string;
+    balanceUsdMillions: number;
+    changePct: number;
+    history: Array<{ date: string; balanceUsdMillions: number }>;
+  };
 };
 
 export type StockEventRow = {
@@ -526,17 +617,214 @@ export type OpenPortfolioPayload = {
   curve: Array<{ time: string; value: number }>;
 };
 
+export type WatchlistItem = {
+  symbol: string;
+  source: string;
+  reviewAction?: "reviewed" | "continue" | "lower" | null;
+  reviewCount: number;
+  lastReviewedAt?: string | null;
+  nextReviewAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BottomStrategyRecord = {
+  signalDate: string;
+  entryDate: string;
+  entryPrice: number;
+  status: "complete" | "observing";
+  performance: Record<string, { maxPct?: number | null; endPct?: number | null }>;
+};
+
+export type BottomStrategyMarket = {
+  symbol: "QQQ" | "SPY" | string;
+  name: string;
+  asOf: string;
+  status: {
+    key: "normal" | "near" | "action";
+    title: string;
+    message: string;
+    position: number;
+    breadth?: number | null;
+    rsi6?: number | null;
+  };
+  summary: {
+    recentCount: number;
+    recentPositiveCount: number;
+    end180MedianPct: number;
+    bestEnd180Pct: number;
+    stageMaxMedianPct: Record<string, number>;
+    totalSignals: number;
+    completedSignals: number;
+    completedPositiveCount?: number;
+    completedNegativeCount?: number;
+  };
+  lastSignal?: {
+    signalDate: string;
+    tradingDaysObserved: number;
+    completedHorizon?: number | null;
+    completedEndPct?: number | null;
+  };
+  medianPath?: Array<{ day: number; pct: number }>;
+  recentRecords: BottomStrategyRecord[];
+  records: BottomStrategyRecord[];
+  priceSeries: Array<{ date: string; value: number }>;
+  opportunityDates?: string[];
+};
+
+export type BottomStrategyPayload = {
+  generatedAt: string;
+  asOf?: string;
+  preview?: boolean;
+  freshness?: {
+    status: "current" | "stale";
+    expectedAsOf?: string | null;
+    asOf?: string | null;
+  };
+  method: {
+    signal: string;
+    entry: string;
+    horizons: number[];
+    costsIncluded: boolean;
+  };
+  markets: Record<string, BottomStrategyMarket>;
+};
+
+export type DcaStrategyProduct = {
+  available?: boolean;
+  asOf?: string | null;
+  status?: {
+    key: "waiting" | "near" | "action";
+    position: number;
+    headline: string;
+    action: string;
+  } | null;
+  opportunityDates: string[];
+  opportunityWindows?: Array<{ startDate: string; endDate: string }>;
+  currentCycleStart?: string | null;
+  locationSeries: Array<{ date: string; position: number }>;
+  lowBoundaryPosition?: number | null;
+  priceSeries: Array<{ date: string; value: number }>;
+  history?: {
+    sinceYear?: number | null;
+    totalOpportunities: number;
+    recentCount: number;
+    max60MedianPct?: number | null;
+    end180MedianPct?: number | null;
+    records: Array<{
+      opportunityDate: string;
+      max30Pct?: number | null;
+      max60Pct?: number | null;
+      end180Pct?: number | null;
+    }>;
+  } | null;
+};
+
+export type DcaStrategiesPayload = {
+  generatedAt?: string | null;
+  preview: boolean;
+  products: {
+    dca1: DcaStrategyProduct;
+    dca2: DcaStrategyProduct;
+  };
+};
+
+export type RollingPlanStatus = "waiting_entry" | "running" | "paused" | "holding_protection" | "ending" | "ended";
+
+export type RollingPlanConfig = {
+  schemaVersion: 1;
+  symbol: string;
+  side: "long" | "short";
+  triggerDirection: "rise" | "fall";
+  initialNotional: string;
+  leverage: string;
+  entryMode: "immediate" | "conditional";
+  entryDirection: "rise" | "fall";
+  entryTriggerPrice: string | null;
+  intervalType: "percent" | "absolute";
+  intervalValue: string;
+  addPercent: string;
+  maxAdds: number;
+  protectionDistance: string;
+};
+
+export type RollingPlanState = {
+  quantity: string;
+  averagePrice: string | null;
+  totalNotional: string;
+  fixedAddNotional: string | null;
+  addsCompleted: number;
+  nextTriggerPrice: string | null;
+  protectionPrice: string | null;
+  entryPrice: string | null;
+  exitPrice: string | null;
+  estimatedPnl: string | null;
+  lastFillPrice: string | null;
+};
+
+export type RollingPlanEvent = {
+  id: number;
+  type: string;
+  price: string | null;
+  detail: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type RollingPlan = {
+  id: string;
+  symbol: string;
+  status: RollingPlanStatus;
+  config: RollingPlanConfig;
+  state: RollingPlanState;
+  currentPrice: string | null;
+  currentNotional: string | null;
+  estimatedPnl: string | null;
+  estimatedMargin: string | null;
+  marketConnected: boolean;
+  marketAsOf: number | null;
+  createdAt: string;
+  updatedAt: string;
+  endedAt: string | null;
+  events: RollingPlanEvent[];
+};
+
+export type RollingPlansPayload = {
+  plans: RollingPlan[];
+  marketError?: string;
+};
+
+export type RollingPlanInput = {
+  symbol: string;
+  side: "long" | "short";
+  triggerDirection: "rise" | "fall";
+  initialNotional: string;
+  leverage: string;
+  entryMode: "immediate" | "conditional";
+  entryDirection: "rise" | "fall";
+  entryTriggerPrice?: string;
+  intervalType: "percent" | "absolute";
+  intervalValue: string;
+  addPercent: string;
+  maxAdds: string;
+  protectionDistance: string;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {})
-    }
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...init,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers || {})
+      }
+    });
+  } catch {
+    throw new Error("网络请求失败，请稍后重试");
+  }
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || "请求失败");
+  if (!response.ok) throw new Error(response.status >= 500 ? "服务暂时不可用，请稍后重试" : payload.error || "操作失败，请重试");
   return payload as T;
 }
 
@@ -573,7 +861,9 @@ export const api = {
   },
   marketTemperature: () => request<MarketTemperaturePayload>("/api/product/raw/market-temperature"),
   macroSeries: () => request<MacroSeriesPayload>("/api/product/raw/macro-series"),
+  indexValuation: () => request<IndexValuationPayload>("/api/product/raw/index-valuation"),
   cryptoEtfFlows: () => request<CryptoEtfFlowPayload>("/api/product/raw/crypto-etf-flows"),
+  retailSentiment: () => request<RetailSentimentPayload>("/api/product/raw/retail-sentiment"),
   strengthScanner: (options?: { limit?: number; offset?: number; bucket?: string; q?: string; sector?: string; heat?: string; sort?: string }) => {
     const params = new URLSearchParams({
       limit: String(options?.limit || 20),
@@ -626,12 +916,44 @@ export const api = {
   symbols: (params: URLSearchParams) => request<SymbolSearchPayload>(`/api/product/symbols?${params.toString()}`),
   symbolDetail: (symbol: string) => request<SymbolDetailPayload>(`/api/product/symbols/${encodeURIComponent(symbol)}`),
   signals: () => request<SignalPayload>("/api/signals"),
+  watchlist: () => request<{ rows: WatchlistItem[] }>("/api/watchlist"),
+  addWatchlist: (symbol: string, source = "手动加入") =>
+    request<{ ok: boolean; saved: number; skipped: number }>("/api/watchlist", {
+      method: "POST",
+      body: JSON.stringify({ symbol, source })
+    }),
+  importWatchlist: (items: Array<Record<string, unknown>>) =>
+    request<{ ok: boolean; saved: number; skipped: number }>("/api/watchlist/import", {
+      method: "POST",
+      body: JSON.stringify({ items })
+    }),
+  reviewWatchlist: (symbol: string, action: "reviewed" | "continue" | "lower") =>
+    request<{ ok: boolean }>("/api/watchlist/review", {
+      method: "POST",
+      body: JSON.stringify({ symbol, action })
+    }),
+  removeWatchlist: (symbol: string) =>
+    request<{ ok: boolean }>(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" }),
+  bottomStrategy: () => request<BottomStrategyPayload>("/api/tools/bottom-strategy"),
   openPortfolio: () => request<OpenPortfolioPayload>("/api/open-portfolio"),
+  dcaStrategies: () => request<DcaStrategiesPayload>("/api/tools/dca-strategies"),
   fundingScanner: (options: FundingScannerQuery) => {
     const params = new URLSearchParams();
     Object.entries(options).forEach(([key, value]) => params.set(key, String(value)));
     return request<FundingScannerPayload>(`/api/tools/funding-arbitrage?${params.toString()}`);
   },
+  rollingPlans: () => request<RollingPlansPayload>("/api/rolling/plans"),
+  rollingQuote: (symbol: string) => request<{ symbol: string; price: string; asOf: number; connected: boolean }>(
+    `/api/rolling/quote?symbol=${encodeURIComponent(symbol)}`
+  ),
+  createRollingPlan: (plan: RollingPlanInput) => request<{ ok: boolean; id: string }>("/api/rolling/plans", {
+    method: "POST",
+    body: JSON.stringify(plan)
+  }),
+  rollingAction: (id: string, action: "pause" | "resume" | "end") => request<{ ok: boolean }>(
+    `/api/rolling/plans/${encodeURIComponent(id)}/${action}`,
+    { method: "POST", body: "{}" }
+  ),
   courses: () => request<{ series: CourseSeries[] }>("/api/courses"),
   coursePlayUrl: (lessonId: number, signal?: AbortSignal) => request<{ url: string; expiresIn: number; type: "file" | "hls" }>(
     `/api/courses/lessons/${encodeURIComponent(lessonId)}/play`,

@@ -6,17 +6,22 @@ import os
 import re
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+from macro_freshness import MONTHLY_KEYS, partition_fresh_indicators
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
+BLS_SCHEDULE_CACHE = ROOT / "scripts" / "data" / "bls_release_schedule.json"
 EXTERNAL = Path("/Volumes/Extreme SSD/market-data-lab/data")
 FRED_DIR = EXTERNAL / "raw" / "fred"
+DXY_PARQUET = Path(os.environ.get("DXY_PARQUET", EXTERNAL / "raw" / "dxy" / "DXY.parquet"))
 REPORTS = EXTERNAL / "reports"
 DAILY_DIR = EXTERNAL / "processed" / "polygon" / "stocks_split_adjusted" / "1d"
 EVENT_SIGNALS_PATH = EXTERNAL / "features" / "polygon" / "monetizable_signals" / "event_signals.parquet"
@@ -237,11 +242,95 @@ def china_event_time(et_value: str) -> tuple[str, str] | None:
     return cn.date().isoformat(), cn.strftime("%H:%M")
 
 
+class BlsScheduleParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.in_row = False
+        self.cell_class = ""
+        self.cell_text: list[str] = []
+        self.cells: dict[str, str] = {}
+        self.rows: list[tuple[str, str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "tr":
+            self.in_row = True
+            self.cells = {}
+        elif self.in_row and tag == "td":
+            self.cell_class = str(dict(attrs).get("class") or "")
+            self.cell_text = []
+
+    def handle_data(self, data: str) -> None:
+        if self.cell_class:
+            self.cell_text.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "td" and self.cell_class:
+            self.cells[self.cell_class] = " ".join("".join(self.cell_text).split())
+            self.cell_class = ""
+            self.cell_text = []
+        elif tag == "tr" and self.in_row:
+            self.in_row = False
+            day = self.cells.get("date-cell", "")
+            event_time = self.cells.get("time-cell", "")
+            release = self.cells.get("desc-cell", "")
+            if day and event_time and release:
+                self.rows.append((day, event_time, release))
+
+
+def build_bls_schedule_events(start: date, end: date) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    try:
+        cached_rows = json.loads(BLS_SCHEDULE_CACHE.read_text())["rows"]
+    except (OSError, KeyError, TypeError, json.JSONDecodeError):
+        cached_rows = []
+    for year in range(start.year, end.year + 1):
+        rows: list[tuple[str, str, str]] = []
+        try:
+            parser = BlsScheduleParser()
+            parser.feed(fetch_text(f"https://www.bls.gov/schedule/{year}/home.htm"))
+            rows = parser.rows
+        except Exception:
+            pass
+        if not rows:
+            rows = [tuple(row) for row in cached_rows if str(year) in str(row[0])]
+        for raw_day, raw_time, release in rows:
+            if release.startswith("Employment Situation for"):
+                title = "美国非农就业"
+                summary_text = "就业数据会影响降息预期、小盘风险偏好和美元利率交易。"
+            elif release.startswith("Consumer Price Index for"):
+                title = "美国 CPI"
+                summary_text = "通胀数据会影响降息预期、成长股估值和美债利率。"
+            else:
+                continue
+            try:
+                released = datetime.strptime(f"{raw_day} {raw_time}", "%A, %B %d, %Y %I:%M %p").replace(
+                    tzinfo=ZoneInfo("America/New_York")
+                ).astimezone(ZoneInfo("Asia/Shanghai"))
+            except ValueError:
+                continue
+            if not (start <= released.date() <= end):
+                continue
+            events.append(
+                {
+                    "date": released.date().isoformat(),
+                    "time": released.strftime("%H:%M"),
+                    "title": title,
+                    "type": "macro",
+                    "impact": "high",
+                    "sourceName": "BLS",
+                    "relatedModules": ["美股重点财经前瞻"],
+                    "relatedAssets": [],
+                    "summary": summary_text,
+                }
+            )
+    return events
+
+
 def build_bls_macro_events(start: date, end: date) -> list[dict[str, Any]]:
     try:
         text = fetch_text("https://www.bls.gov/schedule/news_release/bls.ics")
     except Exception:
-        return []
+        text = ""
     events: list[dict[str, Any]] = []
     for block in text.split("BEGIN:VEVENT"):
         summary = re.search(r"^SUMMARY:(.+)$", block, re.M)
@@ -273,13 +362,18 @@ def build_bls_macro_events(start: date, end: date) -> list[dict[str, Any]]:
                 "summary": summary_text,
             }
         )
-    return events
+    return [*events, *build_bls_schedule_events(start, end)]
 
 
 def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
-    try:
-        text = fetch_text("https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm")
-    except Exception:
+    text = ""
+    for _ in range(3):
+        try:
+            text = fetch_text("https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm")
+            break
+        except Exception:
+            pass
+    if not text:
         return []
     current_year = ""
     current_month = ""
@@ -309,6 +403,8 @@ def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
         if not current_year or not current_month or not match.group(3):
             continue
         raw_day = match.group(3).strip()
+        if "notation vote" in raw_day.lower():
+            continue
         days = [int(part) for part in re.findall(r"\d+", raw_day)]
         if not days or current_month not in month_numbers:
             continue
@@ -333,10 +429,32 @@ def build_fomc_macro_events(start: date, end: date) -> list[dict[str, Any]]:
     return events
 
 
-def build_macro_calendar_events(start: date, end: date, limit: int = 200) -> list[dict[str, Any]]:
+def previous_fomc_events(previous: dict[str, Any] | None, start: date, end: date) -> list[dict[str, Any]]:
+    rows = []
+    for event in (previous or {}).get("events") or []:
+        if "fomc" not in str(event.get("title") or "").lower():
+            continue
+        try:
+            event_date = date.fromisoformat(str(event.get("date") or ""))
+        except ValueError:
+            continue
+        if start <= event_date <= end:
+            rows.append(event)
+    return rows
+
+
+def build_macro_calendar_events(
+    start: date,
+    end: date,
+    limit: int = 200,
+    previous: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     seen: set[tuple[str, str, str]] = set()
     events: list[dict[str, Any]] = []
-    for event in [*build_bls_macro_events(start, end), *build_fomc_macro_events(start, end)]:
+    fomc_events = build_fomc_macro_events(start, end) or previous_fomc_events(previous, start, end)
+    if not fomc_events:
+        raise RuntimeError("FOMC calendar refresh failed and no previous FOMC events are available")
+    for event in [*build_bls_macro_events(start, end), *fomc_events]:
         key = (str(event.get("date") or ""), str(event.get("time") or ""), str(event.get("title") or ""))
         if key not in seen:
             seen.add(key)
@@ -344,17 +462,17 @@ def build_macro_calendar_events(start: date, end: date, limit: int = 200) -> lis
     return sorted(events, key=lambda row: (row["date"], row.get("time") or "", row.get("title") or ""))[:limit]
 
 
-def build_events_calendar() -> dict[str, Any]:
+def build_events_calendar(previous: dict[str, Any] | None = None) -> dict[str, Any]:
     existing: dict[str, Any] = {}
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     horizon_end = today + timedelta(days=90)
-    macro_start = today - timedelta(days=45)
+    macro_start = today - timedelta(days=365)
     base_events = [
         event
         for event in existing.get("events", [])
         if str(event.get("type") or "").lower() != "earnings"
     ]
-    macro_events = build_macro_calendar_events(macro_start, horizon_end)
+    macro_events = build_macro_calendar_events(macro_start, horizon_end, previous=previous)
     local_earnings_events = build_earnings_calendar_events(today, horizon_end)
     manual_earnings_events = build_manual_earnings_calendar_events(today, horizon_end)
     earnings_by_key: dict[tuple[str, str], dict[str, Any]] = {}
@@ -391,7 +509,7 @@ def build_events_calendar() -> dict[str, Any]:
 
 
 def read_fred_series(series_id: str, *, percent_yoy: bool = False) -> dict[str, Any] | None:
-    path = FRED_DIR / f"{series_id}.parquet"
+    path = DXY_PARQUET if series_id == "DXY" else FRED_DIR / f"{series_id}.parquet"
     if not path.exists():
         return None
     try:
@@ -481,12 +599,12 @@ def risk_for_indicator(series_id: str, value: float | None, change: float | None
         if value >= 4.5:
             return "neutral", "中", 1, "长期利率仍在高位，需要观察估值压力。"
         return "positive", "低", 0, "长期利率压力相对温和。"
-    if series_id == "DTWEXBGS":
-        if value >= 120 or change >= 0.7:
-            return "watch", "高", 2, "美元偏强，海外收入和大宗商品相关资产需要观察。"
-        if value >= 116:
-            return "neutral", "中", 1, "美元处在偏强区间，风险偏好需要观察。"
-        return "positive", "低", 0, "美元压力相对温和。"
+    if series_id == "DXY":
+        if value >= 105 or change >= 0.7:
+            return "watch", "高", 2, "DXY 偏强，海外收入和大宗商品相关资产需要观察。"
+        if value >= 100:
+            return "neutral", "中", 1, "DXY 处在偏强区间，风险偏好需要观察。"
+        return "positive", "低", 0, "DXY 压力相对温和。"
     if series_id in {"DCOILWTICO", "DCOILBRENTEU"}:
         if value >= 105 or change >= 3:
             return "watch", "高", 2, "油价偏高，通胀和成本压力可能回升。"
@@ -614,7 +732,7 @@ def build_market_temperature() -> dict[str, Any]:
         ("T10Y2Y", "10Y-2Y 利差", "利差", "%", False, "经济预期"),
         ("FEDFUNDS", "联邦基金利率", "政策利率", "%", False, "政策利率"),
         ("CPIAUCSL", "CPI 同比", "通胀", "%", True, "降息预期"),
-        ("DTWEXBGS", "美元指数", "美元", "", False, "全球资金偏好"),
+        ("DXY", "DXY 美元指数", "美元", "", False, "全球资金偏好"),
         ("DCOILWTICO", "WTI 原油", "原油", "美元", False, "通胀与能源成本"),
         ("DCOILBRENTEU", "Brent 原油", "原油", "美元", False, "通胀与能源成本"),
         ("UNRATE", "失业率", "就业", "%", False, "经济压力"),
@@ -622,7 +740,6 @@ def build_market_temperature() -> dict[str, Any]:
     ]
     indicators: list[dict[str, Any]] = []
     risks: dict[str, int] = {}
-    as_of_values: list[str] = []
     for series_id, name, category, unit, percent_yoy, impact in configs:
         item = read_fred_series(series_id, percent_yoy=percent_yoy)
         if not item:
@@ -637,11 +754,10 @@ def build_market_temperature() -> dict[str, Any]:
                 "status": "neutral",
                 "level": "待更新",
                 "explain": "这个数据源暂时无法读取，先不纳入综合判断。",
+                "_riskScore": None,
             })
             continue
         status, level, risk_score, explain = risk_for_indicator(series_id, item["value"], item["change"])
-        risks[series_id] = risk_score
-        as_of_values.append(item["asOf"])
         value_label = f"{item['value']}{unit}" if unit != "美元" else f"${item['value']}"
         previous_label = f"{item['previous']}{unit}" if unit != "美元" else f"${item['previous']}"
         change_label = f"{item['change']:+.2f}{unit}" if unit != "美元" else f"{'+' if item['change'] >= 0 else '-'}${abs(item['change']):.2f}"
@@ -657,7 +773,26 @@ def build_market_temperature() -> dict[str, Any]:
             "status": status,
             "level": level,
             "explain": explain,
+            "_riskScore": risk_score,
         })
+    daily_as_of = [
+        item["asOf"] for item in indicators
+        if item.get("asOf") and item["key"] not in MONTHLY_KEYS
+    ]
+    reference_as_of = max(daily_as_of) if daily_as_of else ""
+    indicators, hidden_indicators = partition_fresh_indicators(indicators, reference_as_of)
+    freshness = {"current": 0, "monthly": 0, "delayed": len(hidden_indicators)}
+    for item in indicators:
+        risk_score = item.pop("_riskScore", None)
+        if risk_score is not None:
+            risks[item["key"].upper()] = risk_score
+        if item["frequency"] == "monthly":
+            freshness["monthly"] += 1
+        else:
+            freshness["current"] += 1
+    for item in hidden_indicators:
+        item.pop("_riskScore", None)
+
     v2 = market_temperature_v2_score(risks, latest_benchmark_trends())
     if v2:
         score, label = v2
@@ -671,13 +806,14 @@ def build_market_temperature() -> dict[str, Any]:
         action = "等待市场价格更新" if label == "待更新" else "降低观察频率，少看高热度线索"
     return {
         "generatedAt": now_iso(),
-        "asOf": max(as_of_values) if as_of_values else "",
+        "asOf": reference_as_of,
         "overall": {
             "label": label,
             "score": score,
             "action": action,
             "summary": "当前宏观环境用于决定复盘强度，再从事件观察、强弱榜里挑具体股票。",
         },
+        "freshness": freshness,
         "indicators": indicators,
     }
 
